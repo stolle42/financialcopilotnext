@@ -1,0 +1,6 @@
+# Spec Kit install from the Specify CLI. Recreate it with specify init.
+.claude/
+.specify/*
+!.specify/memory/
+.specify/memory/*
+!.specify/memory/constitution.md
