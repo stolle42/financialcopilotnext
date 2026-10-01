@@ -63,6 +63,9 @@ both balances equal opening balance plus the net of their transactions. Delivers
 11. **Given** any account, **When** the user looks for a way to type in a balance directly, **Then**
     none exists; the only ways to change a balance are transactions, the opening balance, and
     reconciliation ([User Story 5](#user-story-5)).
+12. **Given** the transactions from scenarios 3 and 4, **When** the user opens the app, **Then** the
+    transaction list shows the transfer above the expense; **When** they filter by account "Cash",
+    **Then** only the transfer is shown ([FR-016](#fr-016)).
 
 ---
 
@@ -311,6 +314,12 @@ attempt to delete a protected one, and verify transactions and budgets respond a
   changes to transfer, the category MUST be removed and a destination account required; when it
   changes from transfer, the destination MUST be removed and the category MUST become the new
   side's "Uncategorised".
+- <a id="fr-016"></a>**FR-016**: The transaction list MUST show every transaction newest first, each
+  with its date, description, account, amount, and either its category in the category's colour or,
+  for a transfer, its destination account. Expenses, incomes, and transfers MUST be visually
+  distinguishable. Users MUST be able to filter the list by account and by category, including
+  "Uncategorised"; filtering by an account MUST include transfers into it. Selecting a transaction
+  MUST open it for editing or deletion ([FR-013](#fr-013)).
 
 **CSV import**
 
@@ -389,7 +398,7 @@ attempt to delete a protected one, and verify transactions and budgets respond a
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
   party, and MUST NOT require a network connection for any v1 capability.
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
-- <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list. Accounts are deliberately
+- <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
 
 **User experience**
@@ -509,3 +518,5 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   v1 must not foreclose them.
 - Drill-down from a chart into its transactions. Desirable, to be considered in UX design, not a v1
   commitment.
+- Searching the transaction list, paginating it, and editing several transactions at once. v1 has
+  only the filters in [FR-016](#fr-016).
