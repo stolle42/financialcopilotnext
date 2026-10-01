@@ -288,7 +288,7 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - The amount field does not accept a negative value; the kind carries the direction. A zero amount
   is allowed ([FR-010](#fr-010)).
 - Two accounts, two mapping profiles, or two categories on the same side with the same name are
-  refused (categories: [FR-032](#fr-032)).
+  refused ([FR-001](#fr-001), [FR-021](#fr-021), [FR-032](#fr-032)).
 - A very large expense "Unaccounted" share appears in Insights: it is shown at its true size
   ([FR-052](#fr-052)).
 
@@ -301,7 +301,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-001"></a>**FR-001**: Users MUST be able to create and edit an account with a name, a type, and an opening
   balance: what the account held before its earliest recorded transaction. Changing the opening
   balance MUST require the user to confirm a severe warning that every computed balance of the
-  account will change.
+  account will change. Account names MUST be unique; a duplicate name MUST be refused with an
+  explanation.
 - <a id="fr-002"></a>**FR-002**: System MUST compute each account's balance as its opening balance plus the net effect
   of its transactions. A balance MUST NOT be stored or edited as a number of its own; stating an
   account's actual balance is done through reconciliation ([FR-005](#fr-005)), which books the
@@ -351,7 +352,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-021"></a>**FR-021**: Users MUST be able to define, name, save, and reuse a mapping profile that records:
   which columns hold the date, the amount (one signed column, or separate debit and credit
   columns), the description, and optionally the counterparty; the date format; the decimal
-  separator; and the file encoding.
+  separator; and the file encoding. Profile names MUST be unique; a duplicate name MUST be refused
+  with an explanation.
 - <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
   figures, or budgets until confirmed. Pending batches MUST survive closing and reopening the app.
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount (money out
