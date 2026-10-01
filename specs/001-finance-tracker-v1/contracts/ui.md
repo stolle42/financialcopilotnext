@@ -54,7 +54,7 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Focus** starts in Amount with its content selected, so typing replaces 0.00. **Enter** saves.
   A typical cash expense therefore takes: type the amount, Tab, pick a category, Enter
   ([SC-002](../spec.md#sc-002)).
-- **Category**: a searchable select of the kind's side. Each option shows its colour swatch. There is
+- **Category**: a select of the kind's side. Each option shows its colour swatch. There is
   no empty option ([FR-011](../spec.md#fr-011)) and no "Unaccounted" option
   ([FR-030](../spec.md#fr-030)). When the transaction being edited holds "Unaccounted", the field
   shows it as the current value, but it still does not appear among the options.
@@ -200,7 +200,7 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 |---|---|
 | Category chip | Colour swatch plus name. The one component used wherever a category appears |
 | Amount display | One formatter: `Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" })` ([FR-060](../spec.md#fr-060)) |
-| Amount input | Uses the browser locale's decimal separator, at most 2 decimals. Transaction amounts cannot be negative ([FR-010](../spec.md#fr-010)); balances can |
+| Amount input | Uses the browser locale's decimal separator and the [amount grammar](csv-import.md#amount-grammar) shared with CSV import, so at most 2 decimals. Transaction amounts cannot be negative ([FR-010](../spec.md#fr-010)); balances can |
 | Date display | One formatter: `Intl.DateTimeFormat(undefined, { dateStyle: "medium" })` |
 | Colour palette | 18 swatches: the 14 distinct seed colours of [data-model.md](../data-model.md#seed-data) plus `#82c91e`, `#e8590c`, `#1098ad` and `#9c36b5` |
 | Confirmation | A modal that states the consequence. The confirm button names the action, such as "Delete category" or "Replace all data". Severe confirmations ([FR-001](../spec.md#fr-001), [FR-071](../spec.md#fr-071)) use the danger style |

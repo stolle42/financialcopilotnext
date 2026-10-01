@@ -81,54 +81,63 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - **Plain `tsc` without a bundler** gives no dev server, no hot reload and no asset pipeline.
 
 <a id="r-03"></a>
-### R-03 · React and Mantine, the only run-time frameworks
+### R-03 · React with shadcn/ui components, styled by Tailwind CSS
 
-- **Decision**:
-  - React, with Mantine as the component library. These are the app's only two run-time frameworks,
-    as constitution II asks for as few as possible.
-  - Only these Mantine packages are used: `core` with its required `hooks`, `charts` (built on
-    Recharts) and `notifications`. The rest is plain React:
-    - Confirmations use the core `Modal` through one confirmation component of our own.
-    - Forms keep their values in React state and take their errors from the domain's validation, so
-      no form library repeats the rules ([R-15](#r-15)).
-    - Dates use the browser's native date input, which already yields `YYYY-MM-DD`
-      ([R-08](#r-08)).
-  - `@tabler/icons-react` for icons.
+- **Decision** (the user chose shadcn/ui over Mantine on 2026-10-01):
+  - React, with shadcn/ui components styled by Tailwind CSS v4.
+    - shadcn/ui is not installed as a library. Its CLI copies each component's source into
+      `src/ui/components/ui/`, where it becomes our own code.
+    - Components are added one at a time, when a task first needs them (constitution II).
+  - The components sit on **Base UI**, a library of unstyled, accessible components. Base UI has
+    been shadcn's default since July 2026.
+  - Icons come from `lucide-react`, shadcn's default.
+  - Parts shadcn does not cover:
+    - **Amount fields**: shadcn has no number input. An amount field of our own parses its text with
+      the domain's amount parser, using the browser locale's decimal separator. That parser already
+      serves CSV import ([contracts/csv-import.md](contracts/csv-import.md#amount-grammar)), so this
+      is its second real use and sharing it is justified (constitution III). The field selects its
+      content on focus ([SC-002](spec.md#sc-002)).
+    - **Dates**: the browser's native date input, which already yields `YYYY-MM-DD`
+      ([R-08](#r-08)). The period picker of [FR-050](spec.md#fr-050) is a row of preset buttons
+      and two such inputs.
+    - **Forms**: values live in React state, errors come from the domain's validation, and shadcn's
+      `Field` component lays them out. No form library repeats the rules ([R-15](#r-15)).
+    - **Notifications**: Base UI's toast, through shadcn's toast component.
 - **Rationale**:
   - One component system gives every screen the same patterns ([FR-065](spec.md#fr-065)).
-  - Mantine provides, accessible and themed alike, the widgets that would cost the most to build
-    well:
-    - selects whose options show a colour swatch (category pickers);
-    - number inputs with locale separators, a fixed two-decimal scale and no negatives
-      ([FR-010](spec.md#fr-010), [FR-060](spec.md#fr-060));
-    - modals for confirmations ([FR-001](spec.md#fr-001), [FR-071](spec.md#fr-071));
-    - notifications;
-    - charts that share the theme, so Insights looks like the rest of the app.
-  - Everything simpler stays in plain React. The period picker of [FR-050](spec.md#fr-050), for
-    example, is a row of preset buttons and two native date inputs.
-  - React has the most widely known component model.
-- **Findings that shape the build** (Mantine docs, verified 2026-10-01):
-  - **Styles**: Mantine 9 needs `@mantine/core/styles.css`, plus the stylesheets of `charts` and
-    `notifications`. It recommends `postcss-preset-mantine`.
-  - **Select values**: a Select cannot show a value that is not in its options. When the form edits
-    a reconciliation entry, "Unaccounted" therefore stays in the Select's data so its label shows,
-    and a custom `filter` hides it from the dropdown ([FR-030](spec.md#fr-030),
+  - The components are our own code, so their markup can follow the spec exactly. Examples are the
+    swatch in each category option and the hatched legend entry.
+  - Tailwind compiles to one static stylesheet. With Base UI, that lets the production CSP forbid
+    inline styles entirely ([R-19](#r-19)).
+  - **Why Base UI rather than Radix**: Radix's dialogs and selects inject `<style>` elements, which a
+    strict CSP blocks. Base UI injects them in only two places, and its `CSPProvider` turns both off.
+  - **Framework count** (constitution II): React and Tailwind CSS. Base UI is a component library,
+    and the shadcn components are our own source.
+- **Findings that shape the build** (shadcn, Base UI and Recharts docs, verified 2026-10-01):
+  - **Setup**: shadcn's Vite template matches this plan, with Vite 8 and TypeScript 6.
+    - It declares the `@/*` import alias with `paths` alone, because TypeScript 6 deprecates
+      `baseUrl`.
+    - `components.json` points the aliases into `src/ui/`.
+  - **Select values**: select items can hold a colour swatch next to the name. Base UI's select
+    value takes a render function. When the form edits a reconciliation entry, the field can
+    therefore show "Unaccounted" while the options leave it out ([FR-030](spec.md#fr-030),
     [contracts/ui.md](contracts/ui.md#transaction-form)).
-  - **Number input**: `NumberInput` has `selectAllOnFocus`, which the amount field uses
-    ([SC-002](spec.md#sc-002)).
+  - **Charts**: shadcn's chart component wraps Recharts 3 and pins its version ([R-14](#r-14)).
+  - **Injected styles**: three parts would inject `<style>` elements at run time. They are Base UI's
+    select and scroll area, shadcn's chart component, and Sonner, the toast shadcn offers for Radix.
+    [R-19](#r-19) handles each one.
 - **Alternatives considered**:
-  - **More Mantine packages**:
-    - `form` would repeat in the UI the validation the domain already does.
-    - `dates` adds `dayjs` as one more dependency, for a picker the native input already covers.
-    - `modals` saves a single small component.
-  - **shadcn/ui with Tailwind** copies the components into the repo, which means more code of our
-    own for the same widgets.
+  - **Mantine** was the previous choice. It ships ready-made number inputs, charts and
+    notifications, which means less code of our own, and the user's decision for shadcn/ui replaced
+    it. Its run-time styles also needed a looser CSP.
+  - **Radix under shadcn** injects `<style>` elements that the strict CSP would block.
+  - **React Aria under shadcn** would also work. Base UI is the default, so the copied components
+    match shadcn's documentation.
+  - **Sonner for notifications** always injects a style tag, with no way to turn it off.
   - **MUI** is heavier and brings the Material look.
-  - **Svelte or Vue** would work, but offer this app no advantage, and their ecosystems for these
-    exact widgets are smaller.
-  - **No component library**: building an accessible swatch select, number input, modal,
-    notifications and charts ourselves would cost far more code than one framework, against the
-    first sentence of constitution II.
+  - **Svelte or Vue** would work, but offer this app no advantage.
+  - **No component library**: building accessible selects, dialogs, toasts and charts ourselves
+    would cost far more code, against the first sentence of constitution II.
 
 <a id="r-04"></a>
 ### R-04 · Hash-based routing with a small router of our own
@@ -416,12 +425,13 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     whichever month is shown. A change takes effect immediately
     ([User Story 4](spec.md#user-story-4) scenario 5). v1 keeps no history of past limits, so "that
     month's limit" in FR-041 is read as the monthly limit.
-  - **Charts**: `@mantine/charts`. "Unaccounted" gets an SVG hatch pattern and a legend marker, so it
-    stays distinguishable whatever colour the user gives it ([FR-052](spec.md#fr-052),
-    [FR-033](spec.md#fr-033)).
-    - The pattern is defined in the chart's children.
-    - The DonutChart's per-segment `cellProps` sets that one segment's fill to the pattern.
-    - Mantine's own legend swatch cannot show a pattern, so the legend is a component of our own
+  - **Charts**: shadcn's chart component, which wraps Recharts 3 ([R-03](#r-03)). "Unaccounted" gets
+    an SVG hatch pattern and a legend marker, so it stays distinguishable whatever colour the user
+    gives it ([FR-052](spec.md#fr-052), [FR-033](spec.md#fr-033)).
+    - The pattern is defined in `<defs>` inside the chart.
+    - That one segment takes the pattern as its `fill` in the chart data. Recharts 3 deprecates the
+      `Cell` component that older examples use.
+    - A colour swatch cannot show a pattern, so the legend is a component of our own
       ([contracts/ui.md](contracts/ui.md#insights)).
 - **Rationale**:
   - Daily points over a year are noise, and monthly points within one month collapse to a single dot.
@@ -514,14 +524,14 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 - **Rationale**:
   - The pure domain makes most rules testable in milliseconds without a browser.
   - Integration tests cover what only storage can break.
-  - Browser tests see what the user sees: Mantine's real rendering, real IndexedDB, drawn charts,
-    and file download and upload. They need no mocks of browser APIs.
+  - Browser tests see what the user sees: the real components and styles, real IndexedDB, drawn
+    charts, and file download and upload. They need no mocks of browser APIs.
   - Two runners is the minimum: a fast Node runner for test-first work on rules, and a real browser
     for everything on screen (constitution II, VII).
 - **Alternatives considered**:
   - **Component tests in jsdom with Testing Library** are faster per test, but they bring costs:
-    - They need mocks of `matchMedia`, `ResizeObserver` and more for Mantine, plus a fake IndexedDB
-      inside jsdom.
+    - They need mocks of browser APIs such as `matchMedia` and `ResizeObserver`, plus a fake
+      IndexedDB inside jsdom.
     - Charts draw nothing in jsdom.
     - They add four more test packages (constitution II).
   - **Vitest browser mode** gives a real browser, but would be a second way of driving one, next to
@@ -584,11 +594,17 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 
 - **Decision**:
   - The production build carries a Content-Security-Policy that limits scripts, styles, images,
-    fonts and connections to the app's own origin. Styles also allow inline style attributes,
-    which Mantine uses.
+    fonts and connections to the app's own origin, with no exception for inline styles. Three
+    measures keep the components inside that policy ([R-03](#r-03)):
+    - Base UI runs inside its `CSPProvider` with style elements disabled.
+    - Our copy of shadcn's chart component sets its colour variables through React style props
+      instead of the `<style>` element it injects by default. React applies style props through the
+      DOM's style API, which CSP does not restrict, so per-category colours work the same way.
+    - Notifications use Base UI's toast, not Sonner.
   - No web fonts and no CDN assets: the app uses the system font stack and bundled icons.
   - No analytics and no error-reporting SDK.
-  - The end-to-end network guard ([R-17](#r-17)) is the regression test.
+  - **Regression test**: the browser-test guard ([R-17](#r-17)) fails on any request outside the
+    app's origin and on any CSP violation the page reports.
 - **Rationale**:
   - [FR-061](spec.md#fr-061) is a MUST, and telemetry is on the spec's "Never" list
     ([Out of Scope](spec.md#out-of-scope)).

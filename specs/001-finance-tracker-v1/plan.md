@@ -13,7 +13,7 @@ file backup.
 
 It is built as a client-only TypeScript single-page app.
 
-- **UI and build**: React with the Mantine component library, built by Vite.
+- **UI and build**: React with shadcn/ui components, styled by Tailwind CSS and built by Vite.
 - **State**: the whole state is held in memory, and the browser's IndexedDB keeps the durable copy
   ([R-01](research.md#r-01), [R-05](research.md#r-05)).
 - **Business rules**: every rule lives in a dependency-free domain layer of pure functions. The store
@@ -35,24 +35,27 @@ LTS (at least 24.13.1) runs the tooling only ([R-02](research.md#r-02)).
 **Primary Dependencies**: the latest stable versions on 2026-10-01. Ranges are caret on these
 versions, and `package-lock.json` pins exact builds.
 
-There are two frameworks at run time, React and Mantine, and three in development: Vite, Vitest and
-Playwright. Everything else is a library or a lint tool. The router and the store are small modules
-of our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
+The app is built on two frameworks, React and Tailwind CSS. Development adds three more: Vite,
+Vitest and Playwright. Everything else is a library or a lint tool. The shadcn/ui components are
+source copied into the repo, not a dependency, and the router and the store are small modules of
+our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 [R-05](research.md#r-05), [R-17](research.md#r-17)).
 
 | Dependency | Version | Used for |
 |---|---|---|
 | React | 19.3 | UI ([R-03](research.md#r-03)) |
-| Mantine: `core`, `hooks`, `charts`, `notifications` | 9.6 | Components ([R-03](research.md#r-03)) |
-| Recharts, with its `react-is` peer | 3.10 | Charts, through `@mantine/charts` |
-| `@tabler/icons-react` | 3.48 | Icons |
+| Tailwind CSS, with `@tailwindcss/vite` | 4.3 | Styling ([R-03](research.md#r-03)) |
+| `shadcn`: CLI and base stylesheet, with `class-variance-authority` 0.7, `cn` 0.4 and `tw-animate-css` 1.4 | 4.21 | Copying in components, and the helpers they use ([R-03](research.md#r-03)) |
+| Base UI (`@base-ui/react`) | 1.8 | Accessible primitives under the components ([R-03](research.md#r-03)) |
+| `lucide-react` | 1.49 | Icons |
+| Recharts, with its `react-is` peer | 3.8, as pinned by shadcn's chart component | Charts ([R-14](research.md#r-14)) |
 | `idb` | 8.0 | IndexedDB ([R-06](research.md#r-06)) |
 | Papa Parse, with `@types/papaparse` 5.5 | 5.7 | CSV ([R-09](research.md#r-09)) |
 | zod | 4.6 | Backup validation ([R-13](research.md#r-13)) |
 
 | Dev dependency | Version |
 |---|---|
-| Vite, with `@vitejs/plugin-react` 6.1, `postcss-preset-mantine` and `postcss-simple-vars` | 8.3 |
+| Vite, with `@vitejs/plugin-react` 6.1, and `@types/node` for `vite.config.ts` | 8.3 |
 | Vitest | 5.0 |
 | `fake-indexeddb` | 6.2 |
 | Playwright | 1.63 |
@@ -111,13 +114,13 @@ quality gate.
 | Principle | How this plan complies | Before research | After design |
 |---|---|---|---|
 | I. Single Source of Truth | The design documents link to spec requirements instead of restating them. Package versions appear only in this plan, and message wording only in `src/ui/messages.ts`. Interpretations of the spec are recorded once, in research, and marked to be moved into the spec | Pass | Pass |
-| II. KISS | No backend, API or server process. The whole state lives in memory. No virtualisation, web workers, offline caching, translations or dark mode. There are two run-time frameworks (React, Mantine) and three development ones (Vite, Vitest, Playwright), each replacing far more code than it costs. The router and the store are small modules of our own ([R-03](research.md#r-03), [R-04](research.md#r-04), [R-05](research.md#r-05), [R-17](research.md#r-17)). Each library replaces code we would otherwise write ([R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
+| II. KISS | No backend, API or server process. The whole state lives in memory. No virtualisation, web workers, offline caching, translations or dark mode. The app is built on two frameworks (React, Tailwind CSS), with three for development (Vite, Vitest, Playwright), each replacing far more code than it costs. shadcn/ui components are added one at a time, when a task first needs them. The router and the store are small modules of our own ([R-03](research.md#r-03), [R-04](research.md#r-04), [R-05](research.md#r-05), [R-17](research.md#r-17)). Each library replaces code we would otherwise write ([R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
 | III. DRY | No shared abstraction is planned ahead. The one shared path, parsing for both import and preview, has two real uses from the start ([contracts/csv-import.md](contracts/csv-import.md#pipeline)) | Pass | Pass |
 | IV. SOLID | No interfaces: storage code is tested against `fake-indexeddb` instead of behind a repository interface ([R-06](research.md#r-06)). The clock and ids are passed in as values ([R-05](research.md#r-05)). There is one domain module per business area | Pass | Pass |
 | V. Clean Architecture | `src/domain` imports nothing outside itself. Files, persistence, store and UI all depend inward. dependency-cruiser checks this in CI ([R-16](research.md#r-16)) | Pass | Pass |
 | VI. Clean Code | ESLint (typescript-eslint and the React hooks rules) and Prettier run in CI, on strict TypeScript ([R-02](research.md#r-02), [R-16](research.md#r-16)) | Pass | Pass |
 | VII. Test-Driven Development | Tests are written first for every task, at four levels, all in the existing CI workflow. The workflow also runs on pull requests ([R-17](research.md#r-17), [R-18](research.md#r-18)) | Pass | Pass |
-| VIII. User Experience & Defensive Error Handling | Mantine gives a consistent, modern UI ([R-03](research.md#r-03)). Every refusal has a code and a plain-language message ([contracts/ui.md](contracts/ui.md#message-catalogue)). A failed save leaves the state unchanged and says so. A startup failure, a second tab and an unexpected error each have their own message ([R-07](research.md#r-07), [R-15](research.md#r-15)) | Pass | Pass |
+| VIII. User Experience & Defensive Error Handling | shadcn/ui components on Tailwind CSS give a consistent, modern UI ([R-03](research.md#r-03)). Every refusal has a code and a plain-language message ([contracts/ui.md](contracts/ui.md#message-catalogue)). A failed save leaves the state unchanged and says so. A startup failure, a second tab and an unexpected error each have their own message ([R-07](research.md#r-07), [R-15](research.md#r-15)) | Pass | Pass |
 
 | Quality gate | Enforced by |
 |---|---|
@@ -179,9 +182,9 @@ eslint.config.js
 index.html                             # The production build adds the CSP meta tag (R-19)
 package.json, package-lock.json
 playwright.config.ts                   # Chromium and Firefox against `vite preview`, or BASE_URL (R-17)
-postcss.config.cjs                     # postcss-preset-mantine (R-03)
-tsconfig.json, tsconfig.app.json, tsconfig.node.json
-vite.config.ts                         # base "./", strict ports, Vitest settings (R-20)
+components.json                        # shadcn/ui: Base UI, aliases into src/ui/ (R-03)
+tsconfig.json, tsconfig.app.json, tsconfig.node.json  # `@/*` alias via `paths` alone (R-03)
+vite.config.ts                         # Tailwind plugin, base "./", strict ports, Vitest settings (R-20)
 
 src/
 ├── main.tsx              # Start-up: lock, open storage, load state, render (R-07, R-15)
@@ -190,21 +193,26 @@ src/
 │   ├── dates.ts          # Calendar dates, months, period presets
 │   ├── names.ts          # Name keys and uniqueness
 │   ├── seed.ts           # First-launch data
+│   ├── amounts.ts        # The amount grammar, shared by CSV import and the amount field (R-03)
 │   ├── accounts.ts       # Balances, account rules, reconciliation
 │   ├── transactions.ts   # Validation, kind changes, list order and filters
 │   ├── categories.ts     # Category rules, effects of deletion
 │   ├── budgets.ts        # Limits and progress
 │   ├── insights.ts       # Aggregates for a period
 │   ├── invariants.ts     # The state invariants of data-model.md
-│   └── import/           # Profile checks, amount and date parsing, rows, duplicates,
-│                         # vendor groups, review edits, confirmation
+│   └── import/           # Profile checks, date parsing, rows, duplicates, vendor groups,
+│                         # review edits, confirmation
 ├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse);
 │                         # backup JSON in and out (zod)
 ├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
 ├── store/                # In-memory state and actions: decide in the domain, write, then apply
-└── ui/                   # React and Mantine
-    ├── app/              # Shell, hash router (R-04), theme, providers, error boundary
-    ├── components/       # The shared patterns of contracts/ui.md
+└── ui/                   # React, shadcn/ui and Tailwind CSS
+    ├── app/              # Shell, hash router (R-04), CSPProvider (R-19), error boundary
+    ├── components/
+    │   ├── ui/           # shadcn/ui components, copied in by its CLI; our code from then on
+    │   └── …             # The shared patterns of contracts/ui.md, such as the amount field
+    ├── lib/utils.ts      # shadcn's `cn` class-name helper
+    ├── index.css         # Tailwind entry and theme tokens
     ├── screens/          # One folder per screen of contracts/ui.md
     ├── format.ts         # The one amount formatter and the one date formatter
     └── messages.ts       # The one message catalogue
