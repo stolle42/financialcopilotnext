@@ -82,7 +82,7 @@ committed. Tests that need existing data load it through the backup restore
 |---|---|---|
 | `mybank-2026-08.csv` | Signed amount, `;` delimiter, `,` decimals, `DD.MM.YYYY`, Windows-1252, counterparty column | New profile, vendor groups, a credit-card payment to mark as transfer, an unparsable row, an identical same-day pair |
 | `mybank-2026-09.csv` | Same layout; its first week overlaps the August file | Profile reuse, duplicates, [SC-003](spec.md#sc-003) |
-| `debit-credit.csv` | Debit and credit columns, `,` delimiter, `.` decimals, `MM/DD/YYYY`, UTF-8, no counterparty | Debit/credit mode, rows with both or neither value, ungrouped review |
+| `debit-credit.csv` | Debit and credit columns, `,` delimiter, `.` decimals, `MM/DD/YYYY`, UTF-8, no counterparty. The unused column is blank in some rows and `0.00` in others | Debit/credit mode, zero counting as empty, rows with an amount in both columns or in neither, ungrouped review |
 | `positive-purchases.csv` | Purchases as positive numbers | Sign inversion |
 | `mybank-renamed-column.csv` | A mapped header renamed | Missing-columns refusal |
 | `header-only.csv` | Header and no data | "No transactions" refusal |

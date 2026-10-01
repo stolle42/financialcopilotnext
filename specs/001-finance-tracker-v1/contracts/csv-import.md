@@ -81,10 +81,18 @@ into 4,000.00.
 when `invertSign` is on ([FR-023](../spec.md#fr-023)). Negative means money out, positive means money
 in. Zero is proposed as an expense ([R-12](../research.md#r-12)).
 
-**Debit and credit columns** (`amount.mode = "debit-credit"`): a cell *holds a value* when it is
-non-empty after trimming, so `0,00` is a value. Exactly one of the two cells must hold a value
-([FR-028](../spec.md#fr-028)). That value must parse and must not be negative. A debit value `v`
-gives `amountCents = −v` and a credit value gives `+v`.
+**Debit and credit columns** (`amount.mode = "debit-credit"`): the rule is
+[FR-028](../spec.md#fr-028). Each of the two cells is read in this order:
+
+1. A blank cell is empty.
+2. Otherwise, it must follow the [amount grammar](#amount-grammar), or the row fails with
+   `amount-unreadable`.
+3. A cell whose value is zero, such as `0,00`, is empty.
+4. A negative value fails the row with `negative-debit-credit`.
+5. Any other value is an amount.
+
+Exactly one of the two cells must hold an amount, or the row fails with `debit-and-credit` or
+`no-debit-or-credit`. A debit amount `v` gives `amountCents = −v`, and a credit amount gives `+v`.
 
 ## Date formats
 
@@ -122,9 +130,9 @@ row has several problems, the first in this table is reported.
 | `date-unreadable` | The date does not match the format, or is not a real date | Cell text, expected format |
 | `amount-missing` | Signed mode: the amount cell is empty | — |
 | `amount-unreadable` | The amount does not follow the grammar | Cell text, decimal separator |
-| `debit-and-credit` | Both the debit and the credit cell hold a value | Both cell texts |
-| `no-debit-or-credit` | Neither the debit nor the credit cell holds a value | — |
 | `negative-debit-credit` | A debit or credit value is negative | Cell text |
+| `debit-and-credit` | Both the debit and the credit cell hold a non-zero amount | Both cell texts |
+| `no-debit-or-credit` | Neither cell holds a non-zero amount, so both are blank or zero | — |
 
 ## Duplicate matching
 

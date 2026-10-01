@@ -19,6 +19,9 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
   direction of the money (out of or into the account) also match? → A: Yes. A row matches only
   on the same account, date, amount and direction, so a same-day refund of a purchase is not a
   duplicate ([FR-024](#fr-024)).
+- Q: In bank files with separate debit and credit columns, should a cell containing only zero
+  (such as `0,00`) count as empty? → A: Yes. A zero cell counts as empty, so exactly one of the two
+  columns must hold a non-zero amount ([FR-028](#fr-028)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -102,8 +105,9 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
 2. **Given** profile "MyBank" exists, **When** the user imports next month's file from the same
    bank, **Then** the profile is applied without any re-mapping.
 3. **Given** a bank whose export uses separate debit and credit columns, **When** the user maps both
-   in the profile, **Then** debit rows become expenses and credit rows become incomes, and a row
-   with a value in both columns or in neither is unparsable ([FR-028](#fr-028)).
+   in the profile, **Then** debit rows become expenses and credit rows become incomes, a cell
+   holding `0,00` counts as empty, and a row with a non-zero amount in both columns or in neither
+   is unparsable ([FR-028](#fr-028)).
 4. **Given** a pending batch of 300 rows from 40 vendors, from a file whose profile maps a
    counterparty column, **When** the user opens review, **Then** each vendor with more than one row
    is shown as one group, vendors with a single row are shown as plain rows, and assigning a
@@ -417,10 +421,13 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   Scope](#out-of-scope)).
 - <a id="fr-028"></a>**FR-028**: Rows the profile cannot parse MUST NOT appear among the rows under review and MUST
   NOT be confirmable. Review MUST show how many there are; selecting that number MUST present them
-  with the reason each failed. The remaining rows MUST stay reviewable. With separate debit and
-  credit columns, exactly one MUST hold a value; a row with both, neither, or a negative value is
-  unparsable. The profile's decimal separator also decides the thousands separator (the other one),
-  so `1.250,00` and `1,250.00` each parse as 1250.00 under their matching profile.
+  with the reason each failed. The remaining rows MUST stay reviewable.
+  - With separate debit and credit columns, exactly one of the two MUST hold a non-zero amount. A
+    blank cell and a cell holding zero (such as `0,00`) both count as empty, because some banks
+    fill the unused column with zero. A row is unparsable when both columns hold a non-zero amount,
+    when neither does, or when either holds a negative one.
+  - The profile's decimal separator also decides the thousands separator (the other one), so
+    `1.250,00` and `1,250.00` each parse as 1250.00 under their matching profile.
 - <a id="fr-029"></a>**FR-029**: Every row under review MUST hold a category, initially its side's
   "Uncategorised"; the category dropdown MUST offer no empty state, so no row can be confirmed
   without a category.

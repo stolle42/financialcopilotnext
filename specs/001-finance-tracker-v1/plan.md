@@ -140,8 +140,7 @@ example with `/speckit-clarify`, so that the spec stays the single source of beh
 
 - [R-11](research.md#r-11): vendor groups are formed per side, and an empty counterparty means the
   row has no vendor.
-- [R-12](research.md#r-12): zero amounts are proposed as expenses, and `0,00` counts as a value in a
-  debit or credit column.
+- [R-12](research.md#r-12): a zero amount in a signed column is proposed as an expense.
 - [R-14](research.md#r-14): the budget month is measured over the whole month, and one current limit
   applies to every month.
 - [R-08](research.md#r-08): names are unique regardless of case and surrounding spaces.

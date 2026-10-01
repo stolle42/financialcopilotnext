@@ -364,10 +364,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   1. **Zero amounts**: a zero in a signed column is proposed as an expense. FR-023 defines only
      money out and money in, and expense is the manual-entry default kind
      ([FR-014](spec.md#fr-014)).
-  2. **Debit and credit cells**: a cell holds a value when it is non-empty after trimming, so
-     `0,00` counts as a value. This is the literal reading of [FR-028](spec.md#fr-028).
-     - Consequence: a bank that writes `0,00` into the unused column produces unparsable rows.
-     - The profile preview shows this before any batch exists.
+  2. **Debit and credit cells** (confirmed 2026-10-01, now in [FR-028](spec.md#fr-028)): a cell
+     holding zero counts as empty, as a blank one does. Files from banks that fill the unused
+     column with `0,00` therefore import.
   3. **Sign inversion** applies only to a single signed column. With separate debit and credit
      columns, the column decides the direction ([User Story 2](spec.md#user-story-2) scenario 3),
      so the profile has no inversion setting in that mode.
@@ -377,11 +376,11 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   5. **An included duplicate** ([FR-025](spec.md#fr-025)) becomes one of the rows under review and
      joins its vendor group, keeping its own assignment.
 - **Rationale**: each rule is the smallest one that keeps the spec's stated rules consistent with
-  one another. Items 1 and 2 are the ones a user would notice.
+  one another. Item 1 is the one a user would notice.
 - **Alternatives considered**:
   - **Zero amounts as unparsable** would contradict [FR-010](spec.md#fr-010), which allows zero.
-  - **Treating `0,00` as "no value"** departs from the literal rule, and would make a genuine zero
-    debit unparsable.
+  - **Treating `0,00` as a value**, the spec's earlier literal reading, would have made files from
+    banks that fill the unused column with zero impossible to import.
 
 ## Backup
 
