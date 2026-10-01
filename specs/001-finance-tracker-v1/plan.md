@@ -1,0 +1,240 @@
+# Implementation Plan: Financial Copilot v1 — Personal Finance Tracker
+
+**Branch**: `001-finance-tracker-v1`, with commits on `main` as for the spec | **Date**: 2026-10-01 |
+**Spec**: [spec.md](spec.md)
+
+**Input**: Feature specification from `specs/001-finance-tracker-v1/spec.md`
+
+## Summary
+
+v1 is a single-user personal finance tracker ([spec](spec.md)): a hand-kept ledger, bank CSV import
+with review by vendor, Insights charts, monthly budgets, reconciliation, category management and
+file backup.
+
+It is built as a client-only TypeScript single-page app.
+
+- **UI and build**: React with the Mantine component library, built by Vite.
+- **State**: the whole state is held in memory, and the browser's IndexedDB keeps the durable copy
+  ([R-01](research.md#r-01), [R-05](research.md#r-05)).
+- **Business rules**: every rule lives in a dependency-free domain layer of pure functions. The store
+  layer calls the domain, writes the resulting changes to storage atomically, and only then updates
+  the screen ([R-06](research.md#r-06), [R-16](research.md#r-16)).
+- **Bank files**: decoded with `TextDecoder` and split into records with Papa Parse. Mapping,
+  parsing and duplicate flagging are domain rules ([contracts/csv-import.md](contracts/csv-import.md)).
+- **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
+- **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
+  ([R-17](research.md#r-17), [R-18](research.md#r-18)).
+
+## Technical Context
+
+**Language/Version**: TypeScript 6.0 (`~6.0.3`), strict, compiled for current browsers. Node.js 24
+LTS (at least 24.15) runs the tooling only ([R-02](research.md#r-02)).
+
+**Primary Dependencies**: the latest stable versions on 2026-10-01. Ranges are caret on these
+versions, and `package-lock.json` pins exact builds.
+
+| Dependency | Version | Used for |
+|---|---|---|
+| React | 19.3 | UI ([R-03](research.md#r-03)) |
+| Mantine: `core`, `hooks`, `form`, `dates` (with `dayjs` 1.x), `charts`, `notifications`, `modals` | 9.6 | Components ([R-03](research.md#r-03)) |
+| Recharts, with its `react-is` peer | 3.10 | Charts, through `@mantine/charts` |
+| `@tabler/icons-react` | 3.48 | Icons |
+| React Router | 8.4 | Routing ([R-04](research.md#r-04)) |
+| Zustand | 5.0 | Store ([R-05](research.md#r-05)) |
+| `idb` | 8.0 | IndexedDB ([R-06](research.md#r-06)) |
+| Papa Parse, with `@types/papaparse` 5.5 | 5.7 | CSV ([R-09](research.md#r-09)) |
+| zod | 4.6 | Backup validation ([R-13](research.md#r-13)) |
+
+| Dev dependency | Version |
+|---|---|
+| Vite, with `@vitejs/plugin-react` 6.1, `postcss-preset-mantine` and `postcss-simple-vars` | 8.3 |
+| Vitest | 5.0 |
+| Testing Library: React 16.3, DOM 10.4, user-event 14.6, jest-dom 7.0 | as listed |
+| jsdom | 30.1 |
+| `fake-indexeddb` | 6.2 |
+| Playwright | 1.63 |
+| ESLint, with typescript-eslint 8.71 and `eslint-plugin-react-hooks` 7.1 | 10.11 |
+| Prettier | 3.9 |
+| dependency-cruiser | 18.5 |
+
+These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-17).
+
+**Storage**: IndexedDB in the user's browser profile, through `idb`
+([data-model.md](data-model.md#storage-layout)). Backups are JSON files
+([contracts/backup-file.md](contracts/backup-file.md)).
+
+**Testing**: Vitest covers domain unit tests in Node, store integration tests against
+`fake-indexeddb`, and component tests in jsdom with Testing Library. Playwright runs end-to-end
+tests on the production build in Chromium and Firefox. All of it runs in GitHub Actions
+([R-17](research.md#r-17), [R-18](research.md#r-18)).
+
+**Target Platform**: Current desktop Chrome, Edge and Firefox, with the app served from `localhost`
+([R-01](research.md#r-01), [R-20](research.md#r-20)).
+
+**Project Type**: Client-only single-page web application, with no backend.
+
+**Performance Goals**:
+
+- Insights within 2 s with 5,000 transactions in the period ([SC-009](spec.md#sc-009)).
+- A 5,000-row CSV in review within 10 s ([SC-010](spec.md#sc-010)).
+- The transaction list's first render within 1 s at 10,000 transactions
+  ([R-21](research.md#r-21)).
+
+**Constraints**:
+
+- No network use and no external requests ([FR-061](spec.md#fr-061), [R-19](research.md#r-19)).
+- Money in integer euro cents and dates as local calendar strings ([R-08](research.md#r-08)).
+- Every change that touches several records is atomic ([R-06](research.md#r-06)).
+- One running tab ([R-07](research.md#r-07)).
+- Desktop viewport only ([Out of Scope](spec.md#out-of-scope)).
+
+**Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
+years of use, with headroom to about 50,000. There are 7 stored entity types and 10 screens
+([data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md)).
+
+Nothing in this context remains marked NEEDS CLARIFICATION: every open technical question is
+resolved in [research.md](research.md).
+
+## Constitution Check
+
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+| Principle | How this plan complies | Before research | After design |
+|---|---|---|---|
+| I. Single Source of Truth | The design documents link to spec requirements instead of restating them. Package versions appear only in this plan, and message wording only in `src/ui/messages.ts`. Interpretations of the spec are recorded once, in research, and marked to be moved into the spec | Pass | Pass |
+| II. KISS | No backend, API or server process. The whole state lives in memory. No virtualisation, web workers, offline caching, translations or dark mode. Each dependency replaces code we would otherwise write ([R-03](research.md#r-03), [R-05](research.md#r-05), [R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
+| III. DRY | No shared abstraction is planned ahead. The one shared path, parsing for both import and preview, has two real uses from the start ([contracts/csv-import.md](contracts/csv-import.md#pipeline)) | Pass | Pass |
+| IV. SOLID | No interfaces: storage code is tested against `fake-indexeddb` instead of behind a repository interface ([R-06](research.md#r-06)). The clock and ids are passed in as values ([R-05](research.md#r-05)). There is one domain module per business area | Pass | Pass |
+| V. Clean Architecture | `src/domain` imports nothing outside itself. Files, persistence, store and UI all depend inward. dependency-cruiser checks this in CI ([R-16](research.md#r-16)) | Pass | Pass |
+| VI. Clean Code | ESLint (typescript-eslint and the React hooks rules) and Prettier run in CI, on strict TypeScript ([R-02](research.md#r-02), [R-16](research.md#r-16)) | Pass | Pass |
+| VII. Test-Driven Development | Tests are written first for every task, at four levels, all in the existing CI workflow. The workflow also runs on pull requests ([R-17](research.md#r-17), [R-18](research.md#r-18)) | Pass | Pass |
+| VIII. User Experience & Defensive Error Handling | Mantine gives a consistent, modern UI ([R-03](research.md#r-03)). Every refusal has a code and a plain-language message ([contracts/ui.md](contracts/ui.md#message-catalogue)). A failed save leaves the state unchanged and says so. A startup failure, a second tab and an unexpected error each have their own message ([R-07](research.md#r-07), [R-15](research.md#r-15)) | Pass | Pass |
+
+| Quality gate | Enforced by |
+|---|---|
+| All tests pass, and new behaviour has a test that fails without it | The CI workflow ([R-18](research.md#r-18)), and test-first ordering in `tasks.md` |
+| No business-rule module imports framework, UI or persistence code | `npm run check:architecture` in CI ([R-16](research.md#r-16)) |
+| No duplicated documentation or speculative abstraction | Review against this plan. Documents link to their source and do not restate it |
+| Expected error paths are handled and show a clear message | The message catalogue, and `e2e/messages.spec.ts` for [SC-012](spec.md#sc-012) |
+
+**Result**: the plan passes every principle and gate, both before research and after design. No
+deviation needs justifying.
+
+### Interpretations to confirm
+
+These entries fill gaps in the spec. Each one should be confirmed and recorded in the spec, for
+example with `/speckit-clarify`, so that the spec stays the single source of behaviour:
+
+- [R-10](research.md#r-10): duplicate matching includes the direction of the money.
+- [R-11](research.md#r-11): vendor groups are formed per side, and an empty counterparty means the
+  row has no vendor.
+- [R-12](research.md#r-12): zero amounts are proposed as expenses, and `0,00` counts as a value in a
+  debit or credit column.
+- [R-14](research.md#r-14): the budget month is measured over the whole month, and one current limit
+  applies to every month.
+- [R-08](research.md#r-08): names are unique regardless of case and surrounding spaces.
+
+The limitations v1 accepts knowingly, such as bank files with lines above the header, are listed
+in [R-22](research.md#r-22).
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/001-finance-tracker-v1/
+├── spec.md              # The feature specification
+├── plan.md              # This file
+├── research.md          # Phase 0: technical decisions R-01 – R-22
+├── data-model.md        # Phase 1: entities, invariants, storage layout, seed data
+├── quickstart.md        # Phase 1: how to run and validate v1
+├── contracts/
+│   ├── csv-import.md    # Bank CSV files → pending batch
+│   ├── backup-file.md   # Backup file format, version 1
+│   └── ui.md            # Screens, navigation, shared patterns, message catalogue
+└── tasks.md             # Phase 2: written by /speckit-tasks, not by this command
+```
+
+### Source Code (repository root)
+
+```text
+.github/workflows/regressiontests.yml  # The existing CI workflow, filled in (R-18)
+.nvmrc                                 # Node.js 24 LTS (R-02)
+.dependency-cruiser.cjs                # src/domain imports nothing outside itself (R-16)
+eslint.config.js
+.prettierrc.json
+index.html                             # The production build adds the CSP meta tag (R-19)
+package.json, package-lock.json
+playwright.config.ts                   # Chromium and Firefox against `vite preview` (R-17)
+postcss.config.cjs                     # postcss-preset-mantine (R-03)
+tsconfig.json, tsconfig.app.json, tsconfig.node.json
+vite.config.ts                         # base "./", strict ports, Vitest settings (R-20)
+
+src/
+├── main.tsx              # Start-up: lock, open storage, load state, render (R-07, R-15)
+├── domain/               # Business rules: pure TypeScript, importing nothing outside src/domain
+│   ├── types.ts          # The entities of data-model.md
+│   ├── dates.ts          # Calendar dates, months, period presets
+│   ├── names.ts          # Name keys and uniqueness
+│   ├── seed.ts           # First-launch data
+│   ├── accounts.ts       # Balances, account rules, reconciliation
+│   ├── transactions.ts   # Validation, kind changes, list order and filters
+│   ├── categories.ts     # Category rules, effects of deletion
+│   ├── budgets.ts        # Limits and progress
+│   ├── insights.ts       # Aggregates for a period
+│   ├── invariants.ts     # The state invariants of data-model.md
+│   └── import/           # Profile checks, amount and date parsing, rows, duplicates,
+│                         # vendor groups, review edits, confirmation
+├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse);
+│                         # backup JSON in and out (zod)
+├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
+├── store/                # In-memory state and actions: decide in the domain, write, then apply
+└── ui/                   # React and Mantine
+    ├── app/              # Shell, routes, theme, providers, error boundary
+    ├── components/       # The shared patterns of contracts/ui.md
+    ├── screens/          # One folder per screen of contracts/ui.md
+    ├── format.ts         # The one amount formatter and the one date formatter
+    └── messages.ts       # The one message catalogue
+
+e2e/
+├── fixtures/             # Small CSV files (quickstart.md)
+├── support/              # Network guard, data generators, backup helpers
+└── *.spec.ts             # One per user story, plus messages and performance
+```
+
+Tests for `src/` sit next to the module they test, as in `src/domain/accounts.test.ts`.
+
+**`package.json` scripts**:
+
+| Script | What it runs |
+|---|---|
+| `start` | Build, then preview on port 4173 |
+| `dev` | Dev server on port 5173 |
+| `build` | Production build |
+| `lint` | ESLint and Prettier check |
+| `check:architecture` | dependency-cruiser |
+| `typecheck` | TypeScript type check |
+| `test` | Vitest |
+| `test:e2e` | Build, then Playwright |
+| `verify` | Every check, in CI order |
+| `fixtures:sc001` | Writes the SC-001 file to `tmp/` |
+
+**`.gitignore` gains**: `node_modules/`, `dist/`, `coverage/`, `test-results/`,
+`playwright-report/`, `blob-report/`, `tmp/` and `.env*`. A fresh clone then needs only `npm ci`
+(portable-checkout rule).
+
+**Structure Decision**: one project at the repository root, with each folder in `src/` a layer.
+Dependencies point inward:
+
+- `ui` depends on `store` and on `domain`, for types and pure derivations.
+- `store` depends on `persistence`, `files` and `domain`.
+- `persistence` and `files` depend on `domain`, for types only.
+- `domain` depends on nothing.
+
+The UI reaches storage only through the store. The domain rule is the one automated check
+([R-16](research.md#r-16)), because it is the constitution's gate. There is no `backend/` or
+`frontend/` split, because v1 has no server ([R-01](research.md#r-01)).
+
+## Complexity Tracking
+
+None. The Constitution Check passes with no deviation to justify.
