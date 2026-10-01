@@ -13,7 +13,7 @@ Rationale: restated text drifts from its source. One source means one place to c
 ### II. KISS
 
 Every change MUST be the smallest change that satisfies the current requirement. Code for a
-requirement that does not yet exist MUST NOT be written.
+requirement that does not yet exist MUST NOT be written. The number of frameworks used should be as low as possible.
 
 ### III. DRY
 
@@ -66,6 +66,8 @@ A change is mergeable only when:
 - No business-rule module imports framework, UI, or persistence code.
 - No duplicated documentation or speculative abstraction was introduced.
 - Expected error paths are handled and show a clear message to the user.
+
+After pushing to main, the localhost and vercel deployment need to be checked if the user experience aligns with the user story requirements
 
 ## Governance
 
