@@ -36,12 +36,12 @@ makes Principle VII affordable.
 
 ### VI. Clean Code
 
-Names say what the value is. A function does one thing. Comments explain why, not what.
+Names say what the value is. A function does one thing. Comments explain why, not what. Further Code Quality is ensured by linting.
 
 ### VII. Test-Driven Development
 
 For a behavior change: write a failing test, then the minimum code that passes, then refactor.
-Production behavior MUST NOT be added without a test that fails if that behavior breaks.
+Production behavior MUST NOT be added without a test that fails if that behavior breaks. After the change, the tests must be kept as regression tests and added to the Github CI/CD pipeline.
 
 ### VIII. User Experience & Defensive Error Handling
 
