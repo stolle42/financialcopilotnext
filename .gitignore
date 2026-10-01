@@ -1,5 +1,6 @@
 # Spec Kit install from the Specify CLI. Recreate it with specify init.
-.claude/
+.claude/*
+!.claude/rules/
 .specify/*
 !.specify/memory/
 .specify/memory/*
