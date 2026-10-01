@@ -22,12 +22,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Run tests
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Run tests
+        run: echo Replace this with the test runner
 
-      # Run lint
-      - name: Run a multi-line script
+      - name: Run linter
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          echo Run typescript linter
