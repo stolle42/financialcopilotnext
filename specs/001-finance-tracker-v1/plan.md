@@ -24,23 +24,28 @@ It is built as a client-only TypeScript single-page app.
 - **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
+- **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
+  as a static site for the constitution's post-push check ([R-20](research.md#r-20)).
 
 ## Technical Context
 
 **Language/Version**: TypeScript 6.0 (`~6.0.3`), strict, compiled for current browsers. Node.js 24
-LTS (at least 24.15) runs the tooling only ([R-02](research.md#r-02)).
+LTS (at least 24.13.1) runs the tooling only ([R-02](research.md#r-02)).
 
 **Primary Dependencies**: the latest stable versions on 2026-10-01. Ranges are caret on these
 versions, and `package-lock.json` pins exact builds.
 
+There are two frameworks at run time, React and Mantine, and three in development: Vite, Vitest and
+Playwright. Everything else is a library or a lint tool. The router and the store are small modules
+of our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
+[R-05](research.md#r-05), [R-17](research.md#r-17)).
+
 | Dependency | Version | Used for |
 |---|---|---|
 | React | 19.3 | UI ([R-03](research.md#r-03)) |
-| Mantine: `core`, `hooks`, `form`, `dates` (with `dayjs` 1.x), `charts`, `notifications`, `modals` | 9.6 | Components ([R-03](research.md#r-03)) |
+| Mantine: `core`, `hooks`, `charts`, `notifications` | 9.6 | Components ([R-03](research.md#r-03)) |
 | Recharts, with its `react-is` peer | 3.10 | Charts, through `@mantine/charts` |
 | `@tabler/icons-react` | 3.48 | Icons |
-| React Router | 8.4 | Routing ([R-04](research.md#r-04)) |
-| Zustand | 5.0 | Store ([R-05](research.md#r-05)) |
 | `idb` | 8.0 | IndexedDB ([R-06](research.md#r-06)) |
 | Papa Parse, with `@types/papaparse` 5.5 | 5.7 | CSV ([R-09](research.md#r-09)) |
 | zod | 4.6 | Backup validation ([R-13](research.md#r-13)) |
@@ -49,8 +54,6 @@ versions, and `package-lock.json` pins exact builds.
 |---|---|
 | Vite, with `@vitejs/plugin-react` 6.1, `postcss-preset-mantine` and `postcss-simple-vars` | 8.3 |
 | Vitest | 5.0 |
-| Testing Library: React 16.3, DOM 10.4, user-event 14.6, jest-dom 7.0 | as listed |
-| jsdom | 30.1 |
 | `fake-indexeddb` | 6.2 |
 | Playwright | 1.63 |
 | ESLint, with typescript-eslint 8.71 and `eslint-plugin-react-hooks` 7.1 | 10.11 |
@@ -63,12 +66,13 @@ These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-1
 ([data-model.md](data-model.md#storage-layout)). Backups are JSON files
 ([contracts/backup-file.md](contracts/backup-file.md)).
 
-**Testing**: Vitest covers domain unit tests in Node, store integration tests against
-`fake-indexeddb`, and component tests in jsdom with Testing Library. Playwright runs end-to-end
-tests on the production build in Chromium and Firefox. All of it runs in GitHub Actions
+**Testing**: Vitest covers domain unit tests and store integration tests against `fake-indexeddb`,
+both in Node. Playwright covers everything in the browser, both UI behaviour and end-to-end
+journeys, on the production build in Chromium and Firefox. All of it runs in GitHub Actions
 ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 
-**Target Platform**: Current desktop Chrome, Edge and Firefox, with the app served from `localhost`
+**Target Platform**: Current desktop Chrome, Edge and Firefox. The app is served from `localhost`
+for daily use, and is deployed to Vercel as a static site for the post-push check
 ([R-01](research.md#r-01), [R-20](research.md#r-20)).
 
 **Project Type**: Client-only single-page web application, with no backend.
@@ -87,6 +91,8 @@ tests on the production build in Chromium and Firefox. All of it runs in GitHub 
 - Every change that touches several records is atomic ([R-06](research.md#r-06)).
 - One running tab ([R-07](research.md#r-07)).
 - Desktop viewport only ([Out of Scope](spec.md#out-of-scope)).
+- Real data stays in the local build. The Vercel copy is for checks and demonstrations
+  ([R-20](research.md#r-20)).
 
 **Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
 years of use, with headroom to about 50,000. There are 7 stored entity types and 10 screens
@@ -99,10 +105,13 @@ resolved in [research.md](research.md).
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
+The check is against the constitution as amended on 2026-10-01, including the new post-push
+quality gate.
+
 | Principle | How this plan complies | Before research | After design |
 |---|---|---|---|
 | I. Single Source of Truth | The design documents link to spec requirements instead of restating them. Package versions appear only in this plan, and message wording only in `src/ui/messages.ts`. Interpretations of the spec are recorded once, in research, and marked to be moved into the spec | Pass | Pass |
-| II. KISS | No backend, API or server process. The whole state lives in memory. No virtualisation, web workers, offline caching, translations or dark mode. Each dependency replaces code we would otherwise write ([R-03](research.md#r-03), [R-05](research.md#r-05), [R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
+| II. KISS | No backend, API or server process. The whole state lives in memory. No virtualisation, web workers, offline caching, translations or dark mode. There are two run-time frameworks (React, Mantine) and three development ones (Vite, Vitest, Playwright), each replacing far more code than it costs. The router and the store are small modules of our own ([R-03](research.md#r-03), [R-04](research.md#r-04), [R-05](research.md#r-05), [R-17](research.md#r-17)). Each library replaces code we would otherwise write ([R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
 | III. DRY | No shared abstraction is planned ahead. The one shared path, parsing for both import and preview, has two real uses from the start ([contracts/csv-import.md](contracts/csv-import.md#pipeline)) | Pass | Pass |
 | IV. SOLID | No interfaces: storage code is tested against `fake-indexeddb` instead of behind a repository interface ([R-06](research.md#r-06)). The clock and ids are passed in as values ([R-05](research.md#r-05)). There is one domain module per business area | Pass | Pass |
 | V. Clean Architecture | `src/domain` imports nothing outside itself. Files, persistence, store and UI all depend inward. dependency-cruiser checks this in CI ([R-16](research.md#r-16)) | Pass | Pass |
@@ -116,6 +125,7 @@ resolved in [research.md](research.md).
 | No business-rule module imports framework, UI or persistence code | `npm run check:architecture` in CI ([R-16](research.md#r-16)) |
 | No duplicated documentation or speculative abstraction | Review against this plan. Documents link to their source and do not restate it |
 | Expected error paths are handled and show a clear message | The message catalogue, and `e2e/messages.spec.ts` for [SC-012](spec.md#sc-012) |
+| After a push to `main`, the localhost and Vercel deployments are checked against the user stories | CI's `test` job on the local build, CI's `deployed` job on the Vercel deployment, and a manual walkthrough on both ([R-18](research.md#r-18), [quickstart.md](quickstart.md#after-pushing-to-main)) |
 
 **Result**: the plan passes every principle and gate, both before research and after design. No
 deviation needs justifying.
@@ -133,6 +143,9 @@ example with `/speckit-clarify`, so that the spec stays the single source of beh
 - [R-14](research.md#r-14): the budget month is measured over the whole month, and one current limit
   applies to every month.
 - [R-08](research.md#r-08): names are unique regardless of case and surrounding spaces.
+- [R-20](research.md#r-20): the Vercel copy is for checks and demonstrations, and real data stays
+  in the local build. The hosted copy needs a network to load, so only the local build fully meets
+  [FR-061](spec.md#fr-061).
 
 The limitations v1 accepts knowingly, such as bank files with lines above the header, are listed
 in [R-22](research.md#r-22).
@@ -158,14 +171,14 @@ specs/001-finance-tracker-v1/
 ### Source Code (repository root)
 
 ```text
-.github/workflows/regressiontests.yml  # The existing CI workflow, filled in (R-18)
+.github/workflows/regressiontests.yml  # The existing CI workflow: jobs `test` and `deployed` (R-18)
 .nvmrc                                 # Node.js 24 LTS (R-02)
 .dependency-cruiser.cjs                # src/domain imports nothing outside itself (R-16)
 eslint.config.js
 .prettierrc.json
 index.html                             # The production build adds the CSP meta tag (R-19)
 package.json, package-lock.json
-playwright.config.ts                   # Chromium and Firefox against `vite preview` (R-17)
+playwright.config.ts                   # Chromium and Firefox against `vite preview`, or BASE_URL (R-17)
 postcss.config.cjs                     # postcss-preset-mantine (R-03)
 tsconfig.json, tsconfig.app.json, tsconfig.node.json
 vite.config.ts                         # base "./", strict ports, Vitest settings (R-20)
@@ -190,7 +203,7 @@ src/
 ├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
 ├── store/                # In-memory state and actions: decide in the domain, write, then apply
 └── ui/                   # React and Mantine
-    ├── app/              # Shell, routes, theme, providers, error boundary
+    ├── app/              # Shell, hash router (R-04), theme, providers, error boundary
     ├── components/       # The shared patterns of contracts/ui.md
     ├── screens/          # One folder per screen of contracts/ui.md
     ├── format.ts         # The one amount formatter and the one date formatter
@@ -199,7 +212,8 @@ src/
 e2e/
 ├── fixtures/             # Small CSV files (quickstart.md)
 ├── support/              # Network guard, data generators, backup helpers
-└── *.spec.ts             # One per user story, plus messages and performance
+├── ui/                   # UI behaviour specs, one per screen of contracts/ui.md (R-17)
+└── *.spec.ts             # One journey per user story, plus messages and performance
 ```
 
 Tests for `src/` sit next to the module they test, as in `src/domain/accounts.test.ts`.

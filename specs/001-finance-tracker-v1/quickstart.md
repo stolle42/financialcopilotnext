@@ -8,10 +8,12 @@ defined during implementation ([plan.md](plan.md#project-structure)).
 
 ## Prerequisites
 
-- Node.js 24 LTS, version 24.15 or later, and the npm that ships with it
+- Node.js 24 LTS, version 24.13.1 or later, and the npm that ships with it
   ([R-02](research.md#r-02))
 - A current desktop Chrome, Edge or Firefox ([R-01](research.md#r-01))
 - Git
+- For the post-push check only: a Vercel project for this repository
+  ([Vercel setup](#vercel-setup))
 
 ## Setup
 
@@ -49,8 +51,8 @@ Each command must pass locally and in CI ([R-18](research.md#r-18)).
 | `npm run lint` | ESLint and Prettier report nothing (constitution VI) |
 | `npm run check:architecture` | No business-rule module imports framework, UI or persistence code (constitution V, [R-16](research.md#r-16)) |
 | `npm run typecheck` | TypeScript strict mode compiles cleanly |
-| `npm test` | Unit, integration and component tests pass (Vitest, [R-17](research.md#r-17)) |
-| `npm run test:e2e` | Builds, then runs the end-to-end journeys below in Chromium and Firefox (Playwright) |
+| `npm test` | Domain unit and store integration tests pass (Vitest, [R-17](research.md#r-17)) |
+| `npm run test:e2e` | Builds, then runs the UI behaviour specs in `e2e/ui/` and the journeys below in Chromium and Firefox (Playwright) |
 | `npm run verify` | All of the above, in the order CI runs them |
 
 Every end-to-end test runs behind a network guard that fails the test on any request outside the
@@ -159,3 +161,38 @@ noted. Use `npm start` with a fresh browser profile.
 | [FR-064](spec.md#fr-064), [FR-065](spec.md#fr-065) | Walk every screen at default zoom on a desktop viewport | Clear hierarchy, comfortable spacing, and categories that look the same everywhere |
 
 `npm run fixtures:sc001` writes the SC-001 file to `tmp/` ([plan.md](plan.md#project-structure)).
+
+## After pushing to main
+
+The constitution's quality gates ask for both the localhost and the Vercel deployment to be checked
+against the user stories after every push to `main` ([R-18](research.md#r-18)).
+
+| Check | How | Passes when |
+|---|---|---|
+| Local build | CI's `test` job runs every end-to-end journey on the production build, served on `localhost` | The `test` job is green |
+| Vercel deployment | CI's `deployed` job runs the same journeys on the production deployment, once Vercel reports it | The `deployed` job is green |
+| User experience | A person walks the [manual checks](#manual-checks) on `http://localhost:4173` (`npm start`) and on the Vercel production domain | Every row passes on both |
+
+To run the journeys against a deployment by hand, set `BASE_URL`. Add the bypass secret when the
+URL is behind Vercel's login:
+
+```bash
+BASE_URL=https://<deployment-url> VERCEL_AUTOMATION_BYPASS_SECRET=<secret> npx playwright test
+```
+
+```powershell
+$env:BASE_URL = "https://<deployment-url>"; $env:VERCEL_AUTOMATION_BYPASS_SECRET = "<secret>"; npx playwright test
+```
+
+### Vercel setup
+
+The project owner does this once, in the Vercel dashboard ([R-20](research.md#r-20)):
+
+1. Import the GitHub repository. Vercel detects Vite, and the production branch is `main`.
+2. Under Settings → General → Vercel Toolbar, set **Preview** to Off.
+3. Under Deployment Protection → Protection Bypass for Automation, generate a secret. Store it in
+   the GitHub repository's Actions secrets as `VERCEL_AUTOMATION_BYPASS_SECRET`.
+4. Leave Web Analytics and Speed Insights disabled ([FR-061](spec.md#fr-061)).
+
+Use the Vercel copy for checks and demonstrations only, and keep real data in the local build
+([R-20](research.md#r-20)).

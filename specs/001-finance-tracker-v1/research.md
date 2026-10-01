@@ -37,6 +37,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     process and HTTP error handling, with no v1 requirement that needs them.
   - **Next.js or another server-rendering framework** brings server rendering and hosting
     conventions, which serve hosted multi-user sites. Nothing here runs on a server.
+    - Next.js is Vercel's own framework, and its static export would deploy there too. But its server
+      features would go unused, and its export mode restricts routing and images.
+    - A static Vite build deploys to Vercel just as well ([R-20](#r-20)).
   - **SQLite compiled to WebAssembly in the browser** offers SQL, which one person's ledger of a few
     thousand rows does not need. Durable storage would also need a worker and a large dependency.
   - **localStorage** holds about 5 MB and writes synchronously. A few years of transactions can
@@ -51,8 +54,10 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - `types` is listed explicitly and `baseUrl` is not used, so the config is ready for TypeScript 7.
   - Vite 8 for the dev server and the production build.
   - npm with a committed `package-lock.json`.
-  - Node.js 24 LTS, pinned in `.nvmrc` and in `engines` in `package.json`. The minimum is 24.15,
-    which jsdom 30 requires.
+  - Node.js 24 LTS. `.nvmrc` holds `24`, and `package.json` declares `engines.node` as `24.x`, the
+    form Vercel reads to choose its build image ([R-20](#r-20)). Locally, 24.13.1 or later is
+    needed. Earlier Node 24 releases decode Windows-1252 wrongly, and the CSV tests would catch it
+    ([R-09](#r-09)).
 - **Rationale**:
   - The CI workflow stub already in the repo names a TypeScript linter.
   - **Why TypeScript 6, not 7**: TypeScript 7, the native Go compiler, has been npm's `latest` since
@@ -76,58 +81,74 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - **Plain `tsc` without a bundler** gives no dev server, no hot reload and no asset pipeline.
 
 <a id="r-03"></a>
-### R-03 · React with the Mantine component library
+### R-03 · React and Mantine, the only run-time frameworks
 
 - **Decision**:
-  - React, with Mantine as the component library. The Mantine packages used are `core` with its
-    required `hooks`, `form`, `dates`, `charts` (built on Recharts), `notifications` and `modals`.
+  - React, with Mantine as the component library. These are the app's only two run-time frameworks,
+    as constitution II asks for as few as possible.
+  - Only these Mantine packages are used: `core` with its required `hooks`, `charts` (built on
+    Recharts) and `notifications`. The rest is plain React:
+    - Confirmations use the core `Modal` through one confirmation component of our own.
+    - Forms keep their values in React state and take their errors from the domain's validation, so
+      no form library repeats the rules ([R-15](#r-15)).
+    - Dates use the browser's native date input, which already yields `YYYY-MM-DD`
+      ([R-08](#r-08)).
   - `@tabler/icons-react` for icons.
 - **Rationale**:
   - One component system gives every screen the same patterns ([FR-065](spec.md#fr-065)).
-  - Mantine provides the widgets this spec needs, accessible and themed alike:
+  - Mantine provides, accessible and themed alike, the widgets that would cost the most to build
+    well:
     - selects whose options show a colour swatch (category pickers);
     - number inputs with locale separators, a fixed two-decimal scale and no negatives
       ([FR-010](spec.md#fr-010), [FR-060](spec.md#fr-060));
-    - a date-range picker with presets ([FR-050](spec.md#fr-050));
-    - confirmation modals ([FR-001](spec.md#fr-001), [FR-071](spec.md#fr-071));
-    - notifications, and form state that places errors at their fields
-      ([FR-068](spec.md#fr-068)).
-  - Its charts share the theme, so Insights looks like the rest of the app.
-  - React has the most widely known component model and mature testing tools.
+    - modals for confirmations ([FR-001](spec.md#fr-001), [FR-071](spec.md#fr-071));
+    - notifications;
+    - charts that share the theme, so Insights looks like the rest of the app.
+  - Everything simpler stays in plain React. The period picker of [FR-050](spec.md#fr-050), for
+    example, is a row of preset buttons and two native date inputs.
+  - React has the most widely known component model.
 - **Findings that shape the build** (Mantine docs, verified 2026-10-01):
-  - **Styles**: Mantine 9 needs `@mantine/core/styles.css`, plus each extension's own stylesheet.
-    It recommends `postcss-preset-mantine`. `@mantine/dates` requires `dayjs`, which stays in the
-    UI layer; the domain keeps its own string dates ([R-08](#r-08)).
+  - **Styles**: Mantine 9 needs `@mantine/core/styles.css`, plus the stylesheets of `charts` and
+    `notifications`. It recommends `postcss-preset-mantine`.
   - **Select values**: a Select cannot show a value that is not in its options. When the form edits
     a reconciliation entry, "Unaccounted" therefore stays in the Select's data so its label shows,
     and a custom `filter` hides it from the dropdown ([FR-030](spec.md#fr-030),
     [contracts/ui.md](contracts/ui.md#transaction-form)).
-  - **Charts in jsdom**: charts draw nothing in jsdom, because their responsive container has no
-    size there. Chart visuals are verified end to end ([R-17](#r-17)). The Insights legend is a
-    component of our own, which jsdom tests can check.
   - **Number input**: `NumberInput` has `selectAllOnFocus`, which the amount field uses
     ([SC-002](spec.md#sc-002)).
 - **Alternatives considered**:
+  - **More Mantine packages**:
+    - `form` would repeat in the UI the validation the domain already does.
+    - `dates` adds `dayjs` as one more dependency, for a picker the native input already covers.
+    - `modals` saves a single small component.
   - **shadcn/ui with Tailwind** copies the components into the repo, which means more code of our
     own for the same widgets.
   - **MUI** is heavier and brings the Material look.
   - **Svelte or Vue** would work, but offer this app no advantage, and their ecosystems for these
     exact widgets are smaller.
-  - **No component library** would mean building a swatch select, a date-range picker, modals and
-    notifications ourselves, against constitution II.
+  - **No component library**: building an accessible swatch select, number input, modal,
+    notifications and charts ourselves would cost far more code than one framework, against the
+    first sentence of constitution II.
 
 <a id="r-04"></a>
-### R-04 · Hash-based routing with React Router
+### R-04 · Hash-based routing with a small router of our own
 
-- **Decision**: React Router 8's `HashRouter`, with URLs in the hash, as in `#/insights`
-  ([contracts/ui.md](contracts/ui.md#shell-and-navigation)). React Router 8 is ESM-only, and imports
-  come from `react-router` (the old `react-router-dom` package stays on v7).
+- **Decision**: a hash router of about 30 lines in `src/ui/app/`, with URLs in the hash, as in
+  `#/insights` ([contracts/ui.md](contracts/ui.md#shell-and-navigation)).
+  - A route table maps each route to its screen.
+  - React's `useSyncExternalStore` reads the current route from the `hashchange` event.
+  - Navigating means setting `location.hash`.
 - **Rationale**:
   - Each screen has a URL, so the back button and reloads work.
-  - Hash URLs need no server rewrite rules. The same build therefore works from `vite preview`, any
-    static server, a container, or a desktop shell that loads local files ([R-20](#r-20)).
+  - Hash URLs need no server rewrite rules. The same build therefore works from `vite preview`,
+    Vercel, any static server, or a desktop shell that loads local files ([R-20](#r-20)).
   - Opening the app's address still lands on the transaction list ([FR-063](spec.md#fr-063)).
+  - The app has ten routes, only one of which takes a parameter (a profile id). A routing
+    framework would be a large dependency for a small job, and constitution II asks for as few
+    frameworks as possible.
 - **Alternatives considered**:
+  - **React Router 8's `HashRouter`** does the same job, but it is a framework, and its data
+    loading, nested layouts and framework mode would go unused.
   - **History-API routing** needs fallback rules on every host.
   - **No router** loses the back button and links to individual screens.
 
@@ -137,8 +158,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 ### R-05 · The whole state in memory; write first, then apply
 
 - **Decision**:
-  - At start, every store is loaded into one in-memory state object. A store module built with
-    Zustand exposes the actions.
+  - At start, every store is loaded into one in-memory state object, held by a store module of our
+    own. The module exposes the state, a `subscribe` function and the actions. Screens read it
+    through React's `useSyncExternalStore` with a selector.
   - Each action runs in three steps:
     1. It calls a pure domain function with the current state and the injected values the function
        needs: today's date and new ids. The result is either a refusal code or a set of changes.
@@ -155,10 +177,14 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - Injecting the date and the ids keeps domain functions deterministic.
   - Writing review edits at once means review progress survives closing the app
     ([FR-022](spec.md#fr-022)) and appears in backups ([SC-014](spec.md#sc-014)).
+  - Only the module's single hook touches React, so the store's tests run in Node
+    ([R-17](#r-17)).
 - **Alternatives considered**:
   - **Querying IndexedDB per screen** means more asynchronous code and loading states, which
     nothing at this size needs.
   - **Dexie live queries** provide reactive queries, which an in-memory state does not use.
+  - **Zustand** would supply the subscribe-and-select part, about 30 lines, as one more
+    framework-like dependency (constitution II).
   - **Redux Toolkit** needs more ceremony for the same store.
   - **React context with `useReducer`** re-renders the whole tree on every change and handles
     asynchronous actions awkwardly.
@@ -264,8 +290,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - Parsing runs on the main thread.
 - **Rationale**:
   - `TextDecoder` supports every encoding in the contract natively, in browsers and in Node, with no
-    dependency. Node only decodes Windows-1252 correctly from 24.13.1, where `0x80` becomes "€"; the
-    24.15 minimum ([R-02](#r-02)) covers that.
+    dependency. Node only decodes Windows-1252 correctly from 24.13.1, where `0x80` becomes "€".
+    That is why [R-02](#r-02) sets 24.13.1 as the minimum.
   - Papa Parse is the established CSV tokeniser. It handles quoting, line breaks inside cells and
     delimiter detection.
   - The profile in [FR-021](spec.md#fr-021) has no delimiter setting, and detection keeps it that
@@ -471,44 +497,49 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 <a id="r-17"></a>
 ### R-17 · Testing
 
-- **Decision**: every task is done test-first (constitution VII), at four levels:
+- **Decision**: every task is done test-first (constitution VII), with two test runners at three
+  levels:
 
 | Level | Tools | Covers |
 |---|---|---|
 | Domain unit | Vitest in Node, plain data | Every business rule; the bulk of the tests |
-| Store integration | Vitest with `fake-indexeddb` | Atomic writes (confirmation, category deletion, restore), state surviving a reopen ([FR-022](spec.md#fr-022)), refusal paths |
-| Component | Vitest with jsdom, Testing Library and user-event | Form defaults and pickers ([FR-011](spec.md#fr-011), [FR-014](spec.md#fr-014), [FR-015](spec.md#fr-015), [FR-030](spec.md#fr-030)), review interactions, where messages appear ([FR-068](spec.md#fr-068)) |
-| End-to-end | Playwright on the production build, in Chromium and Firefox | One spec per user story, the network guard ([FR-061](spec.md#fr-061)), performance ([SC-009](spec.md#sc-009), [SC-010](spec.md#sc-010)), the backup round trip ([SC-014](spec.md#sc-014)) |
+| Store integration | Vitest in Node with `fake-indexeddb` | Atomic writes (confirmation, category deletion, restore), state surviving a reopen ([FR-022](spec.md#fr-022)), refusal paths |
+| Browser | Playwright in Chromium and Firefox, on the local production build or on a deployed URL given as `BASE_URL` ([R-18](#r-18)) | UI behaviour, such as form defaults and pickers ([FR-011](spec.md#fr-011), [FR-014](spec.md#fr-014), [FR-015](spec.md#fr-015), [FR-030](spec.md#fr-030)), review interactions and where messages appear ([FR-068](spec.md#fr-068)). Also one journey per user story, the network guard ([FR-061](spec.md#fr-061)), performance ([SC-009](spec.md#sc-009), [SC-010](spec.md#sc-010)) and the backup round trip ([SC-014](spec.md#sc-014)) |
 
-  - **Location**: unit, integration and component tests sit next to the code they test as
-    `*.test.ts(x)`. End-to-end tests live in `e2e/`
+  - **Location**: Vitest tests sit next to the code they test, as `*.test.ts`. Playwright specs live
+    in `e2e/`: UI behaviour in `e2e/ui/`, and journeys at the top level
     ([quickstart.md](quickstart.md#validation-scenarios)).
-  - **Component test setup**: component tests use Mantine's documented jsdom setup. It mocks
-    `matchMedia`, `ResizeObserver`, `getComputedStyle`, `scrollIntoView` and `document.fonts`, and
-    renders inside `MantineProvider` with `env="test"`, which turns off transitions and portals.
-    Further setup:
-    - jsdom has no IndexedDB, so the setup file also imports `fake-indexeddb/auto`.
-    - jest-dom 7 is imported from `@testing-library/jest-dom/vitest`.
-  - **Charts**: component tests assert the aggregated data and our own legend. They do not assert
-    the drawn charts, because charts draw nothing in jsdom ([R-03](#r-03)).
+  - **Test-first on screens**: during development, Playwright's UI mode re-runs a spec on every
+    save against the running dev server. Every test gets a fresh browser context with empty storage.
 - **Rationale**:
   - The pure domain makes most rules testable in milliseconds without a browser.
   - Integration tests cover what only storage can break.
-  - End-to-end tests prove the journeys in real browsers, including file download and upload and
-    real IndexedDB, which jsdom cannot provide.
+  - Browser tests see what the user sees: Mantine's real rendering, real IndexedDB, drawn charts,
+    and file download and upload. They need no mocks of browser APIs.
+  - Two runners is the minimum: a fast Node runner for test-first work on rules, and a real browser
+    for everything on screen (constitution II, VII).
 - **Alternatives considered**:
-  - **Vitest browser mode for component tests** runs a real browser, but is slower and needs a
-    second browser setup. jsdom suffices for form logic.
+  - **Component tests in jsdom with Testing Library** are faster per test, but they bring costs:
+    - They need mocks of `matchMedia`, `ResizeObserver` and more for Mantine, plus a fake IndexedDB
+      inside jsdom.
+    - Charts draw nothing in jsdom.
+    - They add four more test packages (constitution II).
+  - **Vitest browser mode** gives a real browser, but would be a second way of driving one, next to
+    Playwright.
+  - **Playwright's runner for the unit tests too** would mean one runner, but no fast watch loop
+    for test-first work on rules.
   - **Cypress**: Playwright has the needed multi-browser support, downloads and uploads built in.
-  - **End-to-end tests only** give slow feedback, and constitution VII asks for a failing test per
-    behaviour.
+  - **End-to-end journeys only** give slow feedback, and constitution VII asks for a failing test
+    per behaviour.
 
 <a id="r-18"></a>
-### R-18 · Continuous integration in the existing workflow
+### R-18 · Continuous integration and the post-push check
 
 - **Decision**:
-  - Fill in the existing `.github/workflows/regressiontests.yml` rather than add a new workflow.
-  - The single job runs:
+  - Fill in the existing `.github/workflows/regressiontests.yml` rather than add a new workflow. It
+    gets two jobs.
+  - **`test`** runs on pushes to `main`, on manual dispatch, and on pull requests to `main`, which
+    is a new trigger. It runs:
     1. Node setup from `.nvmrc`, with the npm cache. The stub's `actions/checkout@v4` moves to
        `actions/checkout@v7`, and `actions/setup-node@v7` is added; both are the current majors and
        run on Node 24;
@@ -519,14 +550,31 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     6. Vitest;
     7. the build;
     8. installing the Playwright browsers;
-    9. the end-to-end tests.
-  - On failure, the job uploads the Playwright report.
-  - The workflow gains a `pull_request` trigger for `main` next to its `push` trigger.
+    9. the end-to-end tests;
+    10. on failure, uploading the Playwright report.
+  - **`deployed`** runs when Vercel reports a successful production deployment through GitHub's
+    `deployment_status` event ([R-20](#r-20)).
+    - It runs the end-to-end suite against the deployment URL from that event, passed to Playwright
+      as `BASE_URL`.
+    - Vercel puts deployment URLs behind a login by default, so the job sends Vercel's automation
+      bypass header. Its secret is the GitHub Actions secret `VERCEL_AUTOMATION_BYPASS_SECRET` and
+      is never committed.
+  - The rest of the post-push gate is manual: a person walks the
+    [manual checks](quickstart.md#manual-checks) on both the local build and the Vercel production
+    domain ([quickstart.md](quickstart.md#after-pushing-to-main)).
 - **Rationale**:
-  - The constitution makes passing tests a condition for merging. Running the checks on pull
-    requests catches a failure before it reaches `main`, not after.
+  - The constitution makes passing tests a condition for merging. Running `test` on pull requests
+    catches a failure before it reaches `main`, not after.
+  - The constitution's post-push quality gate asks for both deployments to be checked against the
+    user stories.
+    - `test` already exercises the local production build, served on `localhost` inside the runner.
+    - `deployed` runs the same journeys on the real Vercel deployment.
+    - That leaves only the judgement criteria to a person.
   - Building on the user's file keeps one pipeline.
 - **Alternatives considered**:
+  - **Vercel's `repository_dispatch` events** would also carry the URL. But `deployment_status` is
+    sent by default, and it is the event Playwright's CI guide uses.
+  - **A manual check only** would leave the mechanical part of the gate to memory.
   - **A second workflow file** means two pipelines to keep in step.
   - **One job per check** runs in parallel, but repeats the install. One job is simpler at this
     size.
@@ -553,7 +601,7 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - **The test guard alone** only catches violations on the paths the tests take.
 
 <a id="r-20"></a>
-### R-20 · Serving, ports and later packaging
+### R-20 · Serving locally and on Vercel; later packaging
 
 - **Decision**:
   - `npm start` builds the app and serves it with `vite preview` on port 4173.
@@ -561,7 +609,26 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - Both ports are strict: if a port is taken, the server fails instead of moving to another.
   - Vite builds with `base: "./"`, so asset URLs are relative.
   - Both servers listen on `localhost` only, which is Vite's default.
+  - **Vercel**: Vercel's GitHub integration deploys every push to `main` to production, and every
+    pull request to a preview.
+    - Vercel detects Vite and builds with `npm run build` into `dist/`.
+    - No `vercel.json` is needed, because with hash routing the server is only ever asked for `/`.
+    - The Node version comes from `engines.node` ([R-02](#r-02)).
+    - The one-time project settings are in [quickstart.md](quickstart.md#vercel-setup):
+      - the Vercel Toolbar off for previews;
+      - Protection Bypass for Automation on ([R-18](#r-18));
+      - Web Analytics and Speed Insights never enabled.
+  - **Interpretation**: the Vercel copy exists for the constitution's post-push check and for showing
+    the app to others. Daily use with real data stays on the local build.
 - **Rationale**:
+  - **Real data stays local** because only the local build fully meets [FR-061](spec.md#fr-061).
+    - The hosted copy needs a network to load.
+    - Vercel sees each request for the app's files, as any host does.
+    - It never sees ledger data. That data stays in the visitor's browser, under the Vercel origin,
+      apart from the local build's data.
+  - **The toolbar is off** because Vercel injects its toolbar script into preview deployments by
+    default. That third-party script runs against FR-061. The CSP ([R-19](#r-19)) would block it,
+    but switching it off avoids the blocked request altogether.
   - A browser keeps data per origin, meaning scheme, host and port. If the port silently changed,
     the app would open empty on a new origin and look as if all data were lost.
   - The host name is part of the origin too: `127.0.0.1` reaches the same server but holds separate,
@@ -593,11 +660,10 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     the user's search. Rows skipped by `content-visibility` stay in the page, and find-in-page
     reaches them in Chrome, Edge and Firefox. Virtualisation removes off-screen rows from the page,
     so find-in-page would miss them.
-  - JavaScript virtualisation would also complicate component tests, because jsdom has no layout,
-    for a need nobody has measured.
+  - Virtualisation would also add code and moving parts, for a need nobody has measured.
   - Revisit if the first render passes 1 s at 10,000 rows ([quickstart.md](quickstart.md#performance)).
 - **Alternatives considered**:
-  - **TanStack Virtual** is proven, but it breaks find-in-page and complicates component tests.
+  - **TanStack Virtual** is proven, but it breaks find-in-page.
   - **Pagination** is out of scope.
 
 <a id="r-22"></a>
