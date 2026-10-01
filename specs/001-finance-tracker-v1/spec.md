@@ -271,27 +271,26 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   longer fits its definition ([FR-001](#fr-001)), and the balance double-counts those rows until the
   user adjusts the opening balance to match. The app
   cannot detect this, which is why changing the opening balance is warned about, not blocked.
-- A transfer's other leg appears when the counter-account's export is imported later. A pending row
-  whose account is the counter-account of an existing transfer, with the same date and amount, is
-  flagged as a duplicate like any other.
+- A transfer's other leg appears when the counter-account's export is imported later: it is flagged
+  as a duplicate ([FR-024](#fr-024)).
 - The same file is imported twice: every row is flagged as a duplicate and confirming with defaults
-  adds nothing.
-- A batch contains two rows with the same date and amount: the second is flagged as a duplicate of
-  the first within the batch, because banks do emit genuine identical rows on the same day, and
-  the user can include it.
+  adds nothing ([FR-024](#fr-024), [FR-025](#fr-025)).
+- A batch contains two rows with the same date and amount: the second is flagged
+  ([FR-024](#fr-024)) but can be included, because banks do emit genuine identical rows on the same
+  day.
 - An import file has a header only, or no rows: the user is told the file contained no transactions
   and no batch is created.
-- The Insights period spans more than one calendar month: budget progress is shown for the most
-  recent calendar month in the period only, labelled with that month.
+- The Insights period spans more than one calendar month: budget progress covers only the most
+  recent month ([FR-051](#fr-051), [User Story 4](#user-story-4) scenario 6).
 - A transaction's kind is changed after it was saved: the category or destination account follows
   the same rule as during entry ([FR-015](#fr-015)); nothing is left empty.
 - A transaction is moved to a different account: both accounts' balances update.
 - The amount field does not accept a negative value; the kind carries the direction. A zero amount
   is allowed ([FR-010](#fr-010)).
 - Two accounts, two mapping profiles, or two categories on the same side with the same name are
-  refused.
-- A very large expense "Unaccounted" share appears in Insights: it is shown at its true size; there
-  is no option to hide or merge it.
+  refused (categories: [FR-032](#fr-032)).
+- A very large expense "Unaccounted" share appears in Insights: it is shown at its true size
+  ([FR-052](#fr-052)).
 
 ## Requirements *(mandatory)*
 
@@ -315,7 +314,7 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-006"></a>**FR-006**: On first launch, system MUST create one account named "Cash", of
   type cash, with an opening balance of 0.00. It is an ordinary account ([FR-004](#fr-004)),
   editable like any other. The manual-entry form MUST default to the account most recently used for
-  a manual entry (create or edit through the transaction API). Before the user has made any manual
+  a manual entry. Before the user has made any manual
   entry, that account MUST be "Cash". Import confirmation and reconciliation MUST NOT change this
   default. Accounts cannot be deleted in v1 ([Out of Scope](#out-of-scope)).
 
