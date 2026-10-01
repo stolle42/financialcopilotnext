@@ -240,6 +240,30 @@ attempt to delete a protected one, and verify transactions and budgets respond a
 
 ---
 
+<a id="user-story-7"></a>
+### User Story 7 - Back up and restore all data (Priority: P7)
+
+The user saves everything the app holds to one file and can later load that file to get exactly
+that state back, on the same or another machine.
+
+**Why this priority**: All data lives locally, so losing the machine or the browser data loses
+everything. It is ranked last only because it needs every other entity to exist.
+
+**Independent Test**: Fill the app with data from every other story, save a backup, restore it
+into a fresh install, and verify everything matches ([SC-014](#sc-014)).
+
+**Acceptance Scenarios**:
+
+1. **Given** any data in the app, **When** the user saves a backup, **Then** they receive one file
+   and nothing in the app changes ([FR-070](#fr-070)).
+2. **Given** a backup file and existing data, **When** the user loads the file, **Then** the app
+   warns that all current data will be replaced and asks for confirmation; **When** they confirm,
+   **Then** the app shows exactly the data in the backup ([FR-071](#fr-071)).
+3. **Given** a file that is not a valid backup, **When** the user loads it, **Then** the app refuses,
+   explains why, and the current data is unchanged ([FR-072](#fr-072)).
+
+---
+
 <a id="edge-cases"></a>
 ### Edge Cases
 
@@ -424,6 +448,18 @@ testable for v1.
 - <a id="fr-068"></a>**FR-068**: Form validation MUST point the user to the problem: field-level issues MUST
   appear at or beside the relevant field; form-wide issues MUST appear where the user is about to
   submit, with enough context to correct the input without external documentation.
+
+**Backup**
+
+- <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
+  app holds, including accounts, transactions, categories, budgets, mapping profiles, pending
+  batches, and the manual-entry default account ([FR-006](#fr-006)).
+- <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
+  current data with the file's contents, not merge them, and MUST require the user to confirm a
+  warning that all current data will be replaced.
+- <a id="fr-072"></a>**FR-072**: System MUST refuse a file that is not a complete, valid backup and
+  MUST leave the current data unchanged; a restore either fully succeeds or changes nothing.
+
 <a id="key-entities"></a>
 ### Key Entities
 
@@ -469,12 +505,14 @@ testable for v1.
 - <a id="sc-011"></a>**SC-011**: Over-limit budget categories are identifiable in Insights without reading any number.
 - <a id="sc-012"></a>**SC-012**: For every refusal or failure called out in this spec (duplicate account,
   profile, or category name; protected category deletion; import file with no transactions;
-  reconciliation when balances already match; unparsable import rows; and validation on manual
-  entry), exercising the scenario once MUST surface a plain-language message that states the reason,
+  reconciliation when balances already match; unparsable import rows; an invalid backup file; and
+  validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
   in line with [FR-067](#fr-067).
 - <a id="sc-013"></a>**SC-013**: A new user who follows only on-screen labels and defaults can complete [User Story
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
   settings, in line with [FR-066](#fr-066).
+- <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
+  account balance, transaction, category, budget, mapping profile, and pending batch exactly.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -497,6 +535,8 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Investment, asset, or net-worth tracking.
 - Tax reporting or accounting-standard exports.
 - Native mobile applications.
+- Automatic or scheduled backups, and merging a backup into existing data. v1 backs up and restores
+  only on request, as a whole ([FR-070](#fr-070), [FR-071](#fr-071)).
 - Small-viewport responsive layout: completing every flow in a narrow browser window (for example
   360 pixels wide) without horizontal scrolling. v1 targets a normal desktop browser; phone-sized
   polish is later.
