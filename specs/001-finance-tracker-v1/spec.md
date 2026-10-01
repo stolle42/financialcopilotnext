@@ -26,6 +26,10 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
   and demonstrations? → A: Only for checks and demonstrations; real data stays in the app as run
   locally ([FR-061](#fr-061)). Using a hosted copy for real data is out of scope for v1
   ([Out of Scope](#out-of-scope)).
+- Q: If the user changes a category's monthly limit, should Insights measure earlier months against
+  the new limit, or against the limit that applied in those months? → A: Against the new limit. A
+  category has one limit at a time, and it applies to every month, past and present
+  ([FR-041](#fr-041)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -458,8 +462,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 
 - <a id="fr-040"></a>**FR-040**: Users MUST be able to set, change, and remove a monthly spending limit on any expense
   category other than "Uncategorised" and "Unaccounted". Income categories MUST NOT carry budgets.
-- <a id="fr-041"></a>**FR-041**: Budget progress MUST compare the expenses in a category within a calendar month against
-  that month's limit. Each calendar month MUST start at zero; unspent amounts MUST NOT roll over.
+- <a id="fr-041"></a>**FR-041**: Budget progress MUST compare a category's expenses within one calendar month against
+  the category's limit. A category has one limit at a time, and that limit applies to every month,
+  past and present: changing it changes the progress shown for every month, and v1 keeps no history
+  of earlier limits. Each calendar month MUST start at zero; unspent amounts MUST NOT roll over.
 - <a id="fr-042"></a>**FR-042**: A category whose spending exceeds its limit MUST be shown in a state clearly
   distinguishable from one within its limit.
 
@@ -537,7 +543,8 @@ testable for v1.
 - **Category**: A label for expenses or incomes. Has a name, a colour, a side (expense or income),
   and whether it is protected. Each side has the protected "Uncategorised" (a to-do) and
   "Unaccounted" (a final answer).
-- **Budget**: A monthly spending limit attached to one non-protected expense category.
+- **Budget**: A monthly spending limit attached to one non-protected expense category. There is one
+  limit at a time, and it applies to every month ([FR-041](#fr-041)).
 - **Mapping profile**: A named, reusable description of one bank's CSV layout: column roles, date
   format, decimal separator, encoding.
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or

@@ -418,13 +418,12 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - A period includes both its start date and its end date.
   - **Spending line**: one point per day for periods up to 92 days, about a quarter, and one per
     calendar month beyond that. Empty buckets are zero.
-  - **Budget month**, an **interpretation**: the calendar month that contains the period's end date
-    ([FR-051](spec.md#fr-051)). It is measured over that whole month ([FR-041](spec.md#fr-041)) and
-    labelled with it, so a period ending mid-month shows the full month.
-  - **Budget limits**, an **interpretation**: each category has one current limit, which applies to
-    whichever month is shown. A change takes effect immediately
-    ([User Story 4](spec.md#user-story-4) scenario 5). v1 keeps no history of past limits, so "that
-    month's limit" in FR-041 is read as the monthly limit.
+  - **Budget month**: the calendar month that contains the period's end date
+    ([FR-051](spec.md#fr-051)). It is measured over that whole month, as FR-041 defines budgets by
+    calendar month, and labelled with it.
+  - **Budget limits** (confirmed 2026-10-01, now in [FR-041](spec.md#fr-041)): each category has
+    one current limit, which applies to whichever month is shown. The Budget record therefore holds
+    a single `limitCents`, and no history is stored ([data-model.md](data-model.md#budget)).
   - **Charts**: shadcn's chart component, which wraps Recharts 3 ([R-03](#r-03)). "Unaccounted" gets
     an SVG hatch pattern and a legend marker, so it stays distinguishable whatever colour the user
     gives it ([FR-052](spec.md#fr-052), [FR-033](spec.md#fr-033)).
@@ -441,8 +440,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 - **Alternatives considered**:
   - **Weekly buckets** depend on the locale's first day of the week, and add a third granularity
     for little gain.
-  - **A limit history per month** is not part of the Budget entity in the spec, and the current
-    limit has to take effect immediately.
+  - **A limit history per month**: the user chose one current limit for every month
+    ([FR-041](spec.md#fr-041)).
 
 ## Quality
 

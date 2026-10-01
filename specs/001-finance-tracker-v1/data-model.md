@@ -67,7 +67,7 @@ unless the transaction already held it (editing a reconciliation entry;
 | Field | Type | Notes |
 |---|---|---|
 | `categoryId` | Category id | Key; an expense category with `role` null ([FR-040](spec.md#fr-040)) |
-| `limitCents` | integer > 0 | Monthly limit; one current value applies to every month ([R-14](research.md#r-14)) |
+| `limitCents` | integer > 0 | Monthly limit; one current value applies to every month ([FR-041](spec.md#fr-041)) |
 
 At most one budget per category, which is why the category id is the key.
 
