@@ -119,6 +119,9 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
     cannot be confirmed, and the rest of the batch remains reviewable.
 12. **Given** the user closes the app with a batch pending, **When** they return, **Then** the batch
     is still pending and reviewable.
+13. **Given** a batch is pending, **When** the user tries to import another file, **Then** the app
+    refuses, explains that the pending batch must be confirmed or discarded first, and offers to
+    open it ([FR-022](#fr-022)).
 
 ---
 
@@ -355,7 +358,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   separator; and the file encoding. Profile names MUST be unique; a duplicate name MUST be refused
   with an explanation.
 - <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
-  figures, or budgets until confirmed. Pending batches MUST survive closing and reopening the app.
+  figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app.
+  At most one pending batch MAY exist at any time, across all accounts; starting an import while one
+  is pending MUST be refused with a message that leads the user to review or discard it.
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount (money out
   is an expense, money in is an income) and MUST let the user change any row to a transfer with a
   counter-account during review.
@@ -457,8 +462,8 @@ testable for v1.
 **Backup**
 
 - <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
-  app holds, including accounts, transactions, categories, budgets, mapping profiles, pending
-  batches, and the manual-entry default account ([FR-006](#fr-006)).
+  app holds, including accounts, transactions, categories, budgets, mapping profiles, the pending
+  batch, and the manual-entry default account ([FR-006](#fr-006)).
 - <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
@@ -482,7 +487,7 @@ testable for v1.
 - **Mapping profile**: A named, reusable description of one bank's CSV layout: column roles, date
   format, decimal separator, encoding.
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or
-  discarded. Belongs to one account and one profile.
+  discarded. Belongs to one account and one profile. At most one exists at a time.
 - **Pending row**: One parsed line in a pending batch: its parsed fields, its vendor group, its
   proposed kind, its category or counter-account, whether it is flagged as a duplicate, whether it
   failed to parse, and whether it is included in confirmation.
@@ -510,14 +515,15 @@ testable for v1.
 - <a id="sc-011"></a>**SC-011**: Over-limit budget categories are identifiable in Insights without reading any number.
 - <a id="sc-012"></a>**SC-012**: For every refusal or failure called out in this spec (duplicate account,
   profile, or category name; protected category deletion; import file with no transactions;
-  reconciliation when balances already match; unparsable import rows; an invalid backup file; and
+  reconciliation when balances already match; unparsable import rows; an import while a batch is
+  pending; an invalid backup file; and
   validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
   in line with [FR-067](#fr-067).
 - <a id="sc-013"></a>**SC-013**: A new user who follows only on-screen labels and defaults can complete [User Story
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
   settings, in line with [FR-066](#fr-066).
 - <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
-  account balance, transaction, category, budget, mapping profile, and pending batch exactly.
+  account balance, transaction, category, budget, mapping profile, and the pending batch exactly.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
