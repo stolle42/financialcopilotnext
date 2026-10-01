@@ -535,6 +535,8 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Investment, asset, or net-worth tracking.
 - Tax reporting or accounting-standard exports.
 - Native mobile applications.
+- Guarding against an accidental 0.00 manual entry. v1 saves the unchanged form as specified
+  ([FR-014](#fr-014)); the user deletes an unwanted entry.
 - Automatic or scheduled backups, and merging a backup into existing data. v1 backs up and restores
   only on request, as a whole ([FR-070](#fr-070), [FR-071](#fr-071)).
 - Small-viewport responsive layout: completing every flow in a narrow browser window (for example
