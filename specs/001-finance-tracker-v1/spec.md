@@ -286,6 +286,12 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - A batch contains two rows with the same date and amount: the second is flagged
   ([FR-024](#fr-024)) but can be included, because banks do emit genuine identical rows on the same
   day.
+- The user adds, edits, or deletes a ledger transaction while a batch is pending: duplicate flags are
+  not recomputed ([FR-024](#fr-024)), so a manual entry matching a pending row goes unflagged and
+  confirming adds a duplicate, which the user deletes.
+- A row is marked as a transfer after the counter-account already holds the other leg as a plain
+  expense or income: both stay in the ledger and the counter-account's balance is off until the user
+  deletes the stray row.
 - An import file has a header only, or no rows: the user is told the file contained no transactions
   and no batch is created.
 - The Insights period spans more than one calendar month: budget progress covers only the most
@@ -381,7 +387,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-024"></a>**FR-024**: System MUST flag a pending row as a duplicate when it matches, on account, date, and
   amount, either an existing ledger transaction or an earlier row in the same batch, whether or
   not the descriptions match; and when its account is the counter-account of an existing transfer
-  with the same date and amount.
+  with the same date and amount. Dates MUST match exactly. Flags MUST be computed once, when the
+  batch is created, and MUST NOT change while it is pending.
 - <a id="fr-025"></a>**FR-025**: Flagged rows MUST be excluded from confirmation by default and MUST NOT appear among
   the rows under review. Review MUST show how many rows are flagged; selecting that number MUST
   present them, and the user MUST be able to include any individual one.
@@ -392,7 +399,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   category to a group MUST assign it to every row in the group. The user MUST be able to unfold a
   group and assign categories per row.
 - <a id="fr-027"></a>**FR-027**: Confirming a batch MUST move its included rows into the ledger with the categories
-  shown in review. Discarding a batch MUST leave the ledger unchanged.
+  shown in review, and MUST first state how many rows will enter the ledger. Discarding a batch MUST
+  leave the ledger unchanged. A confirmed batch cannot be undone as a whole ([Out of
+  Scope](#out-of-scope)).
 - <a id="fr-028"></a>**FR-028**: Rows the profile cannot parse MUST NOT appear among the rows under review and MUST
   NOT be confirmable. Review MUST show how many there are; selecting that number MUST present them
   with the reason each failed. The remaining rows MUST stay reviewable. With separate debit and
@@ -571,6 +580,10 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Small-viewport responsive layout: completing every flow in a narrow browser window (for example
   360 pixels wide) without horizontal scrolling. v1 targets a normal desktop browser; phone-sized
   polish is later.
+- Date tolerance when matching duplicates and transfer legs. Banks often post the two legs of a
+  transfer on different days; v1 matches the exact date only ([FR-024](#fr-024)).
+- Undoing a confirmed import batch as a whole. Confirmation states the row count
+  ([FR-027](#fr-027)) and a backup ([User Story 7](#user-story-7)) is the safety net.
 - Recurring-transaction detection and forecasting.
 - Budget rollover, and budget periods other than monthly. Both are wanted later and will be
   user-selectable when they arrive.
