@@ -420,6 +420,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 
 **Whole application**
 
+- <a id="fr-060"></a>**FR-060**: All amounts MUST be in euro. The app MUST display every amount with
+  the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
+  written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
   party, and MUST NOT require a network connection for any v1 capability.
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
@@ -529,7 +532,7 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 
 **Not in v1** — defensible later, deliberately excluded now:
 
-- Multi-currency support.
+- Currencies other than euro, and multi-currency support ([FR-060](#fr-060)).
 - Archiving or deleting accounts. An unused account stays in the list; revisit if dead accounts
   actually accumulate.
 - Linking an income category to an expense category so a refund offsets the category it came from.
