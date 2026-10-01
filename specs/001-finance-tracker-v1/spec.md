@@ -119,7 +119,11 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
     cannot be confirmed, and the rest of the batch remains reviewable.
 12. **Given** the user closes the app with a batch pending, **When** they return, **Then** the batch
     is still pending and reviewable.
-13. **Given** a batch is pending, **When** the user tries to import another file, **Then** the app
+13. **Given** profile "MyBank" maps a header that the new file lacks, **When** the user imports it,
+    **Then** no batch is created and the message names the missing columns ([FR-021](#fr-021)).
+14. **Given** a bank whose export lists purchases as positive amounts, **When** the profile has
+    sign inversion on, **Then** those rows are proposed as expenses ([FR-023](#fr-023)).
+15. **Given** a batch is pending, **When** the user tries to import another file, **Then** the app
     refuses, explains that the pending batch must be confirmed or discarded first, and offers to
     open it ([FR-022](#fr-022)).
 
@@ -354,15 +358,24 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-020"></a>**FR-020**: Users MUST be able to import transactions from a CSV file into a chosen account.
 - <a id="fr-021"></a>**FR-021**: Users MUST be able to define, name, save, and reuse a mapping profile that records:
   which columns hold the date, the amount (one signed column, or separate debit and credit
-  columns), the description, and optionally the counterparty; the date format; the decimal
+  columns), the description, and optionally the counterparty; whether the amount's sign is
+  inverted (for exports that list purchases as positive numbers); the date format; the decimal
   separator; and the file encoding. Profile names MUST be unique; a duplicate name MUST be refused
   with an explanation.
+  - Columns MUST be identified by their header text. A file missing a mapped header MUST create no
+    batch, and the message MUST name the missing columns. A profile MAY instead be flagged "no header
+    row", in which case columns are identified by position and no layout check is made.
+  - While defining a profile, the app MUST preview how the first rows of the file parse (date,
+    signed amount, description), so a wrong date format or decimal separator is visible before any
+    batch exists.
+  - Users MUST be able to edit, rename, and delete a profile. Doing so MUST NOT change a pending
+    batch, which keeps its parsed rows.
 - <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
   figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app.
   At most one pending batch MAY exist at any time, across all accounts; starting an import while one
   is pending MUST be refused with a message that leads the user to review or discard it.
-- <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount (money out
-  is an expense, money in is an income) and MUST let the user change any row to a transfer with a
+- <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
+  applying the profile's sign inversion (money out is an expense, money in is an income), and MUST let the user change any row to a transfer with a
   counter-account during review.
 - <a id="fr-024"></a>**FR-024**: System MUST flag a pending row as a duplicate when it matches, on account, date, and
   amount, either an existing ledger transaction or an earlier row in the same batch, whether or
