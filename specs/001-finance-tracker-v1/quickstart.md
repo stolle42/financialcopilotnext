@@ -195,4 +195,4 @@ The project owner does this once, in the Vercel dashboard ([R-20](research.md#r-
 4. Leave Web Analytics and Speed Insights disabled ([FR-061](spec.md#fr-061)).
 
 Use the Vercel copy for checks and demonstrations only, and keep real data in the local build
-([R-20](research.md#r-20)).
+([FR-061](spec.md#fr-061)).

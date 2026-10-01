@@ -22,6 +22,10 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
 - Q: In bank files with separate debit and credit columns, should a cell containing only zero
   (such as `0,00`) count as empty? → A: Yes. A zero cell counts as empty, so exactly one of the two
   columns must hold a non-zero amount ([FR-028](#fr-028)).
+- Q: May the copy of the app hosted on Vercel be used for real financial data, or only for checks
+  and demonstrations? → A: Only for checks and demonstrations; real data stays in the app as run
+  locally ([FR-061](#fr-061)). Using a hosted copy for real data is out of scope for v1
+  ([Out of Scope](#out-of-scope)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -477,7 +481,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
-  party, and MUST NOT require a network connection for any v1 capability.
+  party, and MUST NOT require a network connection for any v1 capability. Real data lives only in
+  the app as run locally. A copy hosted on the web, such as the one the project's post-push check
+  deploys, needs a network connection to open, so it serves only checks and demonstrations
+  ([Out of Scope](#out-of-scope)).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -620,6 +627,8 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   Copilot anticipates these features.
 - Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
   v1 must not foreclose them.
+- Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,
+  which [FR-061](#fr-061) rules out for v1, so it serves only checks and demonstrations.
 - Drill-down from a chart into its transactions. Desirable, to be considered in UX design, not a v1
   commitment.
 - Searching the transaction list, paginating it, and editing several transactions at once. v1 has

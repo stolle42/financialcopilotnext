@@ -634,8 +634,10 @@ in the spec, so that the spec stays the single source of behaviour (constitution
       - the Vercel Toolbar off for previews;
       - Protection Bypass for Automation on ([R-18](#r-18));
       - Web Analytics and Speed Insights never enabled.
-  - **Interpretation**: the Vercel copy exists for the constitution's post-push check and for showing
-    the app to others. Daily use with real data stays on the local build.
+  - **Purpose of the Vercel copy** (confirmed 2026-10-01, now in [FR-061](spec.md#fr-061)): it
+    exists for the constitution's post-push check and for showing the app to others. Daily use with
+    real data stays on the local build. Using a hosted copy for real data is
+    [out of scope](spec.md#out-of-scope).
 - **Rationale**:
   - **Real data stays local** because only the local build fully meets [FR-061](spec.md#fr-061).
     - The hosted copy needs a network to load.

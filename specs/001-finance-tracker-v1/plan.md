@@ -95,7 +95,7 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
 - One running tab ([R-07](research.md#r-07)).
 - Desktop viewport only ([Out of Scope](spec.md#out-of-scope)).
 - Real data stays in the local build. The Vercel copy is for checks and demonstrations
-  ([R-20](research.md#r-20)).
+  ([FR-061](spec.md#fr-061), [R-20](research.md#r-20)).
 
 **Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
 years of use, with headroom to about 50,000. There are 7 stored entity types and 10 screens
@@ -144,9 +144,6 @@ example with `/speckit-clarify`, so that the spec stays the single source of beh
 - [R-14](research.md#r-14): the budget month is measured over the whole month, and one current limit
   applies to every month.
 - [R-08](research.md#r-08): names are unique regardless of case and surrounding spaces.
-- [R-20](research.md#r-20): the Vercel copy is for checks and demonstrations, and real data stays
-  in the local build. The hosted copy needs a network to load, so only the local build fully meets
-  [FR-061](spec.md#fr-061).
 
 The limitations v1 accepts knowingly, such as bank files with lines above the header, are listed
 in [R-22](research.md#r-22).
