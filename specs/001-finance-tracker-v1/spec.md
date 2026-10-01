@@ -93,7 +93,8 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
 2. **Given** profile "MyBank" exists, **When** the user imports next month's file from the same
    bank, **Then** the profile is applied without any re-mapping.
 3. **Given** a bank whose export uses separate debit and credit columns, **When** the user maps both
-   in the profile, **Then** debit rows become expenses and credit rows become incomes.
+   in the profile, **Then** debit rows become expenses and credit rows become incomes, and a row
+   with a value in both columns or in neither is unparsable ([FR-028](#fr-028)).
 4. **Given** a pending batch of 300 rows from 40 vendors, from a file whose profile maps a
    counterparty column, **When** the user opens review, **Then** each vendor with more than one row
    is shown as one group, vendors with a single row are shown as plain rows, and assigning a
@@ -386,14 +387,18 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   present them, and the user MUST be able to include any individual one.
 - <a id="fr-026"></a>**FR-026**: Review MUST group pending rows by vendor where possible. The vendor
   is the counterparty column when the profile maps one, otherwise transactions are presented
-  ungrouped. Also, if a group contains only one transaction, it is not grouped. Assigning a
+  ungrouped. Two rows are the same vendor when their counterparty text is equal after trimming
+  whitespace and ignoring case; nothing fuzzier. Also, if a group contains only one transaction, it is not grouped. Assigning a
   category to a group MUST assign it to every row in the group. The user MUST be able to unfold a
   group and assign categories per row.
 - <a id="fr-027"></a>**FR-027**: Confirming a batch MUST move its included rows into the ledger with the categories
   shown in review. Discarding a batch MUST leave the ledger unchanged.
 - <a id="fr-028"></a>**FR-028**: Rows the profile cannot parse MUST NOT appear among the rows under review and MUST
   NOT be confirmable. Review MUST show how many there are; selecting that number MUST present them
-  with the reason each failed. The remaining rows MUST stay reviewable.
+  with the reason each failed. The remaining rows MUST stay reviewable. With separate debit and
+  credit columns, exactly one MUST hold a value; a row with both, neither, or a negative value is
+  unparsable. The profile's decimal separator also decides the thousands separator (the other one),
+  so `1.250,00` and `1,250.00` each parse as 1250.00 under their matching profile.
 - <a id="fr-029"></a>**FR-029**: Every row under review MUST hold a category, initially its side's
   "Uncategorised"; the category dropdown MUST offer no empty state, so no row can be confirmed
   without a category.
