@@ -30,6 +30,9 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
   the new limit, or against the limit that applied in those months? → A: Against the new limit. A
   category has one limit at a time, and it applies to every month, past and present
   ([FR-041](#fr-041)).
+- Q: Which imported rows should the review screen put into the same vendor group? → A: Rows with the
+  same counterparty and the same direction (money out or in); rows without a counterparty stay
+  ungrouped ([FR-026](#fr-026)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -117,9 +120,9 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
    holding `0,00` counts as empty, and a row with a non-zero amount in both columns or in neither
    is unparsable ([FR-028](#fr-028)).
 4. **Given** a pending batch of 300 rows from 40 vendors, from a file whose profile maps a
-   counterparty column, **When** the user opens review, **Then** each vendor with more than one row
-   is shown as one group, vendors with a single row are shown as plain rows, and assigning a
-   category to a group assigns it to every row in the group.
+   counterparty column, **When** the user opens review, **Then** the rows of each vendor are
+   grouped by direction, a group of a single row is shown as a plain row, and assigning a category
+   to a group assigns it to every row in the group.
 5. **Given** a vendor group whose rows belong in different categories, **When** the user unfolds the
    group, **Then** each row can be given its own category without affecting the others.
 6. **Given** a file whose profile maps no counterparty column, **When** the user opens review,
@@ -148,6 +151,10 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
 15. **Given** a batch is pending, **When** the user tries to import another file, **Then** the app
     refuses, explains that the pending batch must be confirmed or discarded first, and offers to
     open it ([FR-022](#fr-022)).
+16. **Given** a batch in which vendor "Shop" has three purchases and one refund, and two rows have
+    an empty counterparty, **When** the user opens review, **Then** the three purchases form one
+    group, and the refund and both rows without a counterparty are shown as plain rows
+    ([FR-026](#fr-026)).
 
 ---
 
@@ -417,12 +424,18 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-025"></a>**FR-025**: Flagged rows MUST be excluded from confirmation by default and MUST NOT appear among
   the rows under review. Review MUST show how many rows are flagged; selecting that number MUST
   present them, and the user MUST be able to include any individual one.
-- <a id="fr-026"></a>**FR-026**: Review MUST group pending rows by vendor where possible. The vendor
-  is the counterparty column when the profile maps one, otherwise transactions are presented
-  ungrouped. Two rows are the same vendor when their counterparty text is equal after trimming
-  whitespace and ignoring case; nothing fuzzier. Also, if a group contains only one transaction, it is not grouped. Assigning a
-  category to a group MUST assign it to every row in the group. The user MUST be able to unfold a
-  group and assign categories per row.
+- <a id="fr-026"></a>**FR-026**: Review MUST group pending rows by vendor where possible.
+  - A row's vendor is its counterparty, read from the counterparty column when the profile maps
+    one. A row has no vendor when the profile maps no counterparty column or the row's counterparty
+    cell is empty; such rows are shown as plain rows.
+  - Two rows have the same vendor when their counterparty text is equal after trimming whitespace
+    and ignoring case; nothing fuzzier.
+  - A group holds the rows that share a vendor and a direction, money out or money in, because a
+    category fits only one side ([FR-015](#fr-015)). Purchases and refunds from one vendor
+    therefore form separate groups.
+  - A group of only one row is shown as a plain row.
+  - Assigning a category to a group MUST assign it to every row in the group. The user MUST be able
+    to unfold a group and assign categories per row.
 - <a id="fr-027"></a>**FR-027**: Confirming a batch MUST move its included rows into the ledger with the categories
   shown in review, and MUST first state how many rows will enter the ledger. Discarding a batch MUST
   leave the ledger unchanged. A confirmed batch cannot be undone as a whole ([Out of

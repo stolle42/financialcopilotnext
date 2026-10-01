@@ -340,9 +340,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     its purchase.
 
 <a id="r-11"></a>
-### R-11 · **Interpretation**: vendor groups per side; an empty counterparty is no vendor
+### R-11 · Vendor groups per side; an empty counterparty is no vendor (confirmed)
 
-- **Decision**:
+- **Decision** (confirmed 2026-10-01, now in [FR-026](spec.md#fr-026)):
   - Review groups rows by vendor *and side*: purchases from a shop and refunds from the same shop
     form two groups.
   - A row whose counterparty cell is empty has no vendor and is shown as a plain row.

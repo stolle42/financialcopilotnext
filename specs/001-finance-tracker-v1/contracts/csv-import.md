@@ -46,7 +46,7 @@ Every cell is trimmed of surrounding whitespace before any rule below applies.
 | Date | Must match the profile's [date format](#date-formats) exactly |
 | Amount | [Amount grammar](#amount-grammar), then the [direction rules](#direction) |
 | Description | Any text; an empty cell gives an empty description ([FR-010](../spec.md#fr-010)) |
-| Counterparty | Any text; an empty cell gives `null`, which means the row has no vendor ([R-11](../research.md#r-11)) |
+| Counterparty | Any text; an empty cell gives `null`, which means the row has no vendor ([FR-026](../spec.md#fr-026)) |
 
 ## Amount grammar
 
@@ -154,15 +154,13 @@ The rule is [FR-024](../spec.md#fr-024). This section fixes how it is computed.
 
 ## Vendor groups
 
-These rules apply to the rows under review ([data-model.md](../data-model.md#derived-values)).
+The grouping rule is [FR-026](../spec.md#fr-026), applied to the rows under review
+([data-model.md](../data-model.md#derived-values)). In data terms, a group is the set of rows that
+share a vendor key and a side. This section adds what review shows and how later changes behave.
 
-- Rows with the same vendor key **and** the same side form a group ([R-11](../research.md#r-11)).
 - A group shows the first row's counterparty text, the side, the row count and the total.
-- A group of one row is shown as a plain row ([FR-026](../spec.md#fr-026)).
-- Rows without a vendor are always shown as plain rows.
-- Setting a group's assignment sets it on every row currently in the group
-  ([FR-026](../spec.md#fr-026)). The assignment is either a category of the group's side or a
-  transfer to or from another account.
+- Setting a group's assignment sets it on every row currently in the group. The assignment is either
+  a category of the group's side or a transfer to or from another account.
 - A row that is included later ([FR-025](../spec.md#fr-025)) joins its group with its own
   assignment unchanged.
 

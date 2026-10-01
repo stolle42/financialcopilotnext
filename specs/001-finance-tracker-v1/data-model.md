@@ -130,7 +130,7 @@ row 1, as a spreadsheet shows it. It identifies the row within the batch and in 
 | `date` | calendar date | |
 | `amountCents` | integer, any sign | Signed effect on the batch account after sign inversion: negative is money out ([FR-023](spec.md#fr-023)) |
 | `description` | string, may be empty | |
-| `counterparty` | string \| `null` | Trimmed cell text; `null` when unmapped or empty ([R-11](research.md#r-11)) |
+| `counterparty` | string \| `null` | Trimmed cell text; `null` when unmapped or empty, so the row has no vendor ([FR-026](spec.md#fr-026)) |
 | `duplicate` | boolean | Set once when the batch is created, never recomputed ([FR-024](spec.md#fr-024)) |
 | `included` | boolean | Starts as `!duplicate` ([FR-025](spec.md#fr-025)) |
 | `assignment` | `{ type: "category", categoryId }` \| `{ type: "transfer", counterAccountId }` | Starts as the row side's "Uncategorised" ([FR-029](spec.md#fr-029)) |
@@ -163,7 +163,7 @@ Derived values are computed by domain functions from the state above and never s
 - **Vendor key** of a parsed row: the name key of `counterparty`, or none when it is `null`
   ([FR-026](spec.md#fr-026)).
 - **Rows under review**: parsed rows with `included` true ([FR-025](spec.md#fr-025)). Vendor groups
-  are formed over these rows, per side ([R-11](research.md#r-11)).
+  are formed over these rows, per side ([FR-026](spec.md#fr-026)).
 - **Budget progress** and **Insights aggregates**: see [R-14](research.md#r-14).
 
 ## Invariants
