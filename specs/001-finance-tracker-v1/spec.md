@@ -42,7 +42,8 @@ both balances equal opening balance plus the net of their transactions. Delivers
    from "Checking" to "Cash", **Then** "Checking" shows 1,110.00, "Cash" shows 100.00, and total
    spending and total income are unchanged.
 5. **Given** the user is recording an expense, **When** the category picker opens, **Then** it offers
-   expense categories only, and exactly one entry named "Uncategorised", and exactly one category named "Unaccounted".
+   expense categories only, including exactly one entry named "Uncategorised" and no entry named
+   "Unaccounted" ([FR-030](#fr-030)).
 6. **Given** the user is recording an expense or an income, **When** they look for a way to leave
    the category empty, **Then** none exists: the category holds the side's "Uncategorised" until
    they pick another.
@@ -348,7 +349,8 @@ attempt to delete a protected one, and verify transactions and budgets respond a
 
 - <a id="fr-030"></a>**FR-030**: System MUST keep expense categories and income categories as two separate sets. A
   category picker MUST show only the set matching the transaction's kind, and the two sets MUST
-  never appear in one list.
+  never appear in one list. Category pickers in manual entry and import review MUST NOT offer
+  "Unaccounted"; only reconciliation assigns it ([FR-035](#fr-035)).
 - <a id="fr-031"></a>**FR-031**: On first launch, both sets MUST contain a predefined list of categories, each set
   including the protected categories "Uncategorised" and "Unaccounted".
 - <a id="fr-032"></a>**FR-032**: Users MUST be able to create, rename, recolour, and delete categories. Names MUST be
