@@ -138,7 +138,6 @@ deviation needs justifying.
 These entries fill gaps in the spec. Each one should be confirmed and recorded in the spec, for
 example with `/speckit-clarify`, so that the spec stays the single source of behaviour:
 
-- [R-10](research.md#r-10): duplicate matching includes the direction of the money.
 - [R-11](research.md#r-11): vendor groups are formed per side, and an empty counterparty means the
   row has no vendor.
 - [R-12](research.md#r-12): zero amounts are proposed as expenses, and `0,00` counts as a value in a

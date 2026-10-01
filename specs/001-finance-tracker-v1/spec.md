@@ -11,6 +11,15 @@ document defining five capabilities (accounts, transactions, categories, budgets
 explicit out-of-scope list. That document is folded into this spec in full; this spec is the single
 source for what v1 contains. Nothing here is optional; nothing not here is in v1.
 
+## Clarifications
+
+### Session 2026-10-01
+
+- Q: When an imported row is checked for duplicates against existing transactions, must the
+  direction of the money (out of or into the account) also match? → A: Yes. A row matches only
+  on the same account, date, amount and direction, so a same-day refund of a purchase is not a
+  duplicate ([FR-024](#fr-024)).
+
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
 
@@ -107,9 +116,9 @@ Delivers bank data in the ledger with no duplicates and a saved profile.
    it as a transfer to that account, **Then** on confirmation it enters the ledger as a transfer
    with no category and is excluded from spending.
 8. **Given** a batch contains rows matching transactions already in the ledger on account, date,
-   and amount but with different descriptions, **When** the user opens review, **Then** those rows
-   are not among the rows under review, a count of duplicates is shown, selecting the count
-   presents them, and the user can include any single one.
+   amount, and direction but with different descriptions, **When** the user opens review, **Then**
+   those rows are not among the rows under review, a count of duplicates is shown, selecting the
+   count presents them, and the user can include any single one.
 9. **Given** a reviewed batch, **When** the user confirms it, **Then** the included rows enter the
    ledger with the categories shown in review, rows the user left untouched in "Uncategorised",
    and balances update.
@@ -283,9 +292,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   as a duplicate ([FR-024](#fr-024)).
 - The same file is imported twice: every row is flagged as a duplicate and confirming with defaults
   adds nothing ([FR-024](#fr-024), [FR-025](#fr-025)).
-- A batch contains two rows with the same date and amount: the second is flagged
+- A batch contains two rows with the same date, amount, and direction: the second is flagged
   ([FR-024](#fr-024)) but can be included, because banks do emit genuine identical rows on the same
   day.
+- A purchase and its refund of the same amount fall on the same day: neither is flagged against
+  the other, because the money moves in opposite directions ([FR-024](#fr-024)).
 - The user adds, edits, or deletes a ledger transaction while a batch is pending: duplicate flags are
   not recomputed ([FR-024](#fr-024)), so a manual entry matching a pending row goes unflagged and
   confirming adds a duplicate, which the user deletes.
@@ -384,11 +395,13 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
   applying the profile's sign inversion (money out is an expense, money in is an income), and MUST let the user change any row to a transfer with a
   counter-account during review.
-- <a id="fr-024"></a>**FR-024**: System MUST flag a pending row as a duplicate when it matches, on account, date, and
-  amount, either an existing ledger transaction or an earlier row in the same batch, whether or
-  not the descriptions match; and when its account is the counter-account of an existing transfer
-  with the same date and amount. Dates MUST match exactly. Flags MUST be computed once, when the
-  batch is created, and MUST NOT change while it is pending.
+- <a id="fr-024"></a>**FR-024**: System MUST flag a pending row as a duplicate when it matches an existing ledger
+  transaction or an earlier row in the same batch. Two entries match only when they agree on all
+  four of: account, date, amount, and direction, meaning whether the money leaves or enters that
+  account. Dates MUST match exactly, and descriptions play no part. A transfer moves money out of
+  its source account and into its destination account, so a pending row can match a transfer on
+  either account. Flags MUST be computed once, when the batch is created, and MUST NOT change
+  while it is pending.
 - <a id="fr-025"></a>**FR-025**: Flagged rows MUST be excluded from confirmation by default and MUST NOT appear among
   the rows under review. Review MUST show how many rows are flagged; selecting that number MUST
   present them, and the user MUST be able to include any individual one.

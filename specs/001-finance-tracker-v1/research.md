@@ -318,10 +318,11 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     proves unreliable on real files.
 
 <a id="r-10"></a>
-### R-10 · **Interpretation**: duplicates match on signed effect
+### R-10 · Duplicates match on direction too (confirmed)
 
-- **Decision**: "matches on account, date, and amount" in [FR-024](spec.md#fr-024) compares the
-  *signed effect* on the account: the amount together with its direction, money out or money in
+- **Decision**: duplicate matching includes the direction of the money, money out or money in. The
+  user confirmed this on 2026-10-01, and [FR-024](spec.md#fr-024) now states it. The contract
+  computes it as the *signed effect* on the account
   ([contracts/csv-import.md](contracts/csv-import.md#duplicate-matching)).
 - **Rationale**:
   - A purchase and its refund of the same amount on the same day are different money movements.
@@ -335,7 +336,7 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - the other leg of a transfer;
     - identical rows within one file.
 - **Alternatives considered**:
-  - **Amounts without direction** follow the wording literally, but flag a refund as a duplicate of
+  - **Amounts without direction**, the spec's earlier wording, would flag a refund as a duplicate of
     its purchase.
 
 <a id="r-11"></a>

@@ -128,22 +128,21 @@ row has several problems, the first in this table is reported.
 
 ## Duplicate matching
 
-Two money movements **match** when they have the same account, the same date (exact,
-[FR-024](../spec.md#fr-024)), and the same signed effect on that account. The signed effect of a
-ledger transaction is defined in [data-model.md](../data-model.md#derived-values). For a parsed row
-it is its `amountCents` on the batch account ([R-10](../research.md#r-10)).
+The rule is [FR-024](../spec.md#fr-024). This section fixes how it is computed.
 
-A parsed row is flagged as a duplicate when it matches either of the following
-([FR-024](../spec.md#fr-024)):
-
-- **a ledger transaction**. A transfer's signed effect on its destination account is what covers
-  "the counter-account of an existing transfer".
-- **an earlier parsed row of the same batch**. Earlier means a lower row number; unparsable rows are
-  ignored.
-
-Descriptions and counterparties play no part. Flags are computed once, when the batch is created
-([FR-024](../spec.md#fr-024)). Matching uses a hash of (account, date, signed effect), so 5,000 rows
-take linear time ([SC-010](../spec.md#sc-010)).
+- **Signed effect**: an entry's amount and direction combine into its *signed effect* on an
+  account, negative for money out and positive for money in.
+  - For a ledger transaction, the effect on each account it touches is defined in
+    [data-model.md](../data-model.md#derived-values). A transfer therefore has one effect on its
+    source account and another on its destination.
+  - For a parsed row, the effect is its `amountCents` on the batch account.
+- **Match**: two entries match when their account, date and signed effect on that account are
+  equal.
+- **Earlier row**: an earlier row of the same batch is a parsed row with a lower row number.
+  Unparsable rows are ignored.
+- **Text**: counterparties play no part, just as descriptions do.
+- **Speed**: matching uses a hash of (account, date, signed effect), so 5,000 rows take linear
+  time ([SC-010](../spec.md#sc-010)).
 
 ## Vendor groups
 
