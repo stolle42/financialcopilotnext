@@ -17,8 +17,8 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
 <a id="user-story-1"></a>
 ### User Story 1 - Keep a trustworthy ledger by hand (Priority: P1)
 
-The user creates the accounts they want to track, each with the balance it held on the day tracking
-began, and records expenses, income, and transfers between their own accounts. Every account shows
+The user creates the accounts they want to track, each with its opening balance
+([FR-001](#fr-001)), and records expenses, income, and transfers between their own accounts. Every account shows
 a balance computed from its opening balance and its transactions. Manual entry is fast enough to use
 for every cash purchase.
 
@@ -267,8 +267,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 <a id="edge-cases"></a>
 ### Edge Cases
 
-- The user imports history older than the transactions the opening balance was set against: the
-  balance double-counts those rows until the user lowers the opening balance to match. The app
+- The user imports history older than the account's earliest transaction: the opening balance no
+  longer fits its definition ([FR-001](#fr-001)), and the balance double-counts those rows until the
+  user adjusts the opening balance to match. The app
   cannot detect this, which is why changing the opening balance is warned about, not blocked.
 - A transfer's other leg appears when the counter-account's export is imported later. A pending row
   whose account is the counter-account of an existing transfer, with the same date and amount, is
