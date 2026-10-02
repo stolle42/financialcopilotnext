@@ -15,7 +15,12 @@ export default defineConfig([
   ]),
   {
     files: ["**/*.{js,ts,tsx}"],
-    extends: [tseslint.configs.recommended, reactHooks.configs.flat.recommended],
+    extends: [tseslint.configs.recommended],
+  },
+  {
+    // Only src/ holds React code; Playwright's fixture `use()` would read as React's `use` hook.
+    files: ["src/**/*.{ts,tsx}"],
+    extends: [reactHooks.configs.flat.recommended],
   },
   {
     // Business rules stay pure: no browser globals and no clock (constitution V, R-16).

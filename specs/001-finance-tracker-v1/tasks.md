@@ -98,7 +98,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
 - [X] T005 Configure Vitest and install `fake-indexeddb` ([R-17](research.md#r-17)). Add the `test`
   section of `vite.config.ts` (Node environment, `include: ["src/**/*.test.ts"]`,
   `passWithNoTests`) and the `test` script. Check: `npm test` passes.
-- [ ] T006 Configure Playwright with the network guard ([R-17](research.md#r-17),
+- [X] T006 Configure Playwright with the network guard ([R-17](research.md#r-17),
   [R-18](research.md#r-18), [R-19](research.md#r-19)).
   - `playwright.config.ts`: `testDir: "e2e"` and projects for Chromium and Firefox. `baseURL` comes
     from `BASE_URL`; without it, it is `http://localhost:4173`, served by a `webServer` that runs
