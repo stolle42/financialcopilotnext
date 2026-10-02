@@ -186,7 +186,7 @@ story builds on these.
   for example `transaction-account-missing` with the transaction id. The backup restore uses this to
   name the broken rule ([backup-file.md](contracts/backup-file.md#loading-fr-071-fr-072)). The tests
   have one failing state for each of invariants 1–8. Depends on T009–T011.
-- [ ] T017 First-launch data in `src/domain/seed.ts`, test-first in `src/domain/seed.test.ts`.
+- [X] T017 First-launch data in `src/domain/seed.ts`, test-first in `src/domain/seed.test.ts`.
   `seedState(newId)` returns the [seed data](data-model.md#seed-data): the account "Cash", the
   settings, and all 16 categories with their colours and roles ([FR-006](spec.md#fr-006),
   [FR-031](spec.md#fr-031)). The test checks the table row by row and runs `checkInvariants`.
