@@ -438,7 +438,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   The profile preview (T047) uses this same function. Tests: [User Story 2](spec.md#user-story-2)
   scenarios 3, 11, 13 and 14; a header-only file; and "no header row" positions. Depends on T035,
   T036.
-- [ ] T042 [P] [US2] Review edits in `src/domain/import/review.ts`, test-first in
+- [X] T042 [P] [US2] Review edits in `src/domain/import/review.ts`, test-first in
   `src/domain/import/review.test.ts`. `assignRow`, `assignGroup` (every row currently in the group)
   and `includeDuplicate` (flagged rows only) each return changes to the batch.
   - A category must belong to the row's side and must not be "Unaccounted".
