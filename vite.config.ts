@@ -35,5 +35,8 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     passWithNoTests: true,
+    // A zone west of UTC, where a date read as UTC midnight shows as the day before, so tests
+    // catch that mistake on every machine.
+    env: { TZ: "America/Los_Angeles" },
   },
 });

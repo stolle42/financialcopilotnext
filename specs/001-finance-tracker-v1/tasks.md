@@ -166,7 +166,7 @@ story builds on these.
   `null`, exactly as [csv-import.md](contracts/csv-import.md#amount-grammar) defines, without
   floating point. Every row of the contract's example table is a test case. Add the 12-digit limit
   and a value that floating point would round wrongly, such as `0,29` becoming 29 cents.
-- [ ] T013 [P] Formatters in `src/ui/format.ts`, test-first in `src/ui/format.test.ts`.
+- [X] T013 [P] Formatters in `src/ui/format.ts`, test-first in `src/ui/format.test.ts`.
   `formatAmount(cents)` and `formatDate(date)` use the two formatters of
   [shared patterns](contracts/ui.md#shared-patterns) ([FR-060](spec.md#fr-060)). `formatDate` builds
   a local date, so `2026-09-03` never shows as 2 September. `localeDecimalSeparator()` reads the
