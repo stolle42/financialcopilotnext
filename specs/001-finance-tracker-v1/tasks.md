@@ -113,7 +113,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
     `https://example.com`. It passes only while the guard catches the request
     ([FR-061](spec.md#fr-061)).
   - Check: `npm run test:e2e` passes in both browsers.
-- [ ] T007 Fill in the CI workflow `.github/workflows/regressiontests.yml`
+- [X] T007 Fill in the CI workflow `.github/workflows/regressiontests.yml`
   ([R-18](research.md#r-18)). Add triggers for `pull_request` to `main` and for `deployment_status`.
   - Job `test`, skipped for `deployment_status`: `actions/checkout@v7`; `actions/setup-node@v7` with
     `node-version-file: .nvmrc` and the npm cache; `npm ci`; lint; `check:architecture`; typecheck;
