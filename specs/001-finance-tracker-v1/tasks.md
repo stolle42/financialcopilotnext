@@ -79,7 +79,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
   `@base-ui/react` and `lucide-react`. Replace any web font the CLI adds with the system font stack
   ([R-19](research.md#r-19)), and import `src/ui/index.css` from `src/main.tsx`. Check:
   `npm run build` emits one CSS file and no font file.
-- [ ] T003 Configure ESLint and Prettier ([R-16](research.md#r-16), constitution VI). Write
+- [X] T003 Configure ESLint and Prettier ([R-16](research.md#r-16), constitution VI). Write
   `eslint.config.js` as a flat config with typescript-eslint and the recommended preset of
   `eslint-plugin-react-hooks`. For `src/domain/**`, add `no-restricted-globals` for `window`,
   `document`, `navigator`, `location`, `indexedDB`, `localStorage`, `sessionStorage`, `fetch`,
