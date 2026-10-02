@@ -71,7 +71,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
   at the plan's versions, plus `@types/react` and `@types/react-dom`, and commit
   `package-lock.json`. Check: `npm run build` and `npm run typecheck` succeed, and `npm run dev`
   fails when port 5173 is taken.
-- [ ] T002 Add Tailwind CSS and initialise shadcn/ui on Base UI ([R-03](research.md#r-03)). Add
+- [X] T002 Add Tailwind CSS and initialise shadcn/ui on Base UI ([R-03](research.md#r-03)). Add
   `tailwindcss` with `@tailwindcss/vite` to `vite.config.ts`, then run the shadcn CLI's `init`. This
   creates `components.json`, with its aliases pointing into `src/ui/` (`@/ui/components`,
   `@/ui/components/ui`, `@/ui/lib/utils`), `src/ui/index.css` (the Tailwind entry, shadcn's base
