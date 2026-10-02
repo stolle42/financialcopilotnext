@@ -374,7 +374,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
 **Independent Test**: the story's [Independent Test](spec.md#user-story-2), automated as
 `e2e/us2-import.spec.ts` (T052).
 
-- [ ] T034 [P] [US2] Profile rules in `src/domain/import/profiles.ts`, test-first in
+- [X] T034 [P] [US2] Profile rules in `src/domain/import/profiles.ts`, test-first in
   `src/domain/import/profiles.test.ts`. `saveProfile(state, profile, ctx)` refuses
   `profile-name-empty`, `profile-name-taken`, and `profile-columns-incomplete` with the unassigned
   roles among date, amount and description ([FR-021](spec.md#fr-021),
