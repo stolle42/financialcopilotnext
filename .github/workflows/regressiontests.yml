@@ -52,14 +52,25 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
-  # The post-push check: the same end-to-end suite against the Vercel production deployment.
+  # The post-push check: the same end-to-end suite against the Vercel production domain, which is
+  # public under Standard Protection, so no secret is needed (R-18).
   deployed:
     if: >-
       github.event_name == 'deployment_status' &&
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment == 'Production'
     runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ vars.VERCEL_PRODUCTION_URL }}
     steps:
+      # An empty BASE_URL would make Playwright fall back to a local server that was never built.
+      - name: Check the production domain is configured
+        run: |
+          if [ -z "$BASE_URL" ]; then
+            echo "::error::Set the repository variable VERCEL_PRODUCTION_URL (quickstart.md, Vercel setup)."
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
@@ -72,11 +83,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox
 
-      - name: End-to-end tests against the deployment
+      - name: End-to-end tests against the production domain
         run: npx playwright test
-        env:
-          BASE_URL: ${{ github.event.deployment_status.environment_url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
       - uses: actions/upload-artifact@v7
         if: failure()
