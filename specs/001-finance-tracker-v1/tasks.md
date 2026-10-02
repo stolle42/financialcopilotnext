@@ -203,7 +203,7 @@ story builds on these.
   - Tests: the first open seeds and a second open does not; loading returns what was written; and a
     write in which one record fails leaves every store unchanged.
   - Depends on T015, T017.
-- [ ] T019 The store in `src/store/store.ts`, test-first in `src/store/store.test.ts` against
+- [X] T019 The store in `src/store/store.ts`, test-first in `src/store/store.test.ts` against
   `fake-indexeddb` ([R-05](research.md#r-05), [R-15](research.md#r-15)).
   - `createStore(db, state)` provides `getState`, `subscribe` and `run(decide)`.
   - `run` calls `decide(state, { today, newId })`. `today` comes from `todayLocal()` in
