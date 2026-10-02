@@ -88,7 +88,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
   `.prettierignore` covering `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `specs/`,
   `.specify/` and `.claude/`. The `lint` script runs ESLint, then `prettier --check .`. Check:
   `npm run lint` passes, and a temporary `src/domain/probe.ts` calling `Date.now()` fails it.
-- [ ] T004 Configure dependency-cruiser as the architecture gate ([R-16](research.md#r-16)). Write
+- [X] T004 Configure dependency-cruiser as the architecture gate ([R-16](research.md#r-16)). Write
   `.dependency-cruiser.cjs` with one error rule: a module in `src/domain/` may resolve imports only
   to `src/domain/`, which also rules out npm packages. Count type-only imports
   (`tsPreCompilationDeps: true`, with `tsConfig` set to `tsconfig.app.json`), and exempt
