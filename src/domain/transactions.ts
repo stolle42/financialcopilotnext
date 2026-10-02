@@ -162,3 +162,28 @@ export function deleteTransaction(state: State, id: string): Changes {
   if (!state.transactions.some((t) => t.id === id)) throw new Error(`No transaction ${id}`);
   return { transactions: { delete: [id] } };
 }
+
+export interface TransactionFilters {
+  accountId?: string | null;
+  categoryId?: string | null;
+}
+
+/** Whether a transaction touches the account, as its source or as a transfer's destination. */
+function touches(transaction: Transaction, accountId: string): boolean {
+  return (
+    transaction.accountId === accountId ||
+    (transaction.kind === "transfer" && transaction.destinationAccountId === accountId)
+  );
+}
+
+/** Newest first, the later entry first on the same date, then filtered (FR-016). */
+export function listTransactions(
+  transactions: readonly Transaction[],
+  filters: TransactionFilters,
+): Transaction[] {
+  const { accountId, categoryId } = filters;
+  return transactions
+    .filter((t) => !accountId || touches(t, accountId))
+    .filter((t) => !categoryId || (t.kind !== "transfer" && t.categoryId === categoryId))
+    .sort((a, b) => (a.date === b.date ? b.seq - a.seq : a.date < b.date ? 1 : -1));
+}

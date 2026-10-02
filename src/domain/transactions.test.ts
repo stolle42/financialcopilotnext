@@ -7,6 +7,7 @@ import {
   changeKind,
   deleteTransaction,
   draftOf,
+  listTransactions,
   newDraft,
   saveDraft,
   type Draft,
@@ -334,5 +335,64 @@ describe("deleteTransaction (FR-013)", () => {
     const withOne = saved(state, newDraft(state, "2026-09-03"));
     const id = withOne.transactions[0]!.id;
     expect(applyValid(withOne, deleteTransaction(withOne, id)).transactions).toEqual([]);
+  });
+});
+
+describe("listTransactions (FR-016)", () => {
+  const base = { amountCents: 100, description: "" };
+  const expense = (id: string, seq: number, date: string, accountId = "cash"): Transaction => ({
+    ...base,
+    id,
+    seq,
+    date,
+    accountId,
+    kind: "expense",
+    categoryId: "groceries",
+  });
+  const transactions: Transaction[] = [
+    expense("old", 1, "2026-09-01"),
+    expense("shop", 2, "2026-09-03", "checking"),
+    {
+      ...base,
+      id: "move",
+      seq: 3,
+      date: "2026-09-03",
+      accountId: "checking",
+      kind: "transfer",
+      destinationAccountId: "cash",
+    },
+    { ...expense("pay", 4, "2026-09-02", "checking"), kind: "income", categoryId: "salary" },
+  ];
+  const ids = (list: readonly Transaction[]) => list.map((t) => t.id);
+
+  test("lists newest first, with the later entry first on the same date (scenario 12)", () => {
+    expect(ids(listTransactions(transactions, {}))).toEqual(["move", "shop", "pay", "old"]);
+  });
+
+  test("filters by account, including transfers into it", () => {
+    expect(ids(listTransactions(transactions, { accountId: "cash" }))).toEqual(["move", "old"]);
+    expect(ids(listTransactions(transactions, { accountId: "checking" }))).toEqual([
+      "move",
+      "shop",
+      "pay",
+    ]);
+  });
+
+  test("filters by category, which leaves out transfers", () => {
+    expect(ids(listTransactions(transactions, { categoryId: "groceries" }))).toEqual([
+      "shop",
+      "old",
+    ]);
+  });
+
+  test("combines both filters", () => {
+    const filters = { accountId: "cash", categoryId: "groceries" };
+    expect(ids(listTransactions(transactions, filters))).toEqual(["old"]);
+  });
+
+  test("leaves its input in its order", () => {
+    const input = [...transactions];
+    listTransactions(input, {});
+    expect(ids(input)).toEqual(["old", "shop", "move", "pay"]);
   });
 });
