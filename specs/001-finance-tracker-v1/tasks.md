@@ -356,7 +356,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - Selecting a row opens the form in edit mode, which gains Delete behind `ConfirmDialog`.
   - Tests: the order, including ties; each filter, including transfers into an account; both empty
     states; editing; and deleting.
-- [ ] T033 [US1] The journey `e2e/us1-ledger.spec.ts`, as [quickstart.md](quickstart.md#us1-ledger)
+- [X] T033 [US1] The journey `e2e/us1-ledger.spec.ts`, as [quickstart.md](quickstart.md#us1-ledger)
   describes. It runs scenarios 1–12 in one fresh context. After every step, it checks that each
   balance on Accounts equals the opening balance plus the net of the listed transactions
   ([SC-005](spec.md#sc-005)).
