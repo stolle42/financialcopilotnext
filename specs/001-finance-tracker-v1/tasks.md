@@ -279,7 +279,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - `sortAccounts(accounts)` follows the [list order](contracts/ui.md#shared-patterns).
   - Tests include the balances of [User Story 1](spec.md#user-story-1) scenarios 2–4 and 10, and a
     transaction moved to another account changing both balances ([edge cases](spec.md#edge-cases)).
-- [ ] T025 [P] [US1] Category lookups in `src/domain/categories.ts`, test-first in
+- [X] T025 [P] [US1] Category lookups in `src/domain/categories.ts`, test-first in
   `src/domain/categories.test.ts`. `protectedCategory(categories, side, role)` finds a category by
   role, never by name ([data-model.md](data-model.md#category)). `sortCategories(categories, side)`
   returns the side's set in the [list order](contracts/ui.md#shared-patterns), and
