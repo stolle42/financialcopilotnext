@@ -400,7 +400,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - Tests start from byte arrays: `0x80` is "€" in Windows-1252 and `0xA4` is "€" in ISO-8859-15;
     UTF-8 and UTF-16LE with a byte-order mark; invalid UTF-8 refused; each delimiter; and quoted cells
     holding a delimiter, a line break or a doubled quote.
-- [ ] T038 [P] [US2] Duplicate flags in `src/domain/import/duplicates.ts`, test-first in
+- [X] T038 [P] [US2] Duplicate flags in `src/domain/import/duplicates.ts`, test-first in
   `src/domain/import/duplicates.test.ts`. `flagDuplicates(rows, accountId, transactions)` follows
   [duplicate matching](contracts/csv-import.md#duplicate-matching), using a hash of account, date
   and signed effect and reusing `signedEffect` from T024 ([FR-024](spec.md#fr-024)). Tests: every case
