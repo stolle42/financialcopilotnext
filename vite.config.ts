@@ -20,10 +20,40 @@ function appCommit(): Plugin {
   };
 }
 
+// Limits scripts, styles, images, fonts and connections to the app's own origin, with no exception
+// for inline styles (R-19). Only the production build carries it, because the dev server's hot
+// reload needs inline scripts and a WebSocket.
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self'",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
+function contentSecurityPolicyTag(): Plugin {
+  return {
+    name: "content-security-policy",
+    apply: "build",
+    transformIndexHtml: () => [
+      {
+        tag: "meta",
+        attrs: { "http-equiv": "Content-Security-Policy", content: contentSecurityPolicy },
+        // First in <head>, so the policy applies to every script and stylesheet after it.
+        injectTo: "head-prepend",
+      },
+    ],
+  };
+}
+
 export default defineConfig({
   // Relative asset URLs let the build load from any path or from local files (R-20).
   base: "./",
-  plugins: [react(), tailwindcss(), appCommit()],
+  plugins: [react(), tailwindcss(), appCommit(), contentSecurityPolicyTag()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
@@ -35,5 +65,8 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     passWithNoTests: true,
+    // A zone west of UTC, where a date read as UTC midnight shows as the day before, so tests
+    // catch that mistake on every machine.
+    env: { TZ: "America/Los_Angeles" },
   },
 });

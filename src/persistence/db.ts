@@ -1,0 +1,122 @@
+import { openDB, type DBSchema, type IDBPDatabase, type StoreNames } from "idb";
+import type { Changes } from "@/domain/changes";
+import { seedState } from "@/domain/seed";
+import type {
+  Account,
+  Budget,
+  Category,
+  MappingProfile,
+  PendingBatch,
+  Settings,
+  State,
+  Transaction,
+} from "@/domain/types";
+
+// One IndexedDB database holding the seven stores of data-model.md, storage layout (R-06).
+
+const DATABASE_NAME = "financial-copilot";
+const SETTINGS_KEY = "settings";
+
+interface Schema extends DBSchema {
+  accounts: { key: string; value: Account };
+  categories: { key: string; value: Category };
+  transactions: { key: string; value: Transaction };
+  budgets: { key: string; value: Budget };
+  profiles: { key: string; value: MappingProfile };
+  pendingBatch: { key: string; value: PendingBatch };
+  settings: { key: typeof SETTINGS_KEY; value: Settings };
+}
+
+export type Database = IDBPDatabase<Schema>;
+
+type RecordStore = Exclude<StoreNames<Schema>, "settings">;
+
+const recordStores: Record<RecordStore, string> = {
+  accounts: "id",
+  categories: "id",
+  transactions: "id",
+  budgets: "categoryId",
+  profiles: "id",
+  pendingBatch: "id",
+};
+
+/**
+ * Opens the database, creating it on first launch. The seed is written in the same transaction
+ * that creates the stores, so a first start either completes or leaves nothing behind.
+ */
+export function openDatabase(): Promise<Database> {
+  return openDB<Schema>(DATABASE_NAME, 1, {
+    upgrade(db, _oldVersion, _newVersion, transaction) {
+      for (const [name, keyPath] of Object.entries(recordStores) as [RecordStore, string][]) {
+        db.createObjectStore(name, { keyPath });
+      }
+      db.createObjectStore("settings");
+
+      const seed = seedState(() => crypto.randomUUID());
+      for (const account of seed.accounts) void transaction.objectStore("accounts").put(account);
+      for (const category of seed.categories) {
+        void transaction.objectStore("categories").put(category);
+      }
+      void transaction.objectStore("settings").put(seed.settings, SETTINGS_KEY);
+    },
+  });
+}
+
+/** Reads every store into one state, in one read transaction. */
+export async function loadState(db: Database): Promise<State> {
+  const storeNames = [...(Object.keys(recordStores) as RecordStore[]), "settings" as const];
+  const transaction = db.transaction(storeNames, "readonly");
+  const [accounts, categories, transactions, budgets, profiles, batches, settings] =
+    await Promise.all([
+      transaction.objectStore("accounts").getAll(),
+      transaction.objectStore("categories").getAll(),
+      transaction.objectStore("transactions").getAll(),
+      transaction.objectStore("budgets").getAll(),
+      transaction.objectStore("profiles").getAll(),
+      transaction.objectStore("pendingBatch").getAll(),
+      transaction.objectStore("settings").get(SETTINGS_KEY),
+      transaction.done,
+    ]);
+  if (!settings) throw new Error("The settings record is missing from storage");
+  return {
+    accounts,
+    categories,
+    transactions,
+    budgets,
+    profiles,
+    pendingBatch: batches[0] ?? null,
+    settings,
+  };
+}
+
+/**
+ * Writes `changes` in one read-write transaction over every store they touch. Resolves only once
+ * the transaction has completed; on any failure no store changes and the original error, with its
+ * `name`, is rethrown (R-06, R-15).
+ */
+export async function writeChanges(db: Database, changes: Changes): Promise<void> {
+  const stores = (Object.keys(changes) as (keyof Changes)[]).filter((name) => changes[name]);
+  if (stores.length === 0) return;
+
+  const transaction = db.transaction(stores, "readwrite");
+  const requests: Promise<unknown>[] = [];
+  try {
+    for (const name of Object.keys(recordStores) as RecordStore[]) {
+      const storeChanges = changes[name];
+      if (!storeChanges) continue;
+      const store = transaction.objectStore(name);
+      for (const key of storeChanges.delete ?? []) requests.push(store.delete(key));
+      for (const record of storeChanges.put ?? []) requests.push(store.put(record as never));
+    }
+    if (changes.settings) {
+      requests.push(transaction.objectStore("settings").put(changes.settings.put, SETTINGS_KEY));
+    }
+  } catch (error) {
+    // A request that throws at once, such as a record without its key, would otherwise let the
+    // requests before it commit.
+    transaction.abort();
+    await Promise.allSettled([...requests, transaction.done]);
+    throw error;
+  }
+  await Promise.all([...requests, transaction.done]);
+}
