@@ -447,7 +447,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
 
   This follows [FR-023](spec.md#fr-023), [FR-025](spec.md#fr-025), [FR-026](spec.md#fr-026) and
   [review](contracts/ui.md#review). Tests: scenarios 4, 5 and 7. Depends on T039.
-- [ ] T043 [P] [US2] Confirm and discard in `src/domain/import/confirm.ts`, test-first in
+- [X] T043 [P] [US2] Confirm and discard in `src/domain/import/confirm.ts`, test-first in
   `src/domain/import/confirm.test.ts`.
   - `confirmBatch(state, ctx)` turns each row under review into a transaction by the
     [confirmation table](data-model.md#state-transitions), with absolute amounts and consecutive
