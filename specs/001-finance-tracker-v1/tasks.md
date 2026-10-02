@@ -317,7 +317,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   T027 to `run`. Tests: a new account and a saved transaction survive reopening the database,
   including `settings.manualEntryAccountId`, and a refusal writes nothing. Depends on T019, T024,
   T027.
-- [ ] T030 [US1] The Accounts screen in `src/ui/screens/accounts/AccountsScreen.tsx` and
+- [X] T030 [US1] The Accounts screen in `src/ui/screens/accounts/AccountsScreen.tsx` and
   `src/ui/screens/accounts/AccountDialog.tsx`, test-first in `e2e/ui/accounts.spec.ts`
   ([ui.md](contracts/ui.md#accounts), without Reconcile, which comes in T065).
   - Add the route `#/accounts`, with its sidebar entry. List each account with its

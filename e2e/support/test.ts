@@ -49,3 +49,8 @@ export { expect };
 export async function setToday(page: Page, date: string): Promise<void> {
   await page.clock.setFixedTime(new Date(`${date}T12:00:00`));
 }
+
+/** An amount as the app shows it in the test locale, en-US (FR-060). */
+export function euros(cents: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format(cents / 100);
+}

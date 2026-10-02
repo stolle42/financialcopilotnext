@@ -59,13 +59,19 @@ export function createStore(db: Database, initialState: State): Store {
 
 export const StoreContext = createContext<Store | null>(null);
 
+/** The store itself, for screens that run actions. */
+export function useStoreApi(): Store {
+  const store = useContext(StoreContext);
+  if (!store) throw new Error("The store is used outside StoreContext");
+  return store;
+}
+
 /**
  * A value selected from the state, kept up to date. The selector must return stored values or
  * primitives, not new objects, or React would see a change on every read.
  */
 export function useStore<Selected>(selector: (state: State) => Selected): Selected {
-  const store = useContext(StoreContext);
-  if (!store) throw new Error("useStore is used outside StoreContext");
+  const store = useStoreApi();
   const select = () => selector(store.getState());
   return useSyncExternalStore(store.subscribe, select, select);
 }
