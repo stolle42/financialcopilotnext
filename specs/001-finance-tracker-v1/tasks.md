@@ -345,6 +345,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
 - [ ] T032 [US1] The Transactions screen in `src/ui/screens/transactions/TransactionsScreen.tsx`,
   replacing the placeholder at `#/`, test-first in `e2e/ui/transactions.spec.ts`
   ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [FR-063](spec.md#fr-063)).
+  - Add the screen's sidebar entry, first in the list.
   - Render rows as plain elements with `content-visibility: auto`, from a memoised filtered list
     ([R-21](research.md#r-21)), with each kind styled as the contract describes.
   - Add the account filter, the category filter with its side switch, and Clear filters.
