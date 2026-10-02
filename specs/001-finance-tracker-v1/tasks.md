@@ -933,9 +933,8 @@ has its own tests, so it can merge before its screens exist.
 - Commit after every task, with a short message about why the step matters, in the style of the
   recent history ([git-history rule](../../.claude/rules/git-history.md)). Tick the task's checkbox
   in the same commit.
-- One research interpretation is built as written but not yet confirmed in the spec: zero amounts
-  proposed as expenses ([R-12](research.md#r-12)). Confirm it with `/speckit-clarify` before T036
-  ([plan.md](plan.md#interpretations-to-confirm)). Names unique by name key
-  ([R-08](research.md#r-08)) were confirmed on 2026-10-02.
+- Both research interpretations that filled gaps in the spec were confirmed on 2026-10-02: names
+  unique by name key ([R-08](research.md#r-08)) and zero amounts proposed as expenses
+  ([R-12](research.md#r-12)) ([plan.md](plan.md#interpretations-to-confirm)).
 - `checklists/data-safety.md` was reviewed on 2026-10-02 and passes in full, so the
   `/speckit-implement` checklist gate is open.

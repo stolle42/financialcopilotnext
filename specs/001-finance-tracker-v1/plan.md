@@ -135,10 +135,9 @@ deviation needs justifying.
 
 ### Interpretations to confirm
 
-These entries fill gaps in the spec. Each one should be confirmed and recorded in the spec, for
-example with `/speckit-clarify`, so that the spec stays the single source of behaviour:
-
-- [R-12](research.md#r-12): a zero amount in a signed column is proposed as an expense.
+None remain. The two that filled gaps in the spec were confirmed on 2026-10-02 and are now
+recorded there: names unique by name key ([R-08](research.md#r-08)) and zero amounts proposed as
+expenses ([R-12](research.md#r-12) item 1).
 
 The limitations v1 accepts knowingly, such as bank files with lines above the header, are listed
 in [R-22](research.md#r-22).

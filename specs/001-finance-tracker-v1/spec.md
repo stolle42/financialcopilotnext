@@ -53,6 +53,8 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: Do two names count as the same when they differ only in case or surrounding spaces, such as
   "Groceries" and " groceries"? → A: Yes. Account, category and mapping profile names are compared
   ignoring case and surrounding spaces ([FR-001](#fr-001), [FR-021](#fr-021), [FR-032](#fr-032)).
+- Q: What kind should the app propose for an imported row whose amount is zero? → A: An expense,
+  the same default as manual entry ([FR-023](#fr-023)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -434,7 +436,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   At most one pending batch MAY exist at any time, across all accounts; starting an import while one
   is pending MUST be refused with a message that leads the user to review or discard it.
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
-  applying the profile's sign inversion (money out is an expense, money in is an income), and MUST let the user change any row to a transfer with a
+  applying the profile's sign inversion (money out is an expense, money in is an income, and a zero
+  amount is an expense), and MUST let the user change any row to a transfer with a
   counter-account during review.
 - <a id="fr-024"></a>**FR-024**: System MUST flag a pending row as a duplicate when it matches an existing ledger
   transaction or an earlier row in the same batch. Two entries match only when they agree on all
