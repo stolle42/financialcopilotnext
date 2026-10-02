@@ -6,5 +6,6 @@ export function saveTransaction(store: Store, draft: Draft) {
 }
 
 export function removeTransaction(store: Store, id: string) {
-  return store.run((state) => deleteTransaction(state, id));
+  // Deleting never refuses, so only the store's own save-failed can come back.
+  return store.run<never>((state) => deleteTransaction(state, id));
 }

@@ -345,7 +345,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - Tests: [User Story 1](spec.md#user-story-1) scenarios 5–9; every kind change of
     [FR-015](spec.md#fr-015); the destination rules of [FR-011](spec.md#fr-011); and each validation
     message beside its field.
-- [ ] T032 [US1] The Transactions screen in `src/ui/screens/transactions/TransactionsScreen.tsx`,
+- [X] T032 [US1] The Transactions screen in `src/ui/screens/transactions/TransactionsScreen.tsx`,
   replacing the placeholder at `#/`, test-first in `e2e/ui/transactions.spec.ts`
   ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [FR-063](spec.md#fr-063)).
   - Add the screen's sidebar entry, first in the list.

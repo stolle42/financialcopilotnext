@@ -11,9 +11,10 @@ import {
 import type { Transaction } from "@/domain/types";
 import { todayLocal } from "@/store/clock";
 import { useStore, useStoreApi } from "@/store/store";
-import { saveTransaction } from "@/store/transactions";
+import { removeTransaction, saveTransaction } from "@/store/transactions";
 import { AmountField, amountText, parseAmountText } from "@/ui/components/AmountField";
 import { CategorySelect } from "@/ui/components/CategorySelect";
+import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Button } from "@/ui/components/ui/button";
 import {
   Dialog,
@@ -74,6 +75,7 @@ export function TransactionForm({
   const [amount, setAmount] = useState(() => amountText(draft.amountCents ?? 0));
   const [errors, setErrors] = useState<DraftInvalid["details"]>({});
   const [formError, setFormError] = useState<MessageCode | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const accountName = (id: string | null) => accounts.find((a) => a.id === id)?.name;
   const destinations = sortedAccounts.filter((account) => account.id !== draft.accountId);
@@ -89,6 +91,14 @@ export function TransactionForm({
     else if (result.code === "save-failed") setFormError(result.code);
     // The form never offers such a category, so reaching this is a bug, not a user mistake.
     else throw new Error(`Refused unexpectedly: ${result.code}`);
+  }
+
+  async function deleteEdited() {
+    setConfirmingDelete(false);
+    if (!transaction) return;
+    const refusal = await removeTransaction(store, transaction.id);
+    if (refusal) setFormError(refusal.code);
+    else onClose();
   }
 
   return (
@@ -225,10 +235,28 @@ export function TransactionForm({
             </p>
           )}
           <DialogFooter>
+            {transaction && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="sm:mr-auto"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete
+              </Button>
+            )}
             <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
             <Button type="submit">Save</Button>
           </DialogFooter>
         </form>
+        <ConfirmDialog
+          open={confirmingDelete}
+          title="Delete this transaction?"
+          description="It is removed from the ledger, and the balance of every account it touched changes."
+          confirmLabel="Delete transaction"
+          onConfirm={() => void deleteEdited()}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       </DialogContent>
     </Dialog>
   );
