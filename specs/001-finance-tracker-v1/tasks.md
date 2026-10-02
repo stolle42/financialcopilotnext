@@ -269,7 +269,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
 **Independent Test**: the story's [Independent Test](spec.md#user-story-1), automated as
 `e2e/us1-ledger.spec.ts` (T033).
 
-- [ ] T024 [P] [US1] Account rules in `src/domain/accounts.ts`, test-first in
+- [X] T024 [P] [US1] Account rules in `src/domain/accounts.ts`, test-first in
   `src/domain/accounts.test.ts`.
   - `signedEffect(transaction, accountId)` follows [derived values](data-model.md#derived-values),
     and `accountBalance(state, accountId)` follows [FR-002](spec.md#fr-002).

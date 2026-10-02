@@ -1,5 +1,5 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
-import { applyChanges, isRefusal, type Changes } from "@/domain/changes";
+import { applyChanges, isRefusal, type Changes, type Context } from "@/domain/changes";
 import type { Refusal, State } from "@/domain/types";
 import { writeChanges, type Database } from "@/persistence/db";
 import { todayLocal } from "./clock";
@@ -7,11 +7,7 @@ import { todayLocal } from "./clock";
 /** The refusal the store itself can return. */
 export type StoreRefusalCode = "save-failed";
 
-/** The values a domain decision needs from outside, injected so the domain stays pure (R-05). */
-export interface Context {
-  today: string;
-  newId: () => string;
-}
+export type { Context };
 
 export type Decide<Code extends string> = (
   state: State,
