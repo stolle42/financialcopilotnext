@@ -170,7 +170,7 @@ against the user stories after every push to `main` ([R-18](research.md#r-18)).
 | Check | How | Passes when |
 |---|---|---|
 | Local build | CI's `test` job runs every end-to-end journey on the production build, served on `localhost` | The `test` job is green |
-| Vercel deployment | Once Vercel reports a production deployment, CI's `deployed` job runs the same journeys on the production domain | The `deployed` job is green |
+| Vercel deployment | Once Vercel reports a production deployment, CI's `deployed` job waits until the production domain serves the pushed commit, then runs the same journeys there | The `deployed` job is green |
 | User experience | A person walks the [manual checks](#manual-checks) on `http://localhost:4173` (`npm start`) and on the Vercel production domain | Every row passes on both |
 
 To run the journeys against the production domain by hand, set `BASE_URL`:
@@ -193,8 +193,11 @@ The project owner does this once ([R-20](research.md#r-20)):
 3. Under Settings → Deployment Protection, keep Standard Protection or turn protection off. Do not
    choose All Deployments, which would put the production domain behind a login
    ([R-18](research.md#r-18)).
-4. Leave Web Analytics and Speed Insights disabled ([FR-061](spec.md#fr-061)).
-5. In the GitHub repository, under Settings → Secrets and variables → Actions → Variables, add
+4. Under Settings → Environment Variables, keep **Enable access to System Environment Variables**
+   checked. Builds then receive the commit id, which the `deployed` job waits for
+   ([R-18](research.md#r-18)).
+5. Leave Web Analytics and Speed Insights disabled ([FR-061](spec.md#fr-061)).
+6. In the GitHub repository, under Settings → Secrets and variables → Actions → Variables, add
    `VERCEL_PRODUCTION_URL`, holding the production domain with `https://`.
 
 Use the Vercel copy for checks and demonstrations only, and keep real data in the local build

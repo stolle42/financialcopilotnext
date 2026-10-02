@@ -567,6 +567,12 @@ in the spec, so that the spec stays the single source of behaviour (constitution
       `BASE_URL`. The domain is the GitHub Actions repository variable `VERCEL_PRODUCTION_URL`.
     - The production domain is public under Vercel's default Standard Protection, so the job needs
       no login and no secret. The decision was made on 2026-10-02.
+    - Before testing, the job waits until the domain serves the commit that triggered the event,
+      `github.event.deployment.sha`. Without the wait, it might test the previous build and pass
+      for the wrong commit.
+      - The production build names its commit in `<meta name="app-commit">`. On Vercel the value is
+        `VERCEL_GIT_COMMIT_SHA`, and every other build writes `local`.
+      - The job reads the tag every 10 seconds and fails after 5 minutes.
   - The rest of the post-push gate is manual: a person walks the
     [manual checks](quickstart.md#manual-checks) on both the local build and the Vercel production
     domain ([quickstart.md](quickstart.md#after-pushing-to-main)).
@@ -582,9 +588,11 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 - **Alternatives considered**:
   - **The deployment's own URL from the event**, such as `project-abc123-team.vercel.app`, would
     always serve exactly the pushed commit. But Standard Protection puts these URLs behind a Vercel
-    login, so the job would need Vercel's automation bypass secret. The cost of using the
-    production domain instead is that, for a moment after a deployment, it may still serve the
-    previous build.
+    login, so the job would need Vercel's automation bypass secret. The production domain can
+    still serve the previous build for a moment after a deployment, and the wait for the commit
+    closes that gap without a secret.
+  - **A fixed pause before the tests** is simpler than the wait. But no pause is long enough for
+    every deployment, and a long one slows every run.
   - **Vercel's `repository_dispatch` events** would also signal a finished deployment. But
     `deployment_status` is sent by default, and it is the event Playwright's CI guide uses.
   - **A manual check only** would leave the mechanical part of the gate to memory.
@@ -637,6 +645,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
       - the Vercel Toolbar off for previews;
       - Deployment Protection no stricter than Standard Protection, so the production domain stays
         public for the `deployed` job ([R-18](#r-18));
+      - System Environment Variables available to builds, so a build can name its commit
+        ([R-18](#r-18));
       - Web Analytics and Speed Insights never enabled.
   - **Purpose of the Vercel copy** (confirmed 2026-10-01, now in [FR-061](spec.md#fr-061)): it
     exists for the constitution's post-push check and for showing the app to others. Daily use with

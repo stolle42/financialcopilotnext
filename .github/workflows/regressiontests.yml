@@ -71,6 +71,21 @@ jobs:
             exit 1
           fi
 
+      # For a moment after a deployment, the domain can still serve the previous build, which the
+      # tests would then check instead of this commit. The built page names its commit (R-18).
+      - name: Wait until the production domain serves this commit
+        env:
+          COMMIT: ${{ github.event.deployment.sha }}
+        run: |
+          for attempt in $(seq 30); do
+            served=$(curl -fsS "$BASE_URL" | grep -o 'name="app-commit" content="[^"]*"' | cut -d'"' -f4 || true)
+            if [ "$served" = "$COMMIT" ]; then exit 0; fi
+            echo "Attempt $attempt: $BASE_URL serves ${served:-no commit}, waiting for $COMMIT."
+            sleep 10
+          done
+          echo "::error::After 5 minutes, $BASE_URL still does not serve commit $COMMIT."
+          exit 1
+
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7

@@ -121,6 +121,10 @@ priority order. Each story phase ends with that story's end-to-end journey from
   - Job `deployed`, run only for a successful `deployment_status` of the Production environment:
     `npm ci`, install the browsers, then run `npx playwright test` with `BASE_URL` set to the
     repository variable `vars.VERCEL_PRODUCTION_URL`, which is the production domain.
+  - Before the tests, the `deployed` job waits until the domain serves the triggering commit
+    ([R-18](research.md#r-18)). A build-only `transformIndexHtml` plugin in `vite.config.ts` writes
+    `<meta name="app-commit">` (test first: `e2e/app-commit.spec.ts`), and a workflow step polls
+    for it.
   - Add the `verify` script, which runs the same checks in the same order, ending with
     `npm run test:e2e`.
   - Check: `npm run verify` passes locally.
@@ -229,7 +233,7 @@ story builds on these.
   - Mount the notification region, which is shadcn's toast on Base UI (`npx shadcn add toast`). US2,
     US5 and US7 use it.
   - Inject the Content-Security-Policy meta tag of [R-19](research.md#r-19) into the production
-    build only, through a `transformIndexHtml` plugin in `vite.config.ts`.
+    build only, alongside the commit tag from T007 in `vite.config.ts`.
   - Tests: the app opens on `#/` showing its name, the built page carries the policy, and the guard
     sees no violation.
   - Depends on T014, T020.
