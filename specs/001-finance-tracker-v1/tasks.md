@@ -380,7 +380,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   roles among date, amount and description ([FR-021](spec.md#fr-021),
   [mapping profile](data-model.md#mapping-profile)). Add `deleteProfile(state, id)`. Tests include
   that neither function touches a pending batch.
-- [ ] T035 [P] [US2] Bank dates in `src/domain/import/dates.ts`, test-first in
+- [X] T035 [P] [US2] Bank dates in `src/domain/import/dates.ts`, test-first in
   `src/domain/import/dates.test.ts`. `parseBankDate(text, format)` returns `YYYY-MM-DD` or `null` for
   every format of [csv-import.md](contracts/csv-import.md#date-formats). Test one- and two-digit days
   and months, `YY` read as 20YY, impossible dates, and extra text.
