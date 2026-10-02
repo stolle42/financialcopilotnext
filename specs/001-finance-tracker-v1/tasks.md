@@ -58,7 +58,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
 
 **Purpose**: a buildable, linted, tested and continuously integrated empty app.
 
-- [ ] T001 Scaffold the Vite, React and TypeScript project at the repository root
+- [X] T001 Scaffold the Vite, React and TypeScript project at the repository root
   ([plan.md](plan.md#technical-context), [R-02](research.md#r-02), [R-20](research.md#r-20)).
   Create `package.json` (private, `"type": "module"`, `engines.node` `24.x`, and the scripts `dev`,
   `build`, `start` and `typecheck` from [plan.md](plan.md#project-structure)), `.nvmrc` holding
