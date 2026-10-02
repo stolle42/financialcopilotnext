@@ -155,7 +155,7 @@ story builds on these.
   `pendingBatch` as `PendingBatch | null`), and the `Refusal` result type of
   [R-15](research.md#r-15). The file holds types and constants only, so `npm run typecheck` is its
   check.
-- [ ] T010 [P] Name keys in `src/domain/names.ts`, test-first in `src/domain/names.test.ts`:
+- [X] T010 [P] Name keys in `src/domain/names.ts`, test-first in `src/domain/names.test.ts`:
   `nameKey(name)`, and `isNameTaken(items, name, exceptId?)` for uniqueness, as
   [R-08](research.md#r-08) defines them.
 - [ ] T011 [P] Calendar dates in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`:
