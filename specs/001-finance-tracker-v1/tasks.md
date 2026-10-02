@@ -224,7 +224,7 @@ story builds on these.
   `storage-unavailable`, `open-in-another-tab` and `unexpected-error`. The test checks that every
   message is plain language: it is not empty and does not contain its own code
   ([FR-067](spec.md#fr-067)). Depends on T019.
-- [ ] T021 The app shell in `src/ui/app/App.tsx`, test-first in `e2e/ui/shell.spec.ts`
+- [X] T021 The app shell in `src/ui/app/App.tsx`, test-first in `e2e/ui/shell.spec.ts`
   ([ui.md](contracts/ui.md#shell-and-navigation), [R-19](research.md#r-19)).
   - The header shows the app name. The sidebar has the Main and Manage groups, and each screen's
     entry is added by the task that builds that screen. The route outlet shows a placeholder at `#/`

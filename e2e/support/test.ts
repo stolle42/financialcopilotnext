@@ -34,6 +34,9 @@ export const test = base.extend<{ networkGuard: void }>({
 
       await use();
 
+      // The browser reports a violation a moment after it blocks the request, so a test that ends
+      // right after a blocked fetch would otherwise pass before the report arrives.
+      if (!page.isClosed()) await page.waitForTimeout(50);
       expect(violations, "the app must not reach outside its own origin (FR-061)").toEqual([]);
     },
     { auto: true },
