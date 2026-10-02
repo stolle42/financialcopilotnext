@@ -418,7 +418,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   [review](contracts/ui.md#review). Tests: [User Story 2](spec.md#user-story-2) scenarios 4, 6 and
   16; case and whitespace in counterparties; and an included duplicate joining its group
   ([R-12](research.md#r-12) item 5).
-- [ ] T040 [P] [US2] Bank file fixtures in `e2e/fixtures/`, one per row of the
+- [X] T040 [P] [US2] Bank file fixtures in `e2e/fixtures/`, one per row of the
   [quickstart table](quickstart.md#us2-csv-import). Add a `.gitattributes` entry that marks
   `e2e/fixtures/*.csv` as binary, so the bytes and line endings survive every checkout. Write
   `mybank-2026-08.csv` as Windows-1252 bytes, for example with a short `node -e` script using
