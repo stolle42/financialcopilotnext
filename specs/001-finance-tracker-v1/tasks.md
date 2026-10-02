@@ -158,7 +158,7 @@ story builds on these.
 - [X] T010 [P] Name keys in `src/domain/names.ts`, test-first in `src/domain/names.test.ts`:
   `nameKey(name)`, and `isNameTaken(items, name, exceptId?)` for uniqueness, as
   [R-08](research.md#r-08) defines them.
-- [ ] T011 [P] Calendar dates in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`:
+- [X] T011 [P] Calendar dates in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`:
   `isCalendarDate(text)`, true only for a real `YYYY-MM-DD` date (so `2026-02-31` is false), and
   `monthOf(date)`, as [R-08](research.md#r-08) defines them.
 - [ ] T012 [P] The amount grammar in `src/domain/amounts.ts`, test-first in
