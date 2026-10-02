@@ -9,16 +9,15 @@ export type StoreRefusalCode = "save-failed";
 
 export type { Context };
 
-export type Decide<Code extends string> = (
-  state: State,
-  context: Context,
-) => Changes | Refusal<Code>;
+export type Decide<Refused extends Refusal> = (state: State, context: Context) => Changes | Refused;
 
 export interface Store {
   getState(): State;
   subscribe(listener: () => void): () => void;
   /** Decides, writes, then applies; resolves to the refusal, or `null` once the change is saved. */
-  run<Code extends string>(decide: Decide<Code>): Promise<Refusal<Code | StoreRefusalCode> | null>;
+  run<Refused extends Refusal>(
+    decide: Decide<Refused>,
+  ): Promise<Refused | Refusal<StoreRefusalCode> | null>;
 }
 
 /** The whole state in memory, written to storage before it changes on screen (R-05, R-15). */
@@ -28,9 +27,9 @@ export function createStore(db: Database, initialState: State): Store {
   // Actions run one at a time, so each decides on the state the previous one left.
   let queue: Promise<unknown> = Promise.resolve();
 
-  async function decideWriteApply<Code extends string>(
-    decide: Decide<Code>,
-  ): Promise<Refusal<Code | StoreRefusalCode> | null> {
+  async function decideWriteApply<Refused extends Refusal>(
+    decide: Decide<Refused>,
+  ): Promise<Refused | Refusal<StoreRefusalCode> | null> {
     const decision = decide(state, { today: todayLocal(), newId: () => crypto.randomUUID() });
     if (isRefusal(decision)) return decision;
     try {

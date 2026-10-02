@@ -311,7 +311,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   `src/domain/transactions.test.ts`. `listTransactions(transactions, filters)` sorts newest first,
   with `seq` breaking ties between equal dates. It filters by account, including transfers into that
   account, and by category ([FR-016](spec.md#fr-016), [data-model.md](data-model.md#transaction)).
-- [ ] T029 [US1] Account and transaction actions in `src/store/accounts.ts` and
+- [X] T029 [US1] Account and transaction actions in `src/store/accounts.ts` and
   `src/store/transactions.ts`, test-first in `src/store/accounts.test.ts` and
   `src/store/transactions.test.ts`. Each action is a thin wrapper that passes a function from T024 or
   T027 to `run`. Tests: a new account and a saved transaction survive reopening the database,
