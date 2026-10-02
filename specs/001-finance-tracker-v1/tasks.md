@@ -226,8 +226,9 @@ story builds on these.
   ([FR-067](spec.md#fr-067)). Depends on T019.
 - [X] T021 The app shell in `src/ui/app/App.tsx`, test-first in `e2e/ui/shell.spec.ts`
   ([ui.md](contracts/ui.md#shell-and-navigation), [R-19](research.md#r-19)).
-  - The header shows the app name. The sidebar has the Main and Manage groups, and each screen's
-    entry is added by the task that builds that screen. The route outlet shows a placeholder at `#/`
+  - The header shows the app name. The sidebar is one flat list, in the order of
+    [ui.md](contracts/ui.md#shell-and-navigation), and each screen's entry is added by the task that
+    builds that screen. The route outlet shows a placeholder at `#/`
     until T032 (`npx shadcn add button`).
   - Wrap everything in Base UI's `CSPProvider` with style elements disabled.
   - Mount the notification region, which is shadcn's toast on Base UI (`npx shadcn add toast`). US2,
@@ -316,7 +317,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
 - [ ] T030 [US1] The Accounts screen in `src/ui/screens/accounts/AccountsScreen.tsx` and
   `src/ui/screens/accounts/AccountDialog.tsx`, test-first in `e2e/ui/accounts.spec.ts`
   ([ui.md](contracts/ui.md#accounts), without Reconcile, which comes in T065).
-  - Add the route `#/accounts`, with its entry last in the Manage group. List each account with its
+  - Add the route `#/accounts`, with its sidebar entry. List each account with its
     computed balance, and add the New and Edit dialogs.
   - Build the shared `src/ui/components/AmountField.tsx`
     ([shared patterns](contracts/ui.md#shared-patterns)): it uses `localeDecimalSeparator` and
@@ -490,7 +491,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     appears in its place; and a saved profile can be edited.
 - [ ] T048 [US2] The Import screen in `src/ui/screens/import/ImportScreen.tsx`, test-first in
   `e2e/ui/import.spec.ts` ([import](contracts/ui.md#import), [outcomes](contracts/csv-import.md#outcomes)).
-  - Add the route `#/import` to the Main group.
+  - Add the route `#/import` and its sidebar entry.
   - Add the account select, with no default; the file picker or drop zone; and the profile select,
     with **Create new profile** and the preselect for a single profile.
   - **Import** creates the batch and opens `#/import/review`. A new profile saved from the editor
@@ -563,7 +564,7 @@ visible ([User Story 3](spec.md#user-story-3)).
   `src/ui/screens/insights/InsightsScreen.tsx`, `src/ui/screens/insights/PeriodPicker.tsx` and
   `src/ui/screens/insights/SpendingChart.tsx`, test-first in `e2e/ui/insights.spec.ts`
   ([insights](contracts/ui.md#insights)).
-  - Add the route `#/insights` to the Main group.
+  - Add the route `#/insights` and its sidebar entry.
   - The period picker has the preset buttons and two native date inputs, and defaults to This month
     ([FR-050](spec.md#fr-050)).
   - Run `npx shadcn add chart`, which brings Recharts and `react-is`. Then change our copy in
@@ -615,8 +616,8 @@ post-push check.
 - [ ] T059 [US4] Budget actions in `src/store/budgets.ts`, test-first in `src/store/budgets.test.ts`:
   `setLimit` and `removeLimit`, through `run`. Test: both survive reopening the database.
 - [ ] T060 [P] [US4] The Budgets screen in `src/ui/screens/budgets/BudgetsScreen.tsx`, test-first in
-  `e2e/ui/budgets.spec.ts` ([budgets](contracts/ui.md#budgets)). Add the route `#/budgets` to the
-  Manage group. Each budgetable category gets a row with its chip, an `AmountField` limit saved on
+  `e2e/ui/budgets.spec.ts` ([budgets](contracts/ui.md#budgets)). Add the route `#/budgets` and its
+  sidebar entry. Each budgetable category gets a row with its chip, an `AmountField` limit saved on
   Enter or on blur, and **Remove** once a limit is set. Add `budget-limit-invalid` to
   `src/ui/messages.ts`. Tests: [User Story 4](spec.md#user-story-4) scenario 4 (income and protected
   categories are absent); saving both ways; 0.00 refused under the field; and Remove.
@@ -701,7 +702,7 @@ post-push check.
   palette picker `src/ui/components/ColourPicker.tsx` holding the 18 swatches of
   [shared patterns](contracts/ui.md#shared-patterns), test-first in `e2e/ui/categories.spec.ts`
   ([categories](contracts/ui.md#categories)).
-  - Add the route `#/categories` to the Manage group, with Expenses and Income tabs.
+  - Add the route `#/categories` and its sidebar entry, with Expenses and Income tabs.
   - Each row has inline Rename, Colour and Delete. Delete on a protected category shows
     `category-protected` instead of a confirmation. On any other category, the confirmation states
     the counts from `deletionImpact`.
@@ -751,7 +752,7 @@ post-push check.
   - Depends on T072, T073.
 - [ ] T075 [US7] The Backup screen in `src/ui/screens/backup/BackupScreen.tsx`, test-first in
   `e2e/ui/backup.spec.ts` ([backup](contracts/ui.md#backup)).
-  - Add the route `#/backup` to the Manage group.
+  - Add the route `#/backup` and its sidebar entry.
   - **Save backup** downloads the file.
   - **Restore from backup** validates the file, asks for confirmation in the danger style ("Replace
     all data"), replaces the data, shows a notification and opens Transactions. Refusals appear in an

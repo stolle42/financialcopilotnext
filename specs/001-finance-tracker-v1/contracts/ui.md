@@ -13,17 +13,20 @@ The app is a desktop layout with a sidebar for navigation and a header ([FR-064]
 The header holds the app name and the primary action **Add transaction**, which opens the
 [transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
 
-| Route | Screen | Sidebar group |
+The sidebar is one flat list, without group headings, in the order of the table below. The
+screens it does not list are reached from Import.
+
+| Route | Screen | Sidebar position |
 |---|---|---|
-| `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)) | Main |
-| `#/insights` | [Insights](#insights) | Main |
-| `#/import` | [Import](#import) | Main |
-| `#/import/review` | [Review](#review) of the pending batch | reached from Import |
-| `#/import/profiles/new`, `#/import/profiles/:id` | [Profile editor](#profile-editor) | reached from Import |
-| `#/budgets` | [Budgets](#budgets) | Manage |
-| `#/categories` | [Categories](#categories) | Manage |
-| `#/accounts` | [Accounts](#accounts), deliberately low in the list ([FR-063](../spec.md#fr-063)) | Manage |
-| `#/backup` | [Backup](#backup) | Manage |
+| `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)) | 1 |
+| `#/insights` | [Insights](#insights) | 2 |
+| `#/import` | [Import](#import) | 3 |
+| `#/import/review` | [Review](#review) of the pending batch | not listed |
+| `#/import/profiles/new`, `#/import/profiles/:id` | [Profile editor](#profile-editor) | not listed |
+| `#/budgets` | [Budgets](#budgets) | 4 |
+| `#/categories` | [Categories](#categories) | 5 |
+| `#/accounts` | [Accounts](#accounts), deliberately low in the list ([FR-063](../spec.md#fr-063)) | 6 |
+| `#/backup` | [Backup](#backup) | 7 |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 
