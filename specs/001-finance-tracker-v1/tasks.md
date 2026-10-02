@@ -171,7 +171,7 @@ story builds on these.
   [shared patterns](contracts/ui.md#shared-patterns) ([FR-060](spec.md#fr-060)). `formatDate` builds
   a local date, so `2026-09-03` never shows as 2 September. `localeDecimalSeparator()` reads the
   browser locale through `Intl.NumberFormat().formatToParts`, for the amount field.
-- [ ] T014 [P] The hash router in `src/ui/app/router.ts`, test-first in `src/ui/app/router.test.ts`
+- [X] T014 [P] The hash router in `src/ui/app/router.ts`, test-first in `src/ui/app/router.test.ts`
   ([R-04](research.md#r-04)). `parseRoute(hash)` covers every route of
   [ui.md](contracts/ui.md#shell-and-navigation). `#/import/profiles/:id` carries the id, and an empty
   or unknown hash gives the Transactions route. Add `navigate(path)`, and `useRoute()` built on
