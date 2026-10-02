@@ -294,7 +294,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - `changeAccount(draft, accountId)` clears a destination that equals the new account
     ([transaction form](contracts/ui.md#transaction-form)).
   - Depends on T025.
-- [ ] T027 [US1] Saving and deleting transactions in `src/domain/transactions.ts`, test-first in
+- [X] T027 [US1] Saving and deleting transactions in `src/domain/transactions.ts`, test-first in
   `src/domain/transactions.test.ts`.
   - `saveDraft(state, draft, ctx)` validates by [FR-010](spec.md#fr-010) and
     [FR-011](spec.md#fr-011). It returns field-keyed codes: `amount-invalid`, `date-invalid`,

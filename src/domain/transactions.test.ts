@@ -1,12 +1,37 @@
 import { describe, expect, test } from "vitest";
 import { protectedCategory } from "./categories";
 import { seedState } from "./seed";
-import { idCounter } from "./testing";
-import { changeAccount, changeKind, newDraft, type Draft } from "./transactions";
-import type { State } from "./types";
+import { applyValid, changesOf, idCounter, testContext } from "./testing";
+import {
+  changeAccount,
+  changeKind,
+  deleteTransaction,
+  draftOf,
+  newDraft,
+  saveDraft,
+  type Draft,
+} from "./transactions";
+import type { State, Transaction } from "./types";
 
 function seeded(): State {
   return seedState(idCounter());
+}
+
+/** Cash plus a "Checking" account, so transfers are possible. */
+function withChecking(): State {
+  return applyValid(seeded(), {
+    accounts: {
+      put: [{ id: "checking", name: "Checking", type: "checking", openingBalanceCents: 0 }],
+    },
+  });
+}
+
+const categoryNamed = (state: State, side: "expense" | "income", name: string) =>
+  state.categories.find((c) => c.side === side && c.name === name)!.id;
+
+/** Saves a draft that is expected to succeed and returns the resulting state. */
+function saved(state: State, draft: Draft, context = testContext()): State {
+  return applyValid(state, changesOf(saveDraft(state, draft, context)));
 }
 
 describe("newDraft (FR-014)", () => {
@@ -109,5 +134,205 @@ describe("changeAccount", () => {
   test("only changes the account of an expense or income", () => {
     const expense = newDraft(state, "2026-09-03");
     expect(changeAccount(expense, "checking")).toEqual({ ...expense, accountId: "checking" });
+  });
+});
+
+describe("saveDraft: new transactions", () => {
+  test("books an expense with the next seq, and remembers its account as the default (FR-006)", () => {
+    const state = withChecking();
+    const draft: Draft = {
+      ...newDraft(state, "2026-09-03"),
+      kind: "expense",
+      accountId: "checking",
+      amountCents: 4000,
+      categoryId: categoryNamed(state, "expense", "Groceries"),
+      description: " Weekly shop ",
+    };
+
+    const next = saved(state, draft);
+
+    expect(next.transactions).toEqual([
+      {
+        id: "new-1",
+        seq: 1,
+        date: "2026-09-03",
+        amountCents: 4000,
+        accountId: "checking",
+        description: "Weekly shop",
+        kind: "expense",
+        categoryId: categoryNamed(state, "expense", "Groceries"),
+      },
+    ]);
+    expect(next.settings.manualEntryAccountId).toBe("checking");
+  });
+
+  test("saves the unchanged form as an expense of 0.00 in Uncategorised (scenario 8)", () => {
+    const state = seeded();
+    const next = saved(state, newDraft(state, "2026-09-03"));
+    expect(next.transactions[0]).toMatchObject({
+      amountCents: 0,
+      description: "",
+      kind: "expense",
+      categoryId: categoryNamed(state, "expense", "Uncategorised"),
+    });
+  });
+
+  test("gives each new transaction the next seq", () => {
+    const state = seeded();
+    const context = testContext();
+    const once = saved(state, newDraft(state, "2026-09-03"), context);
+    const twice = saved(once, newDraft(once, "2026-09-03"), context);
+    expect(twice.transactions.map((t) => t.seq)).toEqual([1, 2]);
+  });
+
+  test("books a transfer with its destination and no category", () => {
+    const state = withChecking();
+    const draft: Draft = {
+      ...changeKind(newDraft(state, "2026-09-03"), "transfer", state.categories),
+      kind: "transfer",
+      amountCents: 10000,
+      destinationAccountId: "checking",
+    };
+    const transaction = saved(state, draft).transactions[0];
+    expect(transaction).toMatchObject({ kind: "transfer", destinationAccountId: "checking" });
+    expect(transaction).not.toHaveProperty("categoryId");
+  });
+});
+
+describe("saveDraft: field errors (FR-010, FR-011)", () => {
+  test("reports every invalid field at once, keyed by field", () => {
+    const state = withChecking();
+    const draft: Draft = {
+      ...changeKind(newDraft(state, "2026-09-03"), "transfer", state.categories),
+      kind: "transfer",
+      amountCents: null,
+      date: "2026-02-30",
+      destinationAccountId: null,
+    };
+    expect(saveDraft(state, draft, testContext())).toEqual({
+      code: "draft-invalid",
+      details: {
+        amount: "amount-invalid",
+        date: "date-invalid",
+        destination: "transfer-destination-missing",
+      },
+    });
+  });
+
+  test("refuses a negative amount", () => {
+    const state = seeded();
+    const draft: Draft = { ...newDraft(state, "2026-09-03"), amountCents: -100 };
+    expect(saveDraft(state, draft, testContext())).toEqual({
+      code: "draft-invalid",
+      details: { amount: "amount-invalid" },
+    });
+  });
+
+  test("asks for a second account when there is only one", () => {
+    const state = seeded();
+    const draft = changeKind(newDraft(state, "2026-09-03"), "transfer", state.categories);
+    expect(saveDraft(state, draft, testContext())).toEqual({
+      code: "draft-invalid",
+      details: { destination: "transfer-needs-second-account" },
+    });
+  });
+});
+
+describe("saveDraft: categories (FR-030, data-model.md)", () => {
+  test("refuses a category from the other side", () => {
+    const state = seeded();
+    const draft: Draft = {
+      ...newDraft(state, "2026-09-03"),
+      kind: "expense",
+      categoryId: categoryNamed(state, "income", "Salary"),
+    };
+    expect(saveDraft(state, draft, testContext())).toEqual({ code: "category-not-allowed" });
+  });
+
+  test("refuses Unaccounted for a new transaction", () => {
+    const state = seeded();
+    const draft: Draft = {
+      ...newDraft(state, "2026-09-03"),
+      kind: "expense",
+      categoryId: categoryNamed(state, "expense", "Unaccounted"),
+    };
+    expect(saveDraft(state, draft, testContext())).toEqual({ code: "category-not-allowed" });
+  });
+
+  test("keeps Unaccounted on a reconciliation entry being edited, but never moves another one there", () => {
+    const state = seeded();
+    const unaccounted = categoryNamed(state, "expense", "Unaccounted");
+    const reconciliation: Transaction = {
+      id: "r1",
+      seq: 1,
+      date: "2026-09-01",
+      amountCents: 1500,
+      accountId: state.accounts[0]!.id,
+      description: "",
+      kind: "expense",
+      categoryId: unaccounted,
+    };
+    const ordinary: Transaction = {
+      ...reconciliation,
+      id: "t2",
+      seq: 2,
+      categoryId: categoryNamed(state, "expense", "Groceries"),
+    };
+    const withBoth = applyValid(state, { transactions: { put: [reconciliation, ordinary] } });
+
+    const kept = { ...draftOf(reconciliation), description: "Counted cash" };
+    expect(saveDraft(withBoth, kept, testContext())).not.toHaveProperty("code");
+
+    const moved: Draft = { ...draftOf(ordinary), kind: "expense", categoryId: unaccounted };
+    expect(saveDraft(withBoth, moved, testContext())).toEqual({ code: "category-not-allowed" });
+  });
+});
+
+describe("saveDraft: edits", () => {
+  test("keeps id and seq, and leaves the manual-entry default alone (state transitions)", () => {
+    const state = withChecking();
+    const first = saved(state, newDraft(state, "2026-09-03"));
+    const transaction = first.transactions[0]!;
+    const edited: Draft = { ...draftOf(transaction), accountId: "checking", amountCents: 999 };
+
+    const next = saved(first, edited);
+
+    expect(next.transactions).toEqual([
+      { ...transaction, accountId: "checking", amountCents: 999 },
+    ]);
+    expect(next.settings).toBe(first.settings);
+  });
+});
+
+describe("draftOf", () => {
+  test("opens a transfer for editing with its destination", () => {
+    const transfer: Transaction = {
+      id: "t1",
+      seq: 4,
+      date: "2026-09-03",
+      amountCents: 10000,
+      accountId: "cash",
+      description: "To bank",
+      kind: "transfer",
+      destinationAccountId: "checking",
+    };
+    expect(draftOf(transfer)).toEqual({
+      id: "t1",
+      kind: "transfer",
+      amountCents: 10000,
+      accountId: "cash",
+      destinationAccountId: "checking",
+      date: "2026-09-03",
+      description: "To bank",
+    });
+  });
+});
+
+describe("deleteTransaction (FR-013)", () => {
+  test("removes the transaction", () => {
+    const state = seeded();
+    const withOne = saved(state, newDraft(state, "2026-09-03"));
+    const id = withOne.transactions[0]!.id;
+    expect(applyValid(withOne, deleteTransaction(withOne, id)).transactions).toEqual([]);
   });
 });

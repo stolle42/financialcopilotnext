@@ -1,5 +1,7 @@
+import type { Changes, Context } from "./changes";
 import { protectedCategory } from "./categories";
-import type { Category, Side, State, Transaction } from "./types";
+import { isCalendarDate } from "./dates";
+import type { Category, Refusal, Side, State, Transaction } from "./types";
 
 interface DraftFields {
   /** The transaction being edited, or `null` for a new one. */
@@ -56,4 +58,107 @@ export function changeAccount(draft: Draft, accountId: string): Draft {
     return { ...draft, accountId, destinationAccountId: null };
   }
   return { ...draft, accountId };
+}
+
+/** A form field that can be invalid, and the code shown under it (FR-068). */
+export type DraftField = "amount" | "date" | "destination";
+export type DraftFieldCode =
+  | "amount-invalid"
+  | "date-invalid"
+  | "transfer-destination-missing"
+  | "transfer-needs-second-account";
+
+export interface DraftInvalid extends Refusal<"draft-invalid"> {
+  details: Partial<Record<DraftField, DraftFieldCode>>;
+}
+
+/**
+ * A category the form never offers, so this guards the rule rather than informing the user:
+ * the other side, or "Unaccounted" outside an edited reconciliation entry (FR-030).
+ */
+export type CategoryNotAllowed = Refusal<"category-not-allowed">;
+
+/** The form's values for editing an existing transaction. */
+export function draftOf(transaction: Transaction): Draft {
+  const fields: DraftFields = {
+    id: transaction.id,
+    amountCents: transaction.amountCents,
+    accountId: transaction.accountId,
+    date: transaction.date,
+    description: transaction.description,
+  };
+  return transaction.kind === "transfer"
+    ? { ...fields, kind: "transfer", destinationAccountId: transaction.destinationAccountId }
+    : { ...fields, kind: transaction.kind, categoryId: transaction.categoryId };
+}
+
+function fieldErrors(state: State, draft: Draft): DraftInvalid["details"] {
+  const errors: DraftInvalid["details"] = {};
+  const amount = draft.amountCents;
+  if (amount === null || !Number.isSafeInteger(amount) || amount < 0) {
+    errors.amount = "amount-invalid";
+  }
+  if (!isCalendarDate(draft.date)) errors.date = "date-invalid";
+  if (draft.kind === "transfer") {
+    const destination = state.accounts.find(
+      (a) => a.id === draft.destinationAccountId && a.id !== draft.accountId,
+    );
+    if (state.accounts.length < 2) errors.destination = "transfer-needs-second-account";
+    else if (!destination) errors.destination = "transfer-destination-missing";
+  }
+  return errors;
+}
+
+function categoryAllowed(state: State, draft: Draft & { kind: Side }): boolean {
+  const category = state.categories.find((c) => c.id === draft.categoryId);
+  if (category?.side !== draft.kind) return false;
+  if (category.role !== "unaccounted") return true;
+  const edited = state.transactions.find((t) => t.id === draft.id);
+  return edited !== undefined && edited.kind !== "transfer" && edited.categoryId === category.id;
+}
+
+/**
+ * Validates the form (FR-010, FR-011) and books it. A new transaction gets the next `seq` and
+ * becomes the manual-entry default account; an edit keeps both (data-model.md, state transitions).
+ */
+export function saveDraft(
+  state: State,
+  draft: Draft,
+  context: Context,
+): Changes | DraftInvalid | CategoryNotAllowed {
+  if (!state.accounts.some((a) => a.id === draft.accountId)) {
+    throw new Error(`No account ${draft.accountId}`);
+  }
+  const errors = fieldErrors(state, draft);
+  if (Object.keys(errors).length > 0) return { code: "draft-invalid", details: errors };
+  if (draft.kind !== "transfer" && !categoryAllowed(state, draft)) {
+    return { code: "category-not-allowed" };
+  }
+
+  const edited = draft.id === null ? null : state.transactions.find((t) => t.id === draft.id);
+  if (edited === undefined) throw new Error(`No transaction ${draft.id}`);
+  const fields = {
+    id: edited?.id ?? context.newId(),
+    seq: edited?.seq ?? state.transactions.reduce((max, t) => Math.max(max, t.seq), 0) + 1,
+    date: draft.date,
+    amountCents: draft.amountCents as number,
+    accountId: draft.accountId,
+    description: draft.description.trim(),
+  };
+  const transaction: Transaction =
+    draft.kind === "transfer"
+      ? { ...fields, kind: "transfer", destinationAccountId: draft.destinationAccountId as string }
+      : { ...fields, kind: draft.kind, categoryId: draft.categoryId };
+
+  return edited
+    ? { transactions: { put: [transaction] } }
+    : {
+        transactions: { put: [transaction] },
+        settings: { put: { ...state.settings, manualEntryAccountId: draft.accountId } },
+      };
+}
+
+export function deleteTransaction(state: State, id: string): Changes {
+  if (!state.transactions.some((t) => t.id === id)) throw new Error(`No transaction ${id}`);
+  return { transactions: { delete: [id] } };
 }
