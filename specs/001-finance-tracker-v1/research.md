@@ -563,11 +563,10 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     10. on failure, uploading the Playwright report.
   - **`deployed`** runs when Vercel reports a successful production deployment through GitHub's
     `deployment_status` event ([R-20](#r-20)).
-    - It runs the end-to-end suite against the deployment URL from that event, passed to Playwright
-      as `BASE_URL`.
-    - Vercel puts deployment URLs behind a login by default, so the job sends Vercel's automation
-      bypass header. Its secret is the GitHub Actions secret `VERCEL_AUTOMATION_BYPASS_SECRET` and
-      is never committed.
+    - It runs the end-to-end suite against the Vercel production domain, passed to Playwright as
+      `BASE_URL`. The domain is the GitHub Actions repository variable `VERCEL_PRODUCTION_URL`.
+    - The production domain is public under Vercel's default Standard Protection, so the job needs
+      no login and no secret. The decision was made on 2026-10-02.
   - The rest of the post-push gate is manual: a person walks the
     [manual checks](quickstart.md#manual-checks) on both the local build and the Vercel production
     domain ([quickstart.md](quickstart.md#after-pushing-to-main)).
@@ -581,8 +580,13 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - That leaves only the judgement criteria to a person.
   - Building on the user's file keeps one pipeline.
 - **Alternatives considered**:
-  - **Vercel's `repository_dispatch` events** would also carry the URL. But `deployment_status` is
-    sent by default, and it is the event Playwright's CI guide uses.
+  - **The deployment's own URL from the event**, such as `project-abc123-team.vercel.app`, would
+    always serve exactly the pushed commit. But Standard Protection puts these URLs behind a Vercel
+    login, so the job would need Vercel's automation bypass secret. The cost of using the
+    production domain instead is that, for a moment after a deployment, it may still serve the
+    previous build.
+  - **Vercel's `repository_dispatch` events** would also signal a finished deployment. But
+    `deployment_status` is sent by default, and it is the event Playwright's CI guide uses.
   - **A manual check only** would leave the mechanical part of the gate to memory.
   - **A second workflow file** means two pipelines to keep in step.
   - **One job per check** runs in parallel, but repeats the install. One job is simpler at this
@@ -631,7 +635,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - The Node version comes from `engines.node` ([R-02](#r-02)).
     - The one-time project settings are in [quickstart.md](quickstart.md#vercel-setup):
       - the Vercel Toolbar off for previews;
-      - Protection Bypass for Automation on ([R-18](#r-18));
+      - Deployment Protection no stricter than Standard Protection, so the production domain stays
+        public for the `deployed` job ([R-18](#r-18));
       - Web Analytics and Speed Insights never enabled.
   - **Purpose of the Vercel copy** (confirmed 2026-10-01, now in [FR-061](spec.md#fr-061)): it
     exists for the constitution's post-push check and for showing the app to others. Daily use with

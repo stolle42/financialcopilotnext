@@ -170,29 +170,32 @@ against the user stories after every push to `main` ([R-18](research.md#r-18)).
 | Check | How | Passes when |
 |---|---|---|
 | Local build | CI's `test` job runs every end-to-end journey on the production build, served on `localhost` | The `test` job is green |
-| Vercel deployment | CI's `deployed` job runs the same journeys on the production deployment, once Vercel reports it | The `deployed` job is green |
+| Vercel deployment | Once Vercel reports a production deployment, CI's `deployed` job runs the same journeys on the production domain | The `deployed` job is green |
 | User experience | A person walks the [manual checks](#manual-checks) on `http://localhost:4173` (`npm start`) and on the Vercel production domain | Every row passes on both |
 
-To run the journeys against a deployment by hand, set `BASE_URL`. Add the bypass secret when the
-URL is behind Vercel's login:
+To run the journeys against the production domain by hand, set `BASE_URL`:
 
 ```bash
-BASE_URL=https://<deployment-url> VERCEL_AUTOMATION_BYPASS_SECRET=<secret> npx playwright test
+BASE_URL=https://<production-domain> npx playwright test
 ```
 
 ```powershell
-$env:BASE_URL = "https://<deployment-url>"; $env:VERCEL_AUTOMATION_BYPASS_SECRET = "<secret>"; npx playwright test
+$env:BASE_URL = "https://<production-domain>"; npx playwright test
 ```
 
 ### Vercel setup
 
-The project owner does this once, in the Vercel dashboard ([R-20](research.md#r-20)):
+The project owner does this once ([R-20](research.md#r-20)):
 
-1. Import the GitHub repository. Vercel detects Vite, and the production branch is `main`.
+1. In the Vercel dashboard, import the GitHub repository. Vercel detects Vite, and the production
+   branch is `main`.
 2. Under Settings → General → Vercel Toolbar, set **Preview** to Off.
-3. Under Deployment Protection → Protection Bypass for Automation, generate a secret. Store it in
-   the GitHub repository's Actions secrets as `VERCEL_AUTOMATION_BYPASS_SECRET`.
+3. Under Settings → Deployment Protection, keep Standard Protection or turn protection off. Do not
+   choose All Deployments, which would put the production domain behind a login
+   ([R-18](research.md#r-18)).
 4. Leave Web Analytics and Speed Insights disabled ([FR-061](spec.md#fr-061)).
+5. In the GitHub repository, under Settings → Secrets and variables → Actions → Variables, add
+   `VERCEL_PRODUCTION_URL`, holding the production domain with `https://`.
 
 Use the Vercel copy for checks and demonstrations only, and keep real data in the local build
 ([FR-061](spec.md#fr-061)).

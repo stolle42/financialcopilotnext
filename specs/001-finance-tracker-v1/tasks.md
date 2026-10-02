@@ -102,8 +102,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
   [R-18](research.md#r-18), [R-19](research.md#r-19)).
   - `playwright.config.ts`: `testDir: "e2e"` and projects for Chromium and Firefox. `baseURL` comes
     from `BASE_URL`; without it, it is `http://localhost:4173`, served by a `webServer` that runs
-    `npx vite preview`. When `VERCEL_AUTOMATION_BYPASS_SECRET` is set, send it as the
-    `x-vercel-protection-bypass` header. Use the HTML reporter.
+    `npx vite preview`. Use the HTML reporter.
   - `e2e/support/test.ts` exports `test` and `expect`. An automatic fixture fails the test on any
     request outside the `baseURL` origin (allowing `data:` and `blob:`), and on any
     `securitypolicyviolation` event that the page reports. The file also exports
@@ -120,16 +119,16 @@ priority order. Each story phase ends with that story's end-to-end journey from
     `npm test`; build; `npx playwright install --with-deps chromium firefox`; `npx playwright test`;
     and, on failure, upload `playwright-report/` as an artifact.
   - Job `deployed`, run only for a successful `deployment_status` of the Production environment:
-    `npm ci`, install the browsers, then run `npx playwright test` with `BASE_URL` set to the event's
-    `environment_url` and `VERCEL_AUTOMATION_BYPASS_SECRET` taken from the repository secret.
+    `npm ci`, install the browsers, then run `npx playwright test` with `BASE_URL` set to the
+    repository variable `vars.VERCEL_PRODUCTION_URL`, which is the production domain.
   - Add the `verify` script, which runs the same checks in the same order, ending with
     `npm run test:e2e`.
   - Check: `npm run verify` passes locally.
 - [ ] T008 (Project owner, manual) Set up Vercel as
-  [quickstart.md](quickstart.md#vercel-setup) describes, and store
-  `VERCEL_AUTOMATION_BYPASS_SECRET` in the repository's Actions secrets. This makes the `deployed`
-  job of `.github/workflows/regressiontests.yml` run after every push to `main`, which the
-  constitution's post-push check needs from the first story on.
+  [quickstart.md](quickstart.md#vercel-setup) describes, including the repository variable
+  `VERCEL_PRODUCTION_URL`. This makes the `deployed` job of
+  `.github/workflows/regressiontests.yml` run against the production domain after every push to
+  `main`, which the constitution's post-push check needs from the first story on.
 
 **Checkpoint**: `npm run verify` is green locally and in CI.
 
