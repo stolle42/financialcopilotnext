@@ -217,7 +217,7 @@ story builds on these.
     failing write, for example after closing the database, gives `save-failed` and leaves the state
     unchanged.
   - Depends on T018.
-- [ ] T020 The message catalogue in `src/ui/messages.ts`, test-first in `src/ui/messages.test.ts`
+- [X] T020 The message catalogue in `src/ui/messages.ts`, test-first in `src/ui/messages.test.ts`
   ([R-15](research.md#r-15), [message catalogue](contracts/ui.md#message-catalogue)). `MessageCode`
   is the union of the code types the layers export, and the wording lookup is typed
   `Record<MessageCode, …>`, so a missing wording fails the type check. Start with `save-failed`,
