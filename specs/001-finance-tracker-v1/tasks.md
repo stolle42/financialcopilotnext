@@ -237,7 +237,7 @@ story builds on these.
   - Tests: the app opens on `#/` showing its name, the built page carries the policy, and the guard
     sees no violation.
   - Depends on T014, T020.
-- [ ] T022 Start-up in `src/main.tsx`, test-first in `e2e/ui/startup.spec.ts`
+- [X] T022 Start-up in `src/main.tsx`, test-first in `e2e/ui/startup.spec.ts`
   ([R-07](research.md#r-07), [R-15](research.md#r-15)).
   - Hold a Web Lock for as long as the page runs (`navigator.locks.request` with `ifAvailable`).
     Without the lock, show `open-in-another-tab` and open no storage.

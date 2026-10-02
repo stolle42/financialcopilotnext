@@ -1,13 +1,55 @@
-import { StrictMode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import "@/ui/index.css";
+import { loadState, openDatabase, type Database } from "@/persistence/db";
+import { createStore, StoreContext } from "@/store/store";
 import { App } from "@/ui/app/App";
+import { FailureScreen } from "@/ui/app/FailureScreen";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("index.html has no #root element");
+const root = createRoot(rootElement);
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+function render(node: ReactNode): void {
+  root.render(<StrictMode>{node}</StrictMode>);
+}
+
+/**
+ * Asks the browser to keep the data under storage pressure (R-07). Not awaited before rendering,
+ * because Firefox asks the user first; a rejection means the data is not persistent.
+ */
+function requestPersistentStorage(): Promise<boolean> {
+  if (!navigator.storage?.persist) return Promise.resolve(false);
+  return navigator.storage.persist().catch(() => false);
+}
+
+async function start(): Promise<void> {
+  const storagePersisted = requestPersistentStorage();
+
+  let db: Database;
+  try {
+    // Blocked storage either throws at once (Firefox, Safari) or rejects later (Chromium).
+    db = await openDatabase();
+  } catch {
+    render(<FailureScreen code="storage-unavailable" />);
+    return;
+  }
+
+  const store = createStore(db, await loadState(db));
+  render(
+    <StoreContext.Provider value={store}>
+      <App storagePersisted={storagePersisted} />
+    </StoreContext.Provider>,
+  );
+}
+
+// One running copy: a second tab would hold its own state and write over the first one's (R-07).
+void navigator.locks.request("financial-copilot", { ifAvailable: true }, async (lock) => {
+  if (!lock) {
+    render(<FailureScreen code="open-in-another-tab" />);
+    return;
+  }
+  await start();
+  // Keep the lock for as long as the page lives.
+  await new Promise<never>(() => {});
+});
