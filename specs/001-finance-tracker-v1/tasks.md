@@ -176,7 +176,7 @@ story builds on these.
   [ui.md](contracts/ui.md#shell-and-navigation). `#/import/profiles/:id` carries the id, and an empty
   or unknown hash gives the Transactions route. Add `navigate(path)`, and `useRoute()` built on
   `useSyncExternalStore` and the `hashchange` event.
-- [ ] T015 Changes in `src/domain/changes.ts`, test-first in `src/domain/changes.test.ts`. A
+- [X] T015 Changes in `src/domain/changes.ts`, test-first in `src/domain/changes.test.ts`. A
   `Changes` type lists the records to put and the ids to delete, per store of `State`.
   `applyChanges(state, changes)` returns a new state and leaves its input untouched. Both the store
   (T019) and the domain tests use it. Depends on T009.
