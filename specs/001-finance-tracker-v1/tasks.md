@@ -161,7 +161,7 @@ story builds on these.
 - [X] T011 [P] Calendar dates in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`:
   `isCalendarDate(text)`, true only for a real `YYYY-MM-DD` date (so `2026-02-31` is false), and
   `monthOf(date)`, as [R-08](research.md#r-08) defines them.
-- [ ] T012 [P] The amount grammar in `src/domain/amounts.ts`, test-first in
+- [X] T012 [P] The amount grammar in `src/domain/amounts.ts`, test-first in
   `src/domain/amounts.test.ts`. `parseAmount(text, decimalSeparator)` returns integer cents or
   `null`, exactly as [csv-import.md](contracts/csv-import.md#amount-grammar) defines, without
   floating point. Every row of the contract's example table is a test case. Add the 12-digit limit
