@@ -389,7 +389,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   signed cents or a failure code. It follows [direction](contracts/csv-import.md#direction) step by
   step for both modes, applies sign inversion in signed mode only, and returns zero as 0, which is
   then proposed as an expense ([R-12](research.md#r-12)).
-- [ ] T037 [P] [US2] CSV decoding and tokenising in `src/files/csv.ts`, test-first in
+- [X] T037 [P] [US2] CSV decoding and tokenising in `src/files/csv.ts`, test-first in
   `src/files/csv.test.ts` ([R-09](research.md#r-09), [pipeline](contracts/csv-import.md#pipeline)
   steps 2–3, [encodings](contracts/csv-import.md#encodings)). Install Papa Parse and
   `@types/papaparse`.
