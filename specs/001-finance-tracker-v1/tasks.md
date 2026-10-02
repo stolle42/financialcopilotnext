@@ -95,7 +95,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
   `src/domain/**/*.test.ts` as the importing side, because tests import Vitest. Add the
   `check:architecture` script. Check: it passes, and a temporary `src/domain/probe.ts` importing
   `react` fails it.
-- [ ] T005 Configure Vitest and install `fake-indexeddb` ([R-17](research.md#r-17)). Add the `test`
+- [X] T005 Configure Vitest and install `fake-indexeddb` ([R-17](research.md#r-17)). Add the `test`
   section of `vite.config.ts` (Node environment, `include: ["src/**/*.test.ts"]`,
   `passWithNoTests`) and the `test` script. Check: `npm test` passes.
 - [ ] T006 Configure Playwright with the network guard ([R-17](research.md#r-17),
