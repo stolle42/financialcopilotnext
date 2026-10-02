@@ -276,12 +276,15 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - `createAccount(state, input, ctx)` and `updateAccount(state, id, input)` refuse
     `account-name-empty` and `account-name-taken` (by name key, [FR-001](spec.md#fr-001),
     [R-08](research.md#r-08)), or return changes. The opening balance is in cents, of any sign.
+  - `sortAccounts(accounts)` follows the [list order](contracts/ui.md#shared-patterns).
   - Tests include the balances of [User Story 1](spec.md#user-story-1) scenarios 2–4 and 10, and a
     transaction moved to another account changing both balances ([edge cases](spec.md#edge-cases)).
 - [ ] T025 [P] [US1] Category lookups in `src/domain/categories.ts`, test-first in
   `src/domain/categories.test.ts`. `protectedCategory(categories, side, role)` finds a category by
-  role, never by name ([data-model.md](data-model.md#category)). `pickerCategories(categories, side)`
-  returns the side's set without "Unaccounted" ([FR-030](spec.md#fr-030)).
+  role, never by name ([data-model.md](data-model.md#category)). `sortCategories(categories, side)`
+  returns the side's set in the [list order](contracts/ui.md#shared-patterns), and
+  `pickerCategories(categories, side)` returns the same without "Unaccounted"
+  ([FR-030](spec.md#fr-030)).
 - [ ] T026 [US1] Form drafts and kind changes in `src/domain/transactions.ts`, test-first in
   `src/domain/transactions.test.ts`. A draft holds the amount as cents, or `null` when the text does
   not parse.
@@ -930,9 +933,9 @@ has its own tests, so it can merge before its screens exist.
 - Commit after every task, with a short message about why the step matters, in the style of the
   recent history ([git-history rule](../../.claude/rules/git-history.md)). Tick the task's checkbox
   in the same commit.
-- Two research interpretations are built as written but not yet confirmed in the spec: zero
-  amounts proposed as expenses ([R-12](research.md#r-12)), and names unique by name key
-  ([R-08](research.md#r-08)). Confirm them with `/speckit-clarify` before T036, T024 and T068
-  ([plan.md](plan.md#interpretations-to-confirm)).
+- One research interpretation is built as written but not yet confirmed in the spec: zero amounts
+  proposed as expenses ([R-12](research.md#r-12)). Confirm it with `/speckit-clarify` before T036
+  ([plan.md](plan.md#interpretations-to-confirm)). Names unique by name key
+  ([R-08](research.md#r-08)) were confirmed on 2026-10-02.
 - `checklists/data-safety.md` was reviewed on 2026-10-02 and passes in full, so the
   `/speckit-implement` checklist gate is open.
