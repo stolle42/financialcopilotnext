@@ -191,7 +191,7 @@ story builds on these.
   settings, and all 16 categories with their colours and roles ([FR-006](spec.md#fr-006),
   [FR-031](spec.md#fr-031)). The test checks the table row by row and runs `checkInvariants`.
   Depends on T016.
-- [ ] T018 IndexedDB storage in `src/persistence/db.ts`, test-first in `src/persistence/db.test.ts`
+- [X] T018 IndexedDB storage in `src/persistence/db.ts`, test-first in `src/persistence/db.test.ts`
   against `fake-indexeddb` ([R-06](research.md#r-06), [storage layout](data-model.md#storage-layout)).
   Install `idb`.
   - `openDatabase()` creates `financial-copilot` version 1 with the seven stores, and writes
