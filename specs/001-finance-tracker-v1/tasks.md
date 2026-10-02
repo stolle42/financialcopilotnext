@@ -145,7 +145,7 @@ story builds on these.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T009 [P] Define the entity types in `src/domain/types.ts` from
+- [X] T009 [P] Define the entity types in `src/domain/types.ts` from
   [data-model.md](data-model.md#entities). The types are `Account`, `Category`, `Transaction` (a
   union on `kind`), `Budget`, `MappingProfile` (column refs as header text or position, and both
   `amount` modes), `PendingBatch`, `PendingRow` (a union on `status`, carrying the row failure codes
