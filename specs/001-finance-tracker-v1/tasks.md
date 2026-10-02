@@ -424,7 +424,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   `mybank-2026-08.csv` as Windows-1252 bytes, for example with a short `node -e` script using
   `Buffer`, with at least one `0x80` "€" and one umlaut. Each file holds only the rows its exercise
   needs.
-- [ ] T041 [P] [US2] Record parsing in `src/domain/import/rows.ts`, test-first in
+- [X] T041 [P] [US2] Record parsing in `src/domain/import/rows.ts`, test-first in
   `src/domain/import/rows.test.ts`. `parseRecords(records, profile)` covers
   [pipeline](contracts/csv-import.md#pipeline) steps 3–6 and [cells](contracts/csv-import.md#cells):
   - it skips empty records but keeps their row numbers ([pending row](data-model.md#pending-row));
