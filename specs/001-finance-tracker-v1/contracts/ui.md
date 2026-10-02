@@ -205,6 +205,7 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 | Amount display | One formatter: `Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" })` ([FR-060](../spec.md#fr-060)) |
 | Amount input | Uses the browser locale's decimal separator and the [amount grammar](csv-import.md#amount-grammar) shared with CSV import, so at most 2 decimals. Transaction amounts cannot be negative ([FR-010](../spec.md#fr-010)); balances can |
 | Date display | One formatter: `Intl.DateTimeFormat(undefined, { dateStyle: "medium" })` |
+| List order | Accounts and mapping profiles by name. Categories by name within their side, with "Uncategorised" and "Unaccounted" last, in that order. Names sort ignoring case, in the browser's language. The transaction list has its own order ([FR-016](../spec.md#fr-016)) |
 | Colour palette | 18 swatches: the 14 distinct seed colours of [data-model.md](../data-model.md#seed-data) plus `#82c91e`, `#e8590c`, `#1098ad` and `#9c36b5` |
 | Confirmation | A modal that states the consequence. The confirm button names the action, such as "Delete category" or "Replace all data". Severe confirmations ([FR-001](../spec.md#fr-001), [FR-071](../spec.md#fr-071)) use the danger style |
 | Notification | A brief success message after a write that leaves the screen |

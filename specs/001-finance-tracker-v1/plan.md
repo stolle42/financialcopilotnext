@@ -139,7 +139,6 @@ These entries fill gaps in the spec. Each one should be confirmed and recorded i
 example with `/speckit-clarify`, so that the spec stays the single source of behaviour:
 
 - [R-12](research.md#r-12): a zero amount in a signed column is proposed as an expense.
-- [R-08](research.md#r-08): names are unique regardless of case and surrounding spaces.
 
 The limitations v1 accepts knowingly, such as bank files with lines above the header, are listed
 in [R-22](research.md#r-22).

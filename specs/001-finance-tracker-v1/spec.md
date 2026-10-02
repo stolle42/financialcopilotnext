@@ -50,6 +50,9 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
   cleared, outgoing requests, backup validity and versions, review progress, and confirmations
   are now requirements: [FR-022](#fr-022), [FR-061](#fr-061), [FR-069](#fr-069),
   [FR-072](#fr-072) – [FR-075](#fr-075) and [SC-014](#sc-014).
+- Q: Do two names count as the same when they differ only in case or surrounding spaces, such as
+  "Groceries" and " groceries"? → A: Yes. Account, category and mapping profile names are compared
+  ignoring case and surrounding spaces ([FR-001](#fr-001), [FR-021](#fr-021), [FR-032](#fr-032)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -362,8 +365,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-001"></a>**FR-001**: Users MUST be able to create and edit an account with a name, a type, and an opening
   balance: what the account held before its earliest recorded transaction. Changing the opening
   balance MUST require the user to confirm a severe warning that every computed balance of the
-  account will change. Account names MUST be unique; a duplicate name MUST be refused with an
-  explanation.
+  account will change. Account names MUST be unique, comparing names ignoring case and surrounding
+  spaces; a duplicate name MUST be refused with an explanation.
 - <a id="fr-002"></a>**FR-002**: System MUST compute each account's balance as its opening balance plus the net effect
   of its transactions. A balance MUST NOT be stored or edited as a number of its own; stating an
   account's actual balance is done through reconciliation ([FR-005](#fr-005)), which books the
@@ -414,8 +417,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   which columns hold the date, the amount (one signed column, or separate debit and credit
   columns), the description, and optionally the counterparty; whether the amount's sign is
   inverted (for exports that list purchases as positive numbers); the date format; the decimal
-  separator; and the file encoding. Profile names MUST be unique; a duplicate name MUST be refused
-  with an explanation.
+  separator; and the file encoding. Profile names MUST be unique, compared as account names are
+  ([FR-001](#fr-001)); a duplicate name MUST be refused with an explanation.
   - Columns MUST be identified by their header text. A file missing a mapped header MUST create no
     batch, and the message MUST name the missing columns. A profile MAY instead be flagged "no header
     row", in which case columns are identified by position and no layout check is made.
@@ -481,7 +484,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-031"></a>**FR-031**: On first launch, both sets MUST contain a predefined list of categories, each set
   including the protected categories "Uncategorised" and "Unaccounted".
 - <a id="fr-032"></a>**FR-032**: Users MUST be able to create, rename, recolour, and delete categories. Names MUST be
-  unique within a set; the same name MAY exist on both sides.
+  unique within a set, compared as account names are ([FR-001](#fr-001)); the same name MAY exist
+  on both sides.
 - <a id="fr-033"></a>**FR-033**: System MUST refuse deletion of "Uncategorised" and "Unaccounted" on either side, while
   allowing them to be renamed and recoloured.
 - <a id="fr-034"></a>**FR-034**: Deleting a category MUST move its transactions to "Uncategorised" on the same side and

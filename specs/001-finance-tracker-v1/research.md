@@ -270,10 +270,10 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - **Dates**: `YYYY-MM-DD` strings in the user's local calendar.
     - "Today" comes from the local clock in the store layer and is passed into domain functions.
     - A month is the first seven characters, and a range check is a string comparison.
-  - **Names**: account, category and profile names are unique by *name key*: the name trimmed and
-    lower-cased. This is the **interpretation** of [FR-001](spec.md#fr-001),
-    [FR-021](spec.md#fr-021) and [FR-032](spec.md#fr-032). It is stricter than an exact match:
-    "Groceries" next to "groceries " is the confusion that unique names are there to prevent.
+  - **Names** (confirmed 2026-10-02, now in [FR-001](spec.md#fr-001), [FR-021](spec.md#fr-021)
+    and [FR-032](spec.md#fr-032)): account, category and profile names are unique by *name key*:
+    the name trimmed and lower-cased. It is stricter than an exact match: "Groceries" next to
+    "groceries " is the confusion that unique names are there to prevent.
 - **Rationale**:
   - Every amount has exactly two decimals, so integer cents make arithmetic exact.
   - Calendar dates carry no time zone that could move a transaction into a different day or month.

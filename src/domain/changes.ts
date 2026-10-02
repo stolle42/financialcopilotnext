@@ -31,6 +31,13 @@ export interface Changes {
   settings?: { put: Settings };
 }
 
+/** The values a decision needs from outside, injected by the store so the domain stays pure (R-05). */
+export interface Context {
+  /** The local calendar date of the action. */
+  today: string;
+  newId: () => string;
+}
+
 /** A domain function returns either a refusal or the changes to make (R-15). */
 export function isRefusal<Code extends string>(
   decision: Changes | Refusal<Code>,
