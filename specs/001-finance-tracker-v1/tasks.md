@@ -180,7 +180,7 @@ story builds on these.
   `Changes` type lists the records to put and the ids to delete, per store of `State`.
   `applyChanges(state, changes)` returns a new state and leaves its input untouched. Both the store
   (T019) and the domain tests use it. Depends on T009.
-- [ ] T016 State invariants in `src/domain/invariants.ts`, test-first in
+- [X] T016 State invariants in `src/domain/invariants.ts`, test-first in
   `src/domain/invariants.test.ts`. `checkInvariants(state)` returns ok, or the first broken
   invariant of [data-model.md](data-model.md#invariants) as a code with details that name the record,
   for example `transaction-account-missing` with the transaction id. The backup restore uses this to
