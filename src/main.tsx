@@ -4,15 +4,30 @@ import "@/ui/index.css";
 import { loadState, openDatabase, type Database } from "@/persistence/db";
 import { createStore, StoreContext } from "@/store/store";
 import { App } from "@/ui/app/App";
+import { ErrorBoundary } from "@/ui/app/ErrorBoundary";
 import { FailureScreen } from "@/ui/app/FailureScreen";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("index.html has no #root element");
 const root = createRoot(rootElement);
 
+let unexpectedErrorShown = false;
+
 function render(node: ReactNode): void {
+  // An error screen stays, even if start-up finishes after it.
+  if (unexpectedErrorShown) return;
   root.render(<StrictMode>{node}</StrictMode>);
 }
+
+/** Replaces whatever is on screen with `unexpected-error`; the details go to the console (R-15). */
+function showUnexpectedError(error: unknown): void {
+  console.error("Unexpected error", error);
+  render(<FailureScreen code="unexpected-error" />);
+  unexpectedErrorShown = true;
+}
+
+window.addEventListener("error", (event) => showUnexpectedError(event.error ?? event.message));
+window.addEventListener("unhandledrejection", (event) => showUnexpectedError(event.reason));
 
 /**
  * Asks the browser to keep the data under storage pressure (R-07). Not awaited before rendering,
@@ -37,9 +52,11 @@ async function start(): Promise<void> {
 
   const store = createStore(db, await loadState(db));
   render(
-    <StoreContext.Provider value={store}>
-      <App storagePersisted={storagePersisted} />
-    </StoreContext.Provider>,
+    <ErrorBoundary>
+      <StoreContext.Provider value={store}>
+        <App storagePersisted={storagePersisted} />
+      </StoreContext.Provider>
+    </ErrorBoundary>,
   );
 }
 

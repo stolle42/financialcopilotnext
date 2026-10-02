@@ -249,7 +249,7 @@ story builds on these.
     `indexedDB.open` throws `SecurityError` (set up with `page.addInitScript`) shows
     `storage-unavailable`.
   - Depends on T019, T021.
-- [ ] T023 Unexpected errors in `src/ui/app/ErrorBoundary.tsx` and `src/main.tsx`, test-first in
+- [X] T023 Unexpected errors in `src/ui/app/ErrorBoundary.tsx` and `src/main.tsx`, test-first in
   `e2e/ui/startup.spec.ts` ([R-15](research.md#r-15)). An error boundary around the shell, plus
   handlers for `error` and `unhandledrejection`, show `unexpected-error` with a Reload button and log
   the details to the console. Test: an unhandled rejection scheduled after load by
