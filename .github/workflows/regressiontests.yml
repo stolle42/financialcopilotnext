@@ -1,30 +1,109 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
   push:
-    branches: [ "main" ]
-  
-  # Allows you to run this workflow manually from the Actions tab
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
+  # Vercel reports each deployment through this event; `deployed` tests the live site (R-18).
+  deployment_status:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
+  # Every check of `npm run verify`, in the same order, on the local production build.
   test:
-    # The type of runner that the job will run on
+    if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Run tests
-        run: echo Replace this with the test runner
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
 
-      - name: Run linter
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Architecture check
+        run: npm run check:architecture
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: End-to-end tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # The post-push check: the same end-to-end suite against the Vercel production domain, which is
+  # public under Standard Protection, so no secret is needed (R-18).
+  deployed:
+    if: >-
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ vars.VERCEL_PRODUCTION_URL }}
+    steps:
+      # An empty BASE_URL would make Playwright fall back to a local server that was never built.
+      - name: Check the production domain is configured
         run: |
-          echo Run typescript linter
+          if [ -z "$BASE_URL" ]; then
+            echo "::error::Set the repository variable VERCEL_PRODUCTION_URL (quickstart.md, Vercel setup)."
+            exit 1
+          fi
+
+      # For a moment after a deployment, the domain can still serve the previous build, which the
+      # tests would then check instead of this commit. The built page names its commit (R-18).
+      - name: Wait until the production domain serves this commit
+        env:
+          COMMIT: ${{ github.event.deployment.sha }}
+        run: |
+          for attempt in $(seq 30); do
+            served=$(curl -fsS "$BASE_URL" | grep -o 'name="app-commit" content="[^"]*"' | cut -d'"' -f4 || true)
+            if [ "$served" = "$COMMIT" ]; then exit 0; fi
+            echo "Attempt $attempt: $BASE_URL serves ${served:-no commit}, waiting for $COMMIT."
+            sleep 10
+          done
+          echo "::error::After 5 minutes, $BASE_URL still does not serve commit $COMMIT."
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: End-to-end tests against the production domain
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-deployed
+          path: playwright-report/
+          retention-days: 14

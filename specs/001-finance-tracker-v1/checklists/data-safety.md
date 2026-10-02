@@ -12,38 +12,74 @@ only, before `/speckit-tasks`.
 
 ## Requirement Completeness
 
-- [ ] CHK001 Are requirements defined for warning the user that data stored in the browser can be lost outside the app's control, or is that risk intentionally left to manual backups? [Gap, Spec §User Story 7, §Out of Scope]
-- [ ] CHK002 Are all-or-nothing requirements stated for every change that touches several records, such as batch confirmation and category deletion, and not only for restore? [Gap, Spec §FR-027, §FR-034, §FR-072]
-- [ ] CHK003 Do requirements state what happens to stored data when a save fails, beyond the message the user sees? [Completeness, Spec §FR-067]
-- [ ] CHK004 Are requirements defined for the app being open in two tabs or windows at once, where both could change the same data? [Gap]
-- [ ] CHK005 Is protecting stored data and backup files from other people using the same computer (for example with encryption or a passcode) either required or explicitly excluded? [Gap, Spec §Out of Scope]
+- [x] CHK001 Are requirements defined for warning the user that data stored in the browser can be lost outside the app's control, or is that risk intentionally left to manual backups? [Gap, Spec §User Story 7, §Out of Scope]
+  - **Review 2026-10-02**: Gap. User Story 7 names the risk ("losing … the browser data loses everything") and Out of Scope excludes automatic backups, but no requirement says whether the user is told. The design already decides it: the Backup screen shows whether the browser granted persistent storage and points at backups ([R-07](../research.md#r-07)). That should be stated in the spec.
+  - **Resolved 2026-10-02**: [FR-075](../spec.md#fr-075).
+- [x] CHK002 Are all-or-nothing requirements stated for every change that touches several records, such as batch confirmation and category deletion, and not only for restore? [Gap, Spec §FR-027, §FR-034, §FR-072]
+  - **Review 2026-10-02**: Gap. Only restore is all-or-nothing ([FR-072](../spec.md#fr-072)). Nothing in FR-027 or FR-034 rules out half a batch entering the ledger, or half of a category's transactions being moved. The design makes every action atomic ([R-06](../research.md#r-06)). The spec should say this once for every change.
+  - **Resolved 2026-10-02**: [FR-073](../spec.md#fr-073).
+- [x] CHK003 Do requirements state what happens to stored data when a save fails, beyond the message the user sees? [Completeness, Spec §FR-067]
+  - **Review 2026-10-02**: Gap. FR-067 covers only the message. The design keeps both stored and shown data unchanged when a save fails ([R-05](../research.md#r-05), [R-15](../research.md#r-15)). This follows from CHK002 once that is stated.
+  - **Resolved 2026-10-02**: [FR-073](../spec.md#fr-073).
+- [x] CHK004 Are requirements defined for the app being open in two tabs or windows at once, where both could change the same data? [Gap]
+  - **Review 2026-10-02**: Gap. The spec says nothing about two tabs. The design allows one running copy and shows `open-in-another-tab` in the second ([R-07](../research.md#r-07)). That is user-visible behaviour, so it belongs in the spec.
+  - **Resolved 2026-10-02**: [FR-074](../spec.md#fr-074).
+- [x] CHK005 Is protecting stored data and backup files from other people using the same computer (for example with encryption or a passcode) either required or explicitly excluded? [Gap, Spec §Out of Scope]
+  - **Review 2026-10-02**: Gap, and the design does not cover it either. "Credential storage" under Never means bank credentials. Encryption and a passcode are neither required nor excluded. **Needs a decision.**
+  - **Resolved 2026-10-02**: Out of Scope (excluded for v1).
 
 ## Requirement Clarity
 
-- [ ] CHK006 Is "usage information" in FR-061 defined? For example, do error reports, update checks, or fetching fonts and scripts from third parties count as sending it? [Clarity, Spec §FR-061]
-- [ ] CHK007 Is "network connection" in FR-061 defined so that serving the app from the user's own computer clearly does not count as one? [Ambiguity, Spec §FR-061]
-- [ ] CHK008 Are the criteria for "a complete, valid backup" stated, or is it explicit that the design defines them? [Clarity, Spec §FR-072]
-- [ ] CHK009 Is it unambiguous whether review progress in a pending batch, such as categories already assigned, must survive closing the app, or only the batch itself? [Ambiguity, Spec §FR-022, §User Story 2]
+- [x] CHK006 Is "usage information" in FR-061 defined? For example, do error reports, update checks, or fetching fonts and scripts from third parties count as sending it? [Clarity, Spec §FR-061]
+  - **Review 2026-10-02**: Partly covered. "Telemetry or analytics of any kind" under Never covers usage tracking, but error reports, update checks and third-party fonts or scripts are not named. The design forbids them all, using a CSP that allows only the app's own origin ([R-19](../research.md#r-19)). A definition such as "no request to any host other than the one serving the app" would settle CHK006, CHK007 and CHK017 together.
+  - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
+- [x] CHK007 Is "network connection" in FR-061 defined so that serving the app from the user's own computer clearly does not count as one? [Ambiguity, Spec §FR-061]
+  - **Review 2026-10-02**: Implied, not defined. "Real data lives only in the app as run locally" suggests that serving from `localhost` does not count, but a strict reading could count loopback HTTP as a network connection. One sentence would settle it (see CHK006).
+  - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
+- [x] CHK008 Are the criteria for "a complete, valid backup" stated, or is it explicit that the design defines them? [Clarity, Spec §FR-072]
+  - **Review 2026-10-02**: Unclear. FR-072 says "complete, valid" but neither gives criteria nor hands them to the design. The design's criteria: made by this app, a known format version, every part present, and every invariant holds ([contracts/backup-file.md](../contracts/backup-file.md#loading-fr-071-fr-072)). The spec should state the criteria or point to the contract.
+  - **Resolved 2026-10-02**: [FR-072](../spec.md#fr-072).
+- [x] CHK009 Is it unambiguous whether review progress in a pending batch, such as categories already assigned, must survive closing the app, or only the batch itself? [Ambiguity, Spec §FR-022, §User Story 2]
+  - **Review 2026-10-02**: Ambiguous. FR-022 and scenario 12 keep the batch "pending and reviewable", but say nothing about categories, transfers or inclusions already chosen. The Pending row entity holds those choices, which suggests they are kept. The design keeps them by writing review edits at once ([R-05](../research.md#r-05)). FR-022 should say so.
+  - **Resolved 2026-10-02**: [FR-022](../spec.md#fr-022).
 
 ## Requirement Consistency
 
-- [ ] CHK010 Does SC-014's list of what a restore reproduces match FR-070's list of what a backup holds? FR-070 includes the manual-entry default account; SC-014 does not mention it. [Consistency, Spec §SC-014, §FR-070]
-- [ ] CHK011 Does "all current data" in FR-071 mean exactly the items FR-070 puts in a backup, including the pending batch? [Consistency, Spec §FR-070, §FR-071]
-- [ ] CHK012 Are confirmation requirements consistent across all destructive actions: deleting a transaction, category or profile, discarding a batch, restoring a backup, and changing an opening balance? [Consistency, Spec §FR-001, §FR-013, §FR-021, §FR-027, §FR-034, §FR-071]
-- [ ] CHK013 Is FR-061's ban on sending usage information to any external party consistent with a hosted copy, whose host sees every request for the app's files? [Consistency, Spec §FR-061]
+- [x] CHK010 Does SC-014's list of what a restore reproduces match FR-070's list of what a backup holds? FR-070 includes the manual-entry default account; SC-014 does not mention it. [Consistency, Spec §SC-014, §FR-070]
+  - **Review 2026-10-02**: Inconsistent. SC-014 omits the manual-entry default account that FR-070 puts in the backup. Add it to SC-014.
+  - **Resolved 2026-10-02**: [SC-014](../spec.md#sc-014).
+- [x] CHK011 Does "all current data" in FR-071 mean exactly the items FR-070 puts in a backup, including the pending batch? [Consistency, Spec §FR-070, §FR-071]
+  - **Review 2026-10-02**: Consistent. FR-070 says "all data the app holds" and FR-071 says "all current data", the same set. A pending batch is therefore replaced too, including by a backup that has none.
+- [x] CHK012 Are confirmation requirements consistent across all destructive actions: deleting a transaction, category or profile, discarding a batch, restoring a backup, and changing an opening balance? [Consistency, Spec §FR-001, §FR-013, §FR-021, §FR-027, §FR-034, §FR-071]
+  - **Review 2026-10-02**: Inconsistent. The spec asks for confirmation only before changing an opening balance (FR-001) and before a restore (FR-071). It says nothing for deleting a transaction, category or profile, or for discarding a batch. The design asks for confirmation in every one of these cases ([contracts/ui.md](../contracts/ui.md#shared-patterns)). The spec should state one rule: every destructive action asks for confirmation and states its consequence.
+  - **Resolved 2026-10-02**: [FR-069](../spec.md#fr-069).
+- [x] CHK013 Is FR-061's ban on sending usage information to any external party consistent with a hosted copy, whose host sees every request for the app's files? [Consistency, Spec §FR-061]
+  - **Review 2026-10-02**: Consistent since the 2026-10-01 clarification. FR-061 confines a hosted copy to checks and demonstrations, and Out of Scope excludes it for real data. The host sees requests for the app's files, never ledger data ([R-20](../research.md#r-20)).
 
 ## Scenario & Edge Case Coverage
 
-- [ ] CHK014 Are requirements defined for protecting current data before a restore replaces it, such as offering to save a backup first, or is the warning alone intended? [Gap, Spec §FR-071]
-- [ ] CHK015 Are requirements defined for loading a backup made by an older or newer version of the app? [Gap, Spec §FR-072]
-- [ ] CHK016 Are requirements defined for how a hosted copy shows that it is for checks and demonstrations only, so that no one enters real data there? [Gap, Spec §FR-061, §Out of Scope]
+- [x] CHK014 Are requirements defined for protecting current data before a restore replaces it, such as offering to save a backup first, or is the warning alone intended? [Gap, Spec §FR-071]
+  - **Review 2026-10-02**: Not stated. The warning is the only protection, and neither the spec nor the design says whether that is intended or whether to offer a backup first. **Needs a decision.**
+  - **Resolved 2026-10-02**: Out of Scope (the warning alone).
+- [x] CHK015 Are requirements defined for loading a backup made by an older or newer version of the app? [Gap, Spec §FR-072]
+  - **Review 2026-10-02**: Gap in the spec. The design refuses a backup from a newer version and always reads older ones ([contracts/backup-file.md](../contracts/backup-file.md#compatibility), message `backup-newer-version`). That rule is user-visible and should be in FR-072.
+  - **Resolved 2026-10-02**: [FR-072](../spec.md#fr-072).
+- [x] CHK016 Are requirements defined for how a hosted copy shows that it is for checks and demonstrations only, so that no one enters real data there? [Gap, Spec §FR-061, §Out of Scope]
+  - **Review 2026-10-02**: Gap, and nothing in the design covers it. The hosted copy looks exactly like the local app. **Needs a decision.**
+  - **Resolved 2026-10-02**: Out of Scope (documentation only, no in-app notice).
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK017 Can FR-061 be objectively verified, for example because it states that no request may leave the computer during any v1 flow? [Measurability, Spec §FR-061]
-- [ ] CHK018 Is "reproduces … exactly" in SC-014 precise enough to compare a restored state with the original, for example item by item? [Measurability, Spec §SC-014]
+- [x] CHK017 Can FR-061 be objectively verified, for example because it states that no request may leave the computer during any v1 flow? [Measurability, Spec §FR-061]
+  - **Review 2026-10-02**: Half measurable. "MUST NOT require a network connection" can be tested by running offline. "Any external party" cannot be tested until it is defined (see CHK006). The design's test guard already checks the stricter rule ([R-19](../research.md#r-19)).
+  - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
+- [x] CHK018 Is "reproduces … exactly" in SC-014 precise enough to compare a restored state with the original, for example item by item? [Measurability, Spec §SC-014]
+  - **Review 2026-10-02**: Precise enough. "Every account balance, transaction, category, budget, mapping profile, and the pending batch" is an item-by-item list, and the design turns "exactly" into a deep-equal round trip ([contracts/backup-file.md](../contracts/backup-file.md#exactness-sc-014)). It covers the default account once CHK010 is fixed.
 
 ## Notes
+
+- **Review 2026-10-02**: 3 of 18 passed. Twelve gaps were already decided in the design documents but not stated in the spec, and three (CHK005, CHK014, CHK016) needed a product decision.
+- **Resolved 2026-10-02**: the spec now states all of them (Clarifications, session 2026-10-02). 18 of 18 pass.
 
 - Scope: the spec only. The plan's design documents are excluded by choice; `/speckit-analyze` covers cross-document consistency once tasks exist.
 - Depth: lightweight, the highest-risk gaps only.

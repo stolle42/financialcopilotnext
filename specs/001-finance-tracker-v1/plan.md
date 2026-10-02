@@ -170,7 +170,7 @@ specs/001-finance-tracker-v1/
 .dependency-cruiser.cjs                # src/domain imports nothing outside itself (R-16)
 eslint.config.js
 .prettierrc.json
-index.html                             # The production build adds the CSP meta tag (R-19)
+index.html                             # The production build adds the CSP (R-19) and commit (R-18) meta tags
 package.json, package-lock.json
 playwright.config.ts                   # Chromium and Firefox against `vite preview`, or BASE_URL (R-17)
 components.json                        # shadcn/ui: Base UI, aliases into src/ui/ (R-03)

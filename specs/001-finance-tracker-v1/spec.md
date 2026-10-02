@@ -34,6 +34,23 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
   same counterparty and the same direction (money out or in); rows without a counterparty stay
   ungrouped ([FR-026](#fr-026)).
 
+### Session 2026-10-02
+
+From the review of the [data-safety checklist](checklists/data-safety.md):
+
+- Q: Must stored data and backup files be protected from other people using the same computer,
+  for example by encryption or a passcode? → A: No, not in v1. The data is as safe as the
+  computer's user account ([Out of Scope](#out-of-scope)).
+- Q: Before a restore replaces current data, must the app offer to save a backup first? → A: No.
+  The warning [FR-071](#fr-071) requires is the protection ([Out of Scope](#out-of-scope)).
+- Q: Must a hosted copy show in the app that it serves only checks and demonstrations? → A: No.
+  The project's documentation says so, and the app shows no notice
+  ([Out of Scope](#out-of-scope)).
+- The design's decisions on atomic changes, failed saves, a second tab, browser storage that may be
+  cleared, outgoing requests, backup validity and versions, review progress, and confirmations
+  are now requirements: [FR-022](#fr-022), [FR-061](#fr-061), [FR-069](#fr-069),
+  [FR-072](#fr-072) – [FR-075](#fr-075) and [SC-014](#sc-014).
+
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
 
@@ -408,7 +425,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   - Users MUST be able to edit, rename, and delete a profile. Doing so MUST NOT change a pending
     batch, which keeps its parsed rows.
 - <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
-  figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app.
+  figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app,
+  together with every choice made in review: categories, rows marked as transfers, and flagged rows
+  included.
   At most one pending batch MAY exist at any time, across all accounts; starting an import while one
   is pending MUST be refused with a message that leads the user to review or discard it.
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
@@ -500,7 +519,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
-  party, and MUST NOT require a network connection for any v1 capability. Real data lives only in
+  party, and MUST NOT require a network connection for any v1 capability. Concretely, no flow may
+  make a request to any host other than the one serving the app: no analytics, no error reports, no
+  update checks, and no fonts, scripts or other files from third parties. Serving the app from the
+  user's own computer (`localhost`) is not a network connection. Real data lives only in
   the app as run locally. A copy hosted on the web, such as the one the project's post-push check
   deploys, needs a network connection to open, so it serves only checks and demonstrations
   ([Out of Scope](#out-of-scope)).
@@ -531,6 +553,12 @@ testable for v1.
 - <a id="fr-068"></a>**FR-068**: Form validation MUST point the user to the problem: field-level issues MUST
   appear at or beside the relevant field; form-wide issues MUST appear where the user is about to
   submit, with enough context to correct the input without external documentation.
+- <a id="fr-069"></a>**FR-069**: Every action that deletes or replaces data MUST ask the user to confirm,
+  and the request MUST state the consequence. These actions are: deleting a transaction, a
+  category, or a mapping profile; discarding a pending batch; changing an opening balance; and
+  loading a backup. Changing an opening balance and loading a backup MUST use a severe warning
+  ([FR-001](#fr-001), [FR-071](#fr-071)). Confirming a batch first states its row count
+  ([FR-027](#fr-027)).
 
 **Backup**
 
@@ -541,7 +569,25 @@ testable for v1.
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
 - <a id="fr-072"></a>**FR-072**: System MUST refuse a file that is not a complete, valid backup and
-  MUST leave the current data unchanged; a restore either fully succeeds or changes nothing.
+  MUST leave the current data unchanged; a restore either fully succeeds or changes nothing. A file
+  is a complete, valid backup only when it was saved by this app, holds every part
+  [FR-070](#fr-070) lists, and its data obeys every rule of this spec (for example, every
+  transaction's account is in the file). A backup saved by a newer version of the app MUST be
+  refused with a message saying so. A backup saved by an earlier version MUST NOT be refused for its
+  age.
+
+**Data safety**
+
+- <a id="fr-073"></a>**FR-073**: Every action that changes stored data MUST either take full effect or
+  change nothing. This includes actions that change many records at once, such as confirming a batch
+  ([FR-027](#fr-027)), deleting a category ([FR-034](#fr-034)) and restoring a backup
+  ([FR-072](#fr-072)). When saving fails, the stored data and what the app shows MUST both stay as
+  they were, and the user MUST be told ([FR-067](#fr-067)).
+- <a id="fr-074"></a>**FR-074**: The app MUST run in one browser tab or window at a time. A second tab
+  or window MUST load no data, and MUST tell the user that the app is already open elsewhere.
+- <a id="fr-075"></a>**FR-075**: The browser may clear the app's data when disk space runs low, unless
+  the browser has agreed to keep it. The backup screen MUST say when the browser has not agreed,
+  and that a saved backup is the safeguard ([User Story 7](#user-story-7)).
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -597,7 +643,8 @@ testable for v1.
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
   settings, in line with [FR-066](#fr-066).
 - <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
-  account balance, transaction, category, budget, mapping profile, and the pending batch exactly.
+  account balance, transaction, category, budget, mapping profile, the pending batch, and the
+  manual-entry default account exactly.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -624,6 +671,11 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   ([FR-014](#fr-014)); the user deletes an unwanted entry.
 - Automatic or scheduled backups, and merging a backup into existing data. v1 backs up and restores
   only on request, as a whole ([FR-070](#fr-070), [FR-071](#fr-071)).
+- Offering to save a backup during a restore. The warning that [FR-071](#fr-071) requires is the
+  protection; the user can save a backup first, on the same screen.
+- Protecting data from other people using the same computer, such as encryption or a passcode for
+  stored data or backup files. The data is as safe as the computer's user account, and anyone who
+  has a backup file can read it.
 - Small-viewport responsive layout: completing every flow in a narrow browser window (for example
   360 pixels wide) without horizontal scrolling. v1 targets a normal desktop browser; phone-sized
   polish is later.
@@ -648,7 +700,8 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
   v1 must not foreclose them.
 - Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,
-  which [FR-061](#fr-061) rules out for v1, so it serves only checks and demonstrations.
+  which [FR-061](#fr-061) rules out for v1, so it serves only checks and demonstrations. The
+  project's documentation says so; the app itself shows no notice in a hosted copy.
 - Drill-down from a chart into its transactions. Desirable, to be considered in UX design, not a v1
   commitment.
 - Searching the transaction list, paginating it, and editing several transactions at once. v1 has
