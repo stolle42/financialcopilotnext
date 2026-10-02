@@ -384,7 +384,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   `src/domain/import/dates.test.ts`. `parseBankDate(text, format)` returns `YYYY-MM-DD` or `null` for
   every format of [csv-import.md](contracts/csv-import.md#date-formats). Test one- and two-digit days
   and months, `YY` read as 20YY, impossible dates, and extra text.
-- [ ] T036 [P] [US2] Amount direction in `src/domain/import/direction.ts`, test-first in
+- [X] T036 [P] [US2] Amount direction in `src/domain/import/direction.ts`, test-first in
   `src/domain/import/direction.test.ts`. `readAmount(cells, amountMapping, decimalSeparator)` returns
   signed cents or a failure code. It follows [direction](contracts/csv-import.md#direction) step by
   step for both modes, applies sign inversion in signed mode only, and returns zero as 0, which is
