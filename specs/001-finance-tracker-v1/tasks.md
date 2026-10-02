@@ -406,7 +406,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   and signed effect and reusing `signedEffect` from T024 ([FR-024](spec.md#fr-024)). Tests: every case
   of [R-10](research.md#r-10); a purchase and its same-day refund, which are not flagged; different
   descriptions, which are still flagged; and unparsable rows, which are ignored.
-- [ ] T039 [P] [US2] Vendor groups in `src/domain/import/groups.ts`, test-first in
+- [X] T039 [P] [US2] Vendor groups in `src/domain/import/groups.ts`, test-first in
   `src/domain/import/groups.test.ts`. `reviewView(batch)` returns:
   - the three counts;
   - the duplicate rows and the unparsable rows;
