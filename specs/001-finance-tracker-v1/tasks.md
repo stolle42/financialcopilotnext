@@ -929,5 +929,5 @@ has its own tests, so it can merge before its screens exist.
   amounts proposed as expenses ([R-12](research.md#r-12)), and names unique by name key
   ([R-08](research.md#r-08)). Confirm them with `/speckit-clarify` before T036, T024 and T068
   ([plan.md](plan.md#interpretations-to-confirm)).
-- `checklists/data-safety.md` has no items checked. `/speckit-implement` reads checklist state as a
-  gate, so review it first.
+- `checklists/data-safety.md` was reviewed on 2026-10-02 and passes in full, so the
+  `/speckit-implement` checklist gate is open.
