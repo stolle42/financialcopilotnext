@@ -46,9 +46,12 @@ function SelectTrigger({
       {...props}
     >
       {children}
+      {/* Base UI's default arrow glyph would end up as a text node inside the chevron's <svg>. */}
       <SelectPrimitive.Icon
         render={<ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />}
-      />
+      >
+        {null}
+      </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
 }

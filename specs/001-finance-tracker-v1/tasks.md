@@ -330,7 +330,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - Add `account-name-empty`, `account-name-taken` and `balance-invalid` to `src/ui/messages.ts`.
   - Tests: [User Story 1](spec.md#user-story-1) scenarios 1, 2, 10 and 11; the duplicate-name
     refusal; a negative opening balance; and cancelling the warning, which keeps the old balance.
-- [ ] T031 [US1] The transaction form in `src/ui/screens/transactions/TransactionForm.tsx`,
+- [X] T031 [US1] The transaction form in `src/ui/screens/transactions/TransactionForm.tsx`,
   test-first in `e2e/ui/transaction-form.spec.ts` ([transaction form](contracts/ui.md#transaction-form)).
   - The form is a modal, opened from every screen by **Add transaction** in the header
     ([FR-066](spec.md#fr-066)). Its fields come in the contract's order. Focus and Enter work as

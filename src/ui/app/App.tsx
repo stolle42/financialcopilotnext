@@ -1,8 +1,10 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { cn } from "cn";
-import { createContext, type ReactNode } from "react";
+import { createContext, useState, type ReactNode } from "react";
+import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
+import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { useRoute, type Route } from "./router";
 
 // Stands in for the transaction list until T032 builds it.
@@ -35,6 +37,7 @@ export const StoragePersistedContext = createContext<Promise<boolean>>(Promise.r
 /** The desktop shell: header, sidebar and the screen of the current route (contracts/ui.md). */
 export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }) {
   const route = useRoute();
+  const [addingTransaction, setAddingTransaction] = useState(false);
 
   return (
     // Base UI must not inject <style> elements, which the Content-Security-Policy blocks (R-19).
@@ -42,8 +45,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
       <StoragePersistedContext.Provider value={storagePersisted}>
         <Toaster>
           <div className="flex min-h-screen flex-col">
-            <header className="flex h-14 shrink-0 items-center border-b px-6">
+            <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
               <span className="text-lg font-semibold">Financial Copilot</span>
+              {/* The primary action, reachable from every screen (FR-066). */}
+              <Button onClick={() => setAddingTransaction(true)}>Add transaction</Button>
             </header>
             <div className="flex flex-1">
               <nav
@@ -67,6 +72,9 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
               <main className="flex-1 p-6">{screenFor(route)}</main>
             </div>
           </div>
+          {addingTransaction && (
+            <TransactionForm transaction={null} onClose={() => setAddingTransaction(false)} />
+          )}
         </Toaster>
       </StoragePersistedContext.Provider>
     </CSPProvider>
