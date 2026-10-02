@@ -285,7 +285,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   returns the side's set in the [list order](contracts/ui.md#shared-patterns), and
   `pickerCategories(categories, side)` returns the same without "Unaccounted"
   ([FR-030](spec.md#fr-030)).
-- [ ] T026 [US1] Form drafts and kind changes in `src/domain/transactions.ts`, test-first in
+- [X] T026 [US1] Form drafts and kind changes in `src/domain/transactions.ts`, test-first in
   `src/domain/transactions.test.ts`. A draft holds the amount as cents, or `null` when the text does
   not parse.
   - `newDraft(state, today)` has the defaults of [FR-014](spec.md#fr-014) and the default account of
