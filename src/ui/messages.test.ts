@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { formatAmount } from "./format";
 import { messageFor, messages, notifications, type MessageCode } from "./messages";
 
 describe("messages", () => {
@@ -49,5 +50,21 @@ describe("messages", () => {
   test("says a budget limit must be above 0.00 (FR-040)", () => {
     expect(Object.keys(messages)).toContain("budget-limit-invalid");
     expect(messageFor({ code: "budget-limit-invalid" })).toContain("above 0.00");
+  });
+
+  test("says an account already holds the stated amount and nothing was booked (FR-005)", () => {
+    expect(Object.keys(messages)).toContain("reconcile-already-matches");
+    const message = messageFor({ code: "reconcile-already-matches" });
+    expect(message).toMatch(/already/i);
+    expect(message).toMatch(/nothing was booked/i);
+  });
+
+  test("words a reconciliation with its kind, amount and category (contracts/ui.md, accounts)", () => {
+    expect(notifications.reconciled("expense", 1500, "Unaccounted")).toBe(
+      `Booked an expense of ${formatAmount(1500)} to Unaccounted.`,
+    );
+    expect(notifications.reconciled("income", 2000, "Unexplained")).toBe(
+      `Booked an income of ${formatAmount(2000)} to Unexplained.`,
+    );
   });
 });

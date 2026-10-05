@@ -4,6 +4,8 @@ import type { Account, AccountType, Refusal, State, Transaction } from "./types"
 
 export type AccountRefusalCode = "account-name-empty" | "account-name-taken";
 
+export type ReconcileRefusalCode = "reconcile-already-matches";
+
 export interface AccountInput {
   name: string;
   type: AccountType;
@@ -63,6 +65,38 @@ export function updateAccount(
   const refusal = checkName(state, input.name, id);
   if (refusal) return refusal;
   return { accounts: { put: [{ id, ...input, name: input.name.trim() }] } };
+}
+
+/**
+ * Books the difference between the balance the user states and the computed one as a single
+ * transaction dated today: an expense of the side's "Unaccounted" when the stated balance is lower,
+ * an income when it is higher (FR-005). Nothing else changes, the manual-entry account included
+ * (FR-006).
+ */
+export function reconcile(
+  state: State,
+  accountId: string,
+  statedCents: number,
+  context: Context,
+): Changes | Refusal<ReconcileRefusalCode> {
+  const difference = statedCents - accountBalance(state, accountId);
+  if (difference === 0) return { code: "reconcile-already-matches" };
+
+  const kind = difference < 0 ? "expense" : "income";
+  // Found by role, because the user can rename the category (data-model.md).
+  const category = state.categories.find((c) => c.side === kind && c.role === "unaccounted");
+  if (!category) throw new Error(`No ${kind} category with the role unaccounted`);
+  const transaction: Transaction = {
+    id: context.newId(),
+    seq: state.transactions.reduce((max, t) => Math.max(max, t.seq), 0) + 1,
+    date: context.today,
+    amountCents: Math.abs(difference),
+    accountId,
+    description: "",
+    kind,
+    categoryId: category.id,
+  };
+  return { transactions: { put: [transaction] } };
 }
 
 /** Accounts by name, ignoring case (contracts/ui.md, list order). */

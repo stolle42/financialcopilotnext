@@ -1,8 +1,10 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, test } from "vitest";
+import { accountBalance } from "@/domain/accounts";
 import { loadState, openDatabase } from "@/persistence/db";
-import { addAccount, editAccount } from "./accounts";
+import { addAccount, editAccount, reconcile } from "./accounts";
+import { todayLocal } from "./clock";
 import { createStore } from "./store";
 
 beforeEach(() => {
@@ -52,6 +54,46 @@ describe("account actions", () => {
     const result = await addAccount(store, { name: "cash", type: "cash", openingBalanceCents: 0 });
 
     expect(result).toEqual({ code: "account-name-taken" });
+    db.close();
+    expect(await reopened()).toEqual(before);
+  });
+});
+
+describe("reconcile (FR-005)", () => {
+  test("the booked transaction survives reopening the database", async () => {
+    const { db, store } = await setUp();
+    const cash = store.getState().accounts[0]!;
+    const settings = store.getState().settings;
+
+    const result = await reconcile(store, cash.id, -1500);
+
+    expect(result).toBeNull();
+    db.close();
+    const state = await reopened();
+    const unaccounted = state.categories.find(
+      (c) => c.side === "expense" && c.role === "unaccounted",
+    )!;
+    expect(state.transactions).toEqual([
+      expect.objectContaining({
+        kind: "expense",
+        amountCents: 1500,
+        accountId: cash.id,
+        categoryId: unaccounted.id,
+        date: todayLocal(),
+      }),
+    ]);
+    expect(accountBalance(state, cash.id)).toBe(-1500);
+    expect(state.settings).toEqual(settings);
+  });
+
+  test("a balance that already matches is refused and writes nothing", async () => {
+    const { db, store } = await setUp();
+    const before = await loadState(db);
+
+    const result = await reconcile(store, store.getState().accounts[0]!.id, 0);
+
+    expect(result).toEqual({ code: "reconcile-already-matches" });
+    expect(store.getState().transactions).toEqual([]);
     db.close();
     expect(await reopened()).toEqual(before);
   });

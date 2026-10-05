@@ -103,6 +103,18 @@ export function putRecords(page: Page, store: string, records: unknown[]): Promi
   );
 }
 
+/**
+ * The transaction booked last, by `seq`. Storage lists records by their random ids, so the last
+ * record listed is not the newest one.
+ */
+export async function lastBooked(page: Page): Promise<Transaction | undefined> {
+  const transactions = await storedTransactions(page);
+  return transactions.reduce<Transaction | undefined>(
+    (last, t) => (last && last.seq > t.seq ? last : t),
+    undefined,
+  );
+}
+
 /** The records of the budgets store: one limit per expense category (data-model.md). */
 export function storedBudgets(page: Page): Promise<Budget[]> {
   return storedRecords<Budget>(page, "budgets");
@@ -147,6 +159,35 @@ export async function removeBudgetLimit(page: Page, category: string): Promise<v
   await page.goto("/#/budgets");
   await budgetRow(page, category).getByRole("button", { name: "Remove" }).click();
   await expect(budgetRow(page, category).getByLabel("Monthly limit")).toHaveValue("");
+}
+
+/** The row of the Accounts screen for the account `name`. */
+export function accountRow(page: Page, name: string): Locator {
+  return page.getByRole("row").filter({ has: page.getByRole("cell", { name, exact: true }) });
+}
+
+/** Opens the reconcile dialog of the account `name` on the Accounts screen and returns it. */
+export async function openReconcile(page: Page, name: string): Promise<Locator> {
+  await page.goto("/#/accounts");
+  await accountRow(page, name).getByRole("button", { name: "Reconcile" }).click();
+  const dialog = page.getByRole("dialog", { name: `Reconcile ${name}` });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+/**
+ * Reconciles the account `name` to `actualBalance`, typed as in en-US, and waits for the dialog to
+ * close, which it does only when a difference was booked (FR-005).
+ */
+export async function reconcileAccount(
+  page: Page,
+  name: string,
+  actualBalance: string,
+): Promise<void> {
+  const dialog = await openReconcile(page, name);
+  await dialog.getByLabel("Actual balance").fill(actualBalance);
+  await dialog.getByRole("button", { name: "Reconcile", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
 }
 
 /** The path of a bank file in e2e/fixtures (quickstart.md, US2). */

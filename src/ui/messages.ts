@@ -1,11 +1,12 @@
-import type { AccountRefusalCode } from "@/domain/accounts";
+import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
 import type { DraftFieldCode } from "@/domain/transactions";
-import type { Refusal, RefusalDetails, RowFailureCode } from "@/domain/types";
+import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/types";
 import type { DecodingRefusal } from "@/files/csv";
 import type { StoreRefusalCode } from "@/store/store";
+import { formatAmount } from "./format";
 
 // The one message catalogue: every refusal and failure code, worded for the user (R-15,
 // contracts/ui.md). No wording lives anywhere else.
@@ -26,7 +27,8 @@ export type MessageCode =
   | RowFailureCode
   | DecodingRefusal["code"]
   | BatchRefusalCode
-  | BudgetRefusalCode;
+  | BudgetRefusalCode
+  | ReconcileRefusalCode;
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -105,6 +107,8 @@ export const messages: Record<MessageCode, Wording> = {
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
+  "reconcile-already-matches":
+    "This account already holds that amount, so nothing was booked. Enter a different amount to reconcile.",
 };
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
@@ -115,6 +119,8 @@ export const notifications = {
     `Added ${transactions(count)} to ${accountName}.`,
   importDiscarded: (fileName: string) =>
     `Discarded the import of ${fileName}. Nothing entered the ledger.`,
+  reconciled: (kind: Side, cents: number, categoryName: string) =>
+    `Booked an ${kind} of ${formatAmount(cents)} to ${categoryName}.`,
 };
 
 /** The plain-language message for a refusal or failure (FR-067). */

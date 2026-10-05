@@ -1,8 +1,19 @@
 import type { Page } from "@playwright/test";
-import { messageFor } from "../../src/ui/messages";
-import { euros, expect, test } from "../support/test";
+import type { Category, Side } from "../../src/domain/types";
+import { messageFor, notifications } from "../../src/ui/messages";
+import {
+  addAccount,
+  addTransaction,
+  lastBooked,
+  openReconcile,
+  openTransactionForm,
+  reconcileAccount,
+  storedRecords,
+  storedTransactions,
+} from "../support/app";
+import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, accounts; User Story 1 scenarios 1, 2, 10 and 11.
+// contracts/ui.md, accounts; User Story 1 scenarios 1, 2, 10 and 11; User Story 5.
 
 async function openAccounts(page: Page) {
   await page.goto("/#/accounts");
@@ -124,4 +135,122 @@ test("there is no way to type in a balance directly (scenario 11)", async ({ pag
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByLabel("Opening balance")).toBeVisible();
   await expect(dialog.getByLabel("Balance", { exact: true })).toHaveCount(0);
+});
+
+test.describe("reconciling (FR-005)", () => {
+  test.beforeEach(async ({ page }) => {
+    await setToday(page, "2026-09-03");
+  });
+
+  async function unaccounted(page: Page, side: Side) {
+    const categories = await storedRecords<Category>(page, "categories");
+    return categories.find((c) => c.side === side && c.role === "unaccounted")!;
+  }
+
+  test("every account offers Reconcile, whatever its type (scenario 4)", async ({ page }) => {
+    await addAccount(page, "Checking", "1250.00");
+    await openAccounts(page);
+    for (const name of ["Cash", "Checking"]) {
+      await expect(accountRow(page, name).getByRole("button", { name: "Reconcile" })).toBeVisible();
+    }
+  });
+
+  test("asks what the account holds now, starting from its computed balance", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "40.00", category: "Groceries" });
+
+    const dialog = await openReconcile(page, "Cash");
+
+    const field = dialog.getByLabel("Actual balance");
+    await expect(field).toHaveValue("-40.00");
+    await expect(field).toBeFocused();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(await storedTransactions(page)).toHaveLength(1);
+  });
+
+  test("a lower balance books an expense to Unaccounted, dated today (scenario 1)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await addTransaction(page, { kind: "Income", amount: "100.00", category: "Salary" });
+
+    await reconcileAccount(page, "Cash", "85.00");
+
+    await expect(
+      page.getByText(notifications.reconciled("expense", 1500, "Unaccounted")),
+    ).toBeVisible();
+    await expect(accountRow(page, "Cash")).toContainText(euros(8500));
+    expect(await lastBooked(page)).toEqual(
+      expect.objectContaining({
+        kind: "expense",
+        amountCents: 1500,
+        date: "2026-09-03",
+        categoryId: (await unaccounted(page, "expense")).id,
+      }),
+    );
+  });
+
+  test("a higher balance books an income to Unaccounted (scenario 2)", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { kind: "Income", amount: "100.00", category: "Salary" });
+
+    await reconcileAccount(page, "Cash", "120.00");
+
+    await expect(
+      page.getByText(notifications.reconciled("income", 2000, "Unaccounted")),
+    ).toBeVisible();
+    await expect(accountRow(page, "Cash")).toContainText(euros(12000));
+    expect(await lastBooked(page)).toEqual(
+      expect.objectContaining({
+        kind: "income",
+        amountCents: 2000,
+        categoryId: (await unaccounted(page, "income")).id,
+      }),
+    );
+  });
+
+  test("a matching balance books nothing and says so in the dialog (scenario 3)", async ({
+    page,
+  }) => {
+    const dialog = await openReconcile(page, "Cash");
+    await dialog.getByLabel("Actual balance").fill("0.00");
+    await dialog.getByRole("button", { name: "Reconcile", exact: true }).click();
+
+    await expect(dialog.getByRole("alert")).toHaveText(
+      messageFor({ code: "reconcile-already-matches" }),
+    );
+    expect(await storedTransactions(page)).toEqual([]);
+  });
+
+  test("accepts a negative balance", async ({ page }) => {
+    await reconcileAccount(page, "Cash", "-50.00");
+
+    await expect(
+      page.getByText(notifications.reconciled("expense", 5000, "Unaccounted")),
+    ).toBeVisible();
+    await expect(accountRow(page, "Cash")).toContainText(euros(-5000));
+  });
+
+  test("an unreadable amount is refused beside its field", async ({ page }) => {
+    const dialog = await openReconcile(page, "Cash");
+    await dialog.getByLabel("Actual balance").fill("12,34.5");
+    await dialog.getByRole("button", { name: "Reconcile", exact: true }).click();
+
+    await expect(fieldError(page, "Actual balance")).toHaveText(
+      messageFor({ code: "balance-invalid" }),
+    );
+    expect(await storedTransactions(page)).toEqual([]);
+  });
+
+  test("leaves the transaction form on the account of the last manual entry (FR-006)", async ({
+    page,
+  }) => {
+    await addAccount(page, "Checking", "1250.00");
+
+    await reconcileAccount(page, "Checking", "1200.00");
+
+    const form = await openTransactionForm(page);
+    await expect(form.getByLabel("Account", { exact: true })).toHaveText("Cash");
+  });
 });

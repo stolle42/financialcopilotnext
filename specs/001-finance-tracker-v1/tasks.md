@@ -652,15 +652,15 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-5), automated as
 `e2e/us5-reconcile.spec.ts` (T066).
 
-- [ ] T063 [US5] Reconciliation in `src/domain/accounts.ts`, test-first in
+- [X] T063 [US5] Reconciliation in `src/domain/accounts.ts`, test-first in
   `src/domain/accounts.test.ts`. `reconcile(state, accountId, statedCents, ctx)` follows
   [FR-005](spec.md#fr-005). It finds the side's "Unaccounted" by role, dates the entry `today`,
   leaves `settings` unchanged ([FR-006](spec.md#fr-006)), and refuses `reconcile-already-matches`.
   Tests: [User Story 5](spec.md#user-story-5) scenarios 1–4, and negative balances.
-- [ ] T064 [US5] The reconcile action in `src/store/accounts.ts`, test-first in
+- [X] T064 [US5] The reconcile action in `src/store/accounts.ts`, test-first in
   `src/store/accounts.test.ts`: `reconcile`, through `run`. Test: the booked transaction survives
   reopening the database.
-- [ ] T065 [US5] The reconcile dialog in `src/ui/screens/accounts/ReconcileDialog.tsx`, with a
+- [X] T065 [US5] The reconcile dialog in `src/ui/screens/accounts/ReconcileDialog.tsx`, with a
   **Reconcile** action on every row of `src/ui/screens/accounts/AccountsScreen.tsx`, test-first in
   `e2e/ui/accounts.spec.ts` ([accounts](contracts/ui.md#accounts)).
   - The dialog's `AmountField` allows negative amounts.
@@ -670,9 +670,9 @@ post-push check.
   - Also extend `e2e/ui/transaction-form.spec.ts`: editing a reconciliation entry shows
     "Unaccounted" as the value, never as an option, and saves
     ([transaction form](contracts/ui.md#transaction-form)).
-- [ ] T066 [P] [US5] The journey `e2e/us5-reconcile.spec.ts`, as
+- [X] T066 [P] [US5] The journey `e2e/us5-reconcile.spec.ts`, as
   [quickstart.md](quickstart.md#us5-reconcile) describes: scenarios 1–4.
-- [ ] T067 [P] [US5] "Unaccounted" in Insights, added to `e2e/us3-insights.spec.ts`. These are
+- [X] T067 [P] [US5] "Unaccounted" in Insights, added to `e2e/us3-insights.spec.ts`. These are
   [User Story 3](spec.md#user-story-3) scenarios 3 and 4, which become testable once reconciliation
   exists. Reconcile one account down and another up through Accounts. Then check that each
   "Unaccounted" entry appears in its side's breakdown with the hatched fill, the "unknown" marker and
