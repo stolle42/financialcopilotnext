@@ -3,6 +3,7 @@ import type { DecimalSeparator } from "@/domain/types";
 // The one amount formatter and the one date formatter (contracts/ui.md, shared patterns).
 const amountFormat = new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" });
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+const monthFormat = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
 
 /** Euros with the € sign and two decimals, in the browser's number format (FR-060). */
 export function formatAmount(cents: number): string {
@@ -14,6 +15,13 @@ export function formatDate(date: string): string {
   const [year, month, day] = date.split("-").map(Number) as [number, number, number];
   // A local date: `new Date("2026-09-03")` would be UTC midnight, the day before in the Americas.
   return dateFormat.format(new Date(year, month - 1, day));
+}
+
+/** A `YYYY-MM` month in the browser's short style, such as "Sep 2026". */
+export function formatMonth(month: string): string {
+  const [year, number] = month.split("-").map(Number) as [number, number];
+  // A local date, as in `formatDate`: the first of the month never falls into the month before.
+  return monthFormat.format(new Date(year, number - 1, 1));
 }
 
 /** The decimal separator of the browser locale, which the amount field accepts. */

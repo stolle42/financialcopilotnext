@@ -11,9 +11,11 @@ description: "Task list for Financial Copilot v1"
 [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md)
 
 **Tests**: Required. Constitution VII makes every behaviour test-first, and the
-[plan](plan.md#constitution-check) applies that to every task. Each task names its test file. Write
-the test, run it and see it fail for the expected reason, write the smallest code that passes, then
-refactor. Test and code are committed together, so every commit on `main` stays green.
+[plan](plan.md#constitution-check) applies that to every task. Each task names its test file. At the
+start of a phase, write the tests of all its tasks without any code, run them and see each fail for
+the expected reason. Then, task by task, write the smallest code that passes, then refactor. The red
+test commits stay on the phase branch: `main` gets each finished phase as one squashed commit, so
+every commit on `main` stays green.
 
 **Organization**: Phases 1 and 2 build the shared base. Phases 3–9 follow the user stories in
 priority order. Each story phase ends with that story's end-to-end journey from
@@ -564,7 +566,7 @@ visible ([User Story 3](spec.md#user-story-3)).
 
   Tests: [User Story 3](spec.md#user-story-3) scenarios 1–6, and an added transfer that changes no
   figure ([FR-012](spec.md#fr-012), [SC-004](spec.md#sc-004)). Depends on T053.
-- [ ] T055 [US3] The Insights period and spending line in
+- [X] T055 [US3] The Insights period and spending line in
   `src/ui/screens/insights/InsightsScreen.tsx`, `src/ui/screens/insights/PeriodPicker.tsx` and
   `src/ui/screens/insights/SpendingChart.tsx`, test-first in `e2e/ui/insights.spec.ts`
   ([insights](contracts/ui.md#insights)).
@@ -830,7 +832,8 @@ post-push check.
 
 - Test first: the named test exists and fails before the code exists.
 - Within a story: domain, then files and persistence, then store, then screens, then the journey.
-- Each task is one commit, with the test and the code together.
+- Each task has two commits on the phase branch: its tests, before any code of the phase, and later
+  its code, which turns them green and ticks the task.
 
 ### Parallel Opportunities
 
