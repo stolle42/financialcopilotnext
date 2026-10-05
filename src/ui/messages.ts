@@ -13,7 +13,7 @@ import type { StoreRefusalCode } from "@/store/store";
 export type ShellFailureCode = "storage-unavailable" | "open-in-another-tab" | "unexpected-error";
 
 /** Input the form itself cannot read, before any rule is checked. */
-export type FieldInputCode = "balance-invalid" | "import-file-unreadable";
+export type FieldInputCode = "balance-invalid" | "import-file-unreadable" | "period-invalid";
 
 export type MessageCode =
   | StoreRefusalCode
@@ -55,6 +55,8 @@ export const messages: Record<MessageCode, Wording> = {
   "account-name-empty": "The account needs a name.",
   "account-name-taken": "An account with this name already exists. Choose another name.",
   "balance-invalid": "The balance must be a number with at most two decimals.",
+  "period-invalid":
+    "Enter a start date and an end date that exist, with the end on or after the start.",
   "amount-invalid": "The amount must be a number of zero or more, with at most two decimals.",
   "date-invalid": "Enter a date that exists, such as today.",
   "transfer-destination-missing": "Choose the account the money goes to.",

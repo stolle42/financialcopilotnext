@@ -11,9 +11,11 @@ description: "Task list for Financial Copilot v1"
 [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md)
 
 **Tests**: Required. Constitution VII makes every behaviour test-first, and the
-[plan](plan.md#constitution-check) applies that to every task. Each task names its test file. Write
-the test, run it and see it fail for the expected reason, write the smallest code that passes, then
-refactor. Test and code are committed together, so every commit on `main` stays green.
+[plan](plan.md#constitution-check) applies that to every task. Each task names its test file. At the
+start of a phase, write the tests of all its tasks without any code, run them and see each fail for
+the expected reason. Then, task by task, write the smallest code that passes, then refactor. The red
+test commits stay on the phase branch: `main` gets each finished phase as one squashed commit, so
+every commit on `main` stays green.
 
 **Organization**: Phases 1 and 2 build the shared base. Phases 3–9 follow the user stories in
 priority order. Each story phase ends with that story's end-to-end journey from
@@ -550,11 +552,11 @@ visible ([User Story 3](spec.md#user-story-3)).
 **Independent Test**: the story's [Independent Test](spec.md#user-story-3), automated as
 `e2e/us3-insights.spec.ts` (T057, completed by T067).
 
-- [ ] T053 [US3] Periods in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`.
+- [X] T053 [US3] Periods in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`.
   `periodPreset(name, today)` covers the five presets of [insights](contracts/ui.md#insights).
   `daysInPeriod(period)` counts both ends ([R-14](research.md#r-14)). Add the month helpers that the
   spending line needs. Tests run across month ends, year ends and leap days.
-- [ ] T054 [US3] Insights aggregates in `src/domain/insights.ts`, test-first in
+- [X] T054 [US3] Insights aggregates in `src/domain/insights.ts`, test-first in
   `src/domain/insights.test.ts` ([R-14](research.md#r-14), [FR-051](spec.md#fr-051),
   [FR-052](spec.md#fr-052)). `insights(state, period)` returns:
   - the spending line: one point per day up to 92 days, otherwise one per month, with empty buckets
@@ -564,7 +566,7 @@ visible ([User Story 3](spec.md#user-story-3)).
 
   Tests: [User Story 3](spec.md#user-story-3) scenarios 1–6, and an added transfer that changes no
   figure ([FR-012](spec.md#fr-012), [SC-004](spec.md#sc-004)). Depends on T053.
-- [ ] T055 [US3] The Insights period and spending line in
+- [X] T055 [US3] The Insights period and spending line in
   `src/ui/screens/insights/InsightsScreen.tsx`, `src/ui/screens/insights/PeriodPicker.tsx` and
   `src/ui/screens/insights/SpendingChart.tsx`, test-first in `e2e/ui/insights.spec.ts`
   ([insights](contracts/ui.md#insights)).
@@ -578,14 +580,14 @@ visible ([User Story 3](spec.md#user-story-3)).
     its own empty state.
   - Tests, using `setToday`: the default period; the dates of each preset; the empty state; and no
     CSP violation while the chart draws.
-- [ ] T056 [US3] The category breakdowns in `src/ui/screens/insights/CategoryBreakdown.tsx`,
+- [X] T056 [US3] The category breakdowns in `src/ui/screens/insights/CategoryBreakdown.tsx`,
   test-first in `e2e/ui/insights.spec.ts`. Each side gets a donut with our own legend of chip, amount
   and share, titled with the side's total. "Unaccounted" is filled with an SVG hatch pattern from the
   chart's `<defs>` and marked "unknown" in the legend ([R-14](research.md#r-14),
   [FR-052](spec.md#fr-052)). Each section has its own empty state. Tests: legend order and totals,
   "Uncategorised" as its own entry, and the empty states ([User Story 3](spec.md#user-story-3)
   scenarios 5 and 6).
-- [ ] T057 [US3] The journey `e2e/us3-insights.spec.ts`. With `setToday`, it enters about three
+- [X] T057 [US3] The journey `e2e/us3-insights.spec.ts`. With `setToday`, it enters about three
   months of expenses, incomes and transfers through the transaction form. It then checks scenarios
   1, 2, 5, 6 and 7 against the sums of the entered amounts, and checks that recording one more
   transfer changes no total ([SC-004](spec.md#sc-004)). Scenarios 3 and 4 need reconciliation
@@ -830,7 +832,8 @@ post-push check.
 
 - Test first: the named test exists and fails before the code exists.
 - Within a story: domain, then files and persistence, then store, then screens, then the journey.
-- Each task is one commit, with the test and the code together.
+- Each task has two commits on the phase branch: its tests, before any code of the phase, and later
+  its code, which turns them green and ticks the task.
 
 ### Parallel Opportunities
 
