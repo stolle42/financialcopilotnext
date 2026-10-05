@@ -80,9 +80,12 @@ test("opens with the defaults and saves an unchanged form as 0.00 in Uncategoris
 
 test("starts in Amount with its content selected, and Enter saves (SC-002)", async ({ page }) => {
   await page.goto("/");
-  await openTransactionForm(page);
+  const form = await openTransactionForm(page);
+  // The dialog moves focus into Amount a frame after it shows, so typing must wait for it.
+  await expect(form.getByLabel("Amount")).toBeFocused();
   await page.keyboard.type("12.50");
   await page.keyboard.press("Enter");
+  await expect(form).toHaveCount(0);
   await page.goto("/#/accounts");
   await expect(page.getByRole("row").filter({ hasText: "Cash" })).toContainText(euros(-1250));
 });
