@@ -769,7 +769,7 @@ post-push check.
   - Tests: the download's name and content; cancelling the confirmation; each refusal, with the data
     unchanged; and the notice, with `navigator.storage.persist` stubbed to resolve `false` through
     `page.addInitScript`.
-- [ ] T076 [US7] Backup helpers in `e2e/support/backup.ts`, and the journey `e2e/us7-backup.spec.ts`
+- [X] T076 [US7] Backup helpers in `e2e/support/backup.ts`, and the journey `e2e/us7-backup.spec.ts`
   ([quickstart.md](quickstart.md#us7-backup-and-restore)).
   - The helpers build a backup from plain records, restore it through the Backup screen, and read a
     downloaded file.
