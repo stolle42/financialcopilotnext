@@ -1,4 +1,5 @@
 import type { AccountRefusalCode } from "@/domain/accounts";
+import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
 import type { DraftFieldCode } from "@/domain/transactions";
@@ -24,7 +25,8 @@ export type MessageCode =
   | ProfileRefusalCode
   | RowFailureCode
   | DecodingRefusal["code"]
-  | BatchRefusalCode;
+  | BatchRefusalCode
+  | BudgetRefusalCode;
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -102,6 +104,7 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
+  "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
 };
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
