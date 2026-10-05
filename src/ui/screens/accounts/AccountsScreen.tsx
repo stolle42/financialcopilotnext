@@ -7,6 +7,7 @@ import { Button } from "@/ui/components/ui/button";
 import { formatAmount } from "@/ui/format";
 import { AccountDialog } from "./AccountDialog";
 import { accountTypeLabel } from "./accountTypes";
+import { ReconcileDialog } from "./ReconcileDialog";
 
 /** Every account with its computed balance (FR-002), and the dialogs to add or edit one. */
 export function AccountsScreen() {
@@ -21,6 +22,7 @@ export function AccountsScreen() {
   );
   // `account: null` is the New account dialog.
   const [dialog, setDialog] = useState<{ account: Account | null } | null>(null);
+  const [reconciling, setReconciling] = useState<Account | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +50,9 @@ export function AccountsScreen() {
                 {formatAmount(balance)}
               </td>
               <td className="py-2 text-right">
+                <Button variant="ghost" size="sm" onClick={() => setReconciling(account)}>
+                  Reconcile
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => setDialog({ account })}>
                   Edit
                 </Button>
@@ -57,6 +62,9 @@ export function AccountsScreen() {
         </tbody>
       </table>
       {dialog && <AccountDialog account={dialog.account} onClose={() => setDialog(null)} />}
+      {reconciling && (
+        <ReconcileDialog account={reconciling} onClose={() => setReconciling(null)} />
+      )}
     </div>
   );
 }

@@ -660,7 +660,7 @@ post-push check.
 - [X] T064 [US5] The reconcile action in `src/store/accounts.ts`, test-first in
   `src/store/accounts.test.ts`: `reconcile`, through `run`. Test: the booked transaction survives
   reopening the database.
-- [ ] T065 [US5] The reconcile dialog in `src/ui/screens/accounts/ReconcileDialog.tsx`, with a
+- [X] T065 [US5] The reconcile dialog in `src/ui/screens/accounts/ReconcileDialog.tsx`, with a
   **Reconcile** action on every row of `src/ui/screens/accounts/AccountsScreen.tsx`, test-first in
   `e2e/ui/accounts.spec.ts` ([accounts](contracts/ui.md#accounts)).
   - The dialog's `AmountField` allows negative amounts.
