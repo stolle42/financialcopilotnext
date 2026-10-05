@@ -24,6 +24,7 @@ test("Import is the third entry in the sidebar", async ({ page }) => {
     "Budgets",
     "Categories",
     "Accounts",
+    "Backup",
   ]);
   await links.nth(2).click();
   await expect(page.getByRole("main").getByRole("heading", { name: "Import" })).toBeVisible();
