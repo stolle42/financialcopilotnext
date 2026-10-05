@@ -103,6 +103,18 @@ export function putRecords(page: Page, store: string, records: unknown[]): Promi
   );
 }
 
+/**
+ * The transaction booked last, by `seq`. Storage lists records by their random ids, so the last
+ * record listed is not the newest one.
+ */
+export async function lastBooked(page: Page): Promise<Transaction | undefined> {
+  const transactions = await storedTransactions(page);
+  return transactions.reduce<Transaction | undefined>(
+    (last, t) => (last && last.seq > t.seq ? last : t),
+    undefined,
+  );
+}
+
 /** The records of the budgets store: one limit per expense category (data-model.md). */
 export function storedBudgets(page: Page): Promise<Budget[]> {
   return storedRecords<Budget>(page, "budgets");

@@ -4,6 +4,7 @@ import { messageFor, notifications } from "../../src/ui/messages";
 import {
   addAccount,
   addTransaction,
+  lastBooked,
   openReconcile,
   openTransactionForm,
   reconcileAccount,
@@ -180,7 +181,7 @@ test.describe("reconciling (FR-005)", () => {
       page.getByText(notifications.reconciled("expense", 1500, "Unaccounted")),
     ).toBeVisible();
     await expect(accountRow(page, "Cash")).toContainText(euros(8500));
-    expect((await storedTransactions(page)).at(-1)).toEqual(
+    expect(await lastBooked(page)).toEqual(
       expect.objectContaining({
         kind: "expense",
         amountCents: 1500,
@@ -200,7 +201,7 @@ test.describe("reconciling (FR-005)", () => {
       page.getByText(notifications.reconciled("income", 2000, "Unaccounted")),
     ).toBeVisible();
     await expect(accountRow(page, "Cash")).toContainText(euros(12000));
-    expect((await storedTransactions(page)).at(-1)).toEqual(
+    expect(await lastBooked(page)).toEqual(
       expect.objectContaining({
         kind: "income",
         amountCents: 2000,

@@ -5,6 +5,7 @@ import {
   accountRow,
   addTransaction,
   choose,
+  lastBooked,
   openReconcile,
   openTransactionForm,
   reconcileAccount,
@@ -48,15 +49,6 @@ async function addAccountOfType(page: Page, name: string, type: string, openingB
 async function unaccountedId(page: Page, side: Side): Promise<string> {
   const categories = await storedRecords<Category>(page, "categories");
   return categories.find((c) => c.side === side && c.role === "unaccounted")!.id;
-}
-
-/** The transaction booked last, which a reconciliation adds after every other one. */
-async function lastBooked(page: Page): Promise<Transaction | undefined> {
-  const transactions = await storedTransactions(page);
-  return transactions.reduce<Transaction | undefined>(
-    (last, t) => (last && last.seq > t.seq ? last : t),
-    undefined,
-  );
 }
 
 test("reconciles any account to what it really holds", async ({ page }) => {
