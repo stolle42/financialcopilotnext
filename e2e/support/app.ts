@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "@playwright/test";
 import type { Transaction } from "../../src/domain/types";
 import { expect } from "./test";
@@ -76,4 +77,9 @@ export function storedRecords<Item>(page: Page, store: string): Promise<Item[]> 
 
 export function storedTransactions(page: Page): Promise<Transaction[]> {
   return storedRecords<Transaction>(page, "transactions");
+}
+
+/** The path of a bank file in e2e/fixtures (quickstart.md, US2). */
+export function fixture(name: string): string {
+  return fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
 }

@@ -14,7 +14,10 @@ import {
 interface CategorySelectProps {
   id: string;
   side: Side;
-  value: string;
+  /** `null` when there is no single current value, as for a vendor group whose rows differ. */
+  value: string | null;
+  /** What the field shows without a current value. */
+  placeholder?: string;
   onValueChange: (categoryId: string) => void;
 }
 
@@ -23,7 +26,13 @@ interface CategorySelectProps {
  * (FR-030), but the current value always shows, even when it is not among the options, as when a
  * reconciliation entry is edited (contracts/ui.md, transaction form).
  */
-export function CategorySelect({ id, side, value, onValueChange }: CategorySelectProps) {
+export function CategorySelect({
+  id,
+  side,
+  value,
+  placeholder,
+  onValueChange,
+}: CategorySelectProps) {
   const categories = useStore((state) => state.categories);
   const options = useMemo(() => pickerCategories(categories, side), [categories, side]);
   const current = categories.find((category) => category.id === value);
@@ -31,7 +40,15 @@ export function CategorySelect({ id, side, value, onValueChange }: CategorySelec
   return (
     <Select value={value} onValueChange={(next) => next && onValueChange(next)}>
       <SelectTrigger id={id} className="w-full">
-        <SelectValue>{() => current && <CategoryChip category={current} />}</SelectValue>
+        <SelectValue>
+          {() =>
+            current ? (
+              <CategoryChip category={current} />
+            ) : (
+              <span className="text-muted-foreground">{placeholder}</span>
+            )
+          }
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((category) => (

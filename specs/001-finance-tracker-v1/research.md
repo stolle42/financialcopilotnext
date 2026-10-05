@@ -361,9 +361,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 ### R-12 · **Interpretation**: further import rules the spec leaves open
 
 - **Decision**:
-  1. **Zero amounts**: a zero in a signed column is proposed as an expense. FR-023 defines only
-     money out and money in, and expense is the manual-entry default kind
-     ([FR-014](spec.md#fr-014)).
+  1. **Zero amounts** (confirmed 2026-10-02, now in [FR-023](spec.md#fr-023)): a zero in a signed
+     column is proposed as an expense. FR-023 defined only money out and money in, and expense is
+     the manual-entry default kind ([FR-014](spec.md#fr-014)).
   2. **Debit and credit cells** (confirmed 2026-10-01, now in [FR-028](spec.md#fr-028)): a cell
      holding zero counts as empty, as a blank one does. Files from banks that fill the unused
      column with `0,00` therefore import.

@@ -374,22 +374,22 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
 **Independent Test**: the story's [Independent Test](spec.md#user-story-2), automated as
 `e2e/us2-import.spec.ts` (T052).
 
-- [ ] T034 [P] [US2] Profile rules in `src/domain/import/profiles.ts`, test-first in
+- [X] T034 [P] [US2] Profile rules in `src/domain/import/profiles.ts`, test-first in
   `src/domain/import/profiles.test.ts`. `saveProfile(state, profile, ctx)` refuses
   `profile-name-empty`, `profile-name-taken`, and `profile-columns-incomplete` with the unassigned
   roles among date, amount and description ([FR-021](spec.md#fr-021),
   [mapping profile](data-model.md#mapping-profile)). Add `deleteProfile(state, id)`. Tests include
   that neither function touches a pending batch.
-- [ ] T035 [P] [US2] Bank dates in `src/domain/import/dates.ts`, test-first in
+- [X] T035 [P] [US2] Bank dates in `src/domain/import/dates.ts`, test-first in
   `src/domain/import/dates.test.ts`. `parseBankDate(text, format)` returns `YYYY-MM-DD` or `null` for
   every format of [csv-import.md](contracts/csv-import.md#date-formats). Test one- and two-digit days
   and months, `YY` read as 20YY, impossible dates, and extra text.
-- [ ] T036 [P] [US2] Amount direction in `src/domain/import/direction.ts`, test-first in
+- [X] T036 [P] [US2] Amount direction in `src/domain/import/direction.ts`, test-first in
   `src/domain/import/direction.test.ts`. `readAmount(cells, amountMapping, decimalSeparator)` returns
   signed cents or a failure code. It follows [direction](contracts/csv-import.md#direction) step by
   step for both modes, applies sign inversion in signed mode only, and returns zero as 0, which is
   then proposed as an expense ([R-12](research.md#r-12)).
-- [ ] T037 [P] [US2] CSV decoding and tokenising in `src/files/csv.ts`, test-first in
+- [X] T037 [P] [US2] CSV decoding and tokenising in `src/files/csv.ts`, test-first in
   `src/files/csv.test.ts` ([R-09](research.md#r-09), [pipeline](contracts/csv-import.md#pipeline)
   steps 2–3, [encodings](contracts/csv-import.md#encodings)). Install Papa Parse and
   `@types/papaparse`.
@@ -400,13 +400,13 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - Tests start from byte arrays: `0x80` is "€" in Windows-1252 and `0xA4` is "€" in ISO-8859-15;
     UTF-8 and UTF-16LE with a byte-order mark; invalid UTF-8 refused; each delimiter; and quoted cells
     holding a delimiter, a line break or a doubled quote.
-- [ ] T038 [P] [US2] Duplicate flags in `src/domain/import/duplicates.ts`, test-first in
+- [X] T038 [P] [US2] Duplicate flags in `src/domain/import/duplicates.ts`, test-first in
   `src/domain/import/duplicates.test.ts`. `flagDuplicates(rows, accountId, transactions)` follows
   [duplicate matching](contracts/csv-import.md#duplicate-matching), using a hash of account, date
   and signed effect and reusing `signedEffect` from T024 ([FR-024](spec.md#fr-024)). Tests: every case
   of [R-10](research.md#r-10); a purchase and its same-day refund, which are not flagged; different
   descriptions, which are still flagged; and unparsable rows, which are ignored.
-- [ ] T039 [P] [US2] Vendor groups in `src/domain/import/groups.ts`, test-first in
+- [X] T039 [P] [US2] Vendor groups in `src/domain/import/groups.ts`, test-first in
   `src/domain/import/groups.test.ts`. `reviewView(batch)` returns:
   - the three counts;
   - the duplicate rows and the unparsable rows;
@@ -418,13 +418,13 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   [review](contracts/ui.md#review). Tests: [User Story 2](spec.md#user-story-2) scenarios 4, 6 and
   16; case and whitespace in counterparties; and an included duplicate joining its group
   ([R-12](research.md#r-12) item 5).
-- [ ] T040 [P] [US2] Bank file fixtures in `e2e/fixtures/`, one per row of the
+- [X] T040 [P] [US2] Bank file fixtures in `e2e/fixtures/`, one per row of the
   [quickstart table](quickstart.md#us2-csv-import). Add a `.gitattributes` entry that marks
   `e2e/fixtures/*.csv` as binary, so the bytes and line endings survive every checkout. Write
   `mybank-2026-08.csv` as Windows-1252 bytes, for example with a short `node -e` script using
   `Buffer`, with at least one `0x80` "€" and one umlaut. Each file holds only the rows its exercise
   needs.
-- [ ] T041 [P] [US2] Record parsing in `src/domain/import/rows.ts`, test-first in
+- [X] T041 [P] [US2] Record parsing in `src/domain/import/rows.ts`, test-first in
   `src/domain/import/rows.test.ts`. `parseRecords(records, profile)` covers
   [pipeline](contracts/csv-import.md#pipeline) steps 3–6 and [cells](contracts/csv-import.md#cells):
   - it skips empty records but keeps their row numbers ([pending row](data-model.md#pending-row));
@@ -438,7 +438,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   The profile preview (T047) uses this same function. Tests: [User Story 2](spec.md#user-story-2)
   scenarios 3, 11, 13 and 14; a header-only file; and "no header row" positions. Depends on T035,
   T036.
-- [ ] T042 [P] [US2] Review edits in `src/domain/import/review.ts`, test-first in
+- [X] T042 [P] [US2] Review edits in `src/domain/import/review.ts`, test-first in
   `src/domain/import/review.test.ts`. `assignRow`, `assignGroup` (every row currently in the group)
   and `includeDuplicate` (flagged rows only) each return changes to the batch.
   - A category must belong to the row's side and must not be "Unaccounted".
@@ -447,7 +447,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
 
   This follows [FR-023](spec.md#fr-023), [FR-025](spec.md#fr-025), [FR-026](spec.md#fr-026) and
   [review](contracts/ui.md#review). Tests: scenarios 4, 5 and 7. Depends on T039.
-- [ ] T043 [P] [US2] Confirm and discard in `src/domain/import/confirm.ts`, test-first in
+- [X] T043 [P] [US2] Confirm and discard in `src/domain/import/confirm.ts`, test-first in
   `src/domain/import/confirm.test.ts`.
   - `confirmBatch(state, ctx)` turns each row under review into a transaction by the
     [confirmation table](data-model.md#state-transitions), with absolute amounts and consecutive
@@ -456,11 +456,11 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - `discardBatch(state)` removes the batch only.
   - Tests: scenarios 7, 9 and 10; a transfer in each direction; and excluded duplicates and
     unparsable rows, which are left out.
-- [ ] T044 [P] [US2] The pending-batch guard in `src/persistence/db.ts`, test-first in
+- [X] T044 [P] [US2] The pending-batch guard in `src/persistence/db.ts`, test-first in
   `src/persistence/db.test.ts`. `writeChanges` accepts a `requireNoPendingBatch` option. It re-checks
   inside the same transaction, and aborts with `import-batch-pending` when a batch exists
   ([pipeline](contracts/csv-import.md#pipeline) step 8, [R-06](research.md#r-06)).
-- [ ] T045 [US2] Batch creation in `src/domain/import/batch.ts`, test-first in
+- [X] T045 [US2] Batch creation in `src/domain/import/batch.ts`, test-first in
   `src/domain/import/batch.test.ts`.
   - `canStartImport(state)` refuses `import-batch-pending` ([FR-022](spec.md#fr-022)).
   - `createBatch(state, { accountId, profile, fileName, createdAt, records }, ctx)` refuses
@@ -468,7 +468,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     a batch whose parsed rows carry their duplicate flag, `included = !duplicate`, and the side's
     "Uncategorised" ([pending row](data-model.md#pending-row), [FR-029](spec.md#fr-029)).
   - Depends on T038, T041.
-- [ ] T046 [US2] Import actions in `src/store/import.ts`, test-first in `src/store/import.test.ts`.
+- [X] T046 [US2] Import actions in `src/store/import.ts`, test-first in `src/store/import.test.ts`.
   - Actions: `saveProfile` and `deleteProfile`; `importFile({ accountId, profile, fileName, bytes })`,
     which runs `canStartImport` before decoding, then `decodeFile`, `tokenise` and `createBatch`, and
     writes with the guard of T044 (`run` passes the option through); the review edits of T042, each
@@ -478,7 +478,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     ledger and the batch unchanged; and editing or deleting the profile leaves the batch unchanged
     ([FR-021](spec.md#fr-021)).
   - Depends on T037, T042–T045.
-- [ ] T047 [US2] The profile editor in `src/ui/screens/import/ProfileEditor.tsx` and
+- [X] T047 [US2] The profile editor in `src/ui/screens/import/ProfileEditor.tsx` and
   `src/ui/screens/import/ProfilePreview.tsx`, test-first in `e2e/ui/profile-editor.spec.ts`
   ([profile editor](contracts/ui.md#profile-editor), [preview](contracts/csv-import.md#preview)).
   - Add the routes `#/import/profiles/new` and `#/import/profiles/:id`.
@@ -493,7 +493,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     [unparsable rows](contracts/csv-import.md#unparsable-rows), to `src/ui/messages.ts`.
   - Tests: a `,`-decimal file previewed with a `.` profile shows unparsable amounts; each refusal
     appears in its place; and a saved profile can be edited.
-- [ ] T048 [US2] The Import screen in `src/ui/screens/import/ImportScreen.tsx`, test-first in
+- [X] T048 [US2] The Import screen in `src/ui/screens/import/ImportScreen.tsx`, test-first in
   `e2e/ui/import.spec.ts` ([import](contracts/ui.md#import), [outcomes](contracts/csv-import.md#outcomes)).
   - Add the route `#/import` and its sidebar entry.
   - Add the account select, with no default; the file picker or drop zone; and the profile select,
@@ -510,7 +510,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     screen.
   - Tests: [User Story 2](spec.md#user-story-2) scenarios 1, 2, 13 and 15; the header-only file; the
     Windows-1252 fixture read with a UTF-8 profile; and deleting a profile while a batch is pending.
-- [ ] T049 [US2] The review header and drawers in `src/ui/screens/import/ReviewScreen.tsx`,
+- [X] T049 [US2] The review header and drawers in `src/ui/screens/import/ReviewScreen.tsx`,
   test-first in `e2e/ui/review.spec.ts` ([review](contracts/ui.md#review)).
   - Add the route `#/import/review`. With no batch pending, it shows an empty state that leads to
     Import.
@@ -518,7 +518,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - The duplicates drawer has an **Include** switch on each row. The unparsable drawer shows the row
     number, the raw cells and the reason (`npx shadcn add sheet`).
   - Tests: [User Story 2](spec.md#user-story-2) scenarios 8 and 11.
-- [ ] T050 [US2] Review groups and assignments in `src/ui/screens/import/ReviewGroups.tsx` and
+- [X] T050 [US2] Review groups and assignments in `src/ui/screens/import/ReviewGroups.tsx` and
   `src/ui/screens/import/AssignmentControl.tsx`, test-first in `e2e/ui/review.spec.ts`.
   - Show the collapsed groups, largest first, then the plain rows.
   - A group header shows the vendor, side, count and total, with the group's assignment control.
@@ -526,12 +526,12 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - The control reuses `CategorySelect` and adds a **Transfer** switch with a counter-account select.
   - Every change is saved at once.
   - Tests: scenarios 4–7 and 16, and assignments surviving a reload ([FR-022](spec.md#fr-022)).
-- [ ] T051 [US2] The review footer in `src/ui/screens/import/ReviewScreen.tsx`, test-first in
+- [X] T051 [US2] The review footer in `src/ui/screens/import/ReviewScreen.tsx`, test-first in
   `e2e/ui/review.spec.ts`. **Discard** asks for confirmation. **Confirm N transactions** opens a modal
   that states N ([FR-027](spec.md#fr-027)). Once confirmed, a notification reports what was added and
   Transactions opens. Add the notification's wording to `src/ui/messages.ts`. Tests: scenarios 9
   and 10.
-- [ ] T052 [US2] The journey `e2e/us2-import.spec.ts`, as
+- [X] T052 [US2] The journey `e2e/us2-import.spec.ts`, as
   [quickstart.md](quickstart.md#us2-csv-import) describes. It runs scenarios 1–16 with the fixtures
   of T040. It also checks that re-importing August after confirming it adds zero transactions with
   the review defaults ([SC-003](spec.md#sc-003)), and that a pending batch keeps its review progress
@@ -933,9 +933,8 @@ has its own tests, so it can merge before its screens exist.
 - Commit after every task, with a short message about why the step matters, in the style of the
   recent history ([git-history rule](../../.claude/rules/git-history.md)). Tick the task's checkbox
   in the same commit.
-- One research interpretation is built as written but not yet confirmed in the spec: zero amounts
-  proposed as expenses ([R-12](research.md#r-12)). Confirm it with `/speckit-clarify` before T036
-  ([plan.md](plan.md#interpretations-to-confirm)). Names unique by name key
-  ([R-08](research.md#r-08)) were confirmed on 2026-10-02.
+- Both research interpretations that filled gaps in the spec were confirmed on 2026-10-02: names
+  unique by name key ([R-08](research.md#r-08)) and zero amounts proposed as expenses
+  ([R-12](research.md#r-12)) ([plan.md](plan.md#interpretations-to-confirm)).
 - `checklists/data-safety.md` was reviewed on 2026-10-02 and passes in full, so the
   `/speckit-implement` checklist gate is open.

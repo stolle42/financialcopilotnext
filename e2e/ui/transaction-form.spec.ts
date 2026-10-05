@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Account, Category } from "../../src/domain/types";
-import { messages } from "../../src/ui/messages";
+import { messageFor } from "../../src/ui/messages";
 import { addAccount, openTransactionForm, storedRecords, storedTransactions } from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
@@ -190,7 +190,9 @@ test.describe("destination rules (FR-011)", () => {
     await page.goto("/");
     const form = await openTransactionForm(page);
     await form.getByRole("button", { name: "Transfer" }).click();
-    await expect(form.getByRole("alert")).toContainText(messages["transfer-needs-second-account"]);
+    await expect(form.getByRole("alert")).toContainText(
+      messageFor({ code: "transfer-needs-second-account" }),
+    );
     await form.getByRole("link", { name: "Go to Accounts" }).click();
     await expect(form).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Accounts" })).toBeVisible();
@@ -203,7 +205,7 @@ test.describe("validation messages beside their fields (FR-068)", () => {
     const form = await openTransactionForm(page);
     await form.getByLabel("Amount").fill("12,34.5");
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(fieldError(form, "Amount")).toHaveText(messages["amount-invalid"]);
+    await expect(fieldError(form, "Amount")).toHaveText(messageFor({ code: "amount-invalid" }));
   });
 
   test("a negative amount", async ({ page }) => {
@@ -211,7 +213,7 @@ test.describe("validation messages beside their fields (FR-068)", () => {
     const form = await openTransactionForm(page);
     await form.getByLabel("Amount").fill("-5.00");
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(fieldError(form, "Amount")).toHaveText(messages["amount-invalid"]);
+    await expect(fieldError(form, "Amount")).toHaveText(messageFor({ code: "amount-invalid" }));
   });
 
   test("a missing date", async ({ page }) => {
@@ -219,7 +221,7 @@ test.describe("validation messages beside their fields (FR-068)", () => {
     const form = await openTransactionForm(page);
     await form.getByLabel("Date").fill("");
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(fieldError(form, "Date")).toHaveText(messages["date-invalid"]);
+    await expect(fieldError(form, "Date")).toHaveText(messageFor({ code: "date-invalid" }));
   });
 
   test("a transfer without a destination", async ({ page }) => {
@@ -228,7 +230,7 @@ test.describe("validation messages beside their fields (FR-068)", () => {
     await form.getByRole("button", { name: "Transfer" }).click();
     await form.getByRole("button", { name: "Save" }).click();
     await expect(fieldError(form, "Destination")).toHaveText(
-      messages["transfer-destination-missing"],
+      messageFor({ code: "transfer-destination-missing" }),
     );
   });
 });

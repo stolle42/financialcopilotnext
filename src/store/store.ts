@@ -1,7 +1,12 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { applyChanges, isRefusal, type Changes, type Context } from "@/domain/changes";
 import type { Refusal, State } from "@/domain/types";
-import { writeChanges, type Database } from "@/persistence/db";
+import {
+  writeChanges,
+  type Database,
+  type WriteOptions,
+  type WriteRefusalCode,
+} from "@/persistence/db";
 import { todayLocal } from "./clock";
 
 /** The refusal the store itself can return. */
@@ -18,6 +23,11 @@ export interface Store {
   run<Refused extends Refusal>(
     decide: Decide<Refused>,
   ): Promise<Refused | Refusal<StoreRefusalCode> | null>;
+  /** The same, with a check inside the write's own transaction that can refuse too (R-06). */
+  run<Refused extends Refusal>(
+    decide: Decide<Refused>,
+    options: WriteOptions,
+  ): Promise<Refused | Refusal<StoreRefusalCode | WriteRefusalCode> | null>;
 }
 
 /** The whole state in memory, written to storage before it changes on screen (R-05, R-15). */
@@ -27,13 +37,15 @@ export function createStore(db: Database, initialState: State): Store {
   // Actions run one at a time, so each decides on the state the previous one left.
   let queue: Promise<unknown> = Promise.resolve();
 
-  async function decideWriteApply<Refused extends Refusal>(
-    decide: Decide<Refused>,
-  ): Promise<Refused | Refusal<StoreRefusalCode> | null> {
+  async function decideWriteApply(
+    decide: Decide<Refusal>,
+    options?: WriteOptions,
+  ): Promise<Refusal | null> {
     const decision = decide(state, { today: todayLocal(), newId: () => crypto.randomUUID() });
     if (isRefusal(decision)) return decision;
     try {
-      await writeChanges(db, decision);
+      const refused = await writeChanges(db, decision, options);
+      if (refused) return refused;
     } catch (error) {
       const reason = error instanceof Error ? error.name : "unknown";
       return { code: "save-failed", details: { reason } };
@@ -49,11 +61,12 @@ export function createStore(db: Database, initialState: State): Store {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    run(decide) {
-      const result = queue.then(() => decideWriteApply(decide));
+    // One implementation serves both signatures; each refusal it returns is one they declare.
+    run: ((decide: Decide<Refusal>, options?: WriteOptions) => {
+      const result = queue.then(() => decideWriteApply(decide, options));
       queue = result.catch(() => undefined);
       return result;
-    },
+    }) as Store["run"],
   };
 }
 

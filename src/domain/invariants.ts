@@ -1,4 +1,5 @@
 import { isCalendarDate } from "./dates";
+import { proposedSide } from "./import/direction";
 import { nameKey } from "./names";
 import {
   DATE_FORMATS,
@@ -9,7 +10,6 @@ import {
   type PendingRow,
   type Refusal,
   type RefusalDetails,
-  type Side,
   type State,
 } from "./types";
 
@@ -76,7 +76,6 @@ function checkNames<Item extends { id: string; name: string }>(
 }
 
 const isSafeAmount = (cents: number) => Number.isSafeInteger(cents);
-const rowSide = (amountCents: number): Side => (amountCents <= 0 ? "expense" : "income");
 
 // 1. Ids are unique within each entity type; transaction seq values are unique.
 const uniqueIds: Check = (state) => {
@@ -227,7 +226,7 @@ function checkRow(
   const assignment = row.assignment;
   if (assignment.type === "category") {
     const category = categoriesById.get(assignment.categoryId);
-    if (category?.side !== rowSide(row.amountCents) || category.role === "unaccounted") {
+    if (category?.side !== proposedSide(row.amountCents) || category.role === "unaccounted") {
       return violation("pending-row-category-invalid", { rowNumber });
     }
   } else if (

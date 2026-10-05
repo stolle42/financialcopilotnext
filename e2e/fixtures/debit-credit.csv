@@ -1,0 +1,7 @@
+Date,Description,Debit,Credit
+08/03/2026,Café Central,12.50,
+08/05/2026,Refund from shop,0.00,25.00
+08/07/2026,"Rent, August","1,250.00",0.00
+08/10/2026,Interest,,3.10
+08/12/2026,Both columns,10.00,5.00
+08/14/2026,Neither column,,0.00
