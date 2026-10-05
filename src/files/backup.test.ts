@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { everyEntityState } from "@/domain/testing";
+import type { State } from "@/domain/types";
 import { backupFileName, parseBackup, serializeBackup } from "./backup";
 
 // contracts/backup-file.md: the file, saving (FR-070) and loading steps 1–3 (FR-072); R-13.
@@ -27,6 +28,37 @@ const records = (json: { data: Json }, key: string) => json.data[key] as Json[];
 
 const parsed = (json: unknown) => parseBackup(JSON.stringify(json));
 
+const keyOf = (record: object) =>
+  String("id" in record ? record.id : (record as { categoryId: string }).categoryId);
+
+function sortedByKey<Item extends object>(items: readonly Item[]): Item[] {
+  return [...items].sort((a, b) => (keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0));
+}
+
+/** `state` with each list in key order. Memory keeps creation order, storage keeps key order. */
+function byKey(state: State): State {
+  return {
+    ...state,
+    accounts: sortedByKey(state.accounts),
+    categories: sortedByKey(state.categories),
+    transactions: sortedByKey(state.transactions),
+    budgets: sortedByKey(state.budgets),
+    profiles: sortedByKey(state.profiles),
+  };
+}
+
+/** `state` with each list in reverse, as memory may hold records after a few actions. */
+function reversed(state: State): State {
+  return {
+    ...state,
+    accounts: [...state.accounts].reverse(),
+    categories: [...state.categories].reverse(),
+    transactions: [...state.transactions].reverse(),
+    budgets: [...state.budgets].reverse(),
+    profiles: [...state.profiles].reverse(),
+  };
+}
+
 describe("backupFileName", () => {
   test("names the file after the local date of saving", () => {
     expect(backupFileName("2026-09-03")).toBe("financial-copilot-backup-2026-09-03.json");
@@ -37,22 +69,37 @@ describe("serializeBackup (FR-070)", () => {
   test("writes the app, format version 1, the time of saving and the whole state", () => {
     const state = everyEntityState();
 
-    const json = JSON.parse(serializeBackup(state, EXPORTED_AT)) as BackupJson;
+    const json = JSON.parse(serializeBackup(state, EXPORTED_AT)) as BackupJson & { data: State };
 
-    expect(json).toEqual({
+    expect(json).toMatchObject({
       app: "financial-copilot",
       formatVersion: 1,
       exportedAt: EXPORTED_AT,
-      data: {
-        accounts: state.accounts,
-        categories: state.categories,
-        transactions: state.transactions,
-        budgets: state.budgets,
-        profiles: state.profiles,
-        pendingBatch: state.pendingBatch,
-        settings: state.settings,
-      },
     });
+    expect(Object.keys(json).sort()).toEqual(["app", "data", "exportedAt", "formatVersion"]);
+    expect(Object.keys(json.data).sort()).toEqual([
+      "accounts",
+      "budgets",
+      "categories",
+      "pendingBatch",
+      "profiles",
+      "settings",
+      "transactions",
+    ]);
+    expect(byKey(json.data)).toEqual(byKey(state));
+  });
+
+  test("lists the records in one order whatever their order in memory, so a round trip is exact", () => {
+    const state = everyEntityState();
+    expect(JSON.parse(serializeBackup(reversed(state), EXPORTED_AT))).toEqual(
+      JSON.parse(serializeBackup(state, EXPORTED_AT)),
+    );
+  });
+
+  test("keeps the pending rows in file order", () => {
+    const json = fileJson();
+    const rows = (json.data.pendingBatch as { rows: { rowNumber: number }[] }).rows;
+    expect(rows.map((row) => row.rowNumber)).toEqual([2, 3, 4, 5, 6, 7]);
   });
 
   test("writes amounts as integer cents and dates as stored, never in a locale format", () => {
@@ -68,14 +115,21 @@ describe("serializeBackup (FR-070)", () => {
 });
 
 describe("parseBackup: a round trip (SC-014)", () => {
-  test("gives back exactly the state that was saved", () => {
+  test("gives back exactly the records that were saved", () => {
     const state = everyEntityState();
-    expect(parseBackup(serializeBackup(state, EXPORTED_AT))).toEqual(state);
+    expect(byKey(parseBackup(serializeBackup(state, EXPORTED_AT)) as State)).toEqual(byKey(state));
   });
 
   test("gives back a state without a pending batch", () => {
     const state = { ...everyEntityState(), pendingBatch: null };
-    expect(parseBackup(serializeBackup(state, EXPORTED_AT))).toEqual(state);
+    expect(byKey(parseBackup(serializeBackup(state, EXPORTED_AT)) as State)).toEqual(byKey(state));
+  });
+
+  test("saves the loaded state as the same file", () => {
+    const text = serializeBackup(everyEntityState(), EXPORTED_AT);
+    expect(JSON.parse(serializeBackup(parseBackup(text) as State, EXPORTED_AT))).toEqual(
+      JSON.parse(text),
+    );
   });
 });
 
