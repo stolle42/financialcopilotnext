@@ -634,7 +634,7 @@ post-push check.
   `data-state="over-limit"` attribute for tests ([SC-011](spec.md#sc-011)). With no budgets, the
   section links to Budgets. Tests: the month label for a three-month period, the over-limit marker,
   and the empty state.
-- [ ] T062 [US4] The journey `e2e/us4-budgets.spec.ts`, as
+- [X] T062 [US4] The journey `e2e/us4-budgets.spec.ts`, as
   [quickstart.md](quickstart.md#us4-budgets) describes. It runs scenarios 1–6, moving `setToday` from
   September to October for scenario 3. It asserts the over-limit state by its marker alone
   ([SC-011](spec.md#sc-011)), and checks that a transfer leaves budget progress unchanged
