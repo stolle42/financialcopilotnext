@@ -734,7 +734,7 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-7), automated as
 `e2e/us7-backup.spec.ts` (T076).
 
-- [ ] T072 [P] [US7] The backup file format in `src/files/backup.ts`, test-first in
+- [X] T072 [P] [US7] The backup file format in `src/files/backup.ts`, test-first in
   `src/files/backup.test.ts` ([backup-file.md](contracts/backup-file.md), [R-13](research.md#r-13)).
   Install zod.
   - `serializeBackup(state, exportedAt)` writes the file, and `backupFileName(today)` names it.
