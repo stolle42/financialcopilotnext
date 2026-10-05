@@ -119,6 +119,13 @@ describe("writeChanges", () => {
     expect((await loadState(db)).pendingBatch).toBeNull();
   });
 
+  test("resolves to null once the changes are stored", async () => {
+    const db = await openDatabase();
+    expect(
+      await writeChanges(db, { settings: { put: (await loadState(db)).settings } }),
+    ).toBeNull();
+  });
+
   test("changes no store when one record fails, and rejects with the original error", async () => {
     const db = await openDatabase();
     const before = await loadState(db);
@@ -133,5 +140,67 @@ describe("writeChanges", () => {
 
     await expect(write).rejects.toMatchObject({ name: "DataError" });
     expect(await loadState(db)).toEqual(before);
+  });
+});
+
+describe("writeChanges with requireNoPendingBatch (FR-022)", () => {
+  function batchOn(state: State, id: string): PendingBatch {
+    return {
+      id,
+      accountId: state.accounts[0]!.id,
+      fileName: `${id}.csv`,
+      createdAt: "2026-09-03T10:00:00.000Z",
+      rows: [],
+    };
+  }
+
+  test("stores a batch when none exists", async () => {
+    const db = await openDatabase();
+    const state = await loadState(db);
+
+    const result = await writeChanges(
+      db,
+      { pendingBatch: { put: [batchOn(state, "first")] } },
+      { requireNoPendingBatch: true },
+    );
+
+    expect(result).toBeNull();
+    expect((await loadState(db)).pendingBatch?.id).toBe("first");
+  });
+
+  test("refuses with import-batch-pending, inside the same transaction, when storage holds a batch", async () => {
+    const db = await openDatabase();
+    const state = await loadState(db);
+    await writeChanges(db, { pendingBatch: { put: [batchOn(state, "first")] } });
+    const before = await loadState(db);
+
+    // The in-memory state can be older than storage; the check reads storage itself.
+    const result = await writeChanges(
+      db,
+      {
+        accounts: {
+          put: [{ id: "checking", name: "Checking", type: "checking", openingBalanceCents: 0 }],
+        },
+        pendingBatch: { put: [batchOn(state, "second")] },
+      },
+      { requireNoPendingBatch: true },
+    );
+
+    expect(result).toEqual({ code: "import-batch-pending" });
+    expect(await loadState(db)).toEqual(before);
+  });
+
+  test("checks for a batch even when the changes put none", async () => {
+    const db = await openDatabase();
+    const state = await loadState(db);
+    await writeChanges(db, { pendingBatch: { put: [batchOn(state, "first")] } });
+
+    const result = await writeChanges(
+      db,
+      { settings: { put: state.settings } },
+      { requireNoPendingBatch: true },
+    );
+
+    expect(result).toEqual({ code: "import-batch-pending" });
   });
 });

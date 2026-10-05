@@ -7,6 +7,7 @@ import type {
   Category,
   MappingProfile,
   PendingBatch,
+  Refusal,
   Settings,
   State,
   Transaction,
@@ -89,16 +90,42 @@ export async function loadState(db: Database): Promise<State> {
   };
 }
 
+/** The refusal a write itself can give, when its option asks for a check inside the transaction. */
+export type WriteRefusalCode = "import-batch-pending";
+
+export interface WriteOptions {
+  /**
+   * Refuse when storage already holds a pending batch, checked inside the write's own
+   * transaction, so no other write can slip in between (FR-022, R-06).
+   */
+  requireNoPendingBatch?: boolean;
+}
+
 /**
- * Writes `changes` in one read-write transaction over every store they touch. Resolves only once
- * the transaction has completed; on any failure no store changes and the original error, with its
- * `name`, is rethrown (R-06, R-15).
+ * Writes `changes` in one read-write transaction over every store they touch. Resolves to `null`
+ * only once the transaction has completed, or to the refusal of `options` with nothing written.
+ * On any failure no store changes and the original error, with its `name`, is rethrown (R-06,
+ * R-15).
  */
-export async function writeChanges(db: Database, changes: Changes): Promise<void> {
+export async function writeChanges(
+  db: Database,
+  changes: Changes,
+  options: WriteOptions = {},
+): Promise<Refusal<WriteRefusalCode> | null> {
   const stores = (Object.keys(changes) as (keyof Changes)[]).filter((name) => changes[name]);
-  if (stores.length === 0) return;
+  if (options.requireNoPendingBatch && !stores.includes("pendingBatch"))
+    stores.push("pendingBatch");
+  if (stores.length === 0) return null;
 
   const transaction = db.transaction(stores, "readwrite");
+  if (options.requireNoPendingBatch) {
+    if ((await transaction.objectStore("pendingBatch").count()) > 0) {
+      transaction.abort();
+      await transaction.done.catch(() => undefined);
+      return { code: "import-batch-pending" };
+    }
+  }
+
   const requests: Promise<unknown>[] = [];
   try {
     for (const name of Object.keys(recordStores) as RecordStore[]) {
@@ -119,4 +146,5 @@ export async function writeChanges(db: Database, changes: Changes): Promise<void
     throw error;
   }
   await Promise.all([...requests, transaction.done]);
+  return null;
 }

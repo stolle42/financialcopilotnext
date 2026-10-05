@@ -456,7 +456,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - `discardBatch(state)` removes the batch only.
   - Tests: scenarios 7, 9 and 10; a transfer in each direction; and excluded duplicates and
     unparsable rows, which are left out.
-- [ ] T044 [P] [US2] The pending-batch guard in `src/persistence/db.ts`, test-first in
+- [X] T044 [P] [US2] The pending-batch guard in `src/persistence/db.ts`, test-first in
   `src/persistence/db.test.ts`. `writeChanges` accepts a `requireNoPendingBatch` option. It re-checks
   inside the same transaction, and aborts with `import-batch-pending` when a batch exists
   ([pipeline](contracts/csv-import.md#pipeline) step 8, [R-06](research.md#r-06)).
