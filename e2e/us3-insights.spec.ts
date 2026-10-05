@@ -1,12 +1,13 @@
 import type { Locator, Page } from "@playwright/test";
-import { addAccount, addTransaction } from "./support/app";
+import { addAccount, addTransaction, reconcileAccount } from "./support/app";
 import { euros, expect, setToday, test } from "./support/test";
 
-// The journey of User Story 3, scenarios 1, 2, 5, 6 and 7, in one fresh context (quickstart.md,
-// US3). It enters three months of expenses, incomes and transfers through the transaction form,
-// because restoring the backup that quickstart.md names only arrives with User Story 7. Every
-// figure is checked against sums of the entered amounts, computed here without the app's code.
-// Scenarios 3 and 4 need reconciliation entries, so User Story 5 adds them (T067).
+// The journey of User Story 3 (quickstart.md, US3), in two fresh contexts. The first covers
+// scenarios 1, 2, 5, 6 and 7: it enters three months of expenses, incomes and transfers through the
+// transaction form, because restoring the backup that quickstart.md names only arrives with User
+// Story 7. Every figure is checked against sums of the entered amounts, computed here without the
+// app's code. The second covers scenarios 3 and 4 with entries that reconciling two accounts books
+// to "Unaccounted" (User Story 5).
 
 interface Entry {
   kind: "Expense" | "Income" | "Transfer";
@@ -173,4 +174,89 @@ test("shows where the money went over a chosen period, leaving out transfers", a
   await choosePeriod(page, "2026-09-15", "2026-09-15");
   await expect(spending(page)).toContainText("No spending in this period");
   await expectBreakdowns(page, "2026-09-15", "2026-09-15");
+});
+
+/** The legend lists `entries` as [name, cents], in order, each with its share of their total. */
+async function expectLegend(region: Locator, entries: [string, number][]) {
+  const total = entries.reduce((sum, [, amount]) => sum + amount, 0);
+  await expect(region.getByRole("heading")).toContainText(euros(total));
+  await expect(region.getByRole("listitem")).toHaveText(
+    entries.map(
+      ([name, amount]) =>
+        new RegExp(
+          `${escape(name)}.*${escape(euros(amount))}.*${escape(share.format(amount / total))}`,
+        ),
+    ),
+  );
+}
+
+/** "Unaccounted" alone is marked unknown and filled with the hatch from the chart's <defs>. */
+async function expectHatchedUnaccounted(region: Locator, slices: number) {
+  const marked = region.getByRole("listitem").filter({ hasText: "unknown" });
+  await expect(marked).toHaveCount(1);
+  await expect(marked).toContainText("Unaccounted");
+  const chart = region.locator("svg.recharts-surface");
+  await expect(chart.locator(".recharts-sector")).toHaveCount(slices);
+  const pattern = chart.locator("defs pattern");
+  await expect(pattern).toHaveCount(1);
+  const patternId = await pattern.getAttribute("id");
+  await expect(chart.locator(`.recharts-sector[fill="url(#${patternId})"]`)).toHaveCount(1);
+}
+
+test("shows what reconciling books to Unaccounted, hatched and at its true share", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await setToday(page, "2026-09-15");
+  await addAccount(page, "Giro", "5000.00");
+  await enter(page, {
+    kind: "Income",
+    amount: "100.00",
+    date: "2026-09-02",
+    account: "Cash",
+    category: "Gifts",
+  });
+  await enter(page, {
+    kind: "Expense",
+    amount: "30.00",
+    date: "2026-09-05",
+    account: "Cash",
+    category: "Groceries",
+  });
+  await enter(page, {
+    kind: "Income",
+    amount: "2000.00",
+    date: "2026-09-01",
+    account: "Giro",
+    category: "Salary",
+  });
+  // Cash computes to 70.00 but holds 60.00: a shortfall of 10.00.
+  await reconcileAccount(page, "Cash", "60.00");
+  // Giro computes to 7,000.00 but holds 7,025.00: a surplus of 25.00.
+  await reconcileAccount(page, "Giro", "7025.00");
+
+  await openInsights(page);
+
+  // 3. The shortfall is expense "Unaccounted", distinguished from the ordinary categories.
+  await expectLegend(expenses(page), [
+    ["Groceries", 3000],
+    ["Unaccounted", 1000],
+  ]);
+  await expectHatchedUnaccounted(expenses(page), 2);
+
+  // 4. The surplus is income "Unaccounted", at its true share however small.
+  await expectLegend(income(page), [
+    ["Salary", 200000],
+    ["Gifts", 10000],
+    ["Unaccounted", 2500],
+  ]);
+  await expectHatchedUnaccounted(income(page), 3);
+
+  // The shortfall is money spent, so the line counts it; the surplus shows nowhere but income.
+  await choosePeriod(page, "2026-09-13", "2026-09-15");
+  await expectLegend(expenses(page), [["Unaccounted", 1000]]);
+  await expectLegend(income(page), [["Unaccounted", 2500]]);
+  const tooltip = await lastPointTooltip(page);
+  await expect(tooltip).toContainText("Sep 15, 2026");
+  await expect(tooltip).toContainText(euros(1000));
 });
