@@ -790,7 +790,7 @@ post-push check.
   triggers each refusal that [SC-012](spec.md#sc-012) lists, once each. For each one, it checks that
   the wording from `src/ui/messages.ts` appears where [shared patterns](contracts/ui.md#shared-patterns)
   places it.
-- [ ] T078 [P] Data generators in `e2e/support/generate.ts`: a backup of n transactions inside a given
+- [X] T078 [P] Data generators in `e2e/support/generate.ts`: a backup of n transactions inside a given
   period, and a bank CSV of n rows across m vendors with a counterparty column. Add
   `e2e/support/write-sc001.ts`, which writes the [SC-001](spec.md#sc-001) file (about 300 rows from
   about 40 vendors) to `tmp/`, and the `fixtures:sc001` script that runs it with Node's built-in type
