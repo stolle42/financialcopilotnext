@@ -786,7 +786,7 @@ post-push check.
 
 **Purpose**: checks that span all stories, and the final validation.
 
-- [ ] T077 [P] The messages spec `e2e/messages.spec.ts` ([quickstart.md](quickstart.md#messages)). It
+- [X] T077 [P] The messages spec `e2e/messages.spec.ts` ([quickstart.md](quickstart.md#messages)). It
   triggers each refusal that [SC-012](spec.md#sc-012) lists, once each. For each one, it checks that
   the wording from `src/ui/messages.ts` appears where [shared patterns](contracts/ui.md#shared-patterns)
   places it.
