@@ -149,14 +149,16 @@ describe("createCategory (FR-032)", () => {
   test("allows a name the other side already has (scenario 5)", () => {
     const state = seeded();
     const refunds = { name: "Refunds", color: "#82c91e" };
+    // One context for both, as the app has one id generator: two would both hand out "new-1".
+    const context = testContext();
     const withExpense = applyValid(
       state,
-      changesOf(createCategory(state, { side: "expense", ...refunds }, testContext())),
+      changesOf(createCategory(state, { side: "expense", ...refunds }, context)),
     );
 
     const next = applyValid(
       withExpense,
-      changesOf(createCategory(withExpense, { side: "income", ...refunds }, testContext())),
+      changesOf(createCategory(withExpense, { side: "income", ...refunds }, context)),
     );
 
     expect(categoryNamed(next, "expense", "Refunds").side).toBe("expense");
