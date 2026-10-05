@@ -652,7 +652,7 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-5), automated as
 `e2e/us5-reconcile.spec.ts` (T066).
 
-- [ ] T063 [US5] Reconciliation in `src/domain/accounts.ts`, test-first in
+- [X] T063 [US5] Reconciliation in `src/domain/accounts.ts`, test-first in
   `src/domain/accounts.test.ts`. `reconcile(state, accountId, statedCents, ctx)` follows
   [FR-005](spec.md#fr-005). It finds the side's "Unaccounted" by role, dates the entry `today`,
   leaves `settings` unchanged ([FR-006](spec.md#fr-006)), and refuses `reconcile-already-matches`.
