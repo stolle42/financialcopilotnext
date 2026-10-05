@@ -3,6 +3,7 @@ import { periodPreset } from "@/domain/dates";
 import { insights } from "@/domain/insights";
 import { todayLocal } from "@/store/clock";
 import { useStore } from "@/store/store";
+import { CategoryBreakdown } from "./CategoryBreakdown";
 import { PeriodPicker } from "./PeriodPicker";
 import { SpendingChart } from "./SpendingChart";
 
@@ -26,6 +27,18 @@ export function InsightsScreen() {
         </h2>
         <SpendingChart spending={result.spending} />
       </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CategoryBreakdown
+          title="Expenses by category"
+          empty="No expenses in this period."
+          breakdown={result.expenses}
+        />
+        <CategoryBreakdown
+          title="Income by category"
+          empty="No income in this period."
+          breakdown={result.income}
+        />
+      </div>
     </div>
   );
 }

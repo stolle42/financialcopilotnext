@@ -580,7 +580,7 @@ visible ([User Story 3](spec.md#user-story-3)).
     its own empty state.
   - Tests, using `setToday`: the default period; the dates of each preset; the empty state; and no
     CSP violation while the chart draws.
-- [ ] T056 [US3] The category breakdowns in `src/ui/screens/insights/CategoryBreakdown.tsx`,
+- [X] T056 [US3] The category breakdowns in `src/ui/screens/insights/CategoryBreakdown.tsx`,
   test-first in `e2e/ui/insights.spec.ts`. Each side gets a donut with our own legend of chip, amount
   and share, titled with the side's total. "Unaccounted" is filled with an SVG hatch pattern from the
   chart's `<defs>` and marked "unknown" in the legend ([R-14](research.md#r-14),

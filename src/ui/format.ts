@@ -3,6 +3,10 @@ import type { DecimalSeparator } from "@/domain/types";
 // The one amount formatter and the one date formatter (contracts/ui.md, shared patterns).
 const amountFormat = new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" });
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+const shareFormat = new Intl.NumberFormat(undefined, {
+  style: "percent",
+  maximumFractionDigits: 1,
+});
 const monthFormat = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
 
 /** Euros with the € sign and two decimals, in the browser's number format (FR-060). */
@@ -22,6 +26,11 @@ export function formatMonth(month: string): string {
   const [year, number] = month.split("-").map(Number) as [number, number];
   // A local date, as in `formatDate`: the first of the month never falls into the month before.
   return monthFormat.format(new Date(year, number - 1, 1));
+}
+
+/** A share from 0 to 1 as a percentage with at most one decimal, such as "33.3%". */
+export function formatShare(share: number): string {
+  return shareFormat.format(share);
 }
 
 /** The decimal separator of the browser locale, which the amount field accepts. */
