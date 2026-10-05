@@ -67,4 +67,33 @@ describe("messages", () => {
       `Booked an income of ${formatAmount(2000)} to Unexplained.`,
     );
   });
+
+  test("words the category refusals, naming the side whose name is taken (FR-032)", () => {
+    expect(Object.keys(messages)).toEqual(
+      expect.arrayContaining(["category-name-empty", "category-name-taken", "category-protected"]),
+    );
+    expect(messageFor({ code: "category-name-empty" })).toMatch(/name/i);
+    expect(messageFor({ code: "category-name-taken", details: { side: "expense" } })).toMatch(
+      /expense/i,
+    );
+    expect(messageFor({ code: "category-name-taken", details: { side: "income" } })).toMatch(
+      /income/i,
+    );
+  });
+
+  test("says why each protected category cannot be deleted, and that renaming still works (FR-033)", () => {
+    const uncategorised = messageFor({
+      code: "category-protected",
+      details: { role: "uncategorised" },
+    });
+    const unaccounted = messageFor({
+      code: "category-protected",
+      details: { role: "unaccounted" },
+    });
+    expect(uncategorised).not.toBe(unaccounted);
+    for (const message of [uncategorised, unaccounted]) {
+      expect(message).toMatch(/renam/i);
+      expect(message).toMatch(/colour/i);
+    }
+  });
 });
