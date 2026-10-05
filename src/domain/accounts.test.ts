@@ -291,7 +291,7 @@ describe("reconcile (FR-005)", () => {
     [-50000, -40000, "income", 10000, "a debt that shrank"],
     [2000, -3000, "expense", 5000, "a balance that turned negative"],
     [-1000, 0, "income", 1000, "a negative balance back to zero"],
-  ])("from %i to %i books a %s of %i: %s", (computed, stated, kind, amountCents) => {
+  ])("from %i to %i books an %s of %i: %s", (computed, stated, kind, amountCents) => {
     const { state, account } = withAccount("credit-card", computed);
 
     const changes = changesOf(reconcile(state, account.id, stated, testContext()));
