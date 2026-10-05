@@ -136,7 +136,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           {messageFor(refusal)}
         </p>
       )}
-      <ReviewGroups view={view} onRefusal={setRefusal} />
+      <ReviewGroups view={view} batchAccountId={batch.accountId} onRefusal={setRefusal} />
       <DuplicatesDrawer
         rows={view.duplicates}
         open={drawer === "duplicates"}

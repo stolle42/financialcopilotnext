@@ -518,7 +518,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - The duplicates drawer has an **Include** switch on each row. The unparsable drawer shows the row
     number, the raw cells and the reason (`npx shadcn add sheet`).
   - Tests: [User Story 2](spec.md#user-story-2) scenarios 8 and 11.
-- [ ] T050 [US2] Review groups and assignments in `src/ui/screens/import/ReviewGroups.tsx` and
+- [X] T050 [US2] Review groups and assignments in `src/ui/screens/import/ReviewGroups.tsx` and
   `src/ui/screens/import/AssignmentControl.tsx`, test-first in `e2e/ui/review.spec.ts`.
   - Show the collapsed groups, largest first, then the plain rows.
   - A group header shows the vendor, side, count and total, with the group's assignment control.
