@@ -149,6 +149,35 @@ export async function removeBudgetLimit(page: Page, category: string): Promise<v
   await expect(budgetRow(page, category).getByLabel("Monthly limit")).toHaveValue("");
 }
 
+/** The row of the Accounts screen for the account `name`. */
+export function accountRow(page: Page, name: string): Locator {
+  return page.getByRole("row").filter({ has: page.getByRole("cell", { name, exact: true }) });
+}
+
+/** Opens the reconcile dialog of the account `name` on the Accounts screen and returns it. */
+export async function openReconcile(page: Page, name: string): Promise<Locator> {
+  await page.goto("/#/accounts");
+  await accountRow(page, name).getByRole("button", { name: "Reconcile" }).click();
+  const dialog = page.getByRole("dialog", { name: `Reconcile ${name}` });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+/**
+ * Reconciles the account `name` to `actualBalance`, typed as in en-US, and waits for the dialog to
+ * close, which it does only when a difference was booked (FR-005).
+ */
+export async function reconcileAccount(
+  page: Page,
+  name: string,
+  actualBalance: string,
+): Promise<void> {
+  const dialog = await openReconcile(page, name);
+  await dialog.getByLabel("Actual balance").fill(actualBalance);
+  await dialog.getByRole("button", { name: "Reconcile", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
 /** The path of a bank file in e2e/fixtures (quickstart.md, US2). */
 export function fixture(name: string): string {
   return fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));

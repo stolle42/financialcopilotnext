@@ -1,10 +1,16 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Account, Category } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
-import { addAccount, openTransactionForm, storedRecords, storedTransactions } from "../support/app";
+import {
+  addAccount,
+  openTransactionForm,
+  reconcileAccount,
+  storedRecords,
+  storedTransactions,
+} from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, transaction form; User Story 1 scenarios 5–9, FR-011, FR-014, FR-015.
+// contracts/ui.md, transaction form; User Story 1 scenarios 5–9, FR-011, FR-014, FR-015, FR-030.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");
@@ -106,6 +112,33 @@ test("offers expense categories only, one Uncategorised and no Unaccounted (scen
     "Travel",
     "Utilities",
     "Uncategorised",
+  ]);
+});
+
+test("editing a reconciliation entry shows Unaccounted as its value, never as an option, and saves", async ({
+  page,
+}) => {
+  // Cash holds 0.00, so stating -15.00 books an expense of 15.00 to expense "Unaccounted".
+  await reconcileAccount(page, "Cash", "-15.00");
+  await page.goto("/");
+  await page
+    .getByRole("list", { name: "Transactions" })
+    .getByRole("listitem")
+    .first()
+    .getByRole("button")
+    .click();
+  const form = page.getByRole("dialog", { name: "Edit transaction" });
+  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Unaccounted");
+
+  expect(await optionsOf(page, form, "Category")).not.toContain("Unaccounted");
+  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Unaccounted");
+  await form.getByLabel("Amount").fill("16.00");
+  await form.getByRole("button", { name: "Save" }).click();
+
+  await expect(form).toHaveCount(0);
+  const unaccounted = await categoryNamed(page, "expense", "Unaccounted");
+  expect(await storedTransactions(page)).toEqual([
+    expect.objectContaining({ kind: "expense", amountCents: 1600, categoryId: unaccounted.id }),
   ]);
 });
 
