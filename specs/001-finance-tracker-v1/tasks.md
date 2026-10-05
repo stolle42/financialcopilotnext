@@ -795,7 +795,7 @@ post-push check.
   `e2e/support/write-sc001.ts`, which writes the [SC-001](spec.md#sc-001) file (about 300 rows from
   about 40 vendors) to `tmp/`, and the `fixtures:sc001` script that runs it with Node's built-in type
   stripping ([manual checks](quickstart.md#manual-checks)).
-- [ ] T079 The performance spec `e2e/performance.spec.ts` ([quickstart.md](quickstart.md#performance)):
+- [X] T079 The performance spec `e2e/performance.spec.ts` ([quickstart.md](quickstart.md#performance)):
   [SC-009](spec.md#sc-009), [SC-010](spec.md#sc-010) and the 1-second list render of
   [R-21](research.md#r-21). Each check uses generated data from T078, restored or imported with the
   helpers of T076. Depends on T076, T078.
