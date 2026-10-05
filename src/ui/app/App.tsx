@@ -8,6 +8,7 @@ import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
 import { ImportScreen } from "@/ui/screens/import/ImportScreen";
 import { emptyImport, ImportStateContext, type ImportState } from "@/ui/screens/import/importState";
 import { ProfileEditor } from "@/ui/screens/import/ProfileEditor";
+import { ReviewScreen } from "@/ui/screens/import/ReviewScreen";
 import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
@@ -26,6 +27,8 @@ function screenFor(route: Route): ReactNode {
       return <TransactionsScreen />;
     case "import":
       return <ImportScreen />;
+    case "review":
+      return <ReviewScreen />;
     case "profile-new":
       return <ProfileEditor key="new" profileId={null} />;
     case "profile":

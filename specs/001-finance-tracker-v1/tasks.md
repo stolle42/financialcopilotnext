@@ -510,7 +510,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     screen.
   - Tests: [User Story 2](spec.md#user-story-2) scenarios 1, 2, 13 and 15; the header-only file; the
     Windows-1252 fixture read with a UTF-8 profile; and deleting a profile while a batch is pending.
-- [ ] T049 [US2] The review header and drawers in `src/ui/screens/import/ReviewScreen.tsx`,
+- [X] T049 [US2] The review header and drawers in `src/ui/screens/import/ReviewScreen.tsx`,
   test-first in `e2e/ui/review.spec.ts` ([review](contracts/ui.md#review)).
   - Add the route `#/import/review`. With no batch pending, it shows an empty state that leads to
     Import.
