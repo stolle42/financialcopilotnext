@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatAmount, formatDate, localeDecimalSeparator } from "./format";
+import { formatAmount, formatDate, formatMonth, localeDecimalSeparator } from "./format";
 
 describe("formatAmount", () => {
   test("shows euros with two decimals in the browser's number format (FR-060)", () => {
@@ -24,6 +24,18 @@ describe("formatDate", () => {
     const utcMedium = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" });
     expect(formatDate("2026-09-03")).toBe(utcMedium.format(Date.UTC(2026, 8, 3)));
     expect(formatDate("2026-01-01")).toBe(utcMedium.format(Date.UTC(2026, 0, 1)));
+  });
+});
+
+describe("formatMonth", () => {
+  test("shows the month itself, never the one before", () => {
+    const utcMonth = new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    expect(formatMonth("2026-09")).toBe(utcMonth.format(Date.UTC(2026, 8, 1)));
+    expect(formatMonth("2026-01")).toBe(utcMonth.format(Date.UTC(2026, 0, 1)));
   });
 });
 
