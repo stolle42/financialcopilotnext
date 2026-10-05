@@ -717,7 +717,7 @@ post-push check.
     `src/ui/messages.ts`.
   - Tests: [User Story 6](spec.md#user-story-6) scenarios 1, 4 and 5; the confirmation text with its
     counts; and the default colour.
-- [ ] T071 [US6] The journey `e2e/us6-categories.spec.ts`: scenarios 1–5. Scenario 2 checks the new
+- [X] T071 [US6] The journey `e2e/us6-categories.spec.ts`: scenarios 1–5. Scenario 2 checks the new
   name and colour in the transaction list, the form and Budgets ([FR-065](spec.md#fr-065)), and
   scenario 3 sets its budget through Budgets.
 
