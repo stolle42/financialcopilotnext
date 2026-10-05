@@ -1,43 +1,58 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
+
+/**
+ * Watches `page` in `context` for a request outside the app's origin and for any
+ * Content-Security-Policy violation (FR-061, R-19). Returns the check that fails the test on any.
+ */
+export async function guardNetwork(
+  context: BrowserContext,
+  page: Page,
+  baseURL: string | undefined,
+): Promise<() => Promise<void>> {
+  if (!baseURL) throw new Error("playwright.config.ts sets no baseURL");
+  const appOrigin = new URL(baseURL).origin;
+  const violations: string[] = [];
+
+  // Abort instead of letting the request through, so a test never reaches the outside world.
+  // data: and blob: URLs never reach a route handler, so they stay allowed.
+  await context.route(
+    (url) => url.origin !== appOrigin,
+    (route) => {
+      violations.push(`request to ${route.request().url()}`);
+      return route.abort();
+    },
+  );
+
+  await page.exposeFunction("reportCspViolation", (violation: string) => {
+    violations.push(`CSP violation: ${violation}`);
+  });
+  await page.addInitScript(() => {
+    document.addEventListener("securitypolicyviolation", (event) => {
+      const report = (window as unknown as { reportCspViolation(violation: string): void })
+        .reportCspViolation;
+      report(`${event.violatedDirective} blocked ${event.blockedURI || "an inline resource"}`);
+    });
+  });
+
+  return async () => {
+    // The browser reports a violation a moment after it blocks the request, so a test that ends
+    // right after a blocked fetch would otherwise pass before the report arrives.
+    if (!page.isClosed()) await page.waitForTimeout(50);
+    expect(violations, "the app must not reach outside its own origin (FR-061)").toEqual([]);
+  };
+}
 
 /**
  * Every spec imports `test` from here, so the network guard runs in all of them: a request outside
- * the app's origin, or a Content-Security-Policy violation, fails the test (FR-061, R-19).
+ * the app's origin, or a Content-Security-Policy violation, fails the test (FR-061, R-19). A test
+ * that opens a context of its own guards it with `guardNetwork`.
  */
 export const test = base.extend<{ networkGuard: void }>({
   networkGuard: [
     async ({ context, page, baseURL }, use) => {
-      if (!baseURL) throw new Error("playwright.config.ts sets no baseURL");
-      const appOrigin = new URL(baseURL).origin;
-      const violations: string[] = [];
-
-      // Abort instead of letting the request through, so a test never reaches the outside world.
-      // data: and blob: URLs never reach a route handler, so they stay allowed.
-      await context.route(
-        (url) => url.origin !== appOrigin,
-        (route) => {
-          violations.push(`request to ${route.request().url()}`);
-          return route.abort();
-        },
-      );
-
-      await page.exposeFunction("reportCspViolation", (violation: string) => {
-        violations.push(`CSP violation: ${violation}`);
-      });
-      await page.addInitScript(() => {
-        document.addEventListener("securitypolicyviolation", (event) => {
-          const report = (window as unknown as { reportCspViolation(violation: string): void })
-            .reportCspViolation;
-          report(`${event.violatedDirective} blocked ${event.blockedURI || "an inline resource"}`);
-        });
-      });
-
+      const check = await guardNetwork(context, page, baseURL);
       await use();
-
-      // The browser reports a violation a moment after it blocks the request, so a test that ends
-      // right after a blocked fetch would otherwise pass before the report arrives.
-      if (!page.isClosed()) await page.waitForTimeout(50);
-      expect(violations, "the app must not reach outside its own origin (FR-061)").toEqual([]);
+      await check();
     },
     { auto: true },
   ],

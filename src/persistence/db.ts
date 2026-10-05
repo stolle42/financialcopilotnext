@@ -148,3 +148,36 @@ export async function writeChanges(
   await Promise.all([...requests, transaction.done]);
   return null;
 }
+
+/**
+ * Clears every store and writes every record of `state`, in one transaction (backup-file.md,
+ * loading step 4). Resolves once the transaction has completed. On any failure no store changes
+ * and the original error, with its `name`, is rethrown (FR-072, R-15).
+ */
+export async function replaceAll(db: Database, state: State): Promise<void> {
+  const storeNames = [...(Object.keys(recordStores) as RecordStore[]), "settings" as const];
+  const transaction = db.transaction(storeNames, "readwrite");
+  const requests: Promise<unknown>[] = [];
+  try {
+    for (const name of storeNames) requests.push(transaction.objectStore(name).clear());
+    const records: Record<RecordStore, readonly unknown[]> = {
+      accounts: state.accounts,
+      categories: state.categories,
+      transactions: state.transactions,
+      budgets: state.budgets,
+      profiles: state.profiles,
+      pendingBatch: state.pendingBatch ? [state.pendingBatch] : [],
+    };
+    for (const name of Object.keys(records) as RecordStore[]) {
+      const store = transaction.objectStore(name);
+      for (const record of records[name]) requests.push(store.put(record as never));
+    }
+    requests.push(transaction.objectStore("settings").put(state.settings, SETTINGS_KEY));
+  } catch (error) {
+    // A request that throws at once would otherwise let the requests before it commit.
+    transaction.abort();
+    await Promise.allSettled([...requests, transaction.done]);
+    throw error;
+  }
+  await Promise.all([...requests, transaction.done]);
+}

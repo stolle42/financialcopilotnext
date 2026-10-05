@@ -2,6 +2,8 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { applyChanges, isRefusal, type Changes, type Context } from "@/domain/changes";
 import type { Refusal, State } from "@/domain/types";
 import {
+  loadState,
+  replaceAll,
   writeChanges,
   type Database,
   type WriteOptions,
@@ -28,6 +30,11 @@ export interface Store {
     decide: Decide<Refused>,
     options: WriteOptions,
   ): Promise<Refused | Refusal<StoreRefusalCode | WriteRefusalCode> | null>;
+  /**
+   * Writes `next` over every record in one storage transaction, then reloads memory from storage
+   * (FR-071). Resolves to `null` once done, or to `save-failed` with nothing changed (FR-072).
+   */
+  replaceAll(next: State): Promise<Refusal<StoreRefusalCode> | null>;
 }
 
 /** The whole state in memory, written to storage before it changes on screen (R-05, R-15). */
@@ -55,6 +62,20 @@ export function createStore(db: Database, initialState: State): Store {
     return null;
   }
 
+  async function replaceEverything(next: State): Promise<Refusal<StoreRefusalCode> | null> {
+    let reloaded: State;
+    try {
+      await replaceAll(db, next);
+      reloaded = await loadState(db);
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : "unknown";
+      return { code: "save-failed", details: { reason } };
+    }
+    state = reloaded;
+    listeners.forEach((listener) => listener());
+    return null;
+  }
+
   return {
     getState: () => state,
     subscribe(listener) {
@@ -67,6 +88,11 @@ export function createStore(db: Database, initialState: State): Store {
       queue = result.catch(() => undefined);
       return result;
     }) as Store["run"],
+    replaceAll(next) {
+      const result = queue.then(() => replaceEverything(next));
+      queue = result.catch(() => undefined);
+      return result;
+    },
   };
 }
 

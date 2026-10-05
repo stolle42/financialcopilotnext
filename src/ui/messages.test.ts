@@ -96,4 +96,45 @@ describe("messages", () => {
       expect(message).toMatch(/colour/i);
     }
   });
+
+  test("says why a backup is refused, and that the current data is unchanged (FR-072)", () => {
+    expect(Object.keys(messages)).toEqual(
+      expect.arrayContaining(["backup-not-a-backup", "backup-newer-version", "backup-damaged"]),
+    );
+    for (const code of ["backup-not-a-backup", "backup-newer-version", "backup-damaged"] as const) {
+      expect(messageFor({ code })).toMatch(/unchanged/i);
+    }
+    expect(messageFor({ code: "backup-not-a-backup" })).toMatch(/not a Financial Copilot backup/i);
+    expect(messageFor({ code: "backup-newer-version" })).toMatch(/newer version/i);
+  });
+
+  test("words a damaged backup from the record and field at fault, or the broken rule", () => {
+    const noDate = messageFor({
+      code: "backup-damaged",
+      details: { record: "transaction", field: "date" },
+    });
+    expect(noDate).toMatch(/transaction/i);
+    expect(noDate).toMatch(/date/i);
+
+    const noBudgets = messageFor({
+      code: "backup-damaged",
+      details: { record: "data", field: "budgets" },
+    });
+    expect(noBudgets).toMatch(/budgets/i);
+
+    const brokenRule = messageFor({
+      code: "backup-damaged",
+      details: { rule: "transaction-account-missing", transactionId: "t1" },
+    });
+    expect(brokenRule).toMatch(/account/i);
+    expect(brokenRule).not.toContain("transaction-account-missing");
+
+    expect(messageFor({ code: "backup-damaged" })).toMatch(/incomplete|damaged/i);
+  });
+
+  test("words the restore notification with the file's name", () => {
+    expect(notifications.restored("financial-copilot-backup-2026-09-03.json")).toContain(
+      "financial-copilot-backup-2026-09-03.json",
+    );
+  });
 });

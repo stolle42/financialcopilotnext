@@ -1,10 +1,11 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { applyChanges, type Changes } from "@/domain/changes";
 import { checkInvariants } from "@/domain/invariants";
+import { everyEntityState } from "@/domain/testing";
 import type { Category, PendingBatch, State } from "@/domain/types";
-import { loadState, openDatabase, writeChanges } from "./db";
+import { loadState, openDatabase, replaceAll, writeChanges } from "./db";
 
 beforeEach(() => {
   // A fresh, empty browser storage for every test.
@@ -202,5 +203,91 @@ describe("writeChanges with requireNoPendingBatch (FR-022)", () => {
     );
 
     expect(result).toEqual({ code: "import-batch-pending" });
+  });
+});
+
+describe("replaceAll (backup-file.md, loading step 4)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Storage that holds more than the seed: a second account, a transaction and a batch. */
+  async function withOldData() {
+    const db = await openDatabase();
+    const seeded = await loadState(db);
+    const cash = seeded.accounts[0]!.id;
+    await writeChanges(db, {
+      accounts: {
+        put: [{ id: "old", name: "Old account", type: "savings", openingBalanceCents: 100 }],
+      },
+      transactions: {
+        put: [
+          {
+            id: "old-t",
+            seq: 1,
+            date: "2026-07-01",
+            amountCents: 999,
+            accountId: cash,
+            description: "Before the restore",
+            kind: "expense",
+            categoryId: seeded.categories[0]!.id,
+          },
+        ],
+      },
+      pendingBatch: {
+        put: [
+          {
+            id: "old-batch",
+            accountId: cash,
+            fileName: "old.csv",
+            createdAt: "2026-07-01T10:00:00.000Z",
+            rows: [],
+          },
+        ],
+      },
+    });
+    return { db, before: await loadState(db) };
+  }
+
+  test("replaces every store with the state, keeping no record it does not hold", async () => {
+    const { db } = await withOldData();
+    const state = everyEntityState();
+
+    await replaceAll(db, state);
+
+    expect(byKey(await loadState(db))).toEqual(byKey(state));
+  });
+
+  test("clears the pending batch when the state has none", async () => {
+    const { db } = await withOldData();
+
+    await replaceAll(db, { ...everyEntityState(), pendingBatch: null });
+
+    expect((await loadState(db)).pendingBatch).toBeNull();
+  });
+
+  test("leaves the old data when a write fails part-way, and rejects with the error", async () => {
+    const { db, before } = await withOldData();
+    // A full disk on the transactions, after the stores were cleared and other records written,
+    // whether the records go in with put or with add.
+    for (const method of ["put", "add"] as const) {
+      const write = IDBObjectStore.prototype[method];
+      vi.spyOn(IDBObjectStore.prototype, method).mockImplementation(function (
+        this: IDBObjectStore,
+        ...args: Parameters<IDBObjectStore["put"]>
+      ) {
+        if (this.name === "transactions") {
+          throw new DOMException("The disk is full", "QuotaExceededError");
+        }
+        return write.apply(this, args);
+      });
+    }
+
+    await expect(replaceAll(db, everyEntityState())).rejects.toMatchObject({
+      name: "QuotaExceededError",
+    });
+
+    vi.restoreAllMocks();
+    expect(await loadState(db)).toEqual(before);
   });
 });

@@ -5,6 +5,8 @@ import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
 import type { DraftFieldCode } from "@/domain/transactions";
 import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/types";
+import type { InvariantCode } from "@/domain/invariants";
+import type { BackupRefusalCode } from "@/files/backup";
 import type { DecodingRefusal } from "@/files/csv";
 import type { StoreRefusalCode } from "@/store/store";
 import { formatAmount } from "./format";
@@ -30,7 +32,8 @@ export type MessageCode =
   | BatchRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
-  | CategoryRefusalCode;
+  | CategoryRefusalCode
+  | BackupRefusalCode;
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -46,6 +49,70 @@ function list(value: RefusalDetails[string] | undefined, quoted = false): string
     ? (shown[0] ?? "")
     : `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)}`;
 }
+
+/** Each rule of data-model.md, in the words of a backup that breaks it (FR-072, step 4). */
+const brokenRules: Record<InvariantCode, string> = {
+  "id-duplicate": "two records share the same id",
+  "transaction-seq-duplicate": "two transactions share the same place in the order of entry",
+  "transaction-seq-invalid": "a transaction has no valid place in the order of entry",
+  "account-name-missing": "an account has no name",
+  "account-name-duplicate": "two accounts have the same name",
+  "category-role-count":
+    "a side does not have exactly one Uncategorised and one Unaccounted category",
+  "category-name-missing": "a category has no name",
+  "category-name-duplicate": "two categories on one side have the same name",
+  "category-color-invalid": "a category has a colour that is not a colour code",
+  "transaction-date-invalid": "a transaction has a date that does not exist",
+  "transaction-amount-invalid":
+    "a transaction has an amount that is not a whole number of cents of zero or more",
+  "transaction-account-missing": "a transaction refers to an account that is not in the backup",
+  "transaction-category-invalid":
+    "a transaction refers to a category that is not in the backup or is on the other side",
+  "transaction-fields-mixed": "a transaction mixes the details of a transfer with those of a spend",
+  "transaction-destination-invalid":
+    "a transfer goes to an account that is not in the backup, or to the account it leaves",
+  "budget-category-invalid": "a budget refers to a category that cannot carry one",
+  "budget-limit-out-of-range": "a budget has a limit that is not an amount above 0.00",
+  "profile-name-missing": "a mapping profile has no name",
+  "profile-name-duplicate": "two mapping profiles have the same name",
+  "profile-column-mismatch":
+    "a mapping profile names its columns in a way its header row setting rules out",
+  "profile-setting-unsupported":
+    "a mapping profile uses a date format, encoding or decimal separator this version does not know",
+  "pending-batch-account-missing":
+    "the pending import refers to an account that is not in the backup",
+  "pending-row-number-duplicate": "two rows of the pending import have the same number",
+  "pending-row-date-invalid": "a row of the pending import has a date that does not exist",
+  "pending-row-amount-invalid": "a row of the pending import has an amount that is not valid",
+  "pending-row-category-invalid":
+    "a row of the pending import refers to a category that is not in the backup or is on the other side",
+  "pending-row-transfer-invalid":
+    "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
+  "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
+  "settings-account-missing": "the settings name an account that is not in the backup",
+};
+
+/** What a damaged backup's records are called, with their article. */
+const recordWords: Record<string, string> = {
+  account: "an account",
+  category: "a category",
+  transaction: "a transaction",
+  budget: "a budget",
+  profile: "a mapping profile",
+  pendingBatch: "the pending import",
+  pendingRow: "a row of the pending import",
+  settings: "the settings",
+};
+
+/** A field name in words: `openingBalanceCents` is "opening balance". */
+const fieldWords = (field: string) =>
+  field
+    .replace(/(Cents|Id)$/, "")
+    .replace(/([A-Z])/g, " $1")
+    .toLowerCase()
+    .trim();
+
+const BACKUP_UNCHANGED = "Your current data is unchanged.";
 
 export const messages: Record<MessageCode, Wording> = {
   "save-failed":
@@ -105,6 +172,25 @@ export const messages: Record<MessageCode, Wording> = {
     "the profile cannot tell which one to read.",
   "import-no-transactions": "The file contains no transactions.",
   "import-file-unreadable": "The file could not be read. Choose it again.",
+  "backup-not-a-backup": `This file is not a Financial Copilot backup. ${BACKUP_UNCHANGED}`,
+  "backup-newer-version":
+    "This backup was made by a newer version of Financial Copilot than this one, so it cannot be " +
+    `read here. ${BACKUP_UNCHANGED}`,
+  "backup-damaged": (details) => {
+    const record = text(details.record);
+    const field = text(details.field);
+    let problem: string;
+    if (details.rule !== undefined) {
+      problem = brokenRules[details.rule as InvariantCode] ?? "its data breaks a rule";
+    } else if (record === "" || record === "data" || record === "backup") {
+      problem = field ? `the part "${field}" is missing or not valid` : "";
+    } else if (field) {
+      problem = `${recordWords[record] ?? "a record"} has a missing or invalid ${fieldWords(field)}`;
+    } else {
+      problem = `${recordWords[record] ?? "a record"} is not valid`;
+    }
+    return `The backup is incomplete or damaged${problem ? `: ${problem}` : ""}. ${BACKUP_UNCHANGED}`;
+  },
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
@@ -134,6 +220,7 @@ export const notifications = {
     `Discarded the import of ${fileName}. Nothing entered the ledger.`,
   reconciled: (kind: Side, cents: number, categoryName: string) =>
     `Booked an ${kind} of ${formatAmount(cents)} to ${categoryName}.`,
+  restored: (fileName: string) => `Restored all data from ${fileName}.`,
 };
 
 /** The plain-language message for a refusal or failure (FR-067). */

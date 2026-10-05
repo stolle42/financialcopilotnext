@@ -734,7 +734,7 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-7), automated as
 `e2e/us7-backup.spec.ts` (T076).
 
-- [ ] T072 [P] [US7] The backup file format in `src/files/backup.ts`, test-first in
+- [X] T072 [P] [US7] The backup file format in `src/files/backup.ts`, test-first in
   `src/files/backup.test.ts` ([backup-file.md](contracts/backup-file.md), [R-13](research.md#r-13)).
   Install zod.
   - `serializeBackup(state, exportedAt)` writes the file, and `backupFileName(today)` names it.
@@ -744,11 +744,11 @@ post-push check.
     or `backup-damaged`, the last with structured details (the record and field at fault) for the UI
     to word.
   - Tests: a round trip is deep-equal; each refusal; and a transaction without a date is named.
-- [ ] T073 [P] [US7] Replacing all data in `src/persistence/db.ts`, test-first in
+- [X] T073 [P] [US7] Replacing all data in `src/persistence/db.ts`, test-first in
   `src/persistence/db.test.ts`. `replaceAll(db, state)` clears every store and writes every record in
   one transaction ([loading](contracts/backup-file.md#loading-fr-071-fr-072) step 4). Test: a failing
   write leaves the old data.
-- [ ] T074 [US7] Backup actions in `src/store/backup.ts`, test-first in `src/store/backup.test.ts`.
+- [X] T074 [US7] Backup actions in `src/store/backup.ts`, test-first in `src/store/backup.test.ts`.
   - `createBackup()` returns the file's text and name, and writes nothing ([FR-070](spec.md#fr-070)).
   - `prepareRestore(text)` runs `parseBackup`, then `checkInvariants`, turning a broken invariant
     into `backup-damaged` (step 4).
@@ -756,7 +756,7 @@ post-push check.
   - Tests: an invalid file leaves the data unchanged ([FR-072](spec.md#fr-072)), and a restore
     followed by a save gives the same `data` ([SC-014](spec.md#sc-014)).
   - Depends on T072, T073.
-- [ ] T075 [US7] The Backup screen in `src/ui/screens/backup/BackupScreen.tsx`, test-first in
+- [X] T075 [US7] The Backup screen in `src/ui/screens/backup/BackupScreen.tsx`, test-first in
   `e2e/ui/backup.spec.ts` ([backup](contracts/ui.md#backup)).
   - Add the route `#/backup` and its sidebar entry.
   - **Save backup** downloads the file.
@@ -769,7 +769,7 @@ post-push check.
   - Tests: the download's name and content; cancelling the confirmation; each refusal, with the data
     unchanged; and the notice, with `navigator.storage.persist` stubbed to resolve `false` through
     `page.addInitScript`.
-- [ ] T076 [US7] Backup helpers in `e2e/support/backup.ts`, and the journey `e2e/us7-backup.spec.ts`
+- [X] T076 [US7] Backup helpers in `e2e/support/backup.ts`, and the journey `e2e/us7-backup.spec.ts`
   ([quickstart.md](quickstart.md#us7-backup-and-restore)).
   - The helpers build a backup from plain records, restore it through the Backup screen, and read a
     downloaded file.

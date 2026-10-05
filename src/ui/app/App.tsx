@@ -1,10 +1,11 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { cn } from "cn";
-import { createContext, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Transaction } from "@/domain/types";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
+import { BackupScreen } from "@/ui/screens/backup/BackupScreen";
 import { InsightsScreen } from "@/ui/screens/insights/InsightsScreen";
 import { BudgetsScreen } from "@/ui/screens/budgets/BudgetsScreen";
 import { CategoriesScreen } from "@/ui/screens/categories/CategoriesScreen";
@@ -16,6 +17,7 @@ import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContex
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
 import { useRoute, type Route } from "./router";
+import { StoragePersistedContext } from "./storagePersisted";
 
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
@@ -25,6 +27,7 @@ const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = 
   { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "categories", label: "Categories", href: "#/categories" },
   { route: "accounts", label: "Accounts", href: "#/accounts" },
+  { route: "backup", label: "Backup", href: "#/backup" },
 ];
 
 function screenFor(route: Route): ReactNode {
@@ -47,16 +50,12 @@ function screenFor(route: Route): ReactNode {
       return <CategoriesScreen />;
     case "accounts":
       return <AccountsScreen />;
+    case "backup":
+      return <BackupScreen />;
     default:
       return null;
   }
 }
-
-/**
- * Whether the browser agreed to keep the app's data, as start-up asked it (R-07). Pending until
- * the browser answers; the Backup screen shows it (FR-075).
- */
-export const StoragePersistedContext = createContext<Promise<boolean>>(Promise.resolve(false));
 
 /** The desktop shell: header, sidebar and the screen of the current route (contracts/ui.md). */
 export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }) {
