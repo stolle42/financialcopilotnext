@@ -1,8 +1,10 @@
 import { useId, useMemo, useState } from "react";
+import { budgetMonth, budgetProgress } from "@/domain/budgets";
 import { periodPreset } from "@/domain/dates";
 import { insights } from "@/domain/insights";
 import { todayLocal } from "@/store/clock";
 import { useStore } from "@/store/store";
+import { BudgetSection } from "./BudgetSection";
 import { CategoryBreakdown } from "./CategoryBreakdown";
 import { PeriodPicker } from "./PeriodPicker";
 import { SpendingChart } from "./SpendingChart";
@@ -12,6 +14,8 @@ export function InsightsScreen() {
   const state = useStore((current) => current);
   const [period, setPeriod] = useState(() => periodPreset("this-month", todayLocal()));
   const result = useMemo(() => insights(state, period), [state, period]);
+  const month = budgetMonth(period);
+  const progress = useMemo(() => budgetProgress(state, month), [state, month]);
   const spendingHeading = useId();
 
   return (
@@ -39,6 +43,7 @@ export function InsightsScreen() {
           breakdown={result.income}
         />
       </div>
+      <BudgetSection month={month} progress={progress} />
     </div>
   );
 }
