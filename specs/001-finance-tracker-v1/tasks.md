@@ -554,7 +554,7 @@ visible ([User Story 3](spec.md#user-story-3)).
   `periodPreset(name, today)` covers the five presets of [insights](contracts/ui.md#insights).
   `daysInPeriod(period)` counts both ends ([R-14](research.md#r-14)). Add the month helpers that the
   spending line needs. Tests run across month ends, year ends and leap days.
-- [ ] T054 [US3] Insights aggregates in `src/domain/insights.ts`, test-first in
+- [X] T054 [US3] Insights aggregates in `src/domain/insights.ts`, test-first in
   `src/domain/insights.test.ts` ([R-14](research.md#r-14), [FR-051](spec.md#fr-051),
   [FR-052](spec.md#fr-052)). `insights(state, period)` returns:
   - the spending line: one point per day up to 92 days, otherwise one per month, with empty buckets
