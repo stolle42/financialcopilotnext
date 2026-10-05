@@ -26,7 +26,12 @@ function showUnexpectedError(error: unknown): void {
   unexpectedErrorShown = true;
 }
 
-window.addEventListener("error", (event) => showUnexpectedError(event.error ?? event.message));
+window.addEventListener("error", (event) => {
+  // Browsers report a ResizeObserver whose resize settles in the next frame as an error event
+  // without an error. It is a notice, not a failure, and the components' observers cause it.
+  if (!event.error && event.message.startsWith("ResizeObserver loop")) return;
+  showUnexpectedError(event.error ?? event.message);
+});
 window.addEventListener("unhandledrejection", (event) => showUnexpectedError(event.reason));
 
 /**

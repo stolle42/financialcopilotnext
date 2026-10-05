@@ -56,6 +56,25 @@ test.describe("an unexpected error", () => {
     await expectUnexpectedErrorScreen(page);
   });
 
+  test("the browser's ResizeObserver loop notice is no error, so the app stays", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const heading = page.getByRole("main").getByRole("heading", { name: "Transactions" });
+    await expect(heading).toBeVisible();
+    // Browsers report a resize that settles in the next frame as an error event without an error.
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "ResizeObserver loop completed with undelivered notifications.",
+        }),
+      ),
+    );
+    await page.waitForTimeout(100);
+    await expect(heading).toBeVisible();
+    await expect(page.getByText(messageFor({ code: "unexpected-error" }))).toHaveCount(0);
+  });
+
   test("an error while rendering the shell shows the message and a Reload button", async ({
     page,
   }) => {
