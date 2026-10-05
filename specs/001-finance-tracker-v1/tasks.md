@@ -748,7 +748,7 @@ post-push check.
   `src/persistence/db.test.ts`. `replaceAll(db, state)` clears every store and writes every record in
   one transaction ([loading](contracts/backup-file.md#loading-fr-071-fr-072) step 4). Test: a failing
   write leaves the old data.
-- [ ] T074 [US7] Backup actions in `src/store/backup.ts`, test-first in `src/store/backup.test.ts`.
+- [X] T074 [US7] Backup actions in `src/store/backup.ts`, test-first in `src/store/backup.test.ts`.
   - `createBackup()` returns the file's text and name, and writes nothing ([FR-070](spec.md#fr-070)).
   - `prepareRestore(text)` runs `parseBackup`, then `checkInvariants`, turning a broken invariant
     into `backup-damaged` (step 4).
