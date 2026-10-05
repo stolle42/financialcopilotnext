@@ -3,6 +3,7 @@ import type { Category, Side } from "../../src/domain/types";
 import {
   addAccount,
   addTransaction,
+  putBudgets,
   putRecords,
   storedRecords,
   storedTransactions,
@@ -22,6 +23,8 @@ const endDate = (page: Page) => period(page).getByLabel("End date");
 const preset = (page: Page, name: string) =>
   period(page).getByRole("button", { name, exact: true });
 const spending = (page: Page) => main(page).getByRole("region", { name: "Spending over time" });
+
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const PRESETS = ["This month", "Last month", "Last 3 months", "This year", "Last year"];
 
@@ -58,7 +61,13 @@ test.describe("the screen", () => {
   test("shows its sections in the order of the contract", async ({ page }) => {
     await openInsights(page);
     const regions = main(page).getByRole("region");
-    const names = ["Period", "Spending over time", "Expenses by category", "Income by category"];
+    const names = [
+      "Period",
+      "Spending over time",
+      "Expenses by category",
+      "Income by category",
+      "Budgets",
+    ];
     await expect(regions).toHaveCount(names.length);
     for (const [index, name] of names.entries()) {
       await expect(regions.nth(index)).toHaveAccessibleName(new RegExp(`^${name}`));
@@ -193,7 +202,6 @@ test.describe("the category breakdowns (FR-051, FR-052)", () => {
   const income = (page: Page) => main(page).getByRole("region", { name: "Income by category" });
   const chart = (region: Locator) => region.locator("svg.recharts-surface");
 
-  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   /** A legend entry: the category's chip, then its amount, then its share. */
   const legendEntry = (name: string, cents: number, share: string) =>
     new RegExp(`${escape(name)}.*${escape(euros(cents))}.*${escape(share)}`);
@@ -326,6 +334,156 @@ test.describe("the category breakdowns (FR-051, FR-052)", () => {
     await expect(tooltip).toContainText(euros(4000));
     await page.mouse.down();
     await page.mouse.up();
+    await expect(page).toHaveURL(/#\/insights$/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("the budgets (FR-041, FR-042, SC-011)", () => {
+  const budgets = (page: Page) => main(page).getByRole("region", { name: "Budgets" });
+  const bar = (page: Page, name: string) =>
+    budgets(page).getByRole("listitem").filter({ hasText: name });
+  const overLimit = (page: Page) => budgets(page).locator('[data-state="over-limit"]');
+  /** A bar: the category's chip, then what was spent, then the limit. */
+  const barEntry = (name: string, spentCents: number, limitCents: number) =>
+    new RegExp(`${escape(name)}.*${escape(euros(spentCents))}.*${escape(euros(limitCents))}`);
+
+  test("with no budgets, says so and links to Budgets", async ({ page }) => {
+    await page.goto("/");
+    await openInsights(page);
+    await expect(budgets(page)).toContainText("No budgets set");
+    await expect(budgets(page).getByRole("listitem")).toHaveCount(0);
+    await expect(main(page).getByRole("alert")).toHaveCount(0);
+
+    await budgets(page).getByRole("link", { name: "Set a budget" }).click();
+
+    await expect(page).toHaveURL(/#\/budgets$/);
+    await expect(main(page).getByRole("heading", { name: "Budgets", level: 1 })).toBeVisible();
+  });
+
+  test("shows each budgeted category's spending in the month against its limit, by name", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "150.50", category: "Groceries" });
+    await addTransaction(page, { amount: "12.00", category: "Eating out", date: "2026-09-01" });
+    // Neither of these is budgeted, so neither has a bar.
+    await addTransaction(page, { amount: "999.00", category: "Housing" });
+    await addTransaction(page, { kind: "Income", amount: "500.00", category: "Salary" });
+    await putBudgets(page, { Groceries: 40000, "Eating out": 15000 });
+
+    await openInsights(page);
+
+    await expect(budgets(page).getByRole("listitem")).toHaveText([
+      barEntry("Eating out", 1200, 15000),
+      barEntry("Groceries", 15050, 40000),
+    ]);
+    await expect(budgets(page).getByRole("progressbar")).toHaveCount(2);
+    await expect(budgets(page)).not.toContainText("No budgets set");
+    await expect(overLimit(page)).toHaveCount(0);
+  });
+
+  test("shows a budgeted category without spending as 0.00 against its limit", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "10.00", category: "Groceries", date: "2026-08-20" });
+    await putBudgets(page, { Transport: 8000 });
+
+    await openInsights(page);
+
+    await expect(budgets(page).getByRole("listitem")).toHaveText([barEntry("Transport", 0, 8000)]);
+    await expect(overLimit(page)).toHaveCount(0);
+  });
+
+  test("is labelled with the month, which is that of the period's end (scenario 6)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "10.00", category: "Groceries", date: "2026-07-20" });
+    await addTransaction(page, { amount: "20.00", category: "Groceries", date: "2026-08-20" });
+    await addTransaction(page, { amount: "30.00", category: "Groceries", date: "2026-09-02" });
+    await putBudgets(page, { Groceries: 40000 });
+    await openInsights(page);
+    await expect(budgets(page).getByRole("heading")).toContainText("Sep 2026");
+    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 3000, 40000));
+
+    // July to September: September only.
+    await preset(page, "Last 3 months").click();
+    await expect(budgets(page).getByRole("heading")).toContainText("Sep 2026");
+    await expect(budgets(page).getByRole("listitem")).toHaveText([
+      barEntry("Groceries", 3000, 40000),
+    ]);
+
+    await preset(page, "Last month").click();
+    await expect(budgets(page).getByRole("heading")).toContainText("Aug 2026");
+    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 2000, 40000));
+
+    await preset(page, "This year").click();
+    await expect(budgets(page).getByRole("heading")).toContainText("Dec 2026");
+    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 0, 40000));
+  });
+
+  test("measures the whole end month, whatever day the period starts on (R-14)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "5.00", category: "Groceries", date: "2026-08-31" });
+    await addTransaction(page, { amount: "20.00", category: "Groceries", date: "2026-09-01" });
+    await addTransaction(page, { amount: "30.00", category: "Groceries", date: "2026-09-30" });
+    await addTransaction(page, { amount: "7.00", category: "Groceries", date: "2026-10-01" });
+    await putBudgets(page, { Groceries: 40000 });
+    await openInsights(page);
+
+    await choosePeriod(page, "2026-09-10", "2026-09-12");
+
+    await expect(budgets(page).getByRole("heading")).toContainText("Sep 2026");
+    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 5000, 40000));
+  });
+
+  test("marks an over-limit category by its state and its label, and no other (SC-011)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "430.00", category: "Groceries" });
+    await addTransaction(page, { amount: "80.00", category: "Transport" });
+    await addTransaction(page, { amount: "10.00", category: "Eating out" });
+    await putBudgets(page, { Groceries: 40000, Transport: 8000, "Eating out": 15000 });
+
+    await openInsights(page);
+
+    // Groceries is over its limit. Transport has spent exactly its limit, which is not over it.
+    await expect(overLimit(page)).toHaveCount(1);
+    await expect(overLimit(page)).toContainText("Groceries");
+    await expect(bar(page, "Groceries")).toHaveAttribute("data-state", "over-limit");
+    await expect(bar(page, "Groceries").getByText("Over limit")).toBeVisible();
+    for (const name of ["Transport", "Eating out"]) {
+      await expect(bar(page, name)).not.toHaveAttribute("data-state", "over-limit");
+      await expect(bar(page, name).getByText("Over limit")).toHaveCount(0);
+    }
+    await expect(budgets(page).getByText("Over limit")).toHaveCount(1);
+  });
+
+  test("a category is within its limit again in a month with less spending", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "430.00", category: "Groceries" });
+    await addTransaction(page, { amount: "40.00", category: "Groceries", date: "2026-08-10" });
+    await putBudgets(page, { Groceries: 40000 });
+    await openInsights(page);
+    await expect(overLimit(page)).toHaveCount(1);
+
+    await preset(page, "Last month").click();
+
+    await expect(overLimit(page)).toHaveCount(0);
+    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 4000, 40000));
+  });
+
+  test("a bar is plain information, with no click-through (FR-053)", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "40.00", category: "Groceries" });
+    await putBudgets(page, { Groceries: 40000 });
+    await openInsights(page);
+
+    await bar(page, "Groceries").click();
+
     await expect(page).toHaveURL(/#\/insights$/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });

@@ -45,4 +45,9 @@ describe("messages", () => {
     expect(notifications.importConfirmed(13, "Cash")).toBe("Added 13 transactions to Cash.");
     expect(notifications.importDiscarded("bank.csv")).toContain("bank.csv");
   });
+
+  test("says a budget limit must be above 0.00 (FR-040)", () => {
+    expect(Object.keys(messages)).toContain("budget-limit-invalid");
+    expect(messageFor({ code: "budget-limit-invalid" })).toContain("above 0.00");
+  });
 });
