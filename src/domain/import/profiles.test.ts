@@ -9,6 +9,7 @@ import {
   newProfileDraft,
   profileOf,
   saveProfile,
+  sortProfiles,
   withAmountMode,
   withHeaderRow,
   type ProfileDraft,
@@ -220,5 +221,14 @@ describe("the editor's draft (contracts/ui.md, profile editor)", () => {
       code: "profile-columns-incomplete",
       details: { roles: ["date"] },
     });
+  });
+});
+
+describe("sortProfiles (contracts/ui.md, list order)", () => {
+  test("lists profiles by name, ignoring case", () => {
+    const named = (name: string) => ({ ...myBank, id: name, name }) as MappingProfile;
+    expect(
+      sortProfiles([named("savings"), named("Giro"), named("broker")]).map((p) => p.name),
+    ).toEqual(["broker", "Giro", "savings"]);
   });
 });

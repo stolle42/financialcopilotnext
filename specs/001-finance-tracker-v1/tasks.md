@@ -493,7 +493,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     [unparsable rows](contracts/csv-import.md#unparsable-rows), to `src/ui/messages.ts`.
   - Tests: a `,`-decimal file previewed with a `.` profile shows unparsable amounts; each refusal
     appears in its place; and a saved profile can be edited.
-- [ ] T048 [US2] The Import screen in `src/ui/screens/import/ImportScreen.tsx`, test-first in
+- [X] T048 [US2] The Import screen in `src/ui/screens/import/ImportScreen.tsx`, test-first in
   `e2e/ui/import.spec.ts` ([import](contracts/ui.md#import), [outcomes](contracts/csv-import.md#outcomes)).
   - Add the route `#/import` and its sidebar entry.
   - Add the account select, with no default; the file picker or drop zone; and the profile select,

@@ -1,4 +1,5 @@
 import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { nameKey } from "@/domain/names";
 import {
   draftOfProfile,
   newProfileDraft,
@@ -37,6 +38,7 @@ import {
 import { Switch } from "@/ui/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/ui/components/ui/toggle-group";
 import { messageFor, type MessageCode } from "@/ui/messages";
+import { importChosenFile, NEW_PROFILE, useImportState } from "./importState";
 import { ProfilePreview, type SampleRecords } from "./ProfilePreview";
 
 /** Header text with a header row, a 0-based position without one (data-model.md). */
@@ -167,10 +169,14 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
     description: useId(),
     counterparty: useId(),
   };
+  const { importState, setImportState } = useImportState();
+  // Opened from an import: the file being imported is the sample, and saving continues the import.
+  const importing =
+    profile === null && importState.profileId === NEW_PROFILE ? importState.file : null;
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     profile ? draftOfProfile(profile) : newProfileDraft(),
   );
-  const [sampleBytes, setSampleBytes] = useState<Uint8Array | null>(null);
+  const [sampleBytes, setSampleBytes] = useState<Uint8Array | null>(importing?.bytes ?? null);
   const [errors, setErrors] = useState<Errors>({});
 
   // The sample is decoded with the draft's encoding, so a wrong encoding shows at once.
@@ -207,8 +213,11 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     const refusal = await saveProfile(store, draft);
-    if (!refusal) navigate("/import");
-    else if (refusal.code === "profile-name-empty" || refusal.code === "profile-name-taken") {
+    if (!refusal) {
+      const saved = store.getState().profiles.find((p) => nameKey(p.name) === nameKey(draft.name));
+      if (importing && saved) await importChosenFile(store, importState, saved, setImportState);
+      else navigate("/import");
+    } else if (refusal.code === "profile-name-empty" || refusal.code === "profile-name-taken") {
       setErrors({ name: refusal });
     } else setErrors({ form: refusal });
   }
@@ -228,16 +237,22 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
           />
         </LabelledField>
 
-        <Field>
-          <FieldLabel htmlFor={ids.sample}>Sample file</FieldLabel>
-          <Input
-            id={ids.sample}
-            type="file"
-            accept=".csv,text/csv,text/plain"
-            onChange={(event) => void chooseSample(event.target.files?.[0])}
-          />
-          <FieldDescription>The preview and the column lists read this file.</FieldDescription>
-        </Field>
+        {importing ? (
+          <p className="text-sm text-muted-foreground">
+            Previewing {importing.name}. Saving the profile imports this file.
+          </p>
+        ) : (
+          <Field>
+            <FieldLabel htmlFor={ids.sample}>Sample file</FieldLabel>
+            <Input
+              id={ids.sample}
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              onChange={(event) => void chooseSample(event.target.files?.[0])}
+            />
+            <FieldDescription>The preview and the column lists read this file.</FieldDescription>
+          </Field>
+        )}
 
         <Field orientation="horizontal">
           <Switch

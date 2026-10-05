@@ -21,7 +21,7 @@ async function descriptions(page: Page): Promise<string[]> {
 test("Transactions is the first entry in the sidebar", async ({ page }) => {
   await page.goto("/#/accounts");
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-  await expect(links).toHaveText(["Transactions", "Accounts"]);
+  await expect(links).toHaveText(["Transactions", "Import", "Accounts"]);
   await links.first().click();
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
 });

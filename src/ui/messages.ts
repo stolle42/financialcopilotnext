@@ -1,6 +1,6 @@
 import type { AccountRefusalCode } from "@/domain/accounts";
+import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
-import type { LayoutRefusalCode } from "@/domain/import/rows";
 import type { DraftFieldCode } from "@/domain/transactions";
 import type { Refusal, RefusalDetails, RowFailureCode } from "@/domain/types";
 import type { DecodingRefusal } from "@/files/csv";
@@ -24,7 +24,7 @@ export type MessageCode =
   | ProfileRefusalCode
   | RowFailureCode
   | DecodingRefusal["code"]
-  | LayoutRefusalCode;
+  | BatchRefusalCode;
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -97,6 +97,9 @@ export const messages: Record<MessageCode, Wording> = {
     "the profile cannot tell which one to read.",
   "import-no-transactions": "The file contains no transactions.",
   "import-file-unreadable": "The file could not be read. Choose it again.",
+  "import-account-missing": "Choose the account to import into.",
+  "import-batch-pending":
+    "An import is waiting for review. Confirm or discard it before you import another file.",
 };
 
 /** The plain-language message for a refusal or failure (FR-067). */

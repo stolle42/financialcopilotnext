@@ -1,5 +1,5 @@
 import type { Changes, Context } from "../changes";
-import { isNameTaken, nameKey } from "../names";
+import { compareNames, isNameTaken, nameKey } from "../names";
 import type {
   AmountColumns,
   DateFormat,
@@ -142,4 +142,9 @@ export function saveProfile(
 export function deleteProfile(state: State, id: string): Changes {
   if (!state.profiles.some((p) => p.id === id)) throw new Error(`No profile ${id}`);
   return { profiles: { delete: [id] } };
+}
+
+/** Profiles by name, ignoring case (contracts/ui.md, list order). */
+export function sortProfiles(profiles: readonly MappingProfile[]): MappingProfile[] {
+  return [...profiles].sort((a, b) => compareNames(a.name, b.name));
 }
