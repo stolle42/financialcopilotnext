@@ -621,13 +621,13 @@ post-push check.
     months; and transfers left out ([SC-004](spec.md#sc-004)).
 - [X] T059 [US4] Budget actions in `src/store/budgets.ts`, test-first in `src/store/budgets.test.ts`:
   `setLimit` and `removeLimit`, through `run`. Test: both survive reopening the database.
-- [ ] T060 [P] [US4] The Budgets screen in `src/ui/screens/budgets/BudgetsScreen.tsx`, test-first in
+- [X] T060 [P] [US4] The Budgets screen in `src/ui/screens/budgets/BudgetsScreen.tsx`, test-first in
   `e2e/ui/budgets.spec.ts` ([budgets](contracts/ui.md#budgets)). Add the route `#/budgets` and its
   sidebar entry. Each budgetable category gets a row with its chip, an `AmountField` limit saved on
   Enter or on blur, and **Remove** once a limit is set. Add `budget-limit-invalid` to
   `src/ui/messages.ts`. Tests: [User Story 4](spec.md#user-story-4) scenario 4 (income and protected
   categories are absent); saving both ways; 0.00 refused under the field; and Remove.
-- [ ] T061 [P] [US4] The budget section of Insights in `src/ui/screens/insights/BudgetSection.tsx`,
+- [X] T061 [P] [US4] The budget section of Insights in `src/ui/screens/insights/BudgetSection.tsx`,
   test-first in `e2e/ui/insights.spec.ts` (section 3 of [insights](contracts/ui.md#insights)). It
   shows one bar per budgeted category for `budgetMonth(period)`, labelled with that month. An
   over-limit bar uses the danger colour, an alert icon, the label "Over limit" and a

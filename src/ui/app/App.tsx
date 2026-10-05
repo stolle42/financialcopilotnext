@@ -6,6 +6,7 @@ import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
 import { InsightsScreen } from "@/ui/screens/insights/InsightsScreen";
+import { BudgetsScreen } from "@/ui/screens/budgets/BudgetsScreen";
 import { ImportScreen } from "@/ui/screens/import/ImportScreen";
 import { emptyImport, ImportStateContext, type ImportState } from "@/ui/screens/import/importState";
 import { ProfileEditor } from "@/ui/screens/import/ProfileEditor";
@@ -20,6 +21,7 @@ const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = 
   { route: "transactions", label: "Transactions", href: "#/" },
   { route: "insights", label: "Insights", href: "#/insights" },
   { route: "import", label: "Import", href: "#/import" },
+  { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "accounts", label: "Accounts", href: "#/accounts" },
 ];
 
@@ -37,6 +39,8 @@ function screenFor(route: Route): ReactNode {
       return <ProfileEditor key="new" profileId={null} />;
     case "profile":
       return <ProfileEditor key={route.id} profileId={route.id} />;
+    case "budgets":
+      return <BudgetsScreen />;
     case "accounts":
       return <AccountsScreen />;
     default:
