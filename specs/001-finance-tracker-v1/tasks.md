@@ -670,9 +670,9 @@ post-push check.
   - Also extend `e2e/ui/transaction-form.spec.ts`: editing a reconciliation entry shows
     "Unaccounted" as the value, never as an option, and saves
     ([transaction form](contracts/ui.md#transaction-form)).
-- [ ] T066 [P] [US5] The journey `e2e/us5-reconcile.spec.ts`, as
+- [X] T066 [P] [US5] The journey `e2e/us5-reconcile.spec.ts`, as
   [quickstart.md](quickstart.md#us5-reconcile) describes: scenarios 1–4.
-- [ ] T067 [P] [US5] "Unaccounted" in Insights, added to `e2e/us3-insights.spec.ts`. These are
+- [X] T067 [P] [US5] "Unaccounted" in Insights, added to `e2e/us3-insights.spec.ts`. These are
   [User Story 3](spec.md#user-story-3) scenarios 3 and 4, which become testable once reconciliation
   exists. Reconcile one account down and another up through Accounts. Then check that each
   "Unaccounted" entry appears in its side's breakdown with the hatched fill, the "unknown" marker and
