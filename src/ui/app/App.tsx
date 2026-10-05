@@ -5,6 +5,7 @@ import type { Transaction } from "@/domain/types";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
+import { InsightsScreen } from "@/ui/screens/insights/InsightsScreen";
 import { ImportScreen } from "@/ui/screens/import/ImportScreen";
 import { emptyImport, ImportStateContext, type ImportState } from "@/ui/screens/import/importState";
 import { ProfileEditor } from "@/ui/screens/import/ProfileEditor";
@@ -17,6 +18,7 @@ import { useRoute, type Route } from "./router";
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
   { route: "transactions", label: "Transactions", href: "#/" },
+  { route: "insights", label: "Insights", href: "#/insights" },
   { route: "import", label: "Import", href: "#/import" },
   { route: "accounts", label: "Accounts", href: "#/accounts" },
 ];
@@ -25,6 +27,8 @@ function screenFor(route: Route): ReactNode {
   switch (route.name) {
     case "transactions":
       return <TransactionsScreen />;
+    case "insights":
+      return <InsightsScreen />;
     case "import":
       return <ImportScreen />;
     case "review":

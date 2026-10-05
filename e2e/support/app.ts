@@ -79,6 +79,30 @@ export function storedTransactions(page: Page): Promise<Transaction[]> {
   return storedRecords<Transaction>(page, "transactions");
 }
 
+/**
+ * Writes records straight into one store of the app's database, for data that no screen can enter
+ * yet. The app reads storage only at start-up, so the page must reload to show them.
+ */
+export function putRecords(page: Page, store: string, records: unknown[]): Promise<void> {
+  return page.evaluate(
+    ([storeName, items]) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("financial-copilot");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const transaction = open.result.transaction(storeName, "readwrite");
+          for (const item of items) transaction.objectStore(storeName).put(item);
+          transaction.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    [store, records] as const,
+  );
+}
+
 /** The path of a bank file in e2e/fixtures (quickstart.md, US2). */
 export function fixture(name: string): string {
   return fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
