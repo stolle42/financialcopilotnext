@@ -657,7 +657,7 @@ post-push check.
   [FR-005](spec.md#fr-005). It finds the side's "Unaccounted" by role, dates the entry `today`,
   leaves `settings` unchanged ([FR-006](spec.md#fr-006)), and refuses `reconcile-already-matches`.
   Tests: [User Story 5](spec.md#user-story-5) scenarios 1–4, and negative balances.
-- [ ] T064 [US5] The reconcile action in `src/store/accounts.ts`, test-first in
+- [X] T064 [US5] The reconcile action in `src/store/accounts.ts`, test-first in
   `src/store/accounts.test.ts`: `reconcile`, through `run`. Test: the booked transaction survives
   reopening the database.
 - [ ] T065 [US5] The reconcile dialog in `src/ui/screens/accounts/ReconcileDialog.tsx`, with a
