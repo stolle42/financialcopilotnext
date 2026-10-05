@@ -700,7 +700,7 @@ post-push check.
     budget ([FR-034](spec.md#fr-034), [state transitions](data-model.md#state-transitions),
     [R-12](research.md#r-12) item 4).
   - Tests: [User Story 6](spec.md#user-story-6) scenarios 3–5, and renaming a protected category.
-- [ ] T069 [US6] Category actions in `src/store/categories.ts`, test-first in
+- [X] T069 [US6] Category actions in `src/store/categories.ts`, test-first in
   `src/store/categories.test.ts`: create, rename, recolour and delete, through `run`. Tests: a
   deletion changes the transactions, the budget and the pending batch in one storage transaction,
   and a failing deletion changes none of them ([R-06](research.md#r-06)).
