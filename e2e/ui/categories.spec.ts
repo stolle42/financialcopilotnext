@@ -23,11 +23,22 @@ const rows = (page: Page) => panel(page).getByRole("listitem");
 const row = (page: Page, name: string) =>
   rows(page).filter({ has: page.getByText(name, { exact: true }) });
 
+/**
+ * Selects a side's tab and waits until its panel is the only one. The panel it replaces stays
+ * mounted, inert, until its exit transition ends, and it holds rows of the same names, such as
+ * "Uncategorised".
+ */
+async function selectTab(page: Page, tab: "Expenses" | "Income") {
+  await main(page).getByRole("tab", { name: tab }).click();
+  await expect(main(page).getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
+  await expect(main(page).getByRole("tabpanel", { name: tab })).toBeVisible();
+  await expect(main(page).getByRole("tabpanel")).toHaveCount(1);
+}
+
 async function openCategories(page: Page, tab: "Expenses" | "Income" = "Expenses") {
   await page.goto("/#/categories");
   await expect(main(page).getByRole("heading", { name: "Categories", level: 1 })).toBeVisible();
-  if (tab === "Income") await main(page).getByRole("tab", { name: "Income" }).click();
-  await expect(main(page).getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
+  await selectTab(page, tab);
 }
 
 async function storedCategory(page: Page, side: Side, name: string) {
@@ -115,7 +126,7 @@ test("each side has its own tab, listed by name with the protected ones last (sc
     ].map((name) => new RegExp(`^${name}`)),
   );
 
-  await main(page).getByRole("tab", { name: "Income" }).click();
+  await selectTab(page, "Income");
 
   // FR-030: the two sides never share one list.
   await expect(rows(page)).toHaveText(
@@ -151,7 +162,7 @@ test.describe("New category", () => {
     await expect(dialog).toHaveCount(0);
 
     // The income seed leaves the first palette colour free.
-    await main(page).getByRole("tab", { name: "Income" }).click();
+    await selectTab(page, "Income");
     await createCategory(page, "Refunds");
     expect(await storedCategory(page, "income", "Refunds")).toMatchObject({ color: "#40c057" });
   });
@@ -171,11 +182,11 @@ test.describe("New category", () => {
   }) => {
     await openCategories(page);
     await createCategory(page, "Refunds");
-    await main(page).getByRole("tab", { name: "Income" }).click();
+    await selectTab(page, "Income");
     await createCategory(page, "Refunds");
     await expect(row(page, "Refunds")).toBeVisible();
 
-    await main(page).getByRole("tab", { name: "Expenses" }).click();
+    await selectTab(page, "Expenses");
     const dialog = await newCategory(page, " refunds");
     await dialog.getByRole("button", { name: "Create category" }).click();
 

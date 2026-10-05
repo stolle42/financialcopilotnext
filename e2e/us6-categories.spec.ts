@@ -23,10 +23,17 @@ const row = (page: Page, name: string) =>
 const ledgerRows = (page: Page) =>
   page.getByRole("list", { name: "Transactions" }).getByRole("listitem");
 
+/**
+ * Opens Categories on a side's tab and waits until its panel is the only one. The panel it
+ * replaces stays mounted, inert, until its exit transition ends, and it holds rows of the same
+ * names, such as "Uncategorised".
+ */
 async function openCategories(page: Page, tab: "Expenses" | "Income") {
   await page.goto("/#/categories");
   await main(page).getByRole("tab", { name: tab }).click();
   await expect(main(page).getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
+  await expect(main(page).getByRole("tabpanel", { name: tab })).toBeVisible();
+  await expect(main(page).getByRole("tabpanel")).toHaveCount(1);
 }
 
 /** The colour of the swatch in the category chip that shows `name` within `scope` (FR-065). */
