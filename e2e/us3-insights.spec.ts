@@ -164,8 +164,10 @@ test("shows where the money went over a chosen period, leaving out transfers", a
   await expect(spending(page)).toContainText("No spending in this period");
   await expect(main(page).getByRole("alert")).toHaveCount(0);
 
-  // SC-004: recording one more transfer leaves every total as it was.
+  // SC-004: recording one more transfer leaves every total as it was. Opening the URL the page
+  // already has is no navigation, so Insights is left first and opened afresh, on this month.
   await enter(page, { kind: "Transfer", amount: "75.00", date: "2026-09-15", account: "Giro" });
+  await page.goto("/#/");
   await openInsights(page);
   await expectBreakdowns(page, "2026-09-01", "2026-09-30");
   await choosePeriod(page, "2026-09-15", "2026-09-15");

@@ -587,7 +587,7 @@ visible ([User Story 3](spec.md#user-story-3)).
   [FR-052](spec.md#fr-052)). Each section has its own empty state. Tests: legend order and totals,
   "Uncategorised" as its own entry, and the empty states ([User Story 3](spec.md#user-story-3)
   scenarios 5 and 6).
-- [ ] T057 [US3] The journey `e2e/us3-insights.spec.ts`. With `setToday`, it enters about three
+- [X] T057 [US3] The journey `e2e/us3-insights.spec.ts`. With `setToday`, it enters about three
   months of expenses, incomes and transfers through the transaction form. It then checks scenarios
   1, 2, 5, 6 and 7 against the sums of the entered amounts, and checks that recording one more
   transfer changes no total ([SC-004](spec.md#sc-004)). Scenarios 3 and 4 need reconciliation
