@@ -531,7 +531,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   that states N ([FR-027](spec.md#fr-027)). Once confirmed, a notification reports what was added and
   Transactions opens. Add the notification's wording to `src/ui/messages.ts`. Tests: scenarios 9
   and 10.
-- [ ] T052 [US2] The journey `e2e/us2-import.spec.ts`, as
+- [X] T052 [US2] The journey `e2e/us2-import.spec.ts`, as
   [quickstart.md](quickstart.md#us2-csv-import) describes. It runs scenarios 1–16 with the fixtures
   of T040. It also checks that re-importing August after confirming it adds zero transactions with
   the review defaults ([SC-003](spec.md#sc-003)), and that a pending batch keeps its review progress

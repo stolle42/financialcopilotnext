@@ -59,10 +59,16 @@ export async function importWithProfile(page: Page, choice: ImportChoice) {
   await expect(page).toHaveURL(/#\/import\/review$/);
 }
 
-/** Saves the profile of debit-credit.csv: `,`, `.` decimals, MM/DD/YYYY, UTF-8, no counterparty. */
+/** Saves the profile of debit-credit.csv from the editor, with the file as its sample. */
 export async function saveDebitCreditProfile(page: Page) {
   await page.goto("/#/import/profiles/new");
   await page.getByLabel("Sample file").setInputFiles(fixture("debit-credit.csv"));
+  await mapDebitCredit(page);
+  await expect(page).toHaveURL(/#\/import$/);
+}
+
+/** Maps debit-credit.csv in the open editor and saves: `.` decimals, MM/DD/YYYY, no counterparty. */
+export async function mapDebitCredit(page: Page) {
   const editor = page.getByRole("main");
   await editor.getByLabel("Name", { exact: true }).fill("Card bank");
   await editor.getByRole("button", { name: "Separate debit and credit columns" }).click();
@@ -73,5 +79,4 @@ export async function saveDebitCreditProfile(page: Page) {
   await choose(page, editor, "Date format", "MM/DD/YYYY (09/03/2026)");
   await choose(page, editor, "Decimal separator", "Point (1,250.00)");
   await editor.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/#\/import$/);
 }
