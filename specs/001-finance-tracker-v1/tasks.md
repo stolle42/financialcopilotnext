@@ -550,7 +550,7 @@ visible ([User Story 3](spec.md#user-story-3)).
 **Independent Test**: the story's [Independent Test](spec.md#user-story-3), automated as
 `e2e/us3-insights.spec.ts` (T057, completed by T067).
 
-- [ ] T053 [US3] Periods in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`.
+- [X] T053 [US3] Periods in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`.
   `periodPreset(name, today)` covers the five presets of [insights](contracts/ui.md#insights).
   `daysInPeriod(period)` counts both ends ([R-14](research.md#r-14)). Add the month helpers that the
   spending line needs. Tests run across month ends, year ends and leap days.
