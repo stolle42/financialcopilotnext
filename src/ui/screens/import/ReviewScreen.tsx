@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { reviewView } from "@/domain/import/groups";
 import type { ParsedRow, PendingBatch, Refusal, UnparsableRow } from "@/domain/types";
-import { includeDuplicate } from "@/store/import";
+import { confirmBatch, discardBatch, includeDuplicate } from "@/store/import";
 import { useStore, useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
+import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Button } from "@/ui/components/ui/button";
 import {
   Sheet,
@@ -13,7 +14,8 @@ import {
   SheetTitle,
 } from "@/ui/components/ui/sheet";
 import { Switch } from "@/ui/components/ui/switch";
-import { messageFor, type MessageCode } from "@/ui/messages";
+import { toast } from "@/ui/components/ui/toast";
+import { messageFor, notifications, type MessageCode } from "@/ui/messages";
 import { ReviewGroups } from "./ReviewGroups";
 import { RowSummary } from "./RowSummary";
 
@@ -103,6 +105,66 @@ function UnparsableDrawer({
   );
 }
 
+/** Discard, or confirm the rows under review into the ledger, each after a confirmation (FR-027). */
+function ReviewFooter({
+  batch,
+  count,
+  accountName,
+  onRefusal,
+}: {
+  batch: PendingBatch;
+  count: number;
+  accountName: string;
+  onRefusal: (refusal: Refusal<MessageCode> | null) => void;
+}) {
+  const store = useStoreApi();
+  const [asking, setAsking] = useState<"confirm" | "discard" | null>(null);
+  const added = plural(count, "transaction");
+
+  async function confirm() {
+    setAsking(null);
+    const refusal = await confirmBatch(store);
+    onRefusal(refusal);
+    if (refusal) return;
+    toast.add({ title: notifications.importConfirmed(count, accountName), type: "success" });
+    navigate("/");
+  }
+
+  async function discard() {
+    setAsking(null);
+    const refusal = await discardBatch(store);
+    onRefusal(refusal);
+    if (refusal) return;
+    toast.add({ title: notifications.importDiscarded(batch.fileName), type: "success" });
+    navigate("/import");
+  }
+
+  return (
+    <section aria-label="Finish review" className="flex items-center justify-between border-t pt-4">
+      <Button variant="outline" onClick={() => setAsking("discard")}>
+        Discard
+      </Button>
+      <Button onClick={() => setAsking("confirm")}>Confirm {added}</Button>
+      <ConfirmDialog
+        open={asking === "confirm"}
+        title={`Add ${added} to ${accountName}?`}
+        description="They enter the ledger with the categories and transfers shown here. A confirmed import cannot be undone as a whole."
+        confirmLabel={`Add ${added}`}
+        onConfirm={() => void confirm()}
+        onCancel={() => setAsking(null)}
+      />
+      <ConfirmDialog
+        open={asking === "discard"}
+        title="Discard this import?"
+        description="None of its rows enter the ledger, and the choices made in review are lost."
+        confirmLabel="Discard import"
+        onConfirm={() => void discard()}
+        onCancel={() => setAsking(null)}
+      />
+    </section>
+  );
+}
+
 function BatchReview({ batch }: { batch: PendingBatch }) {
   const account = useStore((state) => state.accounts.find((a) => a.id === batch.accountId));
   const view = useMemo(() => reviewView(batch), [batch]);
@@ -137,6 +199,12 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
         </p>
       )}
       <ReviewGroups view={view} batchAccountId={batch.accountId} onRefusal={setRefusal} />
+      <ReviewFooter
+        batch={batch}
+        count={counts.review}
+        accountName={account?.name ?? ""}
+        onRefusal={setRefusal}
+      />
       <DuplicatesDrawer
         rows={view.duplicates}
         open={drawer === "duplicates"}

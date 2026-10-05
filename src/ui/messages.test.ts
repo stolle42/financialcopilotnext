@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { messageFor, messages, type MessageCode } from "./messages";
+import { messageFor, messages, notifications, type MessageCode } from "./messages";
 
 describe("messages", () => {
   test.each(Object.keys(messages) as MessageCode[])(
@@ -38,5 +38,11 @@ describe("messages", () => {
         details: { cell: "32.08.2026", format: "DD.MM.YYYY" },
       }),
     ).toBe('"32.08.2026" is not a date in the format DD.MM.YYYY.');
+  });
+
+  test("words the import notifications with the count, in singular and plural", () => {
+    expect(notifications.importConfirmed(1, "Cash")).toBe("Added 1 transaction to Cash.");
+    expect(notifications.importConfirmed(13, "Cash")).toBe("Added 13 transactions to Cash.");
+    expect(notifications.importDiscarded("bank.csv")).toContain("bank.csv");
   });
 });

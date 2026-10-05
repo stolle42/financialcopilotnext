@@ -102,6 +102,16 @@ export const messages: Record<MessageCode, Wording> = {
     "An import is waiting for review. Confirm or discard it before you import another file.",
 };
 
+const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
+
+/** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
+export const notifications = {
+  importConfirmed: (count: number, accountName: string) =>
+    `Added ${transactions(count)} to ${accountName}.`,
+  importDiscarded: (fileName: string) =>
+    `Discarded the import of ${fileName}. Nothing entered the ledger.`,
+};
+
 /** The plain-language message for a refusal or failure (FR-067). */
 export function messageFor(refusal: Refusal<MessageCode>): string {
   const wording = messages[refusal.code];

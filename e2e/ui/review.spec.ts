@@ -1,9 +1,15 @@
 import type { Locator, Page } from "@playwright/test";
-import type { Account, Category, ParsedRow, PendingBatch } from "../../src/domain/types";
-import { messageFor } from "../../src/ui/messages";
+import type {
+  Account,
+  Category,
+  ParsedRow,
+  PendingBatch,
+  Transaction,
+} from "../../src/domain/types";
+import { messageFor, notifications } from "../../src/ui/messages";
 import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
 import { importWithProfile, saveDebitCreditProfile, saveMyBankProfile } from "../support/import";
-import { expect, setToday, test } from "../support/test";
+import { euros, expect, setToday, test } from "../support/test";
 
 // contracts/ui.md, review; User Story 2 scenarios 4–11 and 16; FR-022, FR-025, FR-028.
 
@@ -216,7 +222,7 @@ test("marks a payment to the user's own credit card as a transfer, and back (sce
   // The counter-account select lists every account except the batch account.
   await control.getByLabel("Transfer account", { exact: true }).click();
   await expect(page.getByRole("option", { name: "Cash", exact: true })).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  await page.getByRole("option", { name: "Credit card", exact: true }).click();
 
   // Switching back restores the side's Uncategorised.
   await control.getByRole("switch", { name: "Transfer" }).click();
@@ -241,4 +247,57 @@ test("assignments survive a reload (FR-022)", async ({ page }) => {
   await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
     "Salary",
   );
+});
+
+const footer = (page: Page) => page.getByRole("region", { name: "Finish review" });
+
+test("confirming states the count, books the rows as reviewed and opens Transactions (scenario 9)", async ({
+  page,
+}) => {
+  await importAugust(page);
+  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+  await choose(page, assignment(page, "row 2"), "Category", "Salary");
+  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
+    "Salary",
+  );
+
+  // Cancelling the confirmation keeps the batch.
+  await footer(page).getByRole("button", { name: "Confirm 13 transactions" }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toContainText("13 transactions");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  expect(await storedRecords(page, "pendingBatch")).toHaveLength(1);
+
+  await footer(page).getByRole("button", { name: "Confirm 13 transactions" }).click();
+  await dialog.getByRole("button", { name: "Add 13 transactions" }).click();
+
+  await expect(page).toHaveURL(/#\/$/);
+  await expect(page.getByText(notifications.importConfirmed(13, "Cash"))).toBeVisible();
+  expect(await storedRecords(page, "pendingBatch")).toEqual([]);
+  const transactions = await storedRecords<Transaction>(page, "transactions");
+  expect(transactions).toHaveLength(13);
+  const groceries = await categoryId(page, "expense", "Groceries");
+  const shop = transactions.filter((t) => t.kind === "expense" && t.categoryId === groceries);
+  expect(shop.map((t) => t.amountCents).sort()).toEqual([1299, 3000, 4520]);
+  const untouched = transactions.find((t) => t.description === "Cash withdrawal");
+  expect(untouched).toMatchObject({
+    kind: "expense",
+    categoryId: await categoryId(page, "expense", "Uncategorised"),
+  });
+
+  // Balances update: Cash now holds the net of the 13 rows (FR-002).
+  await page.goto("/#/accounts");
+  await expect(page.getByRole("row").filter({ hasText: "Cash" })).toContainText(euros(199141));
+});
+
+test("discarding asks first, then books nothing (scenario 10)", async ({ page }) => {
+  await importAugust(page);
+  await footer(page).getByRole("button", { name: "Discard" }).click();
+  const dialog = page.getByRole("alertdialog");
+  await dialog.getByRole("button", { name: "Discard import" }).click();
+
+  await expect(page).toHaveURL(/#\/import$/);
+  await expect(page.getByText(notifications.importDiscarded("mybank-2026-08.csv"))).toBeVisible();
+  expect(await storedRecords(page, "pendingBatch")).toEqual([]);
+  expect(await storedRecords(page, "transactions")).toEqual([]);
 });

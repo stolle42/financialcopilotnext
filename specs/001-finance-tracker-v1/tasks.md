@@ -526,7 +526,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   - The control reuses `CategorySelect` and adds a **Transfer** switch with a counter-account select.
   - Every change is saved at once.
   - Tests: scenarios 4–7 and 16, and assignments surviving a reload ([FR-022](spec.md#fr-022)).
-- [ ] T051 [US2] The review footer in `src/ui/screens/import/ReviewScreen.tsx`, test-first in
+- [X] T051 [US2] The review footer in `src/ui/screens/import/ReviewScreen.tsx`, test-first in
   `e2e/ui/review.spec.ts`. **Discard** asks for confirmation. **Confirm N transactions** opens a modal
   that states N ([FR-027](spec.md#fr-027)). Once confirmed, a notification reports what was added and
   Transactions opens. Add the notification's wording to `src/ui/messages.ts`. Tests: scenarios 9
