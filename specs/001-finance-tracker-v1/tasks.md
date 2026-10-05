@@ -744,7 +744,7 @@ post-push check.
     or `backup-damaged`, the last with structured details (the record and field at fault) for the UI
     to word.
   - Tests: a round trip is deep-equal; each refusal; and a transaction without a date is named.
-- [ ] T073 [P] [US7] Replacing all data in `src/persistence/db.ts`, test-first in
+- [X] T073 [P] [US7] Replacing all data in `src/persistence/db.ts`, test-first in
   `src/persistence/db.test.ts`. `replaceAll(db, state)` clears every store and writes every record in
   one transaction ([loading](contracts/backup-file.md#loading-fr-071-fr-072) step 4). Test: a failing
   write leaves the old data.
