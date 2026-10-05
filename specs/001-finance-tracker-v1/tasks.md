@@ -690,7 +690,7 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-6), automated as
 `e2e/us6-categories.spec.ts` (T071).
 
-- [ ] T068 [US6] Category management in `src/domain/categories.ts`, test-first in
+- [X] T068 [US6] Category management in `src/domain/categories.ts`, test-first in
   `src/domain/categories.test.ts`.
   - `createCategory`, `renameCategory` and `recolourCategory` refuse `category-name-empty`, and
     `category-name-taken` within a side ([FR-032](spec.md#fr-032)). Colours are `#rrggbb`.
