@@ -468,7 +468,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     a batch whose parsed rows carry their duplicate flag, `included = !duplicate`, and the side's
     "Uncategorised" ([pending row](data-model.md#pending-row), [FR-029](spec.md#fr-029)).
   - Depends on T038, T041.
-- [ ] T046 [US2] Import actions in `src/store/import.ts`, test-first in `src/store/import.test.ts`.
+- [X] T046 [US2] Import actions in `src/store/import.ts`, test-first in `src/store/import.test.ts`.
   - Actions: `saveProfile` and `deleteProfile`; `importFile({ accountId, profile, fileName, bytes })`,
     which runs `canStartImport` before decoding, then `decodeFile`, `tokenise` and `createBatch`, and
     writes with the guard of T044 (`run` passes the option through); the review edits of T042, each
