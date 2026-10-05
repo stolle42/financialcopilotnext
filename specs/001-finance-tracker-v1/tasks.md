@@ -704,7 +704,7 @@ post-push check.
   `src/store/categories.test.ts`: create, rename, recolour and delete, through `run`. Tests: a
   deletion changes the transactions, the budget and the pending batch in one storage transaction,
   and a failing deletion changes none of them ([R-06](research.md#r-06)).
-- [ ] T070 [US6] The Categories screen in `src/ui/screens/categories/CategoriesScreen.tsx`, with the
+- [X] T070 [US6] The Categories screen in `src/ui/screens/categories/CategoriesScreen.tsx`, with the
   palette picker `src/ui/components/ColourPicker.tsx` holding the 18 swatches of
   [shared patterns](contracts/ui.md#shared-patterns), test-first in `e2e/ui/categories.spec.ts`
   ([categories](contracts/ui.md#categories)).
