@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { formatAmount, formatDate, formatMonth, localeDecimalSeparator } from "./format";
+import {
+  formatAmount,
+  formatDate,
+  formatMonth,
+  formatShare,
+  localeDecimalSeparator,
+} from "./format";
 
 describe("formatAmount", () => {
   test("shows euros with two decimals in the browser's number format (FR-060)", () => {
@@ -36,6 +42,19 @@ describe("formatMonth", () => {
     });
     expect(formatMonth("2026-09")).toBe(utcMonth.format(Date.UTC(2026, 8, 1)));
     expect(formatMonth("2026-01")).toBe(utcMonth.format(Date.UTC(2026, 0, 1)));
+  });
+});
+
+describe("formatShare", () => {
+  test("shows a share as a percentage with at most one decimal", () => {
+    const percent = new Intl.NumberFormat(undefined, {
+      style: "percent",
+      maximumFractionDigits: 1,
+    });
+    expect(formatShare(0.25)).toBe(percent.format(0.25));
+    expect(formatShare(1 / 3)).toBe(percent.format(0.333));
+    expect(formatShare(1)).toBe(percent.format(1));
+    expect(formatShare(1 / 3)).toMatch(/33\D3\s?%/);
   });
 });
 
