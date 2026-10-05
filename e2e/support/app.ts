@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "@playwright/test";
-import type { Transaction } from "../../src/domain/types";
+import type { Budget, Category, Transaction } from "../../src/domain/types";
 import { expect } from "./test";
 
 // Steps that several specs take through the app, the way a user would.
@@ -101,6 +101,52 @@ export function putRecords(page: Page, store: string, records: unknown[]): Promi
       }),
     [store, records] as const,
   );
+}
+
+/** The records of the budgets store: one limit per expense category (data-model.md). */
+export function storedBudgets(page: Page): Promise<Budget[]> {
+  return storedRecords<Budget>(page, "budgets");
+}
+
+/**
+ * Writes budget limits straight into storage, `limits` being cents by expense category name, and
+ * reloads so the app shows them. Insights tests use it so they do not depend on the Budgets screen.
+ */
+export async function putBudgets(page: Page, limits: Record<string, number>): Promise<void> {
+  const categories = await storedRecords<Category>(page, "categories");
+  const budgets = Object.entries(limits).map(([name, limitCents]) => {
+    const category = categories.find((c) => c.side === "expense" && c.name === name);
+    if (!category) throw new Error(`No expense category ${name}`);
+    return { categoryId: category.id, limitCents };
+  });
+  await putRecords(page, "budgets", budgets);
+  await page.reload();
+}
+
+/** The row of the Budgets screen for the expense category `name`. */
+export function budgetRow(page: Page, name: string): Locator {
+  return page.getByRole("main").getByRole("listitem").filter({ hasText: name });
+}
+
+/** Types a monthly limit on the Budgets screen, saves it with Enter and waits for the write. */
+export async function setBudgetLimit(page: Page, category: string, limit: string): Promise<void> {
+  await page.goto("/#/budgets");
+  const field = budgetRow(page, category).getByLabel("Monthly limit");
+  await field.fill(limit);
+  await field.press("Enter");
+  const categories = await storedRecords<Category>(page, "categories");
+  const id = categories.find((c) => c.side === "expense" && c.name === category)?.id;
+  const cents = Math.round(Number(limit) * 100);
+  await expect
+    .poll(async () => (await storedBudgets(page)).find((b) => b.categoryId === id)?.limitCents)
+    .toBe(cents);
+}
+
+/** Removes a category's limit on the Budgets screen. */
+export async function removeBudgetLimit(page: Page, category: string): Promise<void> {
+  await page.goto("/#/budgets");
+  await budgetRow(page, category).getByRole("button", { name: "Remove" }).click();
+  await expect(budgetRow(page, category).getByLabel("Monthly limit")).toHaveValue("");
 }
 
 /** The path of a bank file in e2e/fixtures (quickstart.md, US2). */
