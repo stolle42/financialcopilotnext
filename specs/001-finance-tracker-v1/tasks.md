@@ -756,7 +756,7 @@ post-push check.
   - Tests: an invalid file leaves the data unchanged ([FR-072](spec.md#fr-072)), and a restore
     followed by a save gives the same `data` ([SC-014](spec.md#sc-014)).
   - Depends on T072, T073.
-- [ ] T075 [US7] The Backup screen in `src/ui/screens/backup/BackupScreen.tsx`, test-first in
+- [X] T075 [US7] The Backup screen in `src/ui/screens/backup/BackupScreen.tsx`, test-first in
   `e2e/ui/backup.spec.ts` ([backup](contracts/ui.md#backup)).
   - Add the route `#/backup` and its sidebar entry.
   - **Save backup** downloads the file.

@@ -10,6 +10,11 @@ import {
 // The backup file, format version 1 (contracts/backup-file.md, R-13). The schemas check the shape
 // of every part; the rules between records are the domain's invariants (loading step 4).
 
+// Zod's fast path compiles each schema with `new Function`, which the Content-Security-Policy
+// blocks (R-19). Even a probe that is caught is reported as a violation, so it is switched off
+// before the first schema is built. The parser is plain and fast enough for one file at a time.
+z.config({ jitless: true });
+
 const APP = "financial-copilot";
 const FORMAT_VERSION = 1;
 
