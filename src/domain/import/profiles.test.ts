@@ -3,7 +3,16 @@ import { protectedCategory } from "../categories";
 import { seedState } from "../seed";
 import { applyValid, changesOf, idCounter, testContext } from "../testing";
 import type { MappingProfile, State } from "../types";
-import { deleteProfile, saveProfile, type ProfileDraft } from "./profiles";
+import {
+  deleteProfile,
+  draftOfProfile,
+  newProfileDraft,
+  profileOf,
+  saveProfile,
+  withAmountMode,
+  withHeaderRow,
+  type ProfileDraft,
+} from "./profiles";
 
 const myBank: ProfileDraft = {
   id: null,
@@ -156,5 +165,60 @@ describe("deleteProfile (FR-021)", () => {
   test("throws for a profile that does not exist", () => {
     const state = seedState(idCounter());
     expect(() => deleteProfile(state, "missing")).toThrow();
+  });
+});
+
+describe("the editor's draft (contracts/ui.md, profile editor)", () => {
+  test("starts with a header row, one signed column, nothing assigned, and UTF-8", () => {
+    expect(newProfileDraft()).toEqual({
+      id: null,
+      name: "",
+      hasHeaderRow: true,
+      dateColumn: null,
+      descriptionColumn: null,
+      counterpartyColumn: null,
+      amount: { mode: "signed", column: null, invertSign: false },
+      dateFormat: "DD.MM.YYYY",
+      decimalSeparator: ",",
+      encoding: "UTF-8",
+    });
+  });
+
+  test("opens a saved profile for editing as it is", () => {
+    const { profile } = withProfileAndBatch();
+    expect(draftOfProfile(profile)).toEqual(profile);
+  });
+
+  test("resets every column when the header switch changes, keeping the other settings", () => {
+    const { profile } = withProfileAndBatch();
+    const draft = withHeaderRow(draftOfProfile(profile), false);
+    expect(draft).toEqual({
+      ...profile,
+      hasHeaderRow: false,
+      dateColumn: null,
+      descriptionColumn: null,
+      counterpartyColumn: null,
+      amount: { mode: "signed", column: null, invertSign: false },
+    });
+    expect(withHeaderRow(draft, false)).toBe(draft);
+  });
+
+  test("resets the amount columns when the amount mode changes", () => {
+    const draft = withAmountMode(myBank, "debit-credit");
+    expect(draft.amount).toEqual({ mode: "debit-credit", debitColumn: null, creditColumn: null });
+    expect(withAmountMode(draft, "signed").amount).toEqual({
+      mode: "signed",
+      column: null,
+      invertSign: false,
+    });
+    expect(withAmountMode(myBank, "signed")).toBe(myBank);
+  });
+
+  test("becomes a profile, for the preview, once every required column is assigned", () => {
+    expect(profileOf(myBank, "preview")).toEqual({ ...myBank, id: "preview" });
+    expect(profileOf({ ...myBank, dateColumn: null }, "preview")).toEqual({
+      code: "profile-columns-incomplete",
+      details: { roles: ["date"] },
+    });
   });
 });

@@ -5,6 +5,7 @@ import type { Transaction } from "@/domain/types";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
+import { ProfileEditor } from "@/ui/screens/import/ProfileEditor";
 import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
@@ -20,6 +21,10 @@ function screenFor(route: Route): ReactNode {
   switch (route.name) {
     case "transactions":
       return <TransactionsScreen />;
+    case "profile-new":
+      return <ProfileEditor key="new" profileId={null} />;
+    case "profile":
+      return <ProfileEditor key={route.id} profileId={route.id} />;
     case "accounts":
       return <AccountsScreen />;
     default:

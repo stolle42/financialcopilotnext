@@ -48,6 +48,74 @@ function unassignedRoles(draft: ProfileDraft): RequiredRole[] {
   return assigned.filter(([, isAssigned]) => !isAssigned).map(([role]) => role);
 }
 
+/** A new profile: a header row, one signed column, nothing assigned yet, and UTF-8 (csv-import.md). */
+export function newProfileDraft(): ProfileDraft {
+  return {
+    id: null,
+    name: "",
+    hasHeaderRow: true,
+    dateColumn: null,
+    descriptionColumn: null,
+    counterpartyColumn: null,
+    amount: { mode: "signed", column: null, invertSign: false },
+    dateFormat: "DD.MM.YYYY",
+    decimalSeparator: ",",
+    encoding: "UTF-8",
+  };
+}
+
+/** A saved profile, opened for editing. */
+export function draftOfProfile(profile: MappingProfile): ProfileDraft {
+  return profile;
+}
+
+function clearedAmount(amount: ProfileDraft["amount"]): AmountColumns<null> {
+  return amount.mode === "signed"
+    ? { mode: "signed", column: null, invertSign: amount.invertSign }
+    : { mode: "debit-credit", debitColumn: null, creditColumn: null };
+}
+
+/** Columns are header texts with a header row and positions without one, so a switch resets them. */
+export function withHeaderRow(draft: ProfileDraft, hasHeaderRow: boolean): ProfileDraft {
+  if (draft.hasHeaderRow === hasHeaderRow) return draft;
+  const cleared = {
+    dateColumn: null,
+    descriptionColumn: null,
+    counterpartyColumn: null,
+    amount: clearedAmount(draft.amount),
+  };
+  return hasHeaderRow
+    ? { ...draft, ...cleared, hasHeaderRow: true }
+    : { ...draft, ...cleared, hasHeaderRow: false };
+}
+
+/** One signed column, or debit and credit columns; changing the mode unassigns the amount. */
+export function withAmountMode(
+  draft: ProfileDraft,
+  mode: ProfileDraft["amount"]["mode"],
+): ProfileDraft {
+  if (draft.amount.mode === mode) return draft;
+  const amount: AmountColumns<null> =
+    mode === "signed"
+      ? { mode, column: null, invertSign: false }
+      : { mode, debitColumn: null, creditColumn: null };
+  return { ...draft, amount };
+}
+
+/**
+ * The draft as a profile with `id`, once the date, amount and description have a column. The
+ * preview parses with it, and saving stores it.
+ */
+export function profileOf(
+  draft: ProfileDraft,
+  id: string,
+): MappingProfile | Refusal<"profile-columns-incomplete"> {
+  const roles = unassignedRoles(draft);
+  if (roles.length > 0) return { code: "profile-columns-incomplete", details: { roles } };
+  // Every required column is assigned now, which is all that separates a draft from a profile.
+  return { ...draft, id } as MappingProfile;
+}
+
 /**
  * Saves a new profile, or the edited one. Names are unique by name key (FR-021), and the date,
  * amount and description need a column. A pending batch holds its own parsed rows, so it never
@@ -65,15 +133,8 @@ export function saveProfile(
   if (isNameTaken(state.profiles, draft.name, draft.id ?? undefined)) {
     return { code: "profile-name-taken" };
   }
-  const roles = unassignedRoles(draft);
-  if (roles.length > 0) return { code: "profile-columns-incomplete", details: { roles } };
-
-  // Every required column is assigned now, which is all that separates a draft from a profile.
-  const profile = {
-    ...draft,
-    id: draft.id ?? context.newId(),
-    name: draft.name.trim(),
-  } as MappingProfile;
+  const profile = profileOf({ ...draft, name: draft.name.trim() }, draft.id ?? context.newId());
+  if ("code" in profile) return profile;
   return { profiles: { put: [profile] } };
 }
 

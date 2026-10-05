@@ -478,7 +478,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     ledger and the batch unchanged; and editing or deleting the profile leaves the batch unchanged
     ([FR-021](spec.md#fr-021)).
   - Depends on T037, T042–T045.
-- [ ] T047 [US2] The profile editor in `src/ui/screens/import/ProfileEditor.tsx` and
+- [X] T047 [US2] The profile editor in `src/ui/screens/import/ProfileEditor.tsx` and
   `src/ui/screens/import/ProfilePreview.tsx`, test-first in `e2e/ui/profile-editor.spec.ts`
   ([profile editor](contracts/ui.md#profile-editor), [preview](contracts/csv-import.md#preview)).
   - Add the routes `#/import/profiles/new` and `#/import/profiles/:id`.

@@ -21,4 +21,22 @@ describe("messages", () => {
       ]),
     );
   });
+
+  test("names the details of a refusal, such as every column a file lacks", () => {
+    expect(
+      messageFor({ code: "import-missing-columns", details: { columns: ["Amount", "Payee"] } }),
+    ).toContain('"Amount" and "Payee"');
+    expect(
+      messageFor({
+        code: "profile-columns-incomplete",
+        details: { roles: ["date", "amount", "description"] },
+      }),
+    ).toContain("date, amount and description");
+    expect(
+      messageFor({
+        code: "date-unreadable",
+        details: { cell: "32.08.2026", format: "DD.MM.YYYY" },
+      }),
+    ).toBe('"32.08.2026" is not a date in the format DD.MM.YYYY.');
+  });
 });
