@@ -608,7 +608,7 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-4), automated as
 `e2e/us4-budgets.spec.ts` (T062).
 
-- [ ] T058 [US4] Budget rules in `src/domain/budgets.ts`, test-first in
+- [X] T058 [US4] Budget rules in `src/domain/budgets.ts`, test-first in
   `src/domain/budgets.test.ts`.
   - `budgetableCategories(categories)` follows [FR-040](spec.md#fr-040).
   - `setLimit(state, categoryId, limitCents)` refuses `budget-limit-invalid` for a missing or
@@ -619,7 +619,7 @@ post-push check.
     ([FR-041](spec.md#fr-041), [FR-042](spec.md#fr-042), [R-14](research.md#r-14)).
   - Tests: [User Story 4](spec.md#user-story-4) scenarios 1–6; a changed limit applying to past
     months; and transfers left out ([SC-004](spec.md#sc-004)).
-- [ ] T059 [US4] Budget actions in `src/store/budgets.ts`, test-first in `src/store/budgets.test.ts`:
+- [X] T059 [US4] Budget actions in `src/store/budgets.ts`, test-first in `src/store/budgets.test.ts`:
   `setLimit` and `removeLimit`, through `run`. Test: both survive reopening the database.
 - [ ] T060 [P] [US4] The Budgets screen in `src/ui/screens/budgets/BudgetsScreen.tsx`, test-first in
   `e2e/ui/budgets.spec.ts` ([budgets](contracts/ui.md#budgets)). Add the route `#/budgets` and its
