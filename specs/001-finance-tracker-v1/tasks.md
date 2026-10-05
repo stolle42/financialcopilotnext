@@ -690,7 +690,7 @@ post-push check.
 **Independent Test**: the story's [Independent Test](spec.md#user-story-6), automated as
 `e2e/us6-categories.spec.ts` (T071).
 
-- [ ] T068 [US6] Category management in `src/domain/categories.ts`, test-first in
+- [X] T068 [US6] Category management in `src/domain/categories.ts`, test-first in
   `src/domain/categories.test.ts`.
   - `createCategory`, `renameCategory` and `recolourCategory` refuse `category-name-empty`, and
     `category-name-taken` within a side ([FR-032](spec.md#fr-032)). Colours are `#rrggbb`.
@@ -700,11 +700,11 @@ post-push check.
     budget ([FR-034](spec.md#fr-034), [state transitions](data-model.md#state-transitions),
     [R-12](research.md#r-12) item 4).
   - Tests: [User Story 6](spec.md#user-story-6) scenarios 3–5, and renaming a protected category.
-- [ ] T069 [US6] Category actions in `src/store/categories.ts`, test-first in
+- [X] T069 [US6] Category actions in `src/store/categories.ts`, test-first in
   `src/store/categories.test.ts`: create, rename, recolour and delete, through `run`. Tests: a
   deletion changes the transactions, the budget and the pending batch in one storage transaction,
   and a failing deletion changes none of them ([R-06](research.md#r-06)).
-- [ ] T070 [US6] The Categories screen in `src/ui/screens/categories/CategoriesScreen.tsx`, with the
+- [X] T070 [US6] The Categories screen in `src/ui/screens/categories/CategoriesScreen.tsx`, with the
   palette picker `src/ui/components/ColourPicker.tsx` holding the 18 swatches of
   [shared patterns](contracts/ui.md#shared-patterns), test-first in `e2e/ui/categories.spec.ts`
   ([categories](contracts/ui.md#categories)).
@@ -717,7 +717,7 @@ post-push check.
     `src/ui/messages.ts`.
   - Tests: [User Story 6](spec.md#user-story-6) scenarios 1, 4 and 5; the confirmation text with its
     counts; and the default colour.
-- [ ] T071 [US6] The journey `e2e/us6-categories.spec.ts`: scenarios 1–5. Scenario 2 checks the new
+- [X] T071 [US6] The journey `e2e/us6-categories.spec.ts`: scenarios 1–5. Scenario 2 checks the new
   name and colour in the transaction list, the form and Budgets ([FR-065](spec.md#fr-065)), and
   scenario 3 sets its budget through Budgets.
 

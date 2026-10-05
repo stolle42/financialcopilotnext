@@ -43,7 +43,14 @@ test.describe("the screen", () => {
   test("is the fourth entry in the sidebar", async ({ page }) => {
     await page.goto("/");
     const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-    await expect(links).toHaveText(["Transactions", "Insights", "Import", "Budgets", "Accounts"]);
+    await expect(links).toHaveText([
+      "Transactions",
+      "Insights",
+      "Import",
+      "Budgets",
+      "Categories",
+      "Accounts",
+    ]);
     await links.nth(3).click();
     await expect(page).toHaveURL(/#\/budgets$/);
     await expect(main(page).getByRole("heading", { name: "Budgets", level: 1 })).toBeVisible();

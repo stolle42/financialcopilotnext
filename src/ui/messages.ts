@@ -1,5 +1,6 @@
 import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
+import type { CategoryRefusalCode } from "@/domain/categories";
 import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
 import type { DraftFieldCode } from "@/domain/transactions";
@@ -28,7 +29,8 @@ export type MessageCode =
   | DecodingRefusal["code"]
   | BatchRefusalCode
   | BudgetRefusalCode
-  | ReconcileRefusalCode;
+  | ReconcileRefusalCode
+  | CategoryRefusalCode;
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -107,6 +109,17 @@ export const messages: Record<MessageCode, Wording> = {
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
+  "category-name-empty": "The category needs a name.",
+  "category-name-taken": (details) =>
+    `There is already ${details.side === "income" ? "an income" : "an expense"} category with this ` +
+    "name. Choose another name.",
+  "category-color-invalid": "Choose one of the colours offered.",
+  "category-protected": (details) =>
+    (details.role === "unaccounted"
+      ? "This category is where the app files the difference when you reconcile an account, so it "
+      : "This category is where the app files imported rows you have not categorised and the " +
+        "transactions of a category you delete, so it ") +
+    "cannot be deleted. You can still rename it or change its colour.",
   "reconcile-already-matches":
     "This account already holds that amount, so nothing was booked. Enter a different amount to reconcile.",
 };
