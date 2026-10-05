@@ -460,7 +460,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
   `src/persistence/db.test.ts`. `writeChanges` accepts a `requireNoPendingBatch` option. It re-checks
   inside the same transaction, and aborts with `import-batch-pending` when a batch exists
   ([pipeline](contracts/csv-import.md#pipeline) step 8, [R-06](research.md#r-06)).
-- [ ] T045 [US2] Batch creation in `src/domain/import/batch.ts`, test-first in
+- [X] T045 [US2] Batch creation in `src/domain/import/batch.ts`, test-first in
   `src/domain/import/batch.test.ts`.
   - `canStartImport(state)` refuses `import-batch-pending` ([FR-022](spec.md#fr-022)).
   - `createBatch(state, { accountId, profile, fileName, createdAt, records }, ctx)` refuses
