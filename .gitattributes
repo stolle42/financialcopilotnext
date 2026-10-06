@@ -1,0 +1,2 @@
+# LF everywhere, so a checkout with core.autocrlf still passes the Prettier check.
+* text=auto eol=lf

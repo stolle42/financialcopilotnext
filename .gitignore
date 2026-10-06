@@ -5,3 +5,13 @@
 !.specify/memory/
 .specify/memory/*
 !.specify/memory/constitution.md
+
+# Generated and local-only files (plan.md, project structure)
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+tmp/
+.env*
