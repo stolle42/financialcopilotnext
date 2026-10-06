@@ -686,14 +686,18 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - Rows use lightweight markup: plain elements, not a component per cell.
   - Rows carry the CSS `content-visibility: auto`, and the filtered list is memoised.
 - **Rationale**:
-  - At the design point of 10,000 transactions, plain rows render well within a second, and
-    `content-visibility` lets the browser skip layout and painting for rows off screen.
+  - At the design point of 10,000 transactions, plain rows were expected to render well within a
+    second, and `content-visibility` lets the browser skip layout and painting for rows off screen.
   - v1 has no list search ([Out of Scope](spec.md#out-of-scope)), so the browser's find-in-page is
     the user's search. Rows skipped by `content-visibility` stay in the page, and find-in-page
     reaches them in Chrome, Edge and Firefox. Virtualisation removes off-screen rows from the page,
     so find-in-page would miss them.
   - Virtualisation would also add code and moving parts, for a need nobody has measured.
   - Revisit if the first render passes 1 s at 10,000 rows ([quickstart.md](quickstart.md#performance)).
+    It does in Firefox, at about 1.4 s, while Chromium stays under a second. Building the rows takes
+    the time, not laying them out, so `content-visibility` does not help. The fix, showing the first
+    rows at once and the rest just after, is listed under Not in v1
+    ([Out of Scope](spec.md#out-of-scope)).
 - **Alternatives considered**:
   - **TanStack Virtual** is proven, but it breaks find-in-page.
   - **Pagination** is out of scope.

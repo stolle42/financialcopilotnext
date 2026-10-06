@@ -4,6 +4,8 @@ import { defineConfig, devices } from "@playwright/test";
 // production domain (R-18).
 const baseURL = process.env.BASE_URL ?? "http://localhost:4173";
 
+const performanceSpec = /performance\.spec\.ts$/;
+
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,
@@ -14,8 +16,28 @@ export default defineConfig({
     locale: "en-US",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: performanceSpec },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] }, testIgnore: performanceSpec },
+    // The performance checks time the app, so they run after everything else, one browser at a
+    // time, with nothing else competing for the machine: beside six other workers they ran two to
+    // four times slower than on a quiet one. They measure the local build, not a remote site, where
+    // the network would be part of the time.
+    ...(process.env.BASE_URL
+      ? []
+      : [
+          {
+            name: "performance-chromium",
+            testMatch: performanceSpec,
+            use: { ...devices["Desktop Chrome"] },
+            dependencies: ["chromium", "firefox"],
+          },
+          {
+            name: "performance-firefox",
+            testMatch: performanceSpec,
+            use: { ...devices["Desktop Firefox"] },
+            dependencies: ["performance-chromium"],
+          },
+        ]),
   ],
   webServer: process.env.BASE_URL
     ? undefined
