@@ -1,2 +1,4 @@
 # LF everywhere, so a checkout with core.autocrlf still passes the Prettier check.
 * text=auto eol=lf
+# Bank file fixtures are exact bytes: their encoding and line endings are what the tests exercise.
+e2e/fixtures/*.csv binary

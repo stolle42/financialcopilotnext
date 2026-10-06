@@ -7,7 +7,7 @@ import { listTransactions } from "@/domain/transactions";
 import type { Side, Transaction } from "@/domain/types";
 import { useStore } from "@/store/store";
 import { CategoryChip } from "@/ui/components/CategoryChip";
-import { Button } from "@/ui/components/ui/button";
+import { Button, buttonVariants } from "@/ui/components/ui/button";
 import { Field, FieldLabel } from "@/ui/components/ui/field";
 import {
   Select,
@@ -71,8 +71,13 @@ export function TransactionsScreen() {
 
       {transactions.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border p-6">
-          <p>No transactions yet. Record your first one to start your ledger.</p>
-          <Button onClick={() => openForm(null)}>Add transaction</Button>
+          <p>No transactions yet. Record your first one, or import a bank file.</p>
+          <div className="flex gap-2">
+            <Button onClick={() => openForm(null)}>Add transaction</Button>
+            <a href="#/import" className={buttonVariants({ variant: "outline" })}>
+              Import a CSV
+            </a>
+          </div>
         </div>
       ) : (
         <>

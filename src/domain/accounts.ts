@@ -1,5 +1,5 @@
 import type { Changes, Context } from "./changes";
-import { isNameTaken, nameKey } from "./names";
+import { compareNames, isNameTaken, nameKey } from "./names";
 import type { Account, AccountType, Refusal, State, Transaction } from "./types";
 
 export type AccountRefusalCode = "account-name-empty" | "account-name-taken";
@@ -67,7 +67,5 @@ export function updateAccount(
 
 /** Accounts by name, ignoring case (contracts/ui.md, list order). */
 export function sortAccounts(accounts: readonly Account[]): Account[] {
-  return [...accounts].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
-  );
+  return [...accounts].sort((a, b) => compareNames(a.name, b.name));
 }

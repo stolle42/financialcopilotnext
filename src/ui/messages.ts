@@ -1,6 +1,9 @@
 import type { AccountRefusalCode } from "@/domain/accounts";
+import type { BatchRefusalCode } from "@/domain/import/batch";
+import type { ProfileRefusalCode } from "@/domain/import/profiles";
 import type { DraftFieldCode } from "@/domain/transactions";
-import type { Refusal } from "@/domain/types";
+import type { Refusal, RefusalDetails, RowFailureCode } from "@/domain/types";
+import type { DecodingRefusal } from "@/files/csv";
 import type { StoreRefusalCode } from "@/store/store";
 
 // The one message catalogue: every refusal and failure code, worded for the user (R-15,
@@ -10,12 +13,35 @@ import type { StoreRefusalCode } from "@/store/store";
 export type ShellFailureCode = "storage-unavailable" | "open-in-another-tab" | "unexpected-error";
 
 /** Input the form itself cannot read, before any rule is checked. */
-export type FieldInputCode = "balance-invalid";
+export type FieldInputCode = "balance-invalid" | "import-file-unreadable";
 
 export type MessageCode =
-  StoreRefusalCode | ShellFailureCode | AccountRefusalCode | DraftFieldCode | FieldInputCode;
+  | StoreRefusalCode
+  | ShellFailureCode
+  | AccountRefusalCode
+  | DraftFieldCode
+  | FieldInputCode
+  | ProfileRefusalCode
+  | RowFailureCode
+  | DecodingRefusal["code"]
+  | BatchRefusalCode;
 
-export const messages: Record<MessageCode, string> = {
+/** Plain wording, or wording built from the refusal's details, which may be absent. */
+type Wording = string | ((details: RefusalDetails) => string);
+
+const text = (value: RefusalDetails[string] | undefined) =>
+  typeof value === "string" || typeof value === "number" ? String(value) : "";
+
+/** "a", "a and b", "a, b and c", each quoted when `quoted`. */
+function list(value: RefusalDetails[string] | undefined, quoted = false): string {
+  const items = (Array.isArray(value) ? value : [text(value as string)]).filter(Boolean);
+  const shown = quoted ? items.map((item) => `"${item}"`) : items;
+  return shown.length < 2
+    ? (shown[0] ?? "")
+    : `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)}`;
+}
+
+export const messages: Record<MessageCode, Wording> = {
   "save-failed":
     "Your change was not saved, and nothing has changed. Free up some disk space, then try again.",
   "storage-unavailable":
@@ -34,9 +60,60 @@ export const messages: Record<MessageCode, string> = {
   "transfer-destination-missing": "Choose the account the money goes to.",
   "transfer-needs-second-account":
     "A transfer needs a second account to move money to. Create one under Accounts first.",
+  "profile-name-empty": "The profile needs a name.",
+  "profile-name-taken": "A profile with this name already exists. Choose another name.",
+  "profile-columns-incomplete": (details) =>
+    details.roles
+      ? `Choose a column for the ${list(details.roles)}.`
+      : "Choose a column for the date, the amount and the description.",
+  "date-missing": "The date is empty.",
+  "date-unreadable": (details) =>
+    details.cell
+      ? `"${text(details.cell)}" is not a date in the format ${text(details.format)}.`
+      : "The date does not match the profile's date format, or does not exist.",
+  "amount-missing": "The amount is empty.",
+  "amount-unreadable": (details) =>
+    details.cell
+      ? `"${text(details.cell)}" is not an amount with "${text(details.decimalSeparator)}" ` +
+        "as the decimal separator."
+      : "The amount is not a number with the profile's decimal separator.",
+  "negative-debit-credit": (details) =>
+    `${details.cell ? `"${text(details.cell)}" is negative, but` : "A negative amount, but"} ` +
+    "debit and credit amounts are written without a sign: the column says which way the money went.",
+  "debit-and-credit": (details) =>
+    details.debit
+      ? `Both the debit (${text(details.debit)}) and the credit (${text(details.credit)}) hold ` +
+        "an amount, so it is unclear which way the money went."
+      : "Both the debit and the credit hold an amount, so it is unclear which way the money went.",
+  "no-debit-or-credit": "Neither the debit nor the credit column holds an amount.",
+  "import-decoding-failed": (details) =>
+    `The file is not valid ${text(details.encoding) || "text in the profile's encoding"}. ` +
+    "Choose another encoding in the profile; many banks use Windows-1252.",
+  "import-missing-columns": (details) =>
+    `The file has no column named ${list(details.columns, true) || "as the profile expects"}, ` +
+    "which the profile expects. Check that this is the right file, or edit the profile.",
+  "import-duplicate-header": (details) =>
+    `The file has more than one column named ${list(details.column, true) || "the same"}, so ` +
+    "the profile cannot tell which one to read.",
+  "import-no-transactions": "The file contains no transactions.",
+  "import-file-unreadable": "The file could not be read. Choose it again.",
+  "import-account-missing": "Choose the account to import into.",
+  "import-batch-pending":
+    "An import is waiting for review. Confirm or discard it before you import another file.",
+};
+
+const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
+
+/** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
+export const notifications = {
+  importConfirmed: (count: number, accountName: string) =>
+    `Added ${transactions(count)} to ${accountName}.`,
+  importDiscarded: (fileName: string) =>
+    `Discarded the import of ${fileName}. Nothing entered the ledger.`,
 };
 
 /** The plain-language message for a refusal or failure (FR-067). */
 export function messageFor(refusal: Refusal<MessageCode>): string {
-  return messages[refusal.code];
+  const wording = messages[refusal.code];
+  return typeof wording === "string" ? wording : wording(refusal.details ?? {});
 }

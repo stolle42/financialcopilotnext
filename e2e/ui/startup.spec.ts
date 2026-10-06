@@ -1,4 +1,4 @@
-import { messages } from "../../src/ui/messages";
+import { messageFor } from "../../src/ui/messages";
 import { expect, test } from "../support/test";
 
 // R-07, R-15: start-up holds a lock so only one copy runs, and says so when storage is blocked.
@@ -10,7 +10,7 @@ test("a second tab shows that the app is already open, and no data", async ({ pa
   const second = await context.newPage();
   await second.goto("/");
 
-  await expect(second.getByRole("alert")).toHaveText(messages["open-in-another-tab"]);
+  await expect(second.getByRole("alert")).toHaveText(messageFor({ code: "open-in-another-tab" }));
   await expect(second.getByRole("heading", { name: "Transactions" })).toHaveCount(0);
 });
 
@@ -23,12 +23,12 @@ test("blocked storage shows storage-unavailable", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.getByRole("alert")).toHaveText(messages["storage-unavailable"]);
+  await expect(page.getByRole("alert")).toHaveText(messageFor({ code: "storage-unavailable" }));
 });
 
 test.describe("an unexpected error", () => {
   async function expectUnexpectedErrorScreen(page: import("@playwright/test").Page) {
-    await expect(page.getByRole("alert")).toHaveText(messages["unexpected-error"]);
+    await expect(page.getByRole("alert")).toHaveText(messageFor({ code: "unexpected-error" }));
     await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
   }
 
@@ -54,6 +54,25 @@ test.describe("an unexpected error", () => {
     });
     await page.goto("/");
     await expectUnexpectedErrorScreen(page);
+  });
+
+  test("the browser's ResizeObserver loop notice is no error, so the app stays", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const heading = page.getByRole("main").getByRole("heading", { name: "Transactions" });
+    await expect(heading).toBeVisible();
+    // Browsers report a resize that settles in the next frame as an error event without an error.
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "ResizeObserver loop completed with undelivered notifications.",
+        }),
+      ),
+    );
+    await page.waitForTimeout(100);
+    await expect(heading).toBeVisible();
+    await expect(page.getByText(messageFor({ code: "unexpected-error" }))).toHaveCount(0);
   });
 
   test("an error while rendering the shell shows the message and a Reload button", async ({

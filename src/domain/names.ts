@@ -12,3 +12,8 @@ export function isNameTaken(
   const key = nameKey(name);
   return items.some((item) => item.id !== exceptId && nameKey(item.name) === key);
 }
+
+/** Orders names ignoring case, in the browser's language (contracts/ui.md, list order). */
+export function compareNames(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}

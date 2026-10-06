@@ -92,7 +92,8 @@ export type MappingProfile =
   | (ProfileFields<string> & { hasHeaderRow: true })
   | (ProfileFields<number> & { hasHeaderRow: false });
 
-export type RefusalDetails = Readonly<Record<string, string | number>>;
+/** Lists name several records or columns at once, such as every column a file lacks. */
+export type RefusalDetails = Readonly<Record<string, string | number | readonly string[]>>;
 
 /** An expected outcome that is not a change, such as a broken rule (R-15). The UI words the code. */
 export interface Refusal<Code extends string = string> {

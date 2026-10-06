@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { messages } from "../../src/ui/messages";
+import { messageFor } from "../../src/ui/messages";
 import { euros, expect, test } from "../support/test";
 
 // contracts/ui.md, accounts; User Story 1 scenarios 1, 2, 10 and 11.
@@ -71,19 +71,21 @@ test("a new account may start negative, and its type is chosen from a list", asy
 test("a duplicate name is refused beside the name field (FR-001)", async ({ page }) => {
   await openAccounts(page);
   await createAccount(page, " cash", "0");
-  await expect(fieldError(page, "Name")).toHaveText(messages["account-name-taken"]);
+  await expect(fieldError(page, "Name")).toHaveText(messageFor({ code: "account-name-taken" }));
 });
 
 test("an empty name is refused beside the name field", async ({ page }) => {
   await openAccounts(page);
   await createAccount(page, "", "0");
-  await expect(fieldError(page, "Name")).toHaveText(messages["account-name-empty"]);
+  await expect(fieldError(page, "Name")).toHaveText(messageFor({ code: "account-name-empty" }));
 });
 
 test("an unreadable opening balance is refused beside its field", async ({ page }) => {
   await openAccounts(page);
   await createAccount(page, "Savings", "12,34.5");
-  await expect(fieldError(page, "Opening balance")).toHaveText(messages["balance-invalid"]);
+  await expect(fieldError(page, "Opening balance")).toHaveText(
+    messageFor({ code: "balance-invalid" }),
+  );
 });
 
 test.describe("changing an opening balance (scenario 10)", () => {
