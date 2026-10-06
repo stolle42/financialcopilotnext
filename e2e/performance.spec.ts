@@ -11,6 +11,10 @@ import { euros, expect, setToday, test } from "./support/test";
 // up; only the step the criterion names is timed. A file's tests run one after another in one
 // worker, so they do not slow each other down, but other spec files may run beside them.
 
+// Restoring thousands of transactions takes about a second or two on a quiet machine, and the
+// setup is not what these tests time, so it may take far longer before a test gives up on it.
+const RESTORE_TIMEOUT = 90_000;
+
 const main = (page: Page) => page.getByRole("main");
 
 /** Records the measured time in the report, so a pass still shows how much room it had. */
@@ -44,7 +48,7 @@ test("Insights renders every section within 2 s for a period of 5,000 transactio
     },
     { count: 5_000, start: "2026-09-01", end: "2026-09-30" },
   );
-  await restoreBackup(page, backupText(backup));
+  await restoreBackup(page, backupText(backup), undefined, { timeout: RESTORE_TIMEOUT });
 
   // What the sections must show, summed here from the generated records.
   const total = (kind: "expense" | "income") =>
@@ -120,7 +124,7 @@ test("The transaction list shows within 1 s at 10,000 transactions (R-21)", asyn
   await setToday(page, "2026-09-03");
   const base = await freshData(page);
   const backup = generateBackup(base, { count: 10_000, start: "2026-01-01", end: "2026-09-03" });
-  await restoreBackup(page, backupText(backup));
+  await restoreBackup(page, backupText(backup), undefined, { timeout: RESTORE_TIMEOUT });
 
   // Opening the app again: the page loads, reads storage and draws the first rows.
   await page.reload();
