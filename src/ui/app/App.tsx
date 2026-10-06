@@ -1,22 +1,30 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
-import { createContext, type ReactNode } from "react";
+import { cn } from "cn";
+import { createContext, useState, type ReactNode } from "react";
+import type { Transaction } from "@/domain/types";
+import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
-import { useRoute } from "./router";
+import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
+import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
+import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
+import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
+import { useRoute, type Route } from "./router";
 
-function SidebarGroup({ title, children }: { title: string; children?: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="px-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {title}
-      </p>
-      {children}
-    </div>
-  );
-}
+/** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
+const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
+  { route: "transactions", label: "Transactions", href: "#/" },
+  { route: "accounts", label: "Accounts", href: "#/accounts" },
+];
 
-// Stands in for the transaction list until T032 builds it.
-function TransactionsPlaceholder() {
-  return <h1 className="text-2xl font-semibold">Transactions</h1>;
+function screenFor(route: Route): ReactNode {
+  switch (route.name) {
+    case "transactions":
+      return <TransactionsScreen />;
+    case "accounts":
+      return <AccountsScreen />;
+    default:
+      return null;
+  }
 }
 
 /**
@@ -28,29 +36,53 @@ export const StoragePersistedContext = createContext<Promise<boolean>>(Promise.r
 /** The desktop shell: header, sidebar and the screen of the current route (contracts/ui.md). */
 export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }) {
   const route = useRoute();
-  const screen = route.name === "transactions" ? <TransactionsPlaceholder /> : null;
+  // The one transaction form: `transaction: null` adds a new one.
+  const [form, setForm] = useState<{ transaction: Transaction | null } | null>(null);
+  const openForm = (transaction: Transaction | null) => setForm({ transaction });
 
   return (
     // Base UI must not inject <style> elements, which the Content-Security-Policy blocks (R-19).
     <CSPProvider disableStyleElements>
       <StoragePersistedContext.Provider value={storagePersisted}>
-        <Toaster>
-          <div className="flex min-h-screen flex-col">
-            <header className="flex h-14 shrink-0 items-center border-b px-6">
-              <span className="text-lg font-semibold">Financial Copilot</span>
-            </header>
-            <div className="flex flex-1">
-              <nav
-                aria-label="Screens"
-                className="flex w-56 shrink-0 flex-col gap-6 border-r bg-sidebar p-4 text-sidebar-foreground"
-              >
-                <SidebarGroup title="Main" />
-                <SidebarGroup title="Manage" />
-              </nav>
-              <main className="flex-1 p-6">{screen}</main>
+        <OpenTransactionFormContext.Provider value={openForm}>
+          <Toaster>
+            <div className="flex min-h-screen flex-col">
+              <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
+                <span className="text-lg font-semibold">Financial Copilot</span>
+                {/* The primary action, reachable from every screen (FR-066). */}
+                <Button onClick={() => openForm(null)}>Add transaction</Button>
+              </header>
+              <div className="flex flex-1">
+                <nav
+                  aria-label="Screens"
+                  className="flex w-56 shrink-0 flex-col gap-1 border-r bg-sidebar p-4 text-sidebar-foreground"
+                >
+                  {sidebarEntries.map((entry) => (
+                    <a
+                      key={entry.route}
+                      href={entry.href}
+                      aria-current={route.name === entry.route ? "page" : undefined}
+                      className={cn(
+                        "rounded-md px-3 py-2 text-sm font-medium hover:bg-sidebar-accent",
+                        route.name === entry.route && "bg-sidebar-accent",
+                      )}
+                    >
+                      {entry.label}
+                    </a>
+                  ))}
+                </nav>
+                <main className="flex-1 p-6">{screenFor(route)}</main>
+              </div>
             </div>
-          </div>
-        </Toaster>
+            {form && (
+              <TransactionForm
+                key={form.transaction?.id ?? "new"}
+                transaction={form.transaction}
+                onClose={() => setForm(null)}
+              />
+            )}
+          </Toaster>
+        </OpenTransactionFormContext.Provider>
       </StoragePersistedContext.Provider>
     </CSPProvider>
   );

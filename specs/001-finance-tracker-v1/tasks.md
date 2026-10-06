@@ -226,8 +226,9 @@ story builds on these.
   ([FR-067](spec.md#fr-067)). Depends on T019.
 - [X] T021 The app shell in `src/ui/app/App.tsx`, test-first in `e2e/ui/shell.spec.ts`
   ([ui.md](contracts/ui.md#shell-and-navigation), [R-19](research.md#r-19)).
-  - The header shows the app name. The sidebar has the Main and Manage groups, and each screen's
-    entry is added by the task that builds that screen. The route outlet shows a placeholder at `#/`
+  - The header shows the app name. The sidebar is one flat list, in the order of
+    [ui.md](contracts/ui.md#shell-and-navigation), and each screen's entry is added by the task that
+    builds that screen. The route outlet shows a placeholder at `#/`
     until T032 (`npx shadcn add button`).
   - Wrap everything in Base UI's `CSPProvider` with style elements disabled.
   - Mount the notification region, which is shadcn's toast on Base UI (`npx shadcn add toast`). US2,
@@ -268,20 +269,23 @@ transfers ([User Story 1](spec.md#user-story-1)).
 **Independent Test**: the story's [Independent Test](spec.md#user-story-1), automated as
 `e2e/us1-ledger.spec.ts` (T033).
 
-- [ ] T024 [P] [US1] Account rules in `src/domain/accounts.ts`, test-first in
+- [X] T024 [P] [US1] Account rules in `src/domain/accounts.ts`, test-first in
   `src/domain/accounts.test.ts`.
   - `signedEffect(transaction, accountId)` follows [derived values](data-model.md#derived-values),
     and `accountBalance(state, accountId)` follows [FR-002](spec.md#fr-002).
   - `createAccount(state, input, ctx)` and `updateAccount(state, id, input)` refuse
     `account-name-empty` and `account-name-taken` (by name key, [FR-001](spec.md#fr-001),
     [R-08](research.md#r-08)), or return changes. The opening balance is in cents, of any sign.
+  - `sortAccounts(accounts)` follows the [list order](contracts/ui.md#shared-patterns).
   - Tests include the balances of [User Story 1](spec.md#user-story-1) scenarios 2–4 and 10, and a
     transaction moved to another account changing both balances ([edge cases](spec.md#edge-cases)).
-- [ ] T025 [P] [US1] Category lookups in `src/domain/categories.ts`, test-first in
+- [X] T025 [P] [US1] Category lookups in `src/domain/categories.ts`, test-first in
   `src/domain/categories.test.ts`. `protectedCategory(categories, side, role)` finds a category by
-  role, never by name ([data-model.md](data-model.md#category)). `pickerCategories(categories, side)`
-  returns the side's set without "Unaccounted" ([FR-030](spec.md#fr-030)).
-- [ ] T026 [US1] Form drafts and kind changes in `src/domain/transactions.ts`, test-first in
+  role, never by name ([data-model.md](data-model.md#category)). `sortCategories(categories, side)`
+  returns the side's set in the [list order](contracts/ui.md#shared-patterns), and
+  `pickerCategories(categories, side)` returns the same without "Unaccounted"
+  ([FR-030](spec.md#fr-030)).
+- [X] T026 [US1] Form drafts and kind changes in `src/domain/transactions.ts`, test-first in
   `src/domain/transactions.test.ts`. A draft holds the amount as cents, or `null` when the text does
   not parse.
   - `newDraft(state, today)` has the defaults of [FR-014](spec.md#fr-014) and the default account of
@@ -290,7 +294,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - `changeAccount(draft, accountId)` clears a destination that equals the new account
     ([transaction form](contracts/ui.md#transaction-form)).
   - Depends on T025.
-- [ ] T027 [US1] Saving and deleting transactions in `src/domain/transactions.ts`, test-first in
+- [X] T027 [US1] Saving and deleting transactions in `src/domain/transactions.ts`, test-first in
   `src/domain/transactions.test.ts`.
   - `saveDraft(state, draft, ctx)` validates by [FR-010](spec.md#fr-010) and
     [FR-011](spec.md#fr-011). It returns field-keyed codes: `amount-invalid`, `date-invalid`,
@@ -303,20 +307,20 @@ transfers ([User Story 1](spec.md#user-story-1)).
     neither ([state transitions](data-model.md#state-transitions)).
   - Add `deleteTransaction(state, id)`.
   - Depends on T024, T026.
-- [ ] T028 [US1] List order and filters in `src/domain/transactions.ts`, test-first in
+- [X] T028 [US1] List order and filters in `src/domain/transactions.ts`, test-first in
   `src/domain/transactions.test.ts`. `listTransactions(transactions, filters)` sorts newest first,
   with `seq` breaking ties between equal dates. It filters by account, including transfers into that
   account, and by category ([FR-016](spec.md#fr-016), [data-model.md](data-model.md#transaction)).
-- [ ] T029 [US1] Account and transaction actions in `src/store/accounts.ts` and
+- [X] T029 [US1] Account and transaction actions in `src/store/accounts.ts` and
   `src/store/transactions.ts`, test-first in `src/store/accounts.test.ts` and
   `src/store/transactions.test.ts`. Each action is a thin wrapper that passes a function from T024 or
   T027 to `run`. Tests: a new account and a saved transaction survive reopening the database,
   including `settings.manualEntryAccountId`, and a refusal writes nothing. Depends on T019, T024,
   T027.
-- [ ] T030 [US1] The Accounts screen in `src/ui/screens/accounts/AccountsScreen.tsx` and
+- [X] T030 [US1] The Accounts screen in `src/ui/screens/accounts/AccountsScreen.tsx` and
   `src/ui/screens/accounts/AccountDialog.tsx`, test-first in `e2e/ui/accounts.spec.ts`
   ([ui.md](contracts/ui.md#accounts), without Reconcile, which comes in T065).
-  - Add the route `#/accounts`, with its entry last in the Manage group. List each account with its
+  - Add the route `#/accounts`, with its sidebar entry. List each account with its
     computed balance, and add the New and Edit dialogs.
   - Build the shared `src/ui/components/AmountField.tsx`
     ([shared patterns](contracts/ui.md#shared-patterns)): it uses `localeDecimalSeparator` and
@@ -326,7 +330,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - Add `account-name-empty`, `account-name-taken` and `balance-invalid` to `src/ui/messages.ts`.
   - Tests: [User Story 1](spec.md#user-story-1) scenarios 1, 2, 10 and 11; the duplicate-name
     refusal; a negative opening balance; and cancelling the warning, which keeps the old balance.
-- [ ] T031 [US1] The transaction form in `src/ui/screens/transactions/TransactionForm.tsx`,
+- [X] T031 [US1] The transaction form in `src/ui/screens/transactions/TransactionForm.tsx`,
   test-first in `e2e/ui/transaction-form.spec.ts` ([transaction form](contracts/ui.md#transaction-form)).
   - The form is a modal, opened from every screen by **Add transaction** in the header
     ([FR-066](spec.md#fr-066)). Its fields come in the contract's order. Focus and Enter work as
@@ -341,9 +345,10 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - Tests: [User Story 1](spec.md#user-story-1) scenarios 5–9; every kind change of
     [FR-015](spec.md#fr-015); the destination rules of [FR-011](spec.md#fr-011); and each validation
     message beside its field.
-- [ ] T032 [US1] The Transactions screen in `src/ui/screens/transactions/TransactionsScreen.tsx`,
+- [X] T032 [US1] The Transactions screen in `src/ui/screens/transactions/TransactionsScreen.tsx`,
   replacing the placeholder at `#/`, test-first in `e2e/ui/transactions.spec.ts`
   ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [FR-063](spec.md#fr-063)).
+  - Add the screen's sidebar entry, first in the list.
   - Render rows as plain elements with `content-visibility: auto`, from a memoised filtered list
     ([R-21](research.md#r-21)), with each kind styled as the contract describes.
   - Add the account filter, the category filter with its side switch, and Clear filters.
@@ -351,7 +356,7 @@ transfers ([User Story 1](spec.md#user-story-1)).
   - Selecting a row opens the form in edit mode, which gains Delete behind `ConfirmDialog`.
   - Tests: the order, including ties; each filter, including transfers into an account; both empty
     states; editing; and deleting.
-- [ ] T033 [US1] The journey `e2e/us1-ledger.spec.ts`, as [quickstart.md](quickstart.md#us1-ledger)
+- [X] T033 [US1] The journey `e2e/us1-ledger.spec.ts`, as [quickstart.md](quickstart.md#us1-ledger)
   describes. It runs scenarios 1–12 in one fresh context. After every step, it checks that each
   balance on Accounts equals the opening balance plus the net of the listed transactions
   ([SC-005](spec.md#sc-005)).
@@ -490,7 +495,7 @@ ledger without duplicates ([User Story 2](spec.md#user-story-2)).
     appears in its place; and a saved profile can be edited.
 - [ ] T048 [US2] The Import screen in `src/ui/screens/import/ImportScreen.tsx`, test-first in
   `e2e/ui/import.spec.ts` ([import](contracts/ui.md#import), [outcomes](contracts/csv-import.md#outcomes)).
-  - Add the route `#/import` to the Main group.
+  - Add the route `#/import` and its sidebar entry.
   - Add the account select, with no default; the file picker or drop zone; and the profile select,
     with **Create new profile** and the preselect for a single profile.
   - **Import** creates the batch and opens `#/import/review`. A new profile saved from the editor
@@ -563,7 +568,7 @@ visible ([User Story 3](spec.md#user-story-3)).
   `src/ui/screens/insights/InsightsScreen.tsx`, `src/ui/screens/insights/PeriodPicker.tsx` and
   `src/ui/screens/insights/SpendingChart.tsx`, test-first in `e2e/ui/insights.spec.ts`
   ([insights](contracts/ui.md#insights)).
-  - Add the route `#/insights` to the Main group.
+  - Add the route `#/insights` and its sidebar entry.
   - The period picker has the preset buttons and two native date inputs, and defaults to This month
     ([FR-050](spec.md#fr-050)).
   - Run `npx shadcn add chart`, which brings Recharts and `react-is`. Then change our copy in
@@ -615,8 +620,8 @@ post-push check.
 - [ ] T059 [US4] Budget actions in `src/store/budgets.ts`, test-first in `src/store/budgets.test.ts`:
   `setLimit` and `removeLimit`, through `run`. Test: both survive reopening the database.
 - [ ] T060 [P] [US4] The Budgets screen in `src/ui/screens/budgets/BudgetsScreen.tsx`, test-first in
-  `e2e/ui/budgets.spec.ts` ([budgets](contracts/ui.md#budgets)). Add the route `#/budgets` to the
-  Manage group. Each budgetable category gets a row with its chip, an `AmountField` limit saved on
+  `e2e/ui/budgets.spec.ts` ([budgets](contracts/ui.md#budgets)). Add the route `#/budgets` and its
+  sidebar entry. Each budgetable category gets a row with its chip, an `AmountField` limit saved on
   Enter or on blur, and **Remove** once a limit is set. Add `budget-limit-invalid` to
   `src/ui/messages.ts`. Tests: [User Story 4](spec.md#user-story-4) scenario 4 (income and protected
   categories are absent); saving both ways; 0.00 refused under the field; and Remove.
@@ -701,7 +706,7 @@ post-push check.
   palette picker `src/ui/components/ColourPicker.tsx` holding the 18 swatches of
   [shared patterns](contracts/ui.md#shared-patterns), test-first in `e2e/ui/categories.spec.ts`
   ([categories](contracts/ui.md#categories)).
-  - Add the route `#/categories` to the Manage group, with Expenses and Income tabs.
+  - Add the route `#/categories` and its sidebar entry, with Expenses and Income tabs.
   - Each row has inline Rename, Colour and Delete. Delete on a protected category shows
     `category-protected` instead of a confirmation. On any other category, the confirmation states
     the counts from `deletionImpact`.
@@ -751,7 +756,7 @@ post-push check.
   - Depends on T072, T073.
 - [ ] T075 [US7] The Backup screen in `src/ui/screens/backup/BackupScreen.tsx`, test-first in
   `e2e/ui/backup.spec.ts` ([backup](contracts/ui.md#backup)).
-  - Add the route `#/backup` to the Manage group.
+  - Add the route `#/backup` and its sidebar entry.
   - **Save backup** downloads the file.
   - **Restore from backup** validates the file, asks for confirmation in the danger style ("Replace
     all data"), replaces the data, shows a notification and opens Transactions. Refusals appear in an
@@ -928,9 +933,9 @@ has its own tests, so it can merge before its screens exist.
 - Commit after every task, with a short message about why the step matters, in the style of the
   recent history ([git-history rule](../../.claude/rules/git-history.md)). Tick the task's checkbox
   in the same commit.
-- Two research interpretations are built as written but not yet confirmed in the spec: zero
-  amounts proposed as expenses ([R-12](research.md#r-12)), and names unique by name key
-  ([R-08](research.md#r-08)). Confirm them with `/speckit-clarify` before T036, T024 and T068
-  ([plan.md](plan.md#interpretations-to-confirm)).
+- One research interpretation is built as written but not yet confirmed in the spec: zero amounts
+  proposed as expenses ([R-12](research.md#r-12)). Confirm it with `/speckit-clarify` before T036
+  ([plan.md](plan.md#interpretations-to-confirm)). Names unique by name key
+  ([R-08](research.md#r-08)) were confirmed on 2026-10-02.
 - `checklists/data-safety.md` was reviewed on 2026-10-02 and passes in full, so the
   `/speckit-implement` checklist gate is open.

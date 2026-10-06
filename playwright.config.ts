@@ -8,7 +8,11 @@ export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,
   reporter: [["html", { open: "never" }]],
-  use: { baseURL },
+  use: {
+    baseURL,
+    // A fixed locale, so amounts and dates read the same on every machine (FR-060).
+    locale: "en-US",
+  },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },

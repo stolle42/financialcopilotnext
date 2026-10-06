@@ -3,13 +3,20 @@ import { expect, test } from "../support/test";
 // contracts/ui.md, shell and navigation. The network guard also fails these tests on any
 // Content-Security-Policy violation (R-19).
 
-test("opens on Transactions with the app's name and both sidebar groups", async ({ page }) => {
+test("opens on Transactions with the app's name and the sidebar", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("banner")).toContainText("Financial Copilot");
-  const navigation = page.getByRole("navigation", { name: "Screens" });
-  await expect(navigation.getByText("Main", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Manage", { exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Screens" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+});
+
+test("lists the screens in one flat list, without group headings", async ({ page }) => {
+  await page.goto("/");
+  // Wait for the shell first, so the absence checks below cannot pass before it renders.
+  await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+  const navigation = page.getByRole("navigation", { name: "Screens" });
+  await expect(navigation.getByText("Main", { exact: true })).toHaveCount(0);
+  await expect(navigation.getByText("Manage", { exact: true })).toHaveCount(0);
 });
 
 test("opens Transactions for an unknown link (FR-063)", async ({ page }) => {
