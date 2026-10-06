@@ -145,7 +145,7 @@ story builds on these.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T009 [P] Define the entity types in `src/domain/types.ts` from
+- [X] T009 [P] Define the entity types in `src/domain/types.ts` from
   [data-model.md](data-model.md#entities). The types are `Account`, `Category`, `Transaction` (a
   union on `kind`), `Budget`, `MappingProfile` (column refs as header text or position, and both
   `amount` modes), `PendingBatch`, `PendingRow` (a union on `status`, carrying the row failure codes
@@ -155,43 +155,43 @@ story builds on these.
   `pendingBatch` as `PendingBatch | null`), and the `Refusal` result type of
   [R-15](research.md#r-15). The file holds types and constants only, so `npm run typecheck` is its
   check.
-- [ ] T010 [P] Name keys in `src/domain/names.ts`, test-first in `src/domain/names.test.ts`:
+- [X] T010 [P] Name keys in `src/domain/names.ts`, test-first in `src/domain/names.test.ts`:
   `nameKey(name)`, and `isNameTaken(items, name, exceptId?)` for uniqueness, as
   [R-08](research.md#r-08) defines them.
-- [ ] T011 [P] Calendar dates in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`:
+- [X] T011 [P] Calendar dates in `src/domain/dates.ts`, test-first in `src/domain/dates.test.ts`:
   `isCalendarDate(text)`, true only for a real `YYYY-MM-DD` date (so `2026-02-31` is false), and
   `monthOf(date)`, as [R-08](research.md#r-08) defines them.
-- [ ] T012 [P] The amount grammar in `src/domain/amounts.ts`, test-first in
+- [X] T012 [P] The amount grammar in `src/domain/amounts.ts`, test-first in
   `src/domain/amounts.test.ts`. `parseAmount(text, decimalSeparator)` returns integer cents or
   `null`, exactly as [csv-import.md](contracts/csv-import.md#amount-grammar) defines, without
   floating point. Every row of the contract's example table is a test case. Add the 12-digit limit
   and a value that floating point would round wrongly, such as `0,29` becoming 29 cents.
-- [ ] T013 [P] Formatters in `src/ui/format.ts`, test-first in `src/ui/format.test.ts`.
+- [X] T013 [P] Formatters in `src/ui/format.ts`, test-first in `src/ui/format.test.ts`.
   `formatAmount(cents)` and `formatDate(date)` use the two formatters of
   [shared patterns](contracts/ui.md#shared-patterns) ([FR-060](spec.md#fr-060)). `formatDate` builds
   a local date, so `2026-09-03` never shows as 2 September. `localeDecimalSeparator()` reads the
   browser locale through `Intl.NumberFormat().formatToParts`, for the amount field.
-- [ ] T014 [P] The hash router in `src/ui/app/router.ts`, test-first in `src/ui/app/router.test.ts`
+- [X] T014 [P] The hash router in `src/ui/app/router.ts`, test-first in `src/ui/app/router.test.ts`
   ([R-04](research.md#r-04)). `parseRoute(hash)` covers every route of
   [ui.md](contracts/ui.md#shell-and-navigation). `#/import/profiles/:id` carries the id, and an empty
   or unknown hash gives the Transactions route. Add `navigate(path)`, and `useRoute()` built on
   `useSyncExternalStore` and the `hashchange` event.
-- [ ] T015 Changes in `src/domain/changes.ts`, test-first in `src/domain/changes.test.ts`. A
+- [X] T015 Changes in `src/domain/changes.ts`, test-first in `src/domain/changes.test.ts`. A
   `Changes` type lists the records to put and the ids to delete, per store of `State`.
   `applyChanges(state, changes)` returns a new state and leaves its input untouched. Both the store
   (T019) and the domain tests use it. Depends on T009.
-- [ ] T016 State invariants in `src/domain/invariants.ts`, test-first in
+- [X] T016 State invariants in `src/domain/invariants.ts`, test-first in
   `src/domain/invariants.test.ts`. `checkInvariants(state)` returns ok, or the first broken
   invariant of [data-model.md](data-model.md#invariants) as a code with details that name the record,
   for example `transaction-account-missing` with the transaction id. The backup restore uses this to
   name the broken rule ([backup-file.md](contracts/backup-file.md#loading-fr-071-fr-072)). The tests
   have one failing state for each of invariants 1–8. Depends on T009–T011.
-- [ ] T017 First-launch data in `src/domain/seed.ts`, test-first in `src/domain/seed.test.ts`.
+- [X] T017 First-launch data in `src/domain/seed.ts`, test-first in `src/domain/seed.test.ts`.
   `seedState(newId)` returns the [seed data](data-model.md#seed-data): the account "Cash", the
   settings, and all 16 categories with their colours and roles ([FR-006](spec.md#fr-006),
   [FR-031](spec.md#fr-031)). The test checks the table row by row and runs `checkInvariants`.
   Depends on T016.
-- [ ] T018 IndexedDB storage in `src/persistence/db.ts`, test-first in `src/persistence/db.test.ts`
+- [X] T018 IndexedDB storage in `src/persistence/db.ts`, test-first in `src/persistence/db.test.ts`
   against `fake-indexeddb` ([R-06](research.md#r-06), [storage layout](data-model.md#storage-layout)).
   Install `idb`.
   - `openDatabase()` creates `financial-copilot` version 1 with the seven stores, and writes
@@ -203,7 +203,7 @@ story builds on these.
   - Tests: the first open seeds and a second open does not; loading returns what was written; and a
     write in which one record fails leaves every store unchanged.
   - Depends on T015, T017.
-- [ ] T019 The store in `src/store/store.ts`, test-first in `src/store/store.test.ts` against
+- [X] T019 The store in `src/store/store.ts`, test-first in `src/store/store.test.ts` against
   `fake-indexeddb` ([R-05](research.md#r-05), [R-15](research.md#r-15)).
   - `createStore(db, state)` provides `getState`, `subscribe` and `run(decide)`.
   - `run` calls `decide(state, { today, newId })`. `today` comes from `todayLocal()` in
@@ -217,14 +217,14 @@ story builds on these.
     failing write, for example after closing the database, gives `save-failed` and leaves the state
     unchanged.
   - Depends on T018.
-- [ ] T020 The message catalogue in `src/ui/messages.ts`, test-first in `src/ui/messages.test.ts`
+- [X] T020 The message catalogue in `src/ui/messages.ts`, test-first in `src/ui/messages.test.ts`
   ([R-15](research.md#r-15), [message catalogue](contracts/ui.md#message-catalogue)). `MessageCode`
   is the union of the code types the layers export, and the wording lookup is typed
   `Record<MessageCode, …>`, so a missing wording fails the type check. Start with `save-failed`,
   `storage-unavailable`, `open-in-another-tab` and `unexpected-error`. The test checks that every
   message is plain language: it is not empty and does not contain its own code
   ([FR-067](spec.md#fr-067)). Depends on T019.
-- [ ] T021 The app shell in `src/ui/app/App.tsx`, test-first in `e2e/ui/shell.spec.ts`
+- [X] T021 The app shell in `src/ui/app/App.tsx`, test-first in `e2e/ui/shell.spec.ts`
   ([ui.md](contracts/ui.md#shell-and-navigation), [R-19](research.md#r-19)).
   - The header shows the app name. The sidebar has the Main and Manage groups, and each screen's
     entry is added by the task that builds that screen. The route outlet shows a placeholder at `#/`
@@ -237,7 +237,7 @@ story builds on these.
   - Tests: the app opens on `#/` showing its name, the built page carries the policy, and the guard
     sees no violation.
   - Depends on T014, T020.
-- [ ] T022 Start-up in `src/main.tsx`, test-first in `e2e/ui/startup.spec.ts`
+- [X] T022 Start-up in `src/main.tsx`, test-first in `e2e/ui/startup.spec.ts`
   ([R-07](research.md#r-07), [R-15](research.md#r-15)).
   - Hold a Web Lock for as long as the page runs (`navigator.locks.request` with `ifAvailable`).
     Without the lock, show `open-in-another-tab` and open no storage.
@@ -249,7 +249,7 @@ story builds on these.
     `indexedDB.open` throws `SecurityError` (set up with `page.addInitScript`) shows
     `storage-unavailable`.
   - Depends on T019, T021.
-- [ ] T023 Unexpected errors in `src/ui/app/ErrorBoundary.tsx` and `src/main.tsx`, test-first in
+- [X] T023 Unexpected errors in `src/ui/app/ErrorBoundary.tsx` and `src/main.tsx`, test-first in
   `e2e/ui/startup.spec.ts` ([R-15](research.md#r-15)). An error boundary around the shell, plus
   handlers for `error` and `unhandledrejection`, show `unexpected-error` with a Reload button and log
   the details to the console. Test: an unhandled rejection scheduled after load by
