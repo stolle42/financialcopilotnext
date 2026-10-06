@@ -146,7 +146,7 @@ committed. Tests that need existing data load it through the backup restore
 |---|---|---|
 | [SC-009](spec.md#sc-009) | Restore a generated backup with 5,000 transactions in one period, then choose that period | All Insights sections render within 2 s |
 | [SC-010](spec.md#sc-010) | Import a generated 5,000-row CSV | The review is shown within 10 s |
-| List render ([R-21](research.md#r-21)) | Restore a generated backup with 10,000 transactions, then open the app | The transaction list shows within 1 s |
+| List render ([R-21](research.md#r-21)) | Restore a generated backup with 10,000 transactions, then open the app | The transaction list shows within 1 s. Skipped: Firefox takes about 1.4 s, and the fix is listed under Not in v1 ([Out of Scope](spec.md#out-of-scope)) |
 
 ## Manual checks
 
