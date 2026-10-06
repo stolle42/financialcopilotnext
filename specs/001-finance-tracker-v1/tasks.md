@@ -799,10 +799,10 @@ post-push check.
   [SC-009](spec.md#sc-009), [SC-010](spec.md#sc-010) and the 1-second list render of
   [R-21](research.md#r-21). Each check uses generated data from T078, restored or imported with the
   helpers of T076. Depends on T076, T078.
-- [ ] T080 Validate a fresh checkout. Clone the repository into a new folder, then run `npm ci` and
+- [x] T080 Validate a fresh checkout. Clone the repository into a new folder, then run `npm ci` and
   every command of [automated checks](quickstart.md#automated-checks), and fix whatever fails. This
   covers the portable-checkout rule and [quickstart.md](quickstart.md#setup).
-- [ ] T081 (Project owner, manual) Walk the [manual checks](quickstart.md#manual-checks) on
+- [x] T081 (Project owner, manual) Walk the [manual checks](quickstart.md#manual-checks) on
   `http://localhost:4173` and on the Vercel production domain, and confirm that CI's `test` and
   `deployed` jobs are green ([after pushing to main](quickstart.md#after-pushing-to-main)).
 
