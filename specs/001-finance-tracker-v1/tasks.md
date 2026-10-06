@@ -130,7 +130,7 @@ priority order. Each story phase ends with that story's end-to-end journey from
   - Add the `verify` script, which runs the same checks in the same order, ending with
     `npm run test:e2e`.
   - Check: `npm run verify` passes locally.
-- [ ] T008 (Project owner, manual) Set up Vercel as
+- [X] T008 (Project owner, manual) Set up Vercel as
   [quickstart.md](quickstart.md#vercel-setup) describes, including the repository variable
   `VERCEL_PRODUCTION_URL`. This makes the `deployed` job of
   `.github/workflows/regressiontests.yml` run against the production domain after every push to
