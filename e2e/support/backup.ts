@@ -108,11 +108,20 @@ export async function chooseBackupFile(
   ).setFiles({ name, mimeType: "application/json", buffer: Buffer.from(text, "utf-8") });
 }
 
-/** Restores `text` through the Backup screen, confirms the replacement and waits for Transactions. */
-export async function restoreBackup(page: Page, text: string, name?: string): Promise<void> {
+/**
+ * Restores `text` through the Backup screen, confirms the replacement and waits for Transactions.
+ * A backup of thousands of transactions takes seconds to check and write, longer on a busy
+ * machine, so such a test passes a `timeout` for that wait.
+ */
+export async function restoreBackup(
+  page: Page,
+  text: string,
+  name?: string,
+  { timeout }: { timeout?: number } = {},
+): Promise<void> {
   await chooseBackupFile(page, text, name);
   const confirmation = page.getByRole("alertdialog");
   await confirmation.getByRole("button", { name: "Replace all data" }).click();
   await expect(confirmation).toHaveCount(0);
-  await expect(page).toHaveURL(/#\/$/);
+  await expect(page).toHaveURL(/#\/$/, { timeout });
 }

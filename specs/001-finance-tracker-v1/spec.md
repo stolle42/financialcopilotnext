@@ -713,3 +713,9 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   commitment.
 - Searching the transaction list, paginating it, and editing several transactions at once. v1 has
   only the filters in [FR-016](#fr-016).
+- Showing the transaction list within 1 second at 10,000 transactions in every browser
+  ([R-21](research.md#r-21)). Chromium stays under a second, but Firefox takes about 1.4 seconds.
+  The time goes into building every row, so `content-visibility` does not help. The fix is to show
+  the first rows at once and render the rest just after, for example with React's
+  `useDeferredValue`. Every row still reaches the page, so find-in-page keeps working, a moment
+  later for rows past the first. The check in `e2e/performance.spec.ts` is skipped until then.
