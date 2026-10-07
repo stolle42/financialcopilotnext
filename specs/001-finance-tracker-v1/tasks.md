@@ -809,19 +809,18 @@ post-push check.
 
 ---
 
-## Phase 11: Sidebar order
+## Phase 11: UI improvements
 
-**Purpose**: list the screens in the order the owner set on 2026-10-07, in
-[ui.md](contracts/ui.md#shell-and-navigation).
+**Purpose**: interface changes the owner asks for after v1.0. Each change goes into its contract or
+the spec first, then gets a task here.
 
 - [ ] T082 Reorder the sidebar entries in `src/ui/app/App.tsx` to the order of
   [ui.md](contracts/ui.md#shell-and-navigation). Test first: update the sidebar tests in `e2e/ui/`
   (`transactions`, `import`, `budgets`, `categories`, `backup` and `insights`), so each checks the
-  new order or its screen's new position. This phase is a release, so the same commit sets the
-  version to `1.1.0` (constitution IX).
+  new order or its screen's new position.
 
-**Checkpoint**: the sidebar matches [ui.md](contracts/ui.md#shell-and-navigation). Push and run the
-post-push check.
+**Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
+commit of its last task sets the version to `1.1.0`. Push and run the post-push check.
 
 ---
 
@@ -844,7 +843,8 @@ post-push check.
   - **US7**: US1 for the code. Its round-trip journey (T076) fills every entity type, so it needs US2
     and US4.
 - **Polish (Phase 10)**: depends on every story. T079 needs T076 and T078.
-- **Sidebar order (Phase 11)**: depends on every story, because it orders all of their entries.
+- **UI improvements (Phase 11)**: depends on every story, because its changes reach into their
+  screens.
 
 ### Within Each Task and Story
 
