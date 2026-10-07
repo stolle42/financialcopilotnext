@@ -818,6 +818,10 @@ the spec first, then gets a task here.
   [ui.md](contracts/ui.md#shell-and-navigation). Test first: update the sidebar tests in `e2e/ui/`
   (`transactions`, `import`, `budgets`, `categories`, `backup` and `insights`), so each checks the
   new order or its screen's new position.
+- [ ] T083 Column headers for the transaction list in
+  `src/ui/screens/transactions/TransactionsScreen.tsx` ([ui.md](contracts/ui.md#transactions),
+  [R-21](research.md#r-21)). Test first in `e2e/ui/transactions.spec.ts`: the header names the
+  columns in order, each sits over its column, and Amount is right-aligned.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.

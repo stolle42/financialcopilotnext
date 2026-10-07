@@ -38,6 +38,9 @@ Routes use the URL hash so the build works from any static host or local file ([
   amount shows a plus sign in the positive colour, and a transfer shows a transfer icon in neutral
   colour. For a transfer, the destination appears where the category chip would be (`→ Cash`). An
   empty description shows as muted "No description".
+- **Column headers**: a header above the rows names the columns, in order: Date, Description,
+  Category, Account, Amount. Each name sits over its column, and Amount is right-aligned like the
+  amounts below it ([R-21](../research.md#r-21)).
 - **Filters** ([FR-016](../spec.md#fr-016)):
   - Account: filtering by an account includes transfers into it.
   - Category: first a side switch (Expenses / Income), then a category of that side. Expense and

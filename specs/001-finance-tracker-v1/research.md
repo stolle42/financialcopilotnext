@@ -685,6 +685,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     not virtualise the list.
   - Rows use lightweight markup: plain elements, not a component per cell.
   - Rows carry the CSS `content-visibility: auto`, and the filtered list is memoised.
+  - The column header is a row of its own above the list, not a table head. CSS containment does
+    not apply to table rows, so in a `<table>` the rows would lose `content-visibility`.
 - **Rationale**:
   - At the design point of 10,000 transactions, plain rows were expected to render well within a
     second, and `content-visibility` lets the browser skip layout and painting for rows off screen.
