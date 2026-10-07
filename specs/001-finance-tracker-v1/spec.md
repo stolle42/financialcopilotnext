@@ -56,6 +56,12 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: What kind should the app propose for an imported row whose amount is zero? → A: An expense,
   the same default as manual entry ([FR-023](#fr-023)).
 
+### Session 2026-10-07
+
+- Q: May the transaction list's category filter offer expense and income categories in one list,
+  instead of first asking for a side? → A: Yes, as two groups with a clear divider between them,
+  so the user can tell the two sets apart ([FR-030](#fr-030)).
+
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
 
@@ -481,8 +487,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 **Categories**
 
 - <a id="fr-030"></a>**FR-030**: System MUST keep expense categories and income categories as two separate sets. A
-  category picker MUST show only the set matching the transaction's kind, and the two sets MUST
-  never appear in one list. Category pickers in manual entry and import review MUST NOT offer
+  category picker MUST show only the set matching the transaction's kind. A list that offers both
+  sets, such as a filter, MUST show them as two groups, each named by its side and clearly divided
+  from the other. Category pickers in manual entry and import review MUST NOT offer
   "Unaccounted"; only reconciliation assigns it ([FR-035](#fr-035)).
 - <a id="fr-031"></a>**FR-031**: On first launch, both sets MUST contain a predefined list of categories, each set
   including the protected categories "Uncategorised" and "Unaccounted".

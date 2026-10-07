@@ -822,6 +822,13 @@ the spec first, then gets a task here.
   `src/ui/screens/transactions/TransactionsScreen.tsx` ([ui.md](contracts/ui.md#transactions),
   [R-21](research.md#r-21)). Test first in `e2e/ui/transactions.spec.ts`: the header names the
   columns in order, each sits over its column, and Amount is right-aligned.
+- [ ] T084 One category filter for both sides in
+  `src/ui/screens/transactions/TransactionsScreen.tsx`, replacing the side switch
+  ([ui.md](contracts/ui.md#transactions), [FR-030](spec.md#fr-030)). Test first in
+  `e2e/ui/transactions.spec.ts`: the side switch is gone; the select holds an Expenses group and an
+  Income group, each with its own categories and protected categories, with a divider between
+  them; the closed select names the chosen category's group; and filtering by a category of either
+  side still works.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.

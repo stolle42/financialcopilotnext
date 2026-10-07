@@ -43,9 +43,11 @@ Routes use the URL hash so the build works from any static host or local file ([
   amounts below it ([R-21](../research.md#r-21)).
 - **Filters** ([FR-016](../spec.md#fr-016)):
   - Account: filtering by an account includes transfers into it.
-  - Category: first a side switch (Expenses / Income), then a category of that side. Expense and
-    income categories never share one list ([FR-030](../spec.md#fr-030)). The filter offers both
-    protected categories, because it is not a picker in manual entry or review.
+  - Category: one select with both sides, as two groups: Expenses, then Income. Each group is
+    headed by its side's name, and a divider line separates them ([FR-030](../spec.md#fr-030)).
+    The closed select shows the chosen category followed by its group's name, because the same
+    name may exist on both sides ([FR-032](../spec.md#fr-032)). The filter offers the protected
+    categories of both sides, because it is not a picker in manual entry or review.
   - Both filters can apply at once, and **Clear filters** resets them.
 - **Selecting a row** opens the [transaction form](#transaction-form) in edit mode.
 - **Empty states**: when there are no transactions at all, the screen says so and offers Add
