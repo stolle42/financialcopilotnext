@@ -19,14 +19,14 @@ screens it does not list are reached from Import.
 | Route | Screen | Sidebar position |
 |---|---|---|
 | `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)) | 1 |
-| `#/insights` | [Insights](#insights) | 2 |
-| `#/import` | [Import](#import) | 3 |
+| `#/import` | [Import](#import) | 2 |
 | `#/import/review` | [Review](#review) of the pending batch | not listed |
 | `#/import/profiles/new`, `#/import/profiles/:id` | [Profile editor](#profile-editor) | not listed |
-| `#/budgets` | [Budgets](#budgets) | 4 |
-| `#/categories` | [Categories](#categories) | 5 |
-| `#/accounts` | [Accounts](#accounts), deliberately low in the list ([FR-063](../spec.md#fr-063)) | 6 |
-| `#/backup` | [Backup](#backup) | 7 |
+| `#/categories` | [Categories](#categories) | 3 |
+| `#/accounts` | [Accounts](#accounts), never the home screen ([FR-063](../spec.md#fr-063)) | 4 |
+| `#/budgets` | [Budgets](#budgets) | 5 |
+| `#/backup` | [Backup](#backup) | 6 |
+| `#/insights` | [Insights](#insights) | 7 |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 

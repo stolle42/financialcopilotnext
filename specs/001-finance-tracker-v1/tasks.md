@@ -809,6 +809,22 @@ post-push check.
 
 ---
 
+## Phase 11: Sidebar order
+
+**Purpose**: list the screens in the order the owner set on 2026-10-07, in
+[ui.md](contracts/ui.md#shell-and-navigation).
+
+- [ ] T082 Reorder the sidebar entries in `src/ui/app/App.tsx` to the order of
+  [ui.md](contracts/ui.md#shell-and-navigation). Test first: update the sidebar tests in `e2e/ui/`
+  (`transactions`, `import`, `budgets`, `categories`, `backup` and `insights`), so each checks the
+  new order or its screen's new position. This phase is a release, so the same commit sets the
+  version to `1.1.0` (constitution IX).
+
+**Checkpoint**: the sidebar matches [ui.md](contracts/ui.md#shell-and-navigation). Push and run the
+post-push check.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -828,6 +844,7 @@ post-push check.
   - **US7**: US1 for the code. Its round-trip journey (T076) fills every entity type, so it needs US2
     and US4.
 - **Polish (Phase 10)**: depends on every story. T079 needs T076 and T078.
+- **Sidebar order (Phase 11)**: depends on every story, because it orders all of their entries.
 
 ### Within Each Task and Story
 
