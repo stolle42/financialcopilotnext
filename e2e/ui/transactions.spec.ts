@@ -10,6 +10,7 @@ test.beforeEach(async ({ page }) => {
 
 const list = (page: Page) => page.getByRole("list", { name: "Transactions" });
 const rows = (page: Page) => list(page).getByRole("listitem");
+const columnHeaders = (page: Page) => page.locator("[data-column-headers] > *");
 const filters = (page: Page) => page.getByRole("region", { name: "Filters" });
 
 async function descriptions(page: Page): Promise<string[]> {
@@ -76,6 +77,26 @@ test("shows each kind distinctly, a transfer's destination, and an empty descrip
   const topUp = rows(page).filter({ hasText: "Top up" });
   await expect(topUp).toContainText("→ Cash");
   await expect(topUp).toContainText(euros(1000));
+});
+
+test("names the columns above the rows, each over its own column", async ({ page }) => {
+  await page.goto("/");
+  await addTransaction(page, { amount: "40.00", category: "Groceries", description: "Shop" });
+  await expect(columnHeaders(page)).toHaveText([
+    "Date",
+    "Description",
+    "Category",
+    "Account",
+    "Amount",
+  ]);
+  const cells = rows(page).first().getByRole("button").locator(":scope > *");
+  for (const [index, header] of (await columnHeaders(page).all()).entries()) {
+    const headerBox = await header.boundingBox();
+    const cellBox = await cells.nth(index).boundingBox();
+    expect(headerBox?.x).toBeCloseTo(cellBox!.x, 0);
+    expect(headerBox?.width).toBeCloseTo(cellBox!.width, 0);
+  }
+  await expect(columnHeaders(page).last()).toHaveCSS("text-align", "right");
 });
 
 test.describe("filters", () => {
