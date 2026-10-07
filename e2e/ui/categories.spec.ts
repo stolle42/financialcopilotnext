@@ -128,7 +128,7 @@ test("each side has its own tab, listed by name with the protected ones last (sc
 
   await selectTab(page, "Income");
 
-  // FR-030: the two sides never share one list.
+  // FR-030: each tab holds its own side only.
   await expect(rows(page)).toHaveText(
     ["Gifts", "Interest", "Salary", "Uncategorised", "Unaccounted"].map(
       (name) => new RegExp(`^${name}`),

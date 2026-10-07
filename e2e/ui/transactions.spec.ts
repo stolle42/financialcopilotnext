@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { addAccount, addTransaction, choose } from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, transactions; FR-016, FR-063.
+// contracts/ui.md, transactions; FR-016, FR-030, FR-063.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");
@@ -134,15 +134,52 @@ test.describe("filters", () => {
   test("by category of either side, which leaves out transfers", async ({ page }) => {
     await choose(page, filters(page), "Category", "Groceries");
     await expect.poll(() => descriptions(page)).toEqual(["Shop"]);
-    await filters(page).getByRole("button", { name: "Income" }).click();
     await choose(page, filters(page), "Category", "Salary");
     await expect.poll(() => descriptions(page)).toEqual(["Pay"]);
   });
 
-  test("offers both protected categories, since it is not a picker for entry", async ({ page }) => {
+  test("lists both sides as two named groups, with a divider between them", async ({ page }) => {
+    await expect(filters(page).getByRole("button", { name: /^(Expenses|Income)$/ })).toHaveCount(0);
     await filters(page).getByLabel("Category", { exact: true }).click();
-    await expect(page.getByRole("option", { name: "Unaccounted", exact: true })).toBeVisible();
-    await expect(page.getByRole("option", { name: "Uncategorised", exact: true })).toBeVisible();
+    const expenses = page.getByRole("group", { name: "Expenses", exact: true });
+    const income = page.getByRole("group", { name: "Income", exact: true });
+    await expect(expenses.getByRole("option", { name: "Groceries" })).toBeVisible();
+    await expect(expenses.getByRole("option", { name: "Salary" })).toHaveCount(0);
+    await expect(income.getByRole("option", { name: "Salary" })).toBeVisible();
+    await expect(income.getByRole("option", { name: "Groceries" })).toHaveCount(0);
+    const divider = page.getByRole("listbox").getByRole("separator");
+    await expect(divider).toBeVisible();
+    const expensesBox = (await expenses.boundingBox())!;
+    const dividerBox = (await divider.boundingBox())!;
+    const incomeBox = (await income.boundingBox())!;
+    expect(dividerBox.y).toBeGreaterThanOrEqual(expensesBox.y + expensesBox.height);
+    expect(incomeBox.y).toBeGreaterThanOrEqual(dividerBox.y + dividerBox.height);
+  });
+
+  test("offers each side's protected categories, since it is not a picker for entry", async ({
+    page,
+  }) => {
+    await filters(page).getByLabel("Category", { exact: true }).click();
+    for (const side of ["Expenses", "Income"]) {
+      const group = page.getByRole("group", { name: side, exact: true });
+      await expect(group.getByRole("option", { name: "Unaccounted", exact: true })).toBeVisible();
+      await expect(group.getByRole("option", { name: "Uncategorised", exact: true })).toBeVisible();
+    }
+  });
+
+  test("names the chosen category's group, since both sides have an Uncategorised", async ({
+    page,
+  }) => {
+    const category = filters(page).getByLabel("Category", { exact: true });
+    await category.click();
+    await page
+      .getByRole("group", { name: "Income", exact: true })
+      .getByRole("option", { name: "Uncategorised", exact: true })
+      .click();
+    await expect(category).toContainText("Uncategorised");
+    await expect(category).toContainText("Income");
+    await choose(page, filters(page), "Category", "Groceries");
+    await expect(category).toContainText("Expenses");
   });
 
   test("combine, and Clear filters resets them", async ({ page }) => {
