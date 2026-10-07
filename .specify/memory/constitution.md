@@ -55,17 +55,20 @@ Production behavior MUST NOT be added without a test that fails if that behavior
 ### IX. Versioning
 
 The app MUST carry one version of the form `MAJOR.MINOR` (for example `1.2`); there is no patch
-level. The version MUST be defined only in the `version` field of `package.json`, written
-`MAJOR.MINOR.0` because npm requires three parts (Principle I). The running app MUST show the
-version, read from that field.
+level. Each release MUST record its version in two places that agree: the `version` field of
+`package.json`, written `MAJOR.MINOR.0` because npm requires three parts, and a git tag
+`vMAJOR.MINOR` on the commit that completes the release. The running app MUST show the version,
+read from `package.json`.
 
 - A release happens when a feature's tasks are complete, or when a change to app behavior made
   outside a feature reaches `main`.
-- Every release MUST bump the version in the commit that completes it and MUST be tagged
-  `vMAJOR.MINOR` in git.
+- Every release MUST bump the version in the commit that completes it.
 - MAJOR MUST be bumped, and MINOR reset to 0, when a release removes a user-facing feature or
   writes the backup file or stored data in a form an earlier version cannot read.
 - Every other release bumps MINOR.
+- Exception: tags `v0.1`–`v0.9` were added afterwards to phases 1–9 of
+  `001-finance-tracker-v1`, whose `package.json` still reads `0.0.0`. This mismatch is accepted.
+  From `v1.0` on, tag and `package.json` MUST agree.
 
 This principle versions the app; this document keeps its own version under Governance.
 
@@ -99,4 +102,4 @@ Amendments are made by editing this file and bumping the version:
 MAJOR for removed or redefined principles, MINOR for added or materially expanded principles or
 sections, PATCH for wording fixes.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-07
+**Version**: 1.1.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-07
