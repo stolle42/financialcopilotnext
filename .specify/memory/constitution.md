@@ -60,8 +60,8 @@ level. Each release MUST record its version in two places that agree: the `versi
 `vMAJOR.MINOR` on the commit that completes the release. The running app MUST show the version,
 read from `package.json`.
 
-- A release happens when a feature's tasks are complete, or when a change to app behavior made
-  outside a feature reaches `main`.
+- A release happens when a phase in a feature's `tasks.md` is complete, or when a change to app
+  behavior made outside a feature reaches `main`.
 - Every release MUST bump the version in the commit that completes it.
 - MAJOR MUST be bumped, and MINOR reset to 0, when a release removes a user-facing feature or
   writes the backup file or stored data in a form an earlier version cannot read.
@@ -80,7 +80,7 @@ they run, and a MAJOR bump warns that going back to an earlier release is not sa
 1. Specify and plan the feature; tasks link to spec requirements (Principle I).
 2. Implement each task test-first (Principle VII) with the smallest passing change (Principle II).
 3. Refactor only once tests are green, applying Principles III–VI.
-4. When the feature's last task is done, release it (Principle IX).
+4. When a phase's last task is done, release it (Principle IX).
 
 ## Quality Gates
 
@@ -102,4 +102,4 @@ Amendments are made by editing this file and bumping the version:
 MAJOR for removed or redefined principles, MINOR for added or materially expanded principles or
 sections, PATCH for wording fixes.
 
-**Version**: 1.1.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-07
+**Version**: 1.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-07
