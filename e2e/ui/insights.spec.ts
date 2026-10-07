@@ -49,11 +49,11 @@ async function expectPressedPreset(page: Page, name: string | null) {
 }
 
 test.describe("the screen", () => {
-  test("is the second entry in the sidebar", async ({ page }) => {
+  test("is the last entry in the sidebar", async ({ page }) => {
     await page.goto("/");
     const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-    await expect(links.nth(1)).toHaveText("Insights");
-    await links.nth(1).click();
+    await expect(links.last()).toHaveText("Insights");
+    await links.last().click();
     await expect(page).toHaveURL(/#\/insights$/);
     await expect(main(page).getByRole("heading", { name: "Insights", level: 1 })).toBeVisible();
   });

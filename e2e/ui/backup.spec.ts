@@ -53,11 +53,11 @@ function otherBackup(current: BackupData): BackupData {
   };
 }
 
-test("Backup is the last entry in the sidebar", async ({ page }) => {
+test("Backup is the sixth entry in the sidebar", async ({ page }) => {
   await page.goto("/");
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-  await expect(links.last()).toHaveText("Backup");
-  await links.last().click();
+  await expect(links.nth(5)).toHaveText("Backup");
+  await links.nth(5).click();
   await expect(page).toHaveURL(/#\/backup$/);
   await expect(main(page).getByRole("heading", { name: "Backup", level: 1 })).toBeVisible();
 });

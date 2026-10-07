@@ -23,12 +23,12 @@ test("Transactions is the first entry in the sidebar", async ({ page }) => {
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
   await expect(links).toHaveText([
     "Transactions",
-    "Insights",
     "Import",
-    "Budgets",
     "Categories",
     "Accounts",
+    "Budgets",
     "Backup",
+    "Insights",
   ]);
   await links.first().click();
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();

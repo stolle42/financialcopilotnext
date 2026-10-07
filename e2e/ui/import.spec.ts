@@ -14,19 +14,19 @@ const profileList = (page: Page) => page.getByRole("region", { name: "Mapping pr
 
 const storedBatches = (page: Page) => storedRecords<PendingBatch>(page, "pendingBatch");
 
-test("Import is the third entry in the sidebar", async ({ page }) => {
+test("Import is the second entry in the sidebar", async ({ page }) => {
   await page.goto("/");
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
   await expect(links).toHaveText([
     "Transactions",
-    "Insights",
     "Import",
-    "Budgets",
     "Categories",
     "Accounts",
+    "Budgets",
     "Backup",
+    "Insights",
   ]);
-  await links.nth(2).click();
+  await links.nth(1).click();
   await expect(page.getByRole("main").getByRole("heading", { name: "Import" })).toBeVisible();
 });
 

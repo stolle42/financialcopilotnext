@@ -40,22 +40,22 @@ async function typeLimit(page: Page, name: string, text: string) {
 }
 
 test.describe("the screen", () => {
-  test("is the fourth entry in the sidebar", async ({ page }) => {
+  test("is the fifth entry in the sidebar", async ({ page }) => {
     await page.goto("/");
     const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
     await expect(links).toHaveText([
       "Transactions",
-      "Insights",
       "Import",
-      "Budgets",
       "Categories",
       "Accounts",
+      "Budgets",
       "Backup",
+      "Insights",
     ]);
-    await links.nth(3).click();
+    await links.nth(4).click();
     await expect(page).toHaveURL(/#\/budgets$/);
     await expect(main(page).getByRole("heading", { name: "Budgets", level: 1 })).toBeVisible();
-    await expect(links.nth(3)).toHaveAttribute("aria-current", "page");
+    await expect(links.nth(4)).toHaveAttribute("aria-current", "page");
   });
 
   test("lists the ordinary expense categories by name, with no limit set yet", async ({ page }) => {
