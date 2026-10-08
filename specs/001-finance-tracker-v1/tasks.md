@@ -867,6 +867,15 @@ the spec first, then gets a task here.
   - in `e2e/ui/transactions.spec.ts`, From and To filter the list; a From after To shows
     `date-range-invalid` under the fields and keeps the last rows; and Clear filters empties both
     fields.
+- [ ] T089 Import opens from Transactions instead of the sidebar: `src/ui/app/App.tsx` drops the
+  Import entry and marks Transactions current on every import route, and `TransactionsScreen.tsx`
+  gains the Import CSV link ([ui.md](contracts/ui.md#shell-and-navigation),
+  [ui.md](contracts/ui.md#transactions)). Test first:
+  - in `e2e/ui/import.spec.ts`, the sidebar has no Import entry; Import CSV on Transactions opens
+    Import, with and without transactions; and Import, Review and the profile editor mark
+    Transactions as the current entry;
+  - the sidebar tests in `e2e/ui/` (`transactions`, `budgets`, `categories` and `backup`) expect
+    the six entries and their screens' new positions.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.

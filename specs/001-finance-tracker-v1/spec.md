@@ -75,6 +75,9 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
   [contracts/ui.md](contracts/ui.md#insights)).
 - Q: May the transaction list be filtered by date, too? → A: Yes, by a range of dates whose start,
   end or both may be set ([FR-016](#fr-016), [contracts/ui.md](contracts/ui.md#transactions)).
+- Q: Should Import keep its own entry in the sidebar? → A: No. It opens from a button on the
+  Transactions screen, since an import feeds the transaction list
+  ([contracts/ui.md](contracts/ui.md#shell-and-navigation)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*

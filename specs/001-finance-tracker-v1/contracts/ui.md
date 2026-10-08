@@ -13,20 +13,22 @@ The app is a desktop layout with a sidebar for navigation and a header ([FR-064]
 The header holds the app name and the primary action **Add transaction**, which opens the
 [transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
 
-The sidebar is one flat list, without group headings, in the order of the table below. The
-screens it does not list are reached from Import.
+The sidebar is one flat list, without group headings, in the order of the table below. Import
+opens from the [Transactions](#transactions) screen, and the other screens it does not list open
+from Import. On each of them, the sidebar marks Transactions as the current entry, since an import
+feeds its list.
 
 | Route | Screen | Sidebar position |
 |---|---|---|
 | `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)) | 1 |
-| `#/import` | [Import](#import) | 2 |
+| `#/import` | [Import](#import) | not listed |
 | `#/import/review` | [Review](#review) of the pending batch | not listed |
 | `#/import/profiles/new`, `#/import/profiles/:id` | [Profile editor](#profile-editor) | not listed |
-| `#/categories` | [Categories](#categories) | 3 |
-| `#/accounts` | [Accounts](#accounts), never the home screen ([FR-063](../spec.md#fr-063)) | 4 |
-| `#/budgets` | [Budgets](#budgets) | 5 |
-| `#/backup` | [Backup](#backup) | 6 |
-| `#/insights` | [Insights](#insights) | 7 |
+| `#/categories` | [Categories](#categories) | 2 |
+| `#/accounts` | [Accounts](#accounts), never the home screen ([FR-063](../spec.md#fr-063)) | 3 |
+| `#/budgets` | [Budgets](#budgets) | 4 |
+| `#/backup` | [Backup](#backup) | 5 |
+| `#/insights` | [Insights](#insights) | 6 |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 
@@ -34,6 +36,8 @@ Routes use the URL hash so the build works from any static host or local file ([
 
 ### Transactions
 
+- **Import CSV**: a link styled as an outline button, at the right of the heading, opens
+  [Import](#import). It shows whether or not there are transactions.
 - **List**: follows [FR-016](../spec.md#fr-016). An expense amount shows a minus sign, an income
   amount shows a plus sign in the positive colour, and a transfer shows a transfer icon in neutral
   colour. For a transfer, the destination appears where the category chip would be (`→ Cash`). An
