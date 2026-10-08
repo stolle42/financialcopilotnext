@@ -5,6 +5,7 @@ import {
   addTransaction,
   putBudgets,
   putRecords,
+  reconcileAccount,
   storedRecords,
   storedTransactions,
 } from "../support/app";
@@ -132,6 +133,11 @@ test.describe("the period (FR-050)", () => {
 test.describe("spending over time (FR-051, FR-053)", () => {
   const surface = (page: Page) => spending(page).locator("svg.recharts-surface");
   const tooltip = (page: Page) => spending(page).locator(".recharts-tooltip-wrapper");
+  const tooltipCategories = (page: Page) => tooltip(page).getByRole("listitem");
+
+  /** A line of the tooltip's preview: the category, then its amount. */
+  const previewLine = (name: string, cents: number) =>
+    new RegExp(`^${escape(name)}.*${escape(euros(cents))}$`);
 
   /** Points at the chart near its right edge, where the line's last point is. */
   async function hoverLastPoint(page: Page) {
@@ -186,6 +192,67 @@ test.describe("spending over time (FR-051, FR-053)", () => {
 
     await expect(tooltip(page)).toContainText("Sep 2026");
     await expect(tooltip(page)).toContainText(euros(4217));
+  });
+
+  test("a point's tooltip previews its spending by category, largest first", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "2.17", category: "Eating out" });
+    await addTransaction(page, { amount: "40.00", category: "Groceries" });
+    await addTransaction(page, { kind: "Income", amount: "100.00", category: "Salary" });
+    await openInsights(page);
+    await choosePeriod(page, "2026-08-28", "2026-09-03");
+
+    await hoverLastPoint(page);
+
+    await expect(tooltip(page)).toContainText(euros(4217));
+    await expect(tooltipCategories(page)).toHaveText([
+      previewLine("Groceries", 4000),
+      previewLine("Eating out", 217),
+    ]);
+  });
+
+  test("beyond five categories, the preview shows four and sums the rest", async ({ page }) => {
+    await page.goto("/");
+    const amounts: [string, string][] = [
+      ["Groceries", "70.00"],
+      ["Eating out", "60.00"],
+      ["Health", "50.00"],
+      ["Housing", "40.00"],
+      ["Leisure", "30.00"],
+      ["Shopping", "20.00"],
+      ["Transport", "10.00"],
+    ];
+    for (const [category, amount] of amounts) await addTransaction(page, { amount, category });
+    await openInsights(page);
+    await choosePeriod(page, "2026-08-28", "2026-09-03");
+
+    await hoverLastPoint(page);
+
+    await expect(tooltipCategories(page)).toHaveText([
+      previewLine("Groceries", 7000),
+      previewLine("Eating out", 6000),
+      previewLine("Health", 5000),
+      previewLine("Housing", 4000),
+      previewLine("3 more categories", 6000),
+    ]);
+  });
+
+  test("the preview marks Unaccounted unknown, as the legend does (FR-052)", async ({ page }) => {
+    await page.goto("/");
+    // Cash holds 0.00, so stating -15.00 books an expense of 15.00 to "Unaccounted" today.
+    await reconcileAccount(page, "Cash", "-15.00");
+    await addTransaction(page, { amount: "40.00", category: "Groceries" });
+    await openInsights(page);
+    await choosePeriod(page, "2026-08-28", "2026-09-03");
+
+    await hoverLastPoint(page);
+
+    await expect(tooltipCategories(page)).toHaveCount(2);
+    await expect(tooltipCategories(page).first()).toHaveText(previewLine("Groceries", 4000));
+    const unaccounted = tooltipCategories(page).last();
+    await expect(unaccounted).toContainText("Unaccounted");
+    await expect(unaccounted).toContainText("unknown");
+    await expect(unaccounted).toContainText(euros(1500));
   });
 
   test("offers no click-through", async ({ page }) => {

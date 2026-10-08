@@ -856,8 +856,7 @@ the spec first, then gets a task here.
     without income or transfers, with "Unaccounted" marked unknown, summed over the month for a
     monthly point, and none for a point without spending;
   - in `e2e/ui/insights.spec.ts`, the tooltip lists a point's categories in order, shows four and
-    "N more categories" when there are more than five, marks "Unaccounted" unknown, and lists none
-    for a point without spending.
+    "N more categories" when there are more than five, and marks "Unaccounted" unknown.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.
