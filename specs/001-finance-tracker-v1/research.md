@@ -689,6 +689,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     not apply to table rows, so in a `<table>` the rows would lose `content-visibility`.
   - For editing in place, each cell is a plain `<button>`. Only the cell being edited mounts its
     field or select, so the list still has no component per cell.
+  - Each row is a memoised component, so opening or closing a cell renders its own row again, not
+    the whole list. The Edit transaction icon is one SVG symbol that every row reuses.
 - **Rationale**:
   - At the design point of 10,000 transactions, plain rows were expected to render well within a
     second, and `content-visibility` lets the browser skip layout and painting for rows off screen.
@@ -697,9 +699,14 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     reaches them in Chrome, Edge and Firefox. Virtualisation removes off-screen rows from the page,
     so find-in-page would miss them.
   - Virtualisation would also add code and moving parts, for a need nobody has measured.
+  - Without memoised rows, opening one cell rendered all 10,000 rows again and took 0.7 to 0.9 s;
+    with them it takes under 0.15 s. An icon component in each row added about 0.8 s to the first
+    render in Firefox; the shared symbol costs about as much as no icon at all.
   - Revisit if the first render passes 1 s at 10,000 rows ([quickstart.md](quickstart.md#performance)).
-    It does in Firefox, at about 1.4 s, while Chromium stays under a second. Building the rows takes
-    the time, not laying them out, so `content-visibility` does not help. The fix, showing the first
+    It does in Firefox, at about 1.4 s, while Chromium stayed under a second on a quiet machine.
+    Editing in place made each cell a button and added a column, and Firefox now takes about
+    2.0 to 2.3 s; Chromium took about 1.9 s on the same busy machine (measured 2026-10-08).
+    Building the rows takes the time, not laying them out, so `content-visibility` does not help. The fix, showing the first
     rows at once and the rest just after, is listed under Not in v1
     ([Out of Scope](spec.md#out-of-scope)).
 - **Alternatives considered**:

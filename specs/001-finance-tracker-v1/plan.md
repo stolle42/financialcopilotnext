@@ -85,7 +85,7 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
 - Insights within 2 s with 5,000 transactions in the period ([SC-009](spec.md#sc-009)).
 - A 5,000-row CSV in review within 10 s ([SC-010](spec.md#sc-010)).
 - The transaction list's first render within 1 s at 10,000 transactions
-  ([R-21](research.md#r-21)). Firefox takes about 1.4 s, so its fix is listed under Not in v1
+  ([R-21](research.md#r-21)). Firefox takes longer, so its fix is listed under Not in v1
   ([Out of Scope](spec.md#out-of-scope)) and the check is skipped until then.
 
 **Constraints**:

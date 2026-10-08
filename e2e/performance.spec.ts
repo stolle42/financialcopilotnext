@@ -101,7 +101,7 @@ test("A 5,000-row bank file is in review within 10 s (SC-010)", async ({ page })
   expect(batch?.rows).toHaveLength(5_000);
 });
 
-// Firefox takes about 1.4 s, so the check waits for the fix under "Not in v1" (spec.md, Out of Scope).
+// Firefox takes longer (R-21), so the check waits for the fix under "Not in v1" (spec.md, Out of Scope).
 test.skip(
   "The transaction list shows within 1 s at 10,000 transactions (R-21)",
   {
