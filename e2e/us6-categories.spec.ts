@@ -97,7 +97,7 @@ test("organises categories without breaking transactions or budgets", async ({ p
   await expect(ledgerRows(page).filter({ hasText: "Eating out" })).toHaveCount(0);
   expect(await chipColour(restaurantRows.first(), "Restaurants")).toBe(orange);
 
-  await restaurantRows.first().getByRole("button").click();
+  await restaurantRows.first().getByRole("button", { name: "Edit transaction" }).click();
   const form = page.getByRole("dialog", { name: "Edit transaction" });
   const category = form.getByLabel("Category", { exact: true });
   await expect(category).toHaveText("Restaurants");

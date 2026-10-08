@@ -83,7 +83,7 @@ test("keeps a trustworthy ledger by hand", async ({ page }) => {
   await expectBalancesToMatchLedger(page);
   // The user deletes the unwanted 0.00 entry (Out of Scope, FR-013).
   await page.goto("/");
-  await unwanted.getByRole("button").click();
+  await unwanted.getByRole("button", { name: "Edit transaction" }).click();
   await page
     .getByRole("dialog", { name: "Edit transaction" })
     .getByRole("button", { name: "Delete" })
