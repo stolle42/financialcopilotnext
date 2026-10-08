@@ -88,7 +88,7 @@ test.describe("the period (FR-050)", () => {
     const ranges: [string, string, string][] = [
       ["Last month", "2026-08-01", "2026-08-31"],
       ["Last 3 months", "2026-07-01", "2026-09-30"],
-      ["This year", "2026-01-01", "2026-12-31"],
+      ["This year", "2026-01-01", "2026-09-03"],
       ["Last year", "2025-01-01", "2025-12-31"],
       ["This month", "2026-09-01", "2026-09-30"],
     ];
@@ -109,6 +109,9 @@ test.describe("the period (FR-050)", () => {
     await preset(page, "Last 3 months").click();
     await expect(startDate(page)).toHaveValue("2025-11-01");
     await expect(endDate(page)).toHaveValue("2026-01-31");
+    await preset(page, "This year").click();
+    await expect(startDate(page)).toHaveValue("2026-01-01");
+    await expect(endDate(page)).toHaveValue("2026-01-15");
   });
 
   test("typed dates set a period of their own, which every section follows", async ({ page }) => {
@@ -417,9 +420,10 @@ test.describe("the budgets (FR-041, FR-042, SC-011)", () => {
     await expect(budgets(page).getByRole("heading")).toContainText("Aug 2026");
     await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 2000, 40000));
 
+    // This year runs to today, so its budgets are this month's.
     await preset(page, "This year").click();
-    await expect(budgets(page).getByRole("heading")).toContainText("Dec 2026");
-    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 0, 40000));
+    await expect(budgets(page).getByRole("heading")).toContainText("Sep 2026");
+    await expect(bar(page, "Groceries")).toHaveText(barEntry("Groceries", 3000, 40000));
   });
 
   test("measures the whole end month, whatever day the period starts on (R-14)", async ({
