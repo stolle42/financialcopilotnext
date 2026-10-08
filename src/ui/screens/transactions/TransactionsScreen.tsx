@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { ArrowLeftRightIcon } from "lucide-react";
-import { useContext, useMemo, useState } from "react";
+import { Fragment, useContext, useMemo, useState } from "react";
 import { sortAccounts } from "@/domain/accounts";
 import { sortCategories } from "@/domain/categories";
 import { listTransactions } from "@/domain/transactions";
@@ -12,16 +12,21 @@ import { Field, FieldLabel } from "@/ui/components/ui/field";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/ui/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/ui/components/ui/toggle-group";
 import { formatAmount, formatDate } from "@/ui/format";
 import { OpenTransactionFormContext } from "./formContext";
 
 // The "All" option of a filter select; Base UI selects need a value for every option.
 const ALL = "";
+
+// The category filter holds both sides, each as a group under its name (FR-030).
+const sideNames: Record<Side, string> = { expense: "Expenses", income: "Income" };
 
 // The column header and every row share one grid, so each name sits over its column.
 const columns = "grid grid-cols-[7rem_1fr_10rem_9rem_8rem] items-center gap-4 px-4";
@@ -49,13 +54,19 @@ export function TransactionsScreen() {
   const accounts = useStore((state) => state.accounts);
   const categories = useStore((state) => state.categories);
   const [accountId, setAccountId] = useState(ALL);
-  const [side, setSide] = useState<Side>("expense");
   const [categoryId, setCategoryId] = useState(ALL);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sortedAccounts = useMemo(() => sortAccounts(accounts), [accounts]);
-  const sideCategories = useMemo(() => sortCategories(categories, side), [categories, side]);
+  const categoryGroups = useMemo(
+    () =>
+      (["expense", "income"] as const).map((side) => ({
+        side,
+        categories: sortCategories(categories, side),
+      })),
+    [categories],
+  );
   // Memoised, so typing elsewhere never re-sorts a long list (R-21).
   const listed = useMemo(
     () => listTransactions(transactions, { accountId, categoryId }),
@@ -103,39 +114,40 @@ export function TransactionsScreen() {
                 </SelectContent>
               </Select>
             </Field>
-            {/* Expense and income categories never share one list (FR-030). */}
-            <ToggleGroup
-              aria-label="Category side"
-              variant="outline"
-              value={[side]}
-              onValueChange={(values) => {
-                const next = values[0];
-                if (next === "expense" || next === "income") {
-                  setSide(next);
-                  setCategoryId(ALL);
-                }
-              }}
-            >
-              <ToggleGroupItem value="expense">Expenses</ToggleGroupItem>
-              <ToggleGroupItem value="income">Income</ToggleGroupItem>
-            </ToggleGroup>
-            <Field className="w-48">
+            <Field className="w-64">
               <FieldLabel htmlFor="filter-category">Category</FieldLabel>
               <Select value={categoryId} onValueChange={(id) => setCategoryId(id ?? ALL)}>
                 <SelectTrigger id="filter-category" className="w-full">
                   <SelectValue>
                     {(id: string) => {
                       const category = categoriesById.get(id);
-                      return category ? <CategoryChip category={category} /> : "All categories";
+                      if (!category) return "All categories";
+                      // Both sides may hold the same name (FR-032), so the group tells them apart.
+                      return (
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <CategoryChip category={category} />
+                          <span className="shrink-0 text-muted-foreground">
+                            · {sideNames[category.side]}
+                          </span>
+                        </span>
+                      );
                     }}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL}>All categories</SelectItem>
-                  {sideCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <CategoryChip category={category} />
-                    </SelectItem>
+                  {categoryGroups.map((group, index) => (
+                    <Fragment key={group.side}>
+                      {index > 0 && <SelectSeparator className="my-1.5 bg-muted-foreground/40" />}
+                      <SelectGroup>
+                        <SelectLabel className="font-medium">{sideNames[group.side]}</SelectLabel>
+                        {group.categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <CategoryChip category={category} />
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </Fragment>
                   ))}
                 </SelectContent>
               </Select>

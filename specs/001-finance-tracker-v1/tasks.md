@@ -822,7 +822,7 @@ the spec first, then gets a task here.
   `src/ui/screens/transactions/TransactionsScreen.tsx` ([ui.md](contracts/ui.md#transactions),
   [R-21](research.md#r-21)). Test first in `e2e/ui/transactions.spec.ts`: the header names the
   columns in order, each sits over its column, and Amount is right-aligned.
-- [ ] T084 One category filter for both sides in
+- [X] T084 One category filter for both sides in
   `src/ui/screens/transactions/TransactionsScreen.tsx`, replacing the side switch
   ([ui.md](contracts/ui.md#transactions), [FR-030](spec.md#fr-030)). Test first in
   `e2e/ui/transactions.spec.ts`: the side switch is gone; the select holds an Expenses group and an
