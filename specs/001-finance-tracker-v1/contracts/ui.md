@@ -94,7 +94,7 @@ Routes use the URL hash so the build works from any static host or local file ([
 | This month (default) | First to last day of the current month |
 | Last month | The previous calendar month |
 | Last 3 months | First day of the month two months back, to the last day of the current month |
-| This year | 1 January to 31 December of the current year |
+| This year | 1 January of the current year to today |
 | Last year | The previous calendar year |
 
 - **Sections**, in this order ([FR-051](../spec.md#fr-051)):

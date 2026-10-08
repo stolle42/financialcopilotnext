@@ -67,6 +67,9 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: Must editing a transaction always go through the form? → A: No. Each value in the list edits
   in place. The form stays, opened from a button on each row, as the place to change the kind or
   to delete ([FR-016](#fr-016)).
+- Q: Should the "This year" period on Insights run to 31 December or to today? → A: To today. The
+  rest of the year has no transactions yet, and the period's end decides which month's budgets
+  show ([FR-050](#fr-050), [contracts/ui.md](contracts/ui.md#insights)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
