@@ -843,7 +843,7 @@ the spec first, then gets a task here.
   `transactions`, `transaction-form`, `us1-ledger` and `us6-categories`. The column header test
   of T083 finds the cells as the children of the row's grid, so it holds before and after this
   task.
-- [ ] T086 "This year" runs to today in `periodPreset` of `src/domain/dates.ts`
+- [X] T086 "This year" runs to today in `periodPreset` of `src/domain/dates.ts`
   ([ui.md](contracts/ui.md#insights), [FR-050](spec.md#fr-050)). Test first in
   `src/domain/dates.test.ts` and `e2e/ui/insights.spec.ts`: the preset's range on several days of
   the year, including 1 January and 31 December; the button's dates; and the budget month it
