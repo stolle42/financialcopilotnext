@@ -848,7 +848,7 @@ the spec first, then gets a task here.
   `src/domain/dates.test.ts` and `e2e/ui/insights.spec.ts`: the preset's range on several days of
   the year, including 1 January and 31 December; the button's dates; and the budget month it
   shows, the current one. The US3 journey in `e2e/us3-insights.spec.ts` expects the new range.
-- [ ] T087 A preview of each point's categories in the spending line's tooltip: every point that
+- [X] T087 A preview of each point's categories in the spending line's tooltip: every point that
   `insights` returns in `src/domain/insights.ts` carries its expense breakdown, and
   `src/ui/screens/insights/SpendingChart.tsx` shows it ([ui.md](contracts/ui.md#insights),
   [FR-051](spec.md#fr-051), [FR-052](spec.md#fr-052), [R-14](research.md#r-14)). Test first:

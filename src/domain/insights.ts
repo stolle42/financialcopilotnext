@@ -11,6 +11,8 @@ export interface SpendingPoint {
   /** A `YYYY-MM-DD` date for a daily point, a `YYYY-MM` month for a monthly one. */
   bucket: string;
   totalCents: number;
+  /** The point's expenses by category, in the order of a breakdown (FR-051). */
+  categories: BreakdownEntry[];
 }
 
 export interface SpendingLine {
@@ -63,7 +65,7 @@ export function insights(state: State, period: Period): Insights {
   const categories = new Map(state.categories.map((c) => [c.id, c]));
   const daily = daysInPeriod(period) <= MAX_DAILY_DAYS;
   const buckets = daily ? datesInPeriod(period) : monthsInPeriod(period);
-  const spent = new Map<string, number>(buckets.map((bucket) => [bucket, 0]));
+  const spent = new Map(buckets.map((bucket) => [bucket, new Map<Category, number>()]));
   const sums: Record<Side, Map<Category, number>> = { expense: new Map(), income: new Map() };
 
   for (const transaction of state.transactions) {
@@ -75,15 +77,18 @@ export function insights(state: State, period: Period): Insights {
     const side = sums[transaction.kind];
     side.set(category, (side.get(category) ?? 0) + transaction.amountCents);
     if (transaction.kind === "expense") {
-      const bucket = daily ? transaction.date : monthOf(transaction.date);
-      spent.set(bucket, (spent.get(bucket) ?? 0) + transaction.amountCents);
+      const point = spent.get(daily ? transaction.date : monthOf(transaction.date))!;
+      point.set(category, (point.get(category) ?? 0) + transaction.amountCents);
     }
   }
 
   return {
     spending: {
       granularity: daily ? "day" : "month",
-      points: buckets.map((bucket) => ({ bucket, totalCents: spent.get(bucket) ?? 0 })),
+      points: buckets.map((bucket) => {
+        const { totalCents, entries } = breakdownOf(spent.get(bucket)!);
+        return { bucket, totalCents, categories: entries };
+      }),
     },
     expenses: breakdownOf(sums.expense),
     income: breakdownOf(sums.income),
