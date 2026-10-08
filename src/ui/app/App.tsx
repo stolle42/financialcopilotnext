@@ -1,6 +1,6 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { cn } from "cn";
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Transaction } from "@/domain/types";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
@@ -62,7 +62,8 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
   const route = useRoute();
   // The one transaction form: `transaction: null` adds a new one.
   const [form, setForm] = useState<{ transaction: Transaction | null } | null>(null);
-  const openForm = (transaction: Transaction | null) => setForm({ transaction });
+  // The same function on every render, so the memoised transaction rows need not render again.
+  const openForm = useCallback((transaction: Transaction | null) => setForm({ transaction }), []);
   // The import's choices outlive a visit to the profile editor (contracts/ui.md, import).
   const [importState, setImportState] = useState<ImportState>(emptyImport);
   const importContext = useMemo(() => ({ importState, setImportState }), [importState]);

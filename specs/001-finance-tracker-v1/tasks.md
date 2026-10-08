@@ -829,7 +829,7 @@ the spec first, then gets a task here.
   Income group, each with its own categories and protected categories, with a divider between
   them; the closed select names the chosen category's group; and filtering by a category of either
   side still works.
-- [ ] T085 Editing in place in `src/ui/screens/transactions/TransactionsScreen.tsx`
+- [X] T085 Editing in place in `src/ui/screens/transactions/TransactionsScreen.tsx`
   ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [R-21](research.md#r-21)).
   Test first in `e2e/ui/transactions.spec.ts`:
   - each column edits in place without the form, and the change survives a reload;
