@@ -417,7 +417,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - Transfers are excluded ([FR-012](spec.md#fr-012)).
     - A period includes both its start date and its end date.
   - **Spending line**: one point per day for periods up to 92 days, about a quarter, and one per
-    calendar month beyond that. Empty buckets are zero.
+    calendar month beyond that. Empty buckets are zero. Each point also carries its own expense
+    breakdown, summed in the same pass, so its tooltip needs no work of its own.
   - **Budget month**: the calendar month that contains the period's end date
     ([FR-051](spec.md#fr-051)). It is measured over that whole month, as FR-041 defines budgets by
     calendar month, and labelled with it.

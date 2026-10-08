@@ -100,6 +100,13 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Sections**, in this order ([FR-051](../spec.md#fr-051)):
   1. **Spending over time**: a line of expense totals per day, or per month for periods longer than
      92 days ([R-14](../research.md#r-14)). Empty buckets show as zero. Tooltips format euro amounts.
+     - A point's tooltip shows its date or month and its total, then a preview of its spending by
+       expense category ([FR-051](../spec.md#fr-051)): at most five lines, largest first and by name
+       on a tie, each with the category chip and amount. "Unaccounted" is marked "unknown", as in
+       the legend ([FR-052](../spec.md#fr-052)).
+     - With more than five categories, the four largest show, and a last line such as "3 more
+       categories" gives the rest's combined amount.
+     - A point without spending shows no categories.
   2. **Expenses by category** and **Income by category**, side by side. Each is a donut with a legend
      of chip, amount and share, sorted by amount and titled with the side's total. "Uncategorised"
      is its own entry ([User Story 3](../spec.md#user-story-3) scenario 5). "Unaccounted" is drawn

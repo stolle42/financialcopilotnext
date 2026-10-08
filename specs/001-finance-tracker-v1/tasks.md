@@ -848,6 +848,16 @@ the spec first, then gets a task here.
   `src/domain/dates.test.ts` and `e2e/ui/insights.spec.ts`: the preset's range on several days of
   the year, including 1 January and 31 December; the button's dates; and the budget month it
   shows, the current one. The US3 journey in `e2e/us3-insights.spec.ts` expects the new range.
+- [ ] T087 A preview of each point's categories in the spending line's tooltip: every point that
+  `insights` returns in `src/domain/insights.ts` carries its expense breakdown, and
+  `src/ui/screens/insights/SpendingChart.tsx` shows it ([ui.md](contracts/ui.md#insights),
+  [FR-051](spec.md#fr-051), [FR-052](spec.md#fr-052), [R-14](research.md#r-14)). Test first:
+  - in `src/domain/insights.test.ts`, a point's categories: largest first and by name on a tie,
+    without income or transfers, with "Unaccounted" marked unknown, summed over the month for a
+    monthly point, and none for a point without spending;
+  - in `e2e/ui/insights.spec.ts`, the tooltip lists a point's categories in order, shows four and
+    "N more categories" when there are more than five, marks "Unaccounted" unknown, and lists none
+    for a point without spending.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.

@@ -70,6 +70,9 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: Should the "This year" period on Insights run to 31 December or to today? → A: To today. The
   rest of the year has no transactions yet, and the period's end decides which month's budgets
   show ([FR-050](#fr-050), [contracts/ui.md](contracts/ui.md#insights)).
+- Q: What should hovering over the spending line show? → A: The point's total and a short preview
+  of its spending by expense category ([FR-051](#fr-051),
+  [contracts/ui.md](contracts/ui.md#insights)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -530,7 +533,8 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-050"></a>**FR-050**: Users MUST be able to select a time period by start and end date,
   with presets for common periods, defaulting to the current
   calendar month.
-- <a id="fr-051"></a>**FR-051**: Insights MUST show, for the selected period: spending over time as a line; the
+- <a id="fr-051"></a>**FR-051**: Insights MUST show, for the selected period: spending over time as a line, where
+  hovering over a point previews that point's spending by expense category; the
   proportion of spending by expense category; the proportion of income by income category; and
   budget progress per budgeted expense category for the most recent calendar month in the period.
 - <a id="fr-052"></a>**FR-052**: "Unaccounted" MUST appear in its side's breakdown at its true share, visually
