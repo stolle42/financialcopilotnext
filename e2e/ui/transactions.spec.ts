@@ -150,7 +150,9 @@ test.describe("filters", () => {
     await expect(expenses.getByRole("option", { name: "Salary" })).toHaveCount(0);
     await expect(income.getByRole("option", { name: "Salary" })).toBeVisible();
     await expect(income.getByRole("option", { name: "Groceries" })).toHaveCount(0);
-    const divider = page.getByRole("listbox").getByRole("separator");
+    // The divider is visual only. A listbox may hold only options and groups, so Base UI renders
+    // it presentational, and the group names tell the sides apart for assistive technology.
+    const divider = page.getByRole("listbox").locator('[data-slot="select-separator"]');
     await expect(divider).toBeVisible();
     const expensesBox = (await expenses.boundingBox())!;
     const dividerBox = (await divider.boundingBox())!;
