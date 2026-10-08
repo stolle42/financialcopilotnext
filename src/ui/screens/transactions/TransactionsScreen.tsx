@@ -23,6 +23,9 @@ import { OpenTransactionFormContext } from "./formContext";
 // The "All" option of a filter select; Base UI selects need a value for every option.
 const ALL = "";
 
+// The column header and every row share one grid, so each name sits over its column.
+const columns = "grid grid-cols-[7rem_1fr_10rem_9rem_8rem] items-center gap-4 px-4";
+
 function Amount({ transaction }: { transaction: Transaction }) {
   if (transaction.kind === "transfer") {
     return (
@@ -150,45 +153,57 @@ export function TransactionsScreen() {
               <Button onClick={clearFilters}>Clear filters</Button>
             </div>
           ) : (
-            <ul aria-label="Transactions" className="flex flex-col divide-y rounded-lg border">
-              {listed.map((transaction) => (
-                // Off-screen rows skip layout and paint, but stay findable in the page (R-21).
-                <li
-                  key={transaction.id}
-                  className="[contain-intrinsic-size:auto_3.5rem] [content-visibility:auto]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => openForm(transaction)}
-                    className="grid w-full grid-cols-[7rem_1fr_10rem_9rem_8rem] items-center gap-4 px-4 py-3 text-left text-sm hover:bg-muted"
+            <div className="rounded-lg border">
+              <div
+                data-column-headers
+                className={cn(columns, "border-b py-2 text-xs font-medium text-muted-foreground")}
+              >
+                <span>Date</span>
+                <span>Description</span>
+                <span>Category</span>
+                <span>Account</span>
+                <span className="text-right">Amount</span>
+              </div>
+              <ul aria-label="Transactions" className="flex flex-col divide-y">
+                {listed.map((transaction) => (
+                  // Off-screen rows skip layout and paint, but stay findable in the page (R-21).
+                  <li
+                    key={transaction.id}
+                    className="[contain-intrinsic-size:auto_3.5rem] [content-visibility:auto]"
                   >
-                    <span className="text-muted-foreground">{formatDate(transaction.date)}</span>
-                    <span
-                      data-description
-                      className={cn(
-                        "truncate",
-                        !transaction.description && "text-muted-foreground",
-                      )}
+                    <button
+                      type="button"
+                      onClick={() => openForm(transaction)}
+                      className={cn(columns, "w-full py-3 text-left text-sm hover:bg-muted")}
                     >
-                      {transaction.description || "No description"}
-                    </span>
-                    <span className="truncate">
-                      {transaction.kind === "transfer" ? (
-                        `→ ${accountsById.get(transaction.destinationAccountId)?.name ?? ""}`
-                      ) : (
-                        <CategoryChip category={categoriesById.get(transaction.categoryId)!} />
-                      )}
-                    </span>
-                    <span className="truncate text-muted-foreground">
-                      {accountsById.get(transaction.accountId)?.name}
-                    </span>
-                    <span className="text-right tabular-nums">
-                      <Amount transaction={transaction} />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                      <span className="text-muted-foreground">{formatDate(transaction.date)}</span>
+                      <span
+                        data-description
+                        className={cn(
+                          "truncate",
+                          !transaction.description && "text-muted-foreground",
+                        )}
+                      >
+                        {transaction.description || "No description"}
+                      </span>
+                      <span className="truncate">
+                        {transaction.kind === "transfer" ? (
+                          `→ ${accountsById.get(transaction.destinationAccountId)?.name ?? ""}`
+                        ) : (
+                          <CategoryChip category={categoriesById.get(transaction.categoryId)!} />
+                        )}
+                      </span>
+                      <span className="truncate text-muted-foreground">
+                        {accountsById.get(transaction.accountId)?.name}
+                      </span>
+                      <span className="text-right tabular-nums">
+                        <Amount transaction={transaction} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </>
       )}
