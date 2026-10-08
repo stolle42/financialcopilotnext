@@ -814,7 +814,7 @@ post-push check.
 **Purpose**: interface changes the owner asks for after v1.0. Each change goes into its contract or
 the spec first, then gets a task here.
 
-- [ ] T082 Reorder the sidebar entries in `src/ui/app/App.tsx` to the order of
+- [X] T082 Reorder the sidebar entries in `src/ui/app/App.tsx` to the order of
   [ui.md](contracts/ui.md#shell-and-navigation). Test first: update the sidebar tests in `e2e/ui/`
   (`transactions`, `import`, `budgets`, `categories`, `backup` and `insights`), so each checks the
   new order or its screen's new position.

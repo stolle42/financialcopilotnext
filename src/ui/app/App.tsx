@@ -22,12 +22,12 @@ import { StoragePersistedContext } from "./storagePersisted";
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
   { route: "transactions", label: "Transactions", href: "#/" },
-  { route: "insights", label: "Insights", href: "#/insights" },
   { route: "import", label: "Import", href: "#/import" },
-  { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "categories", label: "Categories", href: "#/categories" },
   { route: "accounts", label: "Accounts", href: "#/accounts" },
+  { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "backup", label: "Backup", href: "#/backup" },
+  { route: "insights", label: "Insights", href: "#/insights" },
 ];
 
 function screenFor(route: Route): ReactNode {
