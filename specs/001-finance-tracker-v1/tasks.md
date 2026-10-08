@@ -829,6 +829,20 @@ the spec first, then gets a task here.
   Income group, each with its own categories and protected categories, with a divider between
   them; the closed select names the chosen category's group; and filtering by a category of either
   side still works.
+- [ ] T085 Editing in place in `src/ui/screens/transactions/TransactionsScreen.tsx`
+  ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [R-21](research.md#r-21)).
+  Test first in `e2e/ui/transactions.spec.ts`:
+  - each column edits in place without the form, and the change survives a reload;
+  - Enter and leaving a field save, Escape cancels, and focus returns to the cell;
+  - a transfer's destination and account never offer the same account;
+  - `amount-invalid`, `date-invalid` and `save-failed` show under the cell, with the field still
+    open;
+  - the Edit transaction button opens the form.
+
+  Every test that opened the form by clicking a row uses the Edit transaction button instead, in
+  `transactions`, `transaction-form`, `us1-ledger` and `us6-categories`. The column header test
+  of T083 finds the cells as the children of the row's grid, so it holds before and after this
+  task.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.

@@ -49,7 +49,20 @@ Routes use the URL hash so the build works from any static host or local file ([
     name may exist on both sides ([FR-032](../spec.md#fr-032)). The filter offers the protected
     categories of both sides, because it is not a picker in manual entry or review.
   - Both filters can apply at once, and **Clear filters** resets them.
-- **Selecting a row** opens the [transaction form](#transaction-form) in edit mode.
+- **Editing in place** ([FR-016](../spec.md#fr-016)): each cell of a row is a button that edits its
+  value right there, one cell at a time. Selecting a cell never opens the form.
+  - Date, Description and Amount open a field with the current value, the amount without its sign.
+    Enter or leaving the field saves, and Escape cancels.
+  - Category opens a select with the rules of the form's Category. A transfer's cell holds its
+    destination instead, and opens a select of every account except the transaction's own. Account
+    opens a select of the accounts, which for a transfer leaves out the destination
+    ([FR-011](../spec.md#fr-011)). Picking an option saves, and Escape cancels.
+  - After a save or a cancel, focus returns to the cell.
+  - A refusal, such as `amount-invalid`, `date-invalid` or `save-failed`, shows under the cell. The
+    field stays open with what the user entered ([FR-068](../spec.md#fr-068),
+    [FR-073](../spec.md#fr-073)).
+- **Edit button**: the last column of each row holds an **Edit transaction** button. It opens the
+  [transaction form](#transaction-form) in edit mode, the place to change the kind or to delete.
 - **Empty states**: when there are no transactions at all, the screen says so and offers Add
   transaction and Import a CSV. When the filters match nothing, it says so and offers Clear
   filters.

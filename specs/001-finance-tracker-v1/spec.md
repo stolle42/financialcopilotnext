@@ -62,6 +62,12 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
   instead of first asking for a side? → A: Yes, as two groups with a clear divider between them,
   so the user can tell the two sets apart ([FR-030](#fr-030)).
 
+### Session 2026-10-08
+
+- Q: Must editing a transaction always go through the form? → A: No. Each value in the list edits
+  in place. The form stays, opened from a button on each row, as the place to change the kind or
+  to delete ([FR-016](#fr-016)).
+
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
 
@@ -415,8 +421,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   with its date, description, account, amount, and either its category in the category's colour or,
   for a transfer, its destination account. Expenses, incomes, and transfers MUST be visually
   distinguishable. Users MUST be able to filter the list by account and by category, including
-  "Uncategorised"; filtering by an account MUST include transfers into it. Selecting a transaction
-  MUST open it for editing or deletion ([FR-013](#fr-013)).
+  "Uncategorised"; filtering by an account MUST include transfers into it. Users MUST be able to
+  change each value a row shows in place, without opening a form, and to open a transaction for
+  editing, including its kind, or deletion ([FR-013](#fr-013)).
 
 **CSV import**
 
