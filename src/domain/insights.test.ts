@@ -104,8 +104,8 @@ describe("insights: the period", () => {
       ["Salary", 200000, false],
       ["Gifts", 5000, false],
     ]);
-    expect(result.spending.points[0]).toEqual({ bucket: "2026-09-01", totalCents: 2000 });
-    expect(result.spending.points.at(-1)).toEqual({ bucket: "2026-09-30", totalCents: 3000 });
+    expect(totalsOf(result.spending)[0]).toEqual({ bucket: "2026-09-01", totalCents: 2000 });
+    expect(totalsOf(result.spending).at(-1)).toEqual({ bucket: "2026-09-30", totalCents: 3000 });
     expect(lineTotal(state, SEPTEMBER)).toBe(5000);
   });
 
