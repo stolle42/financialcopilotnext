@@ -73,6 +73,8 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: What should hovering over the spending line show? → A: The point's total and a short preview
   of its spending by expense category ([FR-051](#fr-051),
   [contracts/ui.md](contracts/ui.md#insights)).
+- Q: May the transaction list be filtered by date, too? → A: Yes, by a range of dates whose start,
+  end or both may be set ([FR-016](#fr-016), [contracts/ui.md](contracts/ui.md#transactions)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -426,10 +428,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-016"></a>**FR-016**: The transaction list MUST show every transaction newest first, each
   with its date, description, account, amount, and either its category in the category's colour or,
   for a transfer, its destination account. Expenses, incomes, and transfers MUST be visually
-  distinguishable. Users MUST be able to filter the list by account and by category, including
-  "Uncategorised"; filtering by an account MUST include transfers into it. Users MUST be able to
-  change each value a row shows in place, without opening a form, and to open a transaction for
-  editing, including its kind, or deletion ([FR-013](#fr-013)).
+  distinguishable. Users MUST be able to filter the list by account, by category, including
+  "Uncategorised", and by a range of dates; filtering by an account MUST include transfers into it.
+  Users MUST be able to change each value a row shows in place, without opening a form, and to open
+  a transaction for editing, including its kind, or deletion ([FR-013](#fr-013)).
 
 **CSV import**
 

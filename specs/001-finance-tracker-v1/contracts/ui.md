@@ -48,7 +48,11 @@ Routes use the URL hash so the build works from any static host or local file ([
     The closed select shows the chosen category followed by its group's name, because the same
     name may exist on both sides ([FR-032](../spec.md#fr-032)). The filter offers the protected
     categories of both sides, because it is not a picker in manual entry or review.
-  - Both filters can apply at once, and **Clear filters** resets them.
+  - Date: two date fields, **From** and **To**, empty at first. Either one alone limits the list to
+    its side of that date, and both together to the days between them. Each end is included, as in
+    an Insights period ([R-14](../research.md#r-14)). A From after To shows `date-range-invalid`
+    under the fields, and the list keeps the last range that held, as the Insights period does.
+  - All filters can apply at once, and **Clear filters** resets them, the dates included.
 - **Editing in place** ([FR-016](../spec.md#fr-016)): each cell of a row is a button that edits its
   value right there, one cell at a time. Selecting a cell never opens the form.
   - Date, Description and Amount open a field with the current value, the amount without its sign.
@@ -253,6 +257,7 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `amount-invalid` | [FR-010](../spec.md#fr-010), SC-012 | The amount must be a number of zero or more with at most two decimals |
 | `balance-invalid` | An opening or stated balance is not a number | The balance must be a number with at most two decimals |
 | `date-invalid` | [FR-010](../spec.md#fr-010), SC-012 | The date is missing or not a real date |
+| `date-range-invalid` | Filtering the transaction list with From after To | The From date must be on or before the To date |
 | `transfer-destination-missing` | [FR-011](../spec.md#fr-011), SC-012 | Choose the account the money goes to |
 | `transfer-needs-second-account` | [FR-011](../spec.md#fr-011), SC-012 | A transfer needs a second account; create one under Accounts |
 | `category-name-empty` | Saving a category without a name | The category needs a name |

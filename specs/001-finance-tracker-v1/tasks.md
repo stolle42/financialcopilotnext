@@ -857,6 +857,16 @@ the spec first, then gets a task here.
     monthly point, and none for a point without spending;
   - in `e2e/ui/insights.spec.ts`, the tooltip lists a point's categories in order, shows four and
     "N more categories" when there are more than five, and marks "Unaccounted" unknown.
+- [ ] T088 A date filter for the transaction list: `listTransactions` in
+  `src/domain/transactions.ts` takes a From and a To date, `TransactionsScreen.tsx` shows them
+  among the filters, and `src/ui/messages.ts` words `date-range-invalid`
+  ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [R-14](research.md#r-14)).
+  Test first:
+  - in `src/domain/transactions.test.ts`, From alone, To alone and both, with each end included,
+    and the dates combined with the account and category filters;
+  - in `e2e/ui/transactions.spec.ts`, From and To filter the list; a From after To shows
+    `date-range-invalid` under the fields and keeps the last rows; and Clear filters empties both
+    fields.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.
