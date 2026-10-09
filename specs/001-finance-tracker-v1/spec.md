@@ -408,10 +408,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-016"></a>**FR-016**: The transaction list MUST show every transaction newest first, each
   with its date, description, account, amount, and either its category in the category's colour or,
   for a transfer, its destination account. Expenses, incomes, and transfers MUST be visually
-  distinguishable. Users MUST be able to filter the list by account and by category, including
-  "Uncategorised"; filtering by an account MUST include transfers into it. Selecting a transaction
-  MUST open it for editing or deletion ([FR-013](#fr-013)). v1.1 changes the list:
-  [FR-080](#fr-080) – [FR-083](#fr-083).
+  distinguishable. Users MUST be able to filter the list by account, by category, including
+  "Uncategorised", and by a range of dates; filtering by an account MUST include transfers into it.
+  Users MUST be able to change each value a row shows in place, without opening a form, and to open
+  a transaction for editing, including its kind, or deletion ([FR-013](#fr-013)). Changed in v1.1:
+  [FR-081](#fr-081), [FR-083](#fr-083).
 
 **CSV import**
 
@@ -482,10 +483,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 **Categories**
 
 - <a id="fr-030"></a>**FR-030**: System MUST keep expense categories and income categories as two separate sets. A
-  category picker MUST show only the set matching the transaction's kind, and the two sets MUST
-  never appear in one list. Category pickers in manual entry and import review MUST NOT offer
-  "Unaccounted"; only reconciliation assigns it ([FR-035](#fr-035)). v1.1 makes one exception, the
-  transaction list's category filter: [FR-082](#fr-082).
+  category picker MUST show only the set matching the transaction's kind. A list that offers both
+  sets, such as a filter, MUST show them as two groups, each named by its side and clearly divided
+  from the other. Category pickers in manual entry and import review MUST NOT offer
+  "Unaccounted"; only reconciliation assigns it ([FR-035](#fr-035)). Changed in v1.1:
+  [FR-082](#fr-082).
 - <a id="fr-031"></a>**FR-031**: On first launch, both sets MUST contain a predefined list of categories, each set
   including the protected categories "Uncategorised" and "Unaccounted".
 - <a id="fr-032"></a>**FR-032**: Users MUST be able to create, rename, recolour, and delete categories. Names MUST be
@@ -514,11 +516,12 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 
 - <a id="fr-050"></a>**FR-050**: Users MUST be able to select a time period by start and end date,
   with presets for common periods, defaulting to the current
-  calendar month. v1.1 sets where "This year" ends: [FR-086](#fr-086).
-- <a id="fr-051"></a>**FR-051**: Insights MUST show, for the selected period: spending over time as a line; the
+  calendar month. Changed in v1.1: [FR-086](#fr-086).
+- <a id="fr-051"></a>**FR-051**: Insights MUST show, for the selected period: spending over time as a line, where
+  hovering over a point previews that point's spending by expense category; the
   proportion of spending by expense category; the proportion of income by income category; and
   budget progress per budgeted expense category for the most recent calendar month in the period.
-  v1.1 adds a preview to the line: [FR-087](#fr-087).
+  Changed in v1.1: [FR-087](#fr-087).
 - <a id="fr-052"></a>**FR-052**: "Unaccounted" MUST appear in its side's breakdown at its true share, visually
   distinguished as a known unknown, and MUST NOT be hidden or merged.
 - <a id="fr-053"></a>**FR-053**: Charts MUST be read-only in v1.
@@ -601,15 +604,15 @@ testable for v1.
 
 **UI improvements (v1.1)**
 
-Changes the owner asked for after v1.0, released together as v1.1. Each v1.0 requirement they
-change points to them.
+Changes the owner asked for after v1.0, released together as v1.1. A v1.0 requirement that one of
+them changes states the new behaviour and names the change.
 
 - <a id="fr-080"></a>**FR-080**: The transaction list MUST name its columns in a header above the
   rows.
 - <a id="fr-081"></a>**FR-081**: Users MUST be able to change each value a row of the transaction
   list shows in place, without opening a form. Selecting a row MUST NOT open the form. Instead, a
   button on each row MUST open the transaction for editing, including its kind, or deletion
-  ([FR-013](#fr-013)). This replaces the last sentence of [FR-016](#fr-016).
+  ([FR-013](#fr-013), [FR-016](#fr-016)).
 - <a id="fr-082"></a>**FR-082**: The transaction list's category filter MUST offer the expense and
   the income categories in one list, without first asking for a side. The two sets MUST show as
   two groups, each named by its side and clearly divided from the other. This is the one list that
