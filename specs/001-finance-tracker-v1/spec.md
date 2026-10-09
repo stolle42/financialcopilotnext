@@ -632,6 +632,9 @@ them changes states the new behaviour and names the change.
 - <a id="fr-087"></a>**FR-087**: Hovering over a point of the spending line MUST preview that
   point's spending by expense category, largest first, with "Unaccounted" marked as unknown
   ([FR-051](#fr-051), [FR-052](#fr-052)).
+- <a id="fr-088"></a>**FR-088**: The header MUST show the app's version as MAJOR.MINOR, such as
+  "Version 1.1", so a user restoring a backup or reporting a problem can tell which release they
+  run ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)).
 
 <a id="key-entities"></a>
 ### Key Entities

@@ -10,8 +10,10 @@ leaves open. Each entry links to the requirement it serves instead of restating 
 ## Shell and navigation
 
 The app is a desktop layout with a sidebar for navigation and a header ([FR-064](../spec.md#fr-064)).
-The header holds the app name and the primary action **Add transaction**, which opens the
-[transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
+The header holds the app name, the app's version and the primary action **Add transaction**,
+which opens the [transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
+The version reads "Version" and the MAJOR.MINOR of the `version` field of `package.json`, such as
+"Version 1.1" for `1.1.0` ([FR-088](../spec.md#fr-088)).
 
 The sidebar is one flat list, without group headings, in the order of the table below
 ([FR-084](../spec.md#fr-084)). Import opens from the [Transactions](#transactions) screen, and the

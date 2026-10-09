@@ -876,6 +876,9 @@ post-push check.
     Transactions as the current entry;
   - the sidebar tests in `e2e/ui/` (`transactions`, `budgets`, `categories` and `backup`) expect
     the six entries and their screens' new positions.
+- [ ] T090 The app's version in the header of `src/ui/app/App.tsx`, read from `package.json`
+  ([ui.md](contracts/ui.md#shell-and-navigation), [FR-088](spec.md#fr-088)). Test first in
+  `e2e/ui/shell.spec.ts`: the header shows "Version" and the MAJOR.MINOR of `package.json`.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
 commit of its last task sets the version to `1.1.0`. Push and run the post-push check.
