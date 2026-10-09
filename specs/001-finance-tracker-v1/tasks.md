@@ -867,7 +867,7 @@ the spec first, then gets a task here.
   - in `e2e/ui/transactions.spec.ts`, From and To filter the list; a From after To shows
     `date-range-invalid` under the fields and keeps the last rows; and Clear filters empties both
     fields.
-- [ ] T089 Import opens from Transactions instead of the sidebar: `src/ui/app/App.tsx` drops the
+- [X] T089 Import opens from Transactions instead of the sidebar: `src/ui/app/App.tsx` drops the
   Import entry and marks Transactions current on every import route, and `TransactionsScreen.tsx`
   gains the Import CSV link ([ui.md](contracts/ui.md#shell-and-navigation),
   [ui.md](contracts/ui.md#transactions)). Test first:

@@ -22,13 +22,28 @@ import { StoragePersistedContext } from "./storagePersisted";
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
   { route: "transactions", label: "Transactions", href: "#/" },
-  { route: "import", label: "Import", href: "#/import" },
   { route: "categories", label: "Categories", href: "#/categories" },
   { route: "accounts", label: "Accounts", href: "#/accounts" },
   { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "backup", label: "Backup", href: "#/backup" },
   { route: "insights", label: "Insights", href: "#/insights" },
 ];
+
+/**
+ * The sidebar entry a screen counts as: the import screens open from Transactions, whose list an
+ * import feeds (contracts/ui.md, shell and navigation).
+ */
+function sidebarEntryOf(route: Route): Route["name"] {
+  switch (route.name) {
+    case "import":
+    case "review":
+    case "profile-new":
+    case "profile":
+      return "transactions";
+    default:
+      return route.name;
+  }
+}
 
 function screenFor(route: Route): ReactNode {
   switch (route.name) {
@@ -60,6 +75,7 @@ function screenFor(route: Route): ReactNode {
 /** The desktop shell: header, sidebar and the screen of the current route (contracts/ui.md). */
 export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }) {
   const route = useRoute();
+  const currentEntry = sidebarEntryOf(route);
   // The one transaction form: `transaction: null` adds a new one.
   const [form, setForm] = useState<{ transaction: Transaction | null } | null>(null);
   // The same function on every render, so the memoised transaction rows need not render again.
@@ -90,10 +106,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                       <a
                         key={entry.route}
                         href={entry.href}
-                        aria-current={route.name === entry.route ? "page" : undefined}
+                        aria-current={currentEntry === entry.route ? "page" : undefined}
                         className={cn(
                           "rounded-md px-3 py-2 text-sm font-medium hover:bg-sidebar-accent",
-                          route.name === entry.route && "bg-sidebar-accent",
+                          currentEntry === entry.route && "bg-sidebar-accent",
                         )}
                       >
                         {entry.label}

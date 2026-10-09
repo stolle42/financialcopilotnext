@@ -255,7 +255,13 @@ export function TransactionsScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Transactions</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Transactions</h1>
+        {/* Import lives here rather than in the sidebar, since an import feeds this list. */}
+        <a href="#/import" className={buttonVariants({ variant: "outline" })}>
+          Import CSV
+        </a>
+      </div>
 
       {transactions.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border p-6">
