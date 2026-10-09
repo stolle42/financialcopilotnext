@@ -18,6 +18,11 @@ import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
 import { useRoute, type Route } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
+import { version } from "../../../package.json";
+
+// package.json writes MAJOR.MINOR.0, as npm needs three parts; the app shows MAJOR.MINOR
+// (constitution IX, FR-088).
+const appVersion = version.split(".").slice(0, 2).join(".");
 
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
@@ -93,7 +98,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
             <Toaster>
               <div className="flex min-h-screen flex-col">
                 <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
-                  <span className="text-lg font-semibold">Financial Copilot</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-semibold">Financial Copilot</span>
+                    <span className="text-xs text-muted-foreground">Version {appVersion}</span>
+                  </div>
                   {/* The primary action, reachable from every screen (FR-066). */}
                   <Button onClick={() => openForm(null)}>Add transaction</Button>
                 </header>
