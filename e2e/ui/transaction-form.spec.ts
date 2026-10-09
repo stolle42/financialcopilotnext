@@ -125,7 +125,7 @@ test("editing a reconciliation entry shows Unaccounted as its value, never as an
     .getByRole("list", { name: "Transactions" })
     .getByRole("listitem")
     .first()
-    .getByRole("button")
+    .getByRole("button", { name: "Edit transaction" })
     .click();
   const form = page.getByRole("dialog", { name: "Edit transaction" });
   await expect(form.getByLabel("Category", { exact: true })).toHaveText("Unaccounted");

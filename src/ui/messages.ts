@@ -18,7 +18,8 @@ import { formatAmount } from "./format";
 export type ShellFailureCode = "storage-unavailable" | "open-in-another-tab" | "unexpected-error";
 
 /** Input the form itself cannot read, before any rule is checked. */
-export type FieldInputCode = "balance-invalid" | "import-file-unreadable" | "period-invalid";
+export type FieldInputCode =
+  "balance-invalid" | "import-file-unreadable" | "period-invalid" | "date-range-invalid";
 
 export type MessageCode =
   | StoreRefusalCode
@@ -130,6 +131,7 @@ export const messages: Record<MessageCode, Wording> = {
   "balance-invalid": "The balance must be a number with at most two decimals.",
   "period-invalid":
     "Enter a start date and an end date that exist, with the end on or after the start.",
+  "date-range-invalid": "The From date must be on or before the To date.",
   "amount-invalid": "The amount must be a number of zero or more, with at most two decimals.",
   "date-invalid": "Enter a date that exists, such as today.",
   "transfer-destination-missing": "Choose the account the money goes to.",

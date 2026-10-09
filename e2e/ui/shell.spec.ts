@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "../support/test";
 
 // contracts/ui.md, shell and navigation. The network guard also fails these tests on any
@@ -8,6 +9,15 @@ test("opens on Transactions with the app's name and the sidebar", async ({ page 
   await expect(page.getByRole("banner")).toContainText("Financial Copilot");
   await expect(page.getByRole("navigation", { name: "Screens" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+});
+
+test("shows the app's version, as MAJOR.MINOR of package.json (FR-088)", async ({ page }) => {
+  const { version } = JSON.parse(
+    readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+  ) as { version: string };
+  const majorMinor = version.split(".").slice(0, 2).join(".");
+  await page.goto("/");
+  await expect(page.getByRole("banner")).toContainText(`Version ${majorMinor}`);
 });
 
 test("lists the screens in one flat list, without group headings", async ({ page }) => {

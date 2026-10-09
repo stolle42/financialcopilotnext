@@ -798,7 +798,7 @@ post-push check.
 - [X] T079 The performance spec `e2e/performance.spec.ts` ([quickstart.md](quickstart.md#performance)):
   [SC-009](spec.md#sc-009), [SC-010](spec.md#sc-010) and the 1-second list render of
   [R-21](research.md#r-21). Each check uses generated data from T078, restored or imported with the
-  helpers of T076. Depends on T076, T078. The list check is skipped: Firefox takes about 1.4 s, and
+  helpers of T076. Depends on T076, T078. The list check is skipped: Firefox takes longer ([R-21](research.md#r-21)), and
   the fix is listed under Not in v1 ([Out of Scope](spec.md#out-of-scope)).
 - [x] T080 Validate a fresh checkout. Clone the repository into a new folder, then run `npm ci` and
   every command of [automated checks](quickstart.md#automated-checks), and fix whatever fails. This
@@ -806,6 +806,82 @@ post-push check.
 - [x] T081 (Project owner, manual) Walk the [manual checks](quickstart.md#manual-checks) on
   `http://localhost:4173` and on the Vercel production domain, and confirm that CI's `test` and
   `deployed` jobs are green ([after pushing to main](quickstart.md#after-pushing-to-main)).
+
+---
+
+## Phase 11: UI improvements
+
+**Purpose**: interface changes the owner asks for after v1.0. Each change goes into the spec's
+[v1.1 requirements](spec.md#fr-080) and its contract first, then gets a task here.
+
+- [X] T082 Reorder the sidebar entries in `src/ui/app/App.tsx` to the order of
+  [ui.md](contracts/ui.md#shell-and-navigation) ([FR-084](spec.md#fr-084)). Test first: update the
+  sidebar tests in `e2e/ui/` (`transactions`, `import`, `budgets`, `categories`, `backup` and
+  `insights`), so each checks the new order or its screen's new position.
+- [X] T083 Column headers for the transaction list in
+  `src/ui/screens/transactions/TransactionsScreen.tsx` ([ui.md](contracts/ui.md#transactions),
+  [FR-080](spec.md#fr-080), [R-21](research.md#r-21)). Test first in `e2e/ui/transactions.spec.ts`:
+  the header names the columns in order, each sits over its column, and Amount is right-aligned.
+- [X] T084 One category filter for both sides in
+  `src/ui/screens/transactions/TransactionsScreen.tsx`, replacing the side switch
+  ([ui.md](contracts/ui.md#transactions), [FR-082](spec.md#fr-082)). Test first in
+  `e2e/ui/transactions.spec.ts`: the side switch is gone; the select holds an Expenses group and an
+  Income group, each with its own categories and protected categories, with a divider between
+  them; the closed select names the chosen category's group; and filtering by a category of either
+  side still works.
+- [X] T085 Editing in place in `src/ui/screens/transactions/TransactionsScreen.tsx`
+  ([ui.md](contracts/ui.md#transactions), [FR-081](spec.md#fr-081), [R-21](research.md#r-21)).
+  Test first in `e2e/ui/transactions.spec.ts`:
+  - each column edits in place without the form, and the change survives a reload;
+  - Enter and leaving a field save, Escape cancels, and focus returns to the cell;
+  - a transfer's destination and account never offer the same account;
+  - `amount-invalid`, `date-invalid` and `save-failed` show under the cell, with the field still
+    open;
+  - the Edit transaction button opens the form.
+
+  Every test that opened the form by clicking a row uses the Edit transaction button instead, in
+  `transactions`, `transaction-form`, `us1-ledger` and `us6-categories`. The column header test
+  of T083 finds the cells as the children of the row's grid, so it holds before and after this
+  task.
+- [X] T086 "This year" runs to today in `periodPreset` of `src/domain/dates.ts`
+  ([ui.md](contracts/ui.md#insights), [FR-086](spec.md#fr-086)). Test first in
+  `src/domain/dates.test.ts` and `e2e/ui/insights.spec.ts`: the preset's range on several days of
+  the year, including 1 January and 31 December; the button's dates; and the budget month it
+  shows, the current one. The US3 journey in `e2e/us3-insights.spec.ts` expects the new range.
+- [X] T087 A preview of each point's categories in the spending line's tooltip: every point that
+  `insights` returns in `src/domain/insights.ts` carries its expense breakdown, and
+  `src/ui/screens/insights/SpendingChart.tsx` shows it ([ui.md](contracts/ui.md#insights),
+  [FR-087](spec.md#fr-087), [FR-052](spec.md#fr-052), [R-14](research.md#r-14)). Test first:
+  - in `src/domain/insights.test.ts`, a point's categories: largest first and by name on a tie,
+    without income or transfers, with "Unaccounted" marked unknown, summed over the month for a
+    monthly point, and none for a point without spending;
+  - in `e2e/ui/insights.spec.ts`, the tooltip lists a point's categories in order, shows four and
+    "N more categories" when there are more than five, and marks "Unaccounted" unknown.
+- [X] T088 A date filter for the transaction list: `listTransactions` in
+  `src/domain/transactions.ts` takes a From and a To date, `TransactionsScreen.tsx` shows them
+  among the filters, and `src/ui/messages.ts` words `date-range-invalid`
+  ([ui.md](contracts/ui.md#transactions), [FR-083](spec.md#fr-083), [R-14](research.md#r-14)).
+  Test first:
+  - in `src/domain/transactions.test.ts`, From alone, To alone and both, with each end included,
+    and the dates combined with the account and category filters;
+  - in `e2e/ui/transactions.spec.ts`, From and To filter the list; a From after To shows
+    `date-range-invalid` under the fields and keeps the last rows; and Clear filters empties both
+    fields.
+- [X] T089 Import opens from Transactions instead of the sidebar: `src/ui/app/App.tsx` drops the
+  Import entry and marks Transactions current on every import route, and `TransactionsScreen.tsx`
+  gains the Import CSV link ([ui.md](contracts/ui.md#shell-and-navigation),
+  [ui.md](contracts/ui.md#transactions), [FR-085](spec.md#fr-085)). Test first:
+  - in `e2e/ui/import.spec.ts`, the sidebar has no Import entry; Import CSV on Transactions opens
+    Import, with and without transactions; and Import, Review and the profile editor mark
+    Transactions as the current entry;
+  - the sidebar tests in `e2e/ui/` (`transactions`, `budgets`, `categories` and `backup`) expect
+    the six entries and their screens' new positions.
+- [X] T090 The app's version in the header of `src/ui/app/App.tsx`, read from `package.json`
+  ([ui.md](contracts/ui.md#shell-and-navigation), [FR-088](spec.md#fr-088)). Test first in
+  `e2e/ui/shell.spec.ts`: the header shows "Version" and the MAJOR.MINOR of `package.json`.
+
+**Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), so the
+commit of its last task sets the version to `1.1.0`. Push and run the post-push check.
 
 ---
 
@@ -828,6 +904,8 @@ post-push check.
   - **US7**: US1 for the code. Its round-trip journey (T076) fills every entity type, so it needs US2
     and US4.
 - **Polish (Phase 10)**: depends on every story. T079 needs T076 and T078.
+- **UI improvements (Phase 11)**: depends on every story, because its changes reach into their
+  screens.
 
 ### Within Each Task and Story
 

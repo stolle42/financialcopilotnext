@@ -390,6 +390,43 @@ describe("listTransactions (FR-016)", () => {
     expect(ids(listTransactions(transactions, filters))).toEqual(["old"]);
   });
 
+  // An empty date limits nothing, like an empty account or category: the screen's fields hold ""
+  // until a date is entered.
+  test("filters from a date, that date included", () => {
+    const expected = ["move", "shop", "pay"];
+    expect(ids(listTransactions(transactions, { from: "2026-09-02" }))).toEqual(expected);
+    expect(ids(listTransactions(transactions, { from: "2026-09-02", to: "" }))).toEqual(expected);
+  });
+
+  test("filters up to a date, that date included", () => {
+    expect(ids(listTransactions(transactions, { to: "2026-09-02" }))).toEqual(["pay", "old"]);
+    expect(ids(listTransactions(transactions, { from: "", to: "2026-09-02" }))).toEqual([
+      "pay",
+      "old",
+    ]);
+  });
+
+  test("filters between two dates, both included", () => {
+    expect(ids(listTransactions(transactions, { from: "2026-09-02", to: "2026-09-02" }))).toEqual([
+      "pay",
+    ]);
+    expect(ids(listTransactions(transactions, { from: "2026-09-01", to: "2026-09-03" }))).toEqual([
+      "move",
+      "shop",
+      "pay",
+      "old",
+    ]);
+  });
+
+  test("combines the dates with the account and category filters", () => {
+    expect(ids(listTransactions(transactions, { accountId: "cash", from: "2026-09-02" }))).toEqual([
+      "move",
+    ]);
+    expect(
+      ids(listTransactions(transactions, { categoryId: "groceries", to: "2026-09-02" })),
+    ).toEqual(["old"]);
+  });
+
   test("leaves its input in its order", () => {
     const input = [...transactions];
     listTransactions(input, {});

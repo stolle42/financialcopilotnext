@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ComponentProps } from "react";
 import { pickerCategories } from "@/domain/categories";
 import type { Side } from "@/domain/types";
 import { useStore } from "@/store/store";
@@ -12,13 +12,18 @@ import {
 } from "@/ui/components/ui/select";
 
 interface CategorySelectProps {
-  id: string;
+  /** For a visible label; a select without one, as in a list cell, takes `aria-label` instead. */
+  id?: string;
+  "aria-label"?: string;
   side: Side;
   /** `null` when there is no single current value, as for a vendor group whose rows differ. */
   value: string | null;
   /** What the field shows without a current value. */
   placeholder?: string;
   onValueChange: (categoryId: string) => void;
+  /** Opens the list on mount, as editing a cell in place does (contracts/ui.md). */
+  defaultOpen?: boolean;
+  onOpenChange?: ComponentProps<typeof Select>["onOpenChange"];
 }
 
 /**
@@ -28,18 +33,26 @@ interface CategorySelectProps {
  */
 export function CategorySelect({
   id,
+  "aria-label": ariaLabel,
   side,
   value,
   placeholder,
   onValueChange,
+  defaultOpen,
+  onOpenChange,
 }: CategorySelectProps) {
   const categories = useStore((state) => state.categories);
   const options = useMemo(() => pickerCategories(categories, side), [categories, side]);
   const current = categories.find((category) => category.id === value);
 
   return (
-    <Select value={value} onValueChange={(next) => next && onValueChange(next)}>
-      <SelectTrigger id={id} className="w-full">
+    <Select
+      value={value}
+      onValueChange={(next) => next && onValueChange(next)}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
+    >
+      <SelectTrigger id={id} aria-label={ariaLabel} className="w-full">
         <SelectValue>
           {() =>
             current ? (

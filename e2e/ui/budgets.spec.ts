@@ -45,12 +45,11 @@ test.describe("the screen", () => {
     const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
     await expect(links).toHaveText([
       "Transactions",
-      "Insights",
-      "Import",
-      "Budgets",
       "Categories",
       "Accounts",
+      "Budgets",
       "Backup",
+      "Insights",
     ]);
     await links.nth(3).click();
     await expect(page).toHaveURL(/#\/budgets$/);

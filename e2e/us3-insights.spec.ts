@@ -147,7 +147,7 @@ test("shows where the money went over a chosen period, leaving out transfers", a
   await expectBreakdowns(page, "2026-07-01", "2026-09-30");
 
   await choosePreset(page, "This year");
-  await expectBreakdowns(page, "2026-01-01", "2026-12-31");
+  await expectBreakdowns(page, "2026-01-01", "2026-09-15");
 
   await choosePeriod(page, "2026-07-10", "2026-08-20");
   await expectBreakdowns(page, "2026-07-10", "2026-08-20");

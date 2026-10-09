@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Period } from "./dates";
-import { insights, type Breakdown } from "./insights";
+import { insights, type Breakdown, type SpendingLine, type SpendingPoint } from "./insights";
 import { seedState } from "./seed";
 import { applyValid, idCounter } from "./testing";
 import type { Account, Side, State, Transaction } from "./types";
@@ -68,6 +68,14 @@ const entriesOf = (breakdown: Breakdown) =>
 
 const sharesOf = (breakdown: Breakdown) => breakdown.entries.map((e) => e.share);
 
+/** Each point's bucket and total, leaving out its categories. */
+const totalsOf = (line: SpendingLine) =>
+  line.points.map(({ bucket, totalCents }) => ({ bucket, totalCents }));
+
+/** A point's categories as [name, amount, marked unknown], in their order. */
+const categoriesOf = (point: SpendingPoint | undefined) =>
+  point!.categories.map((e) => [e.category.name, e.amountCents, e.unknown]);
+
 const lineTotal = (state: State, period: Period) =>
   insights(state, period).spending.points.reduce((sum, p) => sum + p.totalCents, 0);
 
@@ -96,8 +104,8 @@ describe("insights: the period", () => {
       ["Salary", 200000, false],
       ["Gifts", 5000, false],
     ]);
-    expect(result.spending.points[0]).toEqual({ bucket: "2026-09-01", totalCents: 2000 });
-    expect(result.spending.points.at(-1)).toEqual({ bucket: "2026-09-30", totalCents: 3000 });
+    expect(totalsOf(result.spending)[0]).toEqual({ bucket: "2026-09-01", totalCents: 2000 });
+    expect(totalsOf(result.spending).at(-1)).toEqual({ bucket: "2026-09-30", totalCents: 3000 });
     expect(lineTotal(state, SEPTEMBER)).toBe(5000);
   });
 
@@ -265,8 +273,8 @@ describe("insights: the spending line (R-14)", () => {
     expect(spending.points.map((p) => p.bucket)).toEqual(
       Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, "0")}`),
     );
-    expect(spending.points[2]).toEqual({ bucket: "2026-09-03", totalCents: 1500 });
-    expect(spending.points[9]).toEqual({ bucket: "2026-09-10", totalCents: 2000 });
+    expect(totalsOf(spending)[2]).toEqual({ bucket: "2026-09-03", totalCents: 1500 });
+    expect(totalsOf(spending)[9]).toEqual({ bucket: "2026-09-10", totalCents: 2000 });
     expect(spending.points.filter((p) => p.totalCents !== 0)).toHaveLength(2);
   });
 
@@ -279,7 +287,7 @@ describe("insights: the spending line (R-14)", () => {
 
     const longer = insights(state, { start: "2026-07-01", end: "2026-10-01" }).spending;
     expect(longer.granularity).toBe("month");
-    expect(longer.points).toEqual([
+    expect(totalsOf(longer)).toEqual([
       { bucket: "2026-07", totalCents: 1000 },
       { bucket: "2026-08", totalCents: 0 },
       { bucket: "2026-09", totalCents: 0 },
@@ -299,7 +307,7 @@ describe("insights: the spending line (R-14)", () => {
     const { spending } = insights(state, { start: "2026-01-15", end: "2026-06-10" });
 
     expect(spending.granularity).toBe("month");
-    expect(spending.points).toEqual([
+    expect(totalsOf(spending)).toEqual([
       { bucket: "2026-01", totalCents: 2000 },
       { bucket: "2026-02", totalCents: 0 },
       { bucket: "2026-03", totalCents: 3000 },
@@ -316,7 +324,70 @@ describe("insights: the spending line (R-14)", () => {
 
     expect(spending.granularity).toBe("month");
     expect(spending.points).toHaveLength(12);
-    expect(spending.points[1]).toEqual({ bucket: "2024-02", totalCents: 1200 });
-    expect(spending.points[11]).toEqual({ bucket: "2024-12", totalCents: 3400 });
+    expect(totalsOf(spending)[1]).toEqual({ bucket: "2024-02", totalCents: 1200 });
+    expect(totalsOf(spending)[11]).toEqual({ bucket: "2024-12", totalCents: 3400 });
+  });
+});
+
+describe("insights: each point's categories (FR-087, FR-052)", () => {
+  test("are the point's expenses by category, largest first and by name on a tie", () => {
+    const state = ledger([
+      expense("2026-09-03", 500, "Health"),
+      expense("2026-09-03", 1000),
+      expense("2026-09-03", 500, "Eating out"),
+      expense("2026-09-03", 250),
+      income("2026-09-03", 9999),
+      transfer("2026-09-03", 7777),
+      expense("2026-09-04", 300, "Transport"),
+    ]);
+
+    const { points } = insights(state, SEPTEMBER).spending;
+
+    expect(categoriesOf(points[2])).toEqual([
+      ["Groceries", 1250, false],
+      ["Eating out", 500, false],
+      ["Health", 500, false],
+    ]);
+    expect(categoriesOf(points[3])).toEqual([["Transport", 300, false]]);
+  });
+
+  test("mark Unaccounted as unknown", () => {
+    const state = ledger([expense("2026-09-03", 1500, "Unaccounted"), expense("2026-09-03", 4000)]);
+
+    const { points } = insights(state, SEPTEMBER).spending;
+
+    expect(categoriesOf(points[2])).toEqual([
+      ["Groceries", 4000, false],
+      ["Unaccounted", 1500, true],
+    ]);
+  });
+
+  test("sum a monthly point's month, within the period", () => {
+    const state = ledger([
+      expense("2026-06-30", 9000),
+      expense("2026-07-01", 1000),
+      expense("2026-07-20", 500),
+      expense("2026-07-21", 700, "Eating out"),
+    ]);
+
+    const { granularity, points } = insights(state, {
+      start: "2026-07-01",
+      end: "2026-10-01",
+    }).spending;
+
+    expect(granularity).toBe("month");
+    expect(categoriesOf(points[0])).toEqual([
+      ["Groceries", 1500, false],
+      ["Eating out", 700, false],
+    ]);
+  });
+
+  test("are none for a point without spending", () => {
+    const state = ledger([expense("2026-09-03", 1000), income("2026-09-01", 5000)]);
+
+    const { points } = insights(state, SEPTEMBER).spending;
+
+    expect(categoriesOf(points[0])).toEqual([]);
+    expect(categoriesOf(points[1])).toEqual([]);
   });
 });

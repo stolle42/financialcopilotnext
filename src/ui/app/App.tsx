@@ -1,6 +1,6 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { cn } from "cn";
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Transaction } from "@/domain/types";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
@@ -18,17 +18,37 @@ import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
 import { useRoute, type Route } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
+import { version } from "../../../package.json";
+
+// package.json writes MAJOR.MINOR.0, as npm needs three parts; the app shows MAJOR.MINOR
+// (constitution IX, FR-088).
+const appVersion = version.split(".").slice(0, 2).join(".");
 
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
   { route: "transactions", label: "Transactions", href: "#/" },
-  { route: "insights", label: "Insights", href: "#/insights" },
-  { route: "import", label: "Import", href: "#/import" },
-  { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "categories", label: "Categories", href: "#/categories" },
   { route: "accounts", label: "Accounts", href: "#/accounts" },
+  { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "backup", label: "Backup", href: "#/backup" },
+  { route: "insights", label: "Insights", href: "#/insights" },
 ];
+
+/**
+ * The sidebar entry a screen counts as: the import screens open from Transactions, whose list an
+ * import feeds (contracts/ui.md, shell and navigation).
+ */
+function sidebarEntryOf(route: Route): Route["name"] {
+  switch (route.name) {
+    case "import":
+    case "review":
+    case "profile-new":
+    case "profile":
+      return "transactions";
+    default:
+      return route.name;
+  }
+}
 
 function screenFor(route: Route): ReactNode {
   switch (route.name) {
@@ -60,9 +80,11 @@ function screenFor(route: Route): ReactNode {
 /** The desktop shell: header, sidebar and the screen of the current route (contracts/ui.md). */
 export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }) {
   const route = useRoute();
+  const currentEntry = sidebarEntryOf(route);
   // The one transaction form: `transaction: null` adds a new one.
   const [form, setForm] = useState<{ transaction: Transaction | null } | null>(null);
-  const openForm = (transaction: Transaction | null) => setForm({ transaction });
+  // The same function on every render, so the memoised transaction rows need not render again.
+  const openForm = useCallback((transaction: Transaction | null) => setForm({ transaction }), []);
   // The import's choices outlive a visit to the profile editor (contracts/ui.md, import).
   const [importState, setImportState] = useState<ImportState>(emptyImport);
   const importContext = useMemo(() => ({ importState, setImportState }), [importState]);
@@ -76,7 +98,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
             <Toaster>
               <div className="flex min-h-screen flex-col">
                 <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
-                  <span className="text-lg font-semibold">Financial Copilot</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-semibold">Financial Copilot</span>
+                    <span className="text-xs text-muted-foreground">Version {appVersion}</span>
+                  </div>
                   {/* The primary action, reachable from every screen (FR-066). */}
                   <Button onClick={() => openForm(null)}>Add transaction</Button>
                 </header>
@@ -89,10 +114,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                       <a
                         key={entry.route}
                         href={entry.href}
-                        aria-current={route.name === entry.route ? "page" : undefined}
+                        aria-current={currentEntry === entry.route ? "page" : undefined}
                         className={cn(
                           "rounded-md px-3 py-2 text-sm font-medium hover:bg-sidebar-accent",
-                          route.name === entry.route && "bg-sidebar-accent",
+                          currentEntry === entry.route && "bg-sidebar-accent",
                         )}
                       >
                         {entry.label}

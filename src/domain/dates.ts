@@ -83,7 +83,7 @@ export function periodPreset(name: PeriodPreset, today: string): Period {
       return { start: dateOf(fromYear, fromMonth, 1), end: lastDayOf(year, month) };
     }
     case "this-year":
-      return { start: dateOf(year, 1, 1), end: dateOf(year, 12, 31) };
+      return { start: dateOf(year, 1, 1), end: today };
     case "last-year":
       return { start: dateOf(year - 1, 1, 1), end: dateOf(year - 1, 12, 31) };
   }

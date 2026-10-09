@@ -97,11 +97,11 @@ const PALETTE = [
   "#9c36b5",
 ];
 
-test("Categories is the fifth entry in the sidebar", async ({ page }) => {
+test("Categories is the second entry in the sidebar", async ({ page }) => {
   await page.goto("/");
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-  await expect(links.nth(4)).toHaveText("Categories");
-  await links.nth(4).click();
+  await expect(links.nth(1)).toHaveText("Categories");
+  await links.nth(1).click();
   await expect(page).toHaveURL(/#\/categories$/);
   await expect(main(page).getByRole("heading", { name: "Categories", level: 1 })).toBeVisible();
 });
@@ -128,7 +128,7 @@ test("each side has its own tab, listed by name with the protected ones last (sc
 
   await selectTab(page, "Income");
 
-  // FR-030: the two sides never share one list.
+  // FR-030: each tab holds its own side only.
   await expect(rows(page)).toHaveText(
     ["Gifts", "Interest", "Salary", "Uncategorised", "Unaccounted"].map(
       (name) => new RegExp(`^${name}`),

@@ -10,23 +10,27 @@ leaves open. Each entry links to the requirement it serves instead of restating 
 ## Shell and navigation
 
 The app is a desktop layout with a sidebar for navigation and a header ([FR-064](../spec.md#fr-064)).
-The header holds the app name and the primary action **Add transaction**, which opens the
-[transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
+The header holds the app name, the app's version and the primary action **Add transaction**,
+which opens the [transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
+The version reads "Version" and the MAJOR.MINOR of the `version` field of `package.json`, such as
+"Version 1.1" for `1.1.0` ([FR-088](../spec.md#fr-088)).
 
-The sidebar is one flat list, without group headings, in the order of the table below. The
-screens it does not list are reached from Import.
+The sidebar is one flat list, without group headings, in the order of the table below
+([FR-084](../spec.md#fr-084)). Import opens from the [Transactions](#transactions) screen, and the
+other screens it does not list open from Import. On each of them, the sidebar marks Transactions
+as the current entry, since an import feeds its list ([FR-085](../spec.md#fr-085)).
 
 | Route | Screen | Sidebar position |
 |---|---|---|
 | `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)) | 1 |
-| `#/insights` | [Insights](#insights) | 2 |
-| `#/import` | [Import](#import) | 3 |
+| `#/import` | [Import](#import) | not listed |
 | `#/import/review` | [Review](#review) of the pending batch | not listed |
 | `#/import/profiles/new`, `#/import/profiles/:id` | [Profile editor](#profile-editor) | not listed |
+| `#/categories` | [Categories](#categories) | 2 |
+| `#/accounts` | [Accounts](#accounts), never the home screen ([FR-063](../spec.md#fr-063)) | 3 |
 | `#/budgets` | [Budgets](#budgets) | 4 |
-| `#/categories` | [Categories](#categories) | 5 |
-| `#/accounts` | [Accounts](#accounts), deliberately low in the list ([FR-063](../spec.md#fr-063)) | 6 |
-| `#/backup` | [Backup](#backup) | 7 |
+| `#/backup` | [Backup](#backup) | 5 |
+| `#/insights` | [Insights](#insights) | 6 |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 
@@ -34,17 +38,42 @@ Routes use the URL hash so the build works from any static host or local file ([
 
 ### Transactions
 
+- **Import CSV**: a link styled as an outline button, at the right of the heading, opens
+  [Import](#import) ([FR-085](../spec.md#fr-085)). It shows whether or not there are transactions.
 - **List**: follows [FR-016](../spec.md#fr-016). An expense amount shows a minus sign, an income
   amount shows a plus sign in the positive colour, and a transfer shows a transfer icon in neutral
   colour. For a transfer, the destination appears where the category chip would be (`→ Cash`). An
   empty description shows as muted "No description".
+- **Column headers**: a header above the rows names the columns, in order: Date, Description,
+  Category, Account, Amount. Each name sits over its column, and Amount is right-aligned like the
+  amounts below it ([FR-080](../spec.md#fr-080), [R-21](../research.md#r-21)).
 - **Filters** ([FR-016](../spec.md#fr-016)):
   - Account: filtering by an account includes transfers into it.
-  - Category: first a side switch (Expenses / Income), then a category of that side. Expense and
-    income categories never share one list ([FR-030](../spec.md#fr-030)). The filter offers both
-    protected categories, because it is not a picker in manual entry or review.
-  - Both filters can apply at once, and **Clear filters** resets them.
-- **Selecting a row** opens the [transaction form](#transaction-form) in edit mode.
+  - Category: one select with both sides, as two groups: Expenses, then Income. Each group is
+    headed by its side's name, and a divider line separates them ([FR-082](../spec.md#fr-082)).
+    The closed select shows the chosen category followed by its group's name, because the same
+    name may exist on both sides ([FR-032](../spec.md#fr-032)). The filter offers the protected
+    categories of both sides, because it is not a picker in manual entry or review.
+  - Date: two date fields, **From** and **To**, empty at first ([FR-083](../spec.md#fr-083)).
+    Either one alone limits the list to its side of that date, and both together to the days
+    between them. Each end is included, as in an Insights period ([R-14](../research.md#r-14)). A
+    From after To shows `date-range-invalid` under the fields, and the list keeps the last range
+    that held, as the Insights period does.
+  - All filters can apply at once, and **Clear filters** resets them, the dates included.
+- **Editing in place** ([FR-081](../spec.md#fr-081)): each cell of a row is a button that edits its
+  value right there, one cell at a time. Selecting a cell never opens the form.
+  - Date, Description and Amount open a field with the current value, the amount without its sign.
+    Enter or leaving the field saves, and Escape cancels.
+  - Category opens a select with the rules of the form's Category. A transfer's cell holds its
+    destination instead, and opens a select of every account except the transaction's own. Account
+    opens a select of the accounts, which for a transfer leaves out the destination
+    ([FR-011](../spec.md#fr-011)). Picking an option saves, and Escape cancels.
+  - After a save or a cancel, focus returns to the cell.
+  - A refusal, such as `amount-invalid`, `date-invalid` or `save-failed`, shows under the cell. The
+    field stays open with what the user entered ([FR-068](../spec.md#fr-068),
+    [FR-073](../spec.md#fr-073)).
+- **Edit button**: the last column of each row holds an **Edit transaction** button. It opens the
+  [transaction form](#transaction-form) in edit mode, the place to change the kind or to delete.
 - **Empty states**: when there are no transactions at all, the screen says so and offers Add
   transaction and Import a CSV. When the filters match nothing, it says so and offers Clear
   filters.
@@ -76,12 +105,19 @@ Routes use the URL hash so the build works from any static host or local file ([
 | This month (default) | First to last day of the current month |
 | Last month | The previous calendar month |
 | Last 3 months | First day of the month two months back, to the last day of the current month |
-| This year | 1 January to 31 December of the current year |
+| This year | 1 January of the current year to today ([FR-086](../spec.md#fr-086)) |
 | Last year | The previous calendar year |
 
 - **Sections**, in this order ([FR-051](../spec.md#fr-051)):
   1. **Spending over time**: a line of expense totals per day, or per month for periods longer than
      92 days ([R-14](../research.md#r-14)). Empty buckets show as zero. Tooltips format euro amounts.
+     - A point's tooltip shows its date or month and its total, then a preview of its spending by
+       expense category ([FR-087](../spec.md#fr-087)): at most five lines, largest first and by name
+       on a tie, each with the category chip and amount. "Unaccounted" is marked "unknown", as in
+       the legend ([FR-052](../spec.md#fr-052)).
+     - With more than five categories, the four largest show, and a last line such as "3 more
+       categories" gives the rest's combined amount.
+     - A point without spending shows no categories.
   2. **Expenses by category** and **Income by category**, side by side. Each is a donut with a legend
      of chip, amount and share, sorted by amount and titled with the side's total. "Uncategorised"
      is its own entry ([User Story 3](../spec.md#user-story-3) scenario 5). "Unaccounted" is drawn
@@ -228,6 +264,7 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `amount-invalid` | [FR-010](../spec.md#fr-010), SC-012 | The amount must be a number of zero or more with at most two decimals |
 | `balance-invalid` | An opening or stated balance is not a number | The balance must be a number with at most two decimals |
 | `date-invalid` | [FR-010](../spec.md#fr-010), SC-012 | The date is missing or not a real date |
+| `date-range-invalid` | [FR-083](../spec.md#fr-083): filtering the transaction list with From after To | The From date must be on or before the To date |
 | `transfer-destination-missing` | [FR-011](../spec.md#fr-011), SC-012 | Choose the account the money goes to |
 | `transfer-needs-second-account` | [FR-011](../spec.md#fr-011), SC-012 | A transfer needs a second account; create one under Accounts |
 | `category-name-empty` | Saving a category without a name | The category needs a name |
