@@ -205,6 +205,82 @@ test.describe("filters", () => {
   });
 });
 
+test.describe("filters by date", () => {
+  const from = (page: Page) => filters(page).getByLabel("From", { exact: true });
+  const to = (page: Page) => filters(page).getByLabel("To", { exact: true });
+
+  test.beforeEach(async ({ page }) => {
+    const days: [description: string, date: string, category: string][] = [
+      ["Late August", "2026-08-31", "Eating out"],
+      ["First", "2026-09-01", "Groceries"],
+      ["Second", "2026-09-02", "Eating out"],
+      ["Third", "2026-09-03", "Groceries"],
+    ];
+    await page.goto("/");
+    for (const [description, date, category] of days) {
+      await addTransaction(page, { amount: "5.00", category, date, description });
+    }
+  });
+
+  test("start empty, so every transaction shows", async ({ page }) => {
+    await expect(from(page)).toHaveValue("");
+    await expect(to(page)).toHaveValue("");
+    await expect(rows(page)).toHaveCount(4);
+  });
+
+  test("From and To each limit the list alone, their own date included", async ({ page }) => {
+    await from(page).fill("2026-09-01");
+    await expect.poll(() => descriptions(page)).toEqual(["Third", "Second", "First"]);
+    await from(page).fill("");
+    await to(page).fill("2026-09-01");
+    await expect.poll(() => descriptions(page)).toEqual(["First", "Late August"]);
+  });
+
+  test("both together keep the days between them, both ends included", async ({ page }) => {
+    await from(page).fill("2026-09-01");
+    await to(page).fill("2026-09-02");
+    await expect.poll(() => descriptions(page)).toEqual(["Second", "First"]);
+  });
+
+  test("combine with the category filter", async ({ page }) => {
+    await from(page).fill("2026-09-01");
+    await choose(page, filters(page), "Category", "Groceries");
+    await expect.poll(() => descriptions(page)).toEqual(["Third", "First"]);
+  });
+
+  test("Clear filters empties both fields", async ({ page }) => {
+    await from(page).fill("2026-09-01");
+    await to(page).fill("2026-09-02");
+    await expect(rows(page)).toHaveCount(2);
+    await filters(page).getByRole("button", { name: "Clear filters" }).click();
+    await expect(from(page)).toHaveValue("");
+    await expect(to(page)).toHaveValue("");
+    await expect(rows(page)).toHaveCount(4);
+  });
+
+  test("a From after To shows date-range-invalid under the fields and keeps the last rows", async ({
+    page,
+  }) => {
+    await from(page).fill("2026-09-01");
+    await to(page).fill("2026-09-02");
+    await expect.poll(() => descriptions(page)).toEqual(["Second", "First"]);
+
+    await from(page).fill("2026-09-03");
+    await expect(from(page)).toHaveAttribute("aria-invalid", "true");
+    const error = filters(page).getByText(messageFor({ code: "date-range-invalid" }));
+    await expect(error).toBeVisible();
+    const fromBox = (await from(page).boundingBox())!;
+    const errorBox = (await error.boundingBox())!;
+    expect(errorBox.y).toBeGreaterThanOrEqual(fromBox.y + fromBox.height);
+    await expect.poll(() => descriptions(page)).toEqual(["Second", "First"]);
+
+    await to(page).fill("2026-09-03");
+    await expect(error).toHaveCount(0);
+    await expect(from(page)).not.toHaveAttribute("aria-invalid", "true");
+    await expect.poll(() => descriptions(page)).toEqual(["Third"]);
+  });
+});
+
 test.describe("editing in place", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
