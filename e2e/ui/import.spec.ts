@@ -1,7 +1,7 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import type { MappingProfile, PendingBatch } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
-import { addAccount, choose, fixture, storedRecords } from "../support/app";
+import { addAccount, addTransaction, choose, fixture, storedRecords } from "../support/app";
 import { importWithProfile, mapMyBank, saveMyBankProfile, startImport } from "../support/import";
 import { euros, expect, test } from "../support/test";
 
@@ -14,20 +14,58 @@ const profileList = (page: Page) => page.getByRole("region", { name: "Mapping pr
 
 const storedBatches = (page: Page) => storedRecords<PendingBatch>(page, "pendingBatch");
 
-test("Import is the second entry in the sidebar", async ({ page }) => {
+const sidebar = (page: Page) => page.getByRole("navigation", { name: "Screens" });
+const importButton = (page: Page) =>
+  page.getByRole("main").getByRole("link", { name: "Import CSV", exact: true });
+
+test("Import has no entry in the sidebar", async ({ page }) => {
   await page.goto("/");
-  const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-  await expect(links).toHaveText([
+  await expect(sidebar(page).getByRole("link")).toHaveText([
     "Transactions",
-    "Import",
     "Categories",
     "Accounts",
     "Budgets",
     "Backup",
     "Insights",
   ]);
-  await links.nth(1).click();
+});
+
+test("Import CSV on Transactions opens Import, at the right of the heading", async ({ page }) => {
+  await page.goto("/");
+  const heading = page.getByRole("main").getByRole("heading", { name: "Transactions", level: 1 });
+  const headingBox = (await heading.boundingBox())!;
+  const buttonBox = (await importButton(page).boundingBox())!;
+  expect(buttonBox.x).toBeGreaterThan(headingBox.x + headingBox.width);
+  expect(buttonBox.y).toBeLessThan(headingBox.y + headingBox.height);
+  expect(buttonBox.y + buttonBox.height).toBeGreaterThan(headingBox.y);
+
+  await importButton(page).click();
+  await expect(page).toHaveURL(/#\/import$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "Import" })).toBeVisible();
+});
+
+test("Import CSV shows with transactions too", async ({ page }) => {
+  await page.goto("/");
+  await addTransaction(page, { amount: "4.00", description: "Coffee" });
+  await expect(page.getByRole("list", { name: "Transactions" })).toContainText("Coffee");
+  await importButton(page).click();
+  await expect(page).toHaveURL(/#\/import$/);
+});
+
+test("Import, Review and the profile editor mark Transactions as the current entry", async ({
+  page,
+}) => {
+  const main = page.getByRole("main");
+  const screens: [path: string, shown: Locator][] = [
+    ["/#/import", main.getByRole("heading", { name: "Import", level: 1 })],
+    ["/#/import/review", main.getByRole("button", { name: "Go to Import" })],
+    ["/#/import/profiles/new", main.getByRole("heading", { name: "New profile", level: 1 })],
+  ];
+  for (const [path, shown] of screens) {
+    await page.goto(path);
+    await expect(shown).toBeVisible();
+    await expect(sidebar(page).locator('[aria-current="page"]')).toHaveText(["Transactions"]);
+  }
 });
 
 test("the empty Transactions screen offers Import a CSV", async ({ page }) => {

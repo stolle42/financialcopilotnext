@@ -97,11 +97,11 @@ const PALETTE = [
   "#9c36b5",
 ];
 
-test("Categories is the third entry in the sidebar", async ({ page }) => {
+test("Categories is the second entry in the sidebar", async ({ page }) => {
   await page.goto("/");
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-  await expect(links.nth(2)).toHaveText("Categories");
-  await links.nth(2).click();
+  await expect(links.nth(1)).toHaveText("Categories");
+  await links.nth(1).click();
   await expect(page).toHaveURL(/#\/categories$/);
   await expect(main(page).getByRole("heading", { name: "Categories", level: 1 })).toBeVisible();
 });
