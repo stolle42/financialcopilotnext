@@ -857,7 +857,7 @@ the spec first, then gets a task here.
     monthly point, and none for a point without spending;
   - in `e2e/ui/insights.spec.ts`, the tooltip lists a point's categories in order, shows four and
     "N more categories" when there are more than five, and marks "Unaccounted" unknown.
-- [ ] T088 A date filter for the transaction list: `listTransactions` in
+- [X] T088 A date filter for the transaction list: `listTransactions` in
   `src/domain/transactions.ts` takes a From and a To date, `TransactionsScreen.tsx` shows them
   among the filters, and `src/ui/messages.ts` words `date-range-invalid`
   ([ui.md](contracts/ui.md#transactions), [FR-016](spec.md#fr-016), [R-14](research.md#r-14)).

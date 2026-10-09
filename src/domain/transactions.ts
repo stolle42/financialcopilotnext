@@ -166,6 +166,9 @@ export function deleteTransaction(state: State, id: string): Changes {
 export interface TransactionFilters {
   accountId?: string | null;
   categoryId?: string | null;
+  /** The first and last date to list, each included (R-14). */
+  from?: string | null;
+  to?: string | null;
 }
 
 /** Whether a transaction touches the account, as its source or as a transfer's destination. */
@@ -181,9 +184,10 @@ export function listTransactions(
   transactions: readonly Transaction[],
   filters: TransactionFilters,
 ): Transaction[] {
-  const { accountId, categoryId } = filters;
+  const { accountId, categoryId, from, to } = filters;
   return transactions
     .filter((t) => !accountId || touches(t, accountId))
     .filter((t) => !categoryId || (t.kind !== "transfer" && t.categoryId === categoryId))
+    .filter((t) => (!from || t.date >= from) && (!to || t.date <= to))
     .sort((a, b) => (a.date === b.date ? b.seq - a.seq : a.date < b.date ? 1 : -1));
 }

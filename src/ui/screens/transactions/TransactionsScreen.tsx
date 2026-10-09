@@ -18,7 +18,8 @@ import { useStore, useStoreApi } from "@/store/store";
 import { saveTransaction } from "@/store/transactions";
 import { CategoryChip } from "@/ui/components/CategoryChip";
 import { Button, buttonVariants } from "@/ui/components/ui/button";
-import { Field, FieldLabel } from "@/ui/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/ui/components/ui/field";
+import { Input } from "@/ui/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,7 +31,7 @@ import {
   SelectValue,
 } from "@/ui/components/ui/select";
 import { formatAmount, formatDate } from "@/ui/format";
-import type { MessageCode } from "@/ui/messages";
+import { messageFor, type MessageCode } from "@/ui/messages";
 import { CellEditor, type Column } from "./CellEditor";
 import { OpenTransactionFormContext } from "./formContext";
 
@@ -52,6 +53,16 @@ const cellStyle =
 const mutedCellStyle = `${cellStyle} text-muted-foreground`;
 const amountCellStyle = `${cellStyle} justify-end tabular-nums`;
 const editButton = buttonVariants({ variant: "ghost", size: "icon-sm" });
+
+/** The date filter's From and To, each "" while it limits nothing. */
+interface DateRange {
+  from: string;
+  to: string;
+}
+
+const allDates: DateRange = { from: ALL, to: ALL };
+
+const isRange = ({ from, to }: DateRange) => !from || !to || from <= to;
 
 interface EditedCell {
   id: string;
@@ -172,6 +183,10 @@ export function TransactionsScreen() {
   const categories = useStore((state) => state.categories);
   const [accountId, setAccountId] = useState(ALL);
   const [categoryId, setCategoryId] = useState(ALL);
+  // What the date fields show, and the last range that held, which the list follows: a From after
+  // To leaves the rows as they were, as the Insights period does (contracts/ui.md).
+  const [dates, setDates] = useState(allDates);
+  const [range, setRange] = useState(allDates);
   const [editing, setEditing] = useState<EditedCell | null>(null);
   // The save of the cell being left, while it runs or after it was refused (see `edit`).
   const leaving = useRef<Promise<MessageCode | null> | null>(null);
@@ -189,15 +204,24 @@ export function TransactionsScreen() {
   );
   // Memoised, so typing elsewhere never re-sorts a long list (R-21).
   const listed = useMemo(
-    () => listTransactions(transactions, { accountId, categoryId }),
-    [transactions, accountId, categoryId],
+    () => listTransactions(transactions, { accountId, categoryId, ...range }),
+    [transactions, accountId, categoryId, range],
   );
 
-  const filtered = accountId !== ALL || categoryId !== ALL;
+  const filtered =
+    accountId !== ALL || categoryId !== ALL || dates.from !== ALL || dates.to !== ALL;
   function clearFilters() {
     setAccountId(ALL);
     setCategoryId(ALL);
+    setDates(allDates);
+    setRange(allDates);
   }
+
+  function changeDates(next: DateRange) {
+    setDates(next);
+    if (isRange(next)) setRange(next);
+  }
+  const datesInvalid = !isRange(dates);
 
   // The rows are memoised, so what they are handed must stay the same between renders.
   const saveCell = useCallback(
@@ -302,10 +326,35 @@ export function TransactionsScreen() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field className="w-44" data-invalid={datesInvalid ? true : undefined}>
+              <FieldLabel htmlFor="filter-from">From</FieldLabel>
+              <Input
+                id="filter-from"
+                type="date"
+                value={dates.from}
+                onChange={(event) => changeDates({ ...dates, from: event.target.value })}
+                aria-invalid={datesInvalid ? true : undefined}
+              />
+            </Field>
+            <Field className="w-44" data-invalid={datesInvalid ? true : undefined}>
+              <FieldLabel htmlFor="filter-to">To</FieldLabel>
+              <Input
+                id="filter-to"
+                type="date"
+                value={dates.to}
+                onChange={(event) => changeDates({ ...dates, to: event.target.value })}
+                aria-invalid={datesInvalid ? true : undefined}
+              />
+            </Field>
             {filtered && (
               <Button variant="outline" onClick={clearFilters}>
                 Clear filters
               </Button>
+            )}
+            {datesInvalid && (
+              <FieldError className="basis-full">
+                {messageFor({ code: "date-range-invalid" })}
+              </FieldError>
             )}
           </section>
 
