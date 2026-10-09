@@ -3,7 +3,7 @@ import { messageFor } from "../../src/ui/messages";
 import { addAccount, addTransaction, choose } from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, transactions; FR-016, FR-030, FR-063, FR-073.
+// contracts/ui.md, transactions; FR-016, FR-063, FR-073 and FR-080 – FR-083.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");

@@ -6,7 +6,7 @@ import { importWithProfile, mapMyBank, saveMyBankProfile, startImport } from "..
 import { euros, expect, test } from "../support/test";
 
 // contracts/ui.md, import; contracts/csv-import.md, outcomes; User Story 2 scenarios 1, 2, 13
-// and 15.
+// and 15; FR-085.
 
 const importForm = (page: Page) => page.getByRole("region", { name: "Import a file" });
 const pendingCard = (page: Page) => page.getByRole("region", { name: "Import waiting for review" });

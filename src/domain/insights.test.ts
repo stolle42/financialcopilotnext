@@ -329,7 +329,7 @@ describe("insights: the spending line (R-14)", () => {
   });
 });
 
-describe("insights: each point's categories (FR-051, FR-052)", () => {
+describe("insights: each point's categories (FR-087, FR-052)", () => {
   test("are the point's expenses by category, largest first and by name on a tie", () => {
     const state = ledger([
       expense("2026-09-03", 500, "Health"),

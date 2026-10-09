@@ -11,7 +11,7 @@ export interface SpendingPoint {
   /** A `YYYY-MM-DD` date for a daily point, a `YYYY-MM` month for a monthly one. */
   bucket: string;
   totalCents: number;
-  /** The point's expenses by category, in the order of a breakdown (FR-051). */
+  /** The point's expenses by category, in the order of a breakdown (FR-087). */
   categories: BreakdownEntry[];
 }
 

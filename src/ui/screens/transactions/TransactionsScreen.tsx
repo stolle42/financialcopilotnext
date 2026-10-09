@@ -38,7 +38,7 @@ import { OpenTransactionFormContext } from "./formContext";
 // The "All" option of a filter select; Base UI selects need a value for every option.
 const ALL = "";
 
-// The category filter holds both sides, each as a group under its name (FR-030).
+// The category filter holds both sides, each as a group under its name (FR-082).
 const sideNames: Record<Side, string> = { expense: "Expenses", income: "Income" };
 
 // The column header and every row share one grid, so each name sits over its column. The last
@@ -172,8 +172,8 @@ const TransactionRow = memo(function TransactionRow({
 });
 
 /**
- * Every transaction, newest first, with the account and category filters, and each value
- * editable in place (FR-016).
+ * Every transaction, newest first, with the account, category and date filters, and each value
+ * editable in place (FR-016, FR-081, FR-083).
  */
 export function TransactionsScreen() {
   const openForm = useContext(OpenTransactionFormContext);

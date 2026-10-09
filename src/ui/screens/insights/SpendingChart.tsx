@@ -60,7 +60,7 @@ function PointPreview({ point }: { point: SpendingPoint }) {
 
 /**
  * The expense totals per day, or per month for a long period, as a line whose tooltips preview
- * each point's categories (FR-051, R-14).
+ * each point's categories (FR-051, FR-087, R-14).
  */
 export function SpendingChart({ spending }: { spending: SpendingLine }) {
   if (spending.points.every((point) => point.totalCents === 0)) {

@@ -56,29 +56,6 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: What kind should the app propose for an imported row whose amount is zero? → A: An expense,
   the same default as manual entry ([FR-023](#fr-023)).
 
-### Session 2026-10-07
-
-- Q: May the transaction list's category filter offer expense and income categories in one list,
-  instead of first asking for a side? → A: Yes, as two groups with a clear divider between them,
-  so the user can tell the two sets apart ([FR-030](#fr-030)).
-
-### Session 2026-10-08
-
-- Q: Must editing a transaction always go through the form? → A: No. Each value in the list edits
-  in place. The form stays, opened from a button on each row, as the place to change the kind or
-  to delete ([FR-016](#fr-016)).
-- Q: Should the "This year" period on Insights run to 31 December or to today? → A: To today. The
-  rest of the year has no transactions yet, and the period's end decides which month's budgets
-  show ([FR-050](#fr-050), [contracts/ui.md](contracts/ui.md#insights)).
-- Q: What should hovering over the spending line show? → A: The point's total and a short preview
-  of its spending by expense category ([FR-051](#fr-051),
-  [contracts/ui.md](contracts/ui.md#insights)).
-- Q: May the transaction list be filtered by date, too? → A: Yes, by a range of dates whose start,
-  end or both may be set ([FR-016](#fr-016), [contracts/ui.md](contracts/ui.md#transactions)).
-- Q: Should Import keep its own entry in the sidebar? → A: No. It opens from a button on the
-  Transactions screen, since an import feeds the transaction list
-  ([contracts/ui.md](contracts/ui.md#shell-and-navigation)).
-
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
 
@@ -431,10 +408,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-016"></a>**FR-016**: The transaction list MUST show every transaction newest first, each
   with its date, description, account, amount, and either its category in the category's colour or,
   for a transfer, its destination account. Expenses, incomes, and transfers MUST be visually
-  distinguishable. Users MUST be able to filter the list by account, by category, including
-  "Uncategorised", and by a range of dates; filtering by an account MUST include transfers into it.
-  Users MUST be able to change each value a row shows in place, without opening a form, and to open
-  a transaction for editing, including its kind, or deletion ([FR-013](#fr-013)).
+  distinguishable. Users MUST be able to filter the list by account and by category, including
+  "Uncategorised"; filtering by an account MUST include transfers into it. Selecting a transaction
+  MUST open it for editing or deletion ([FR-013](#fr-013)). v1.1 changes the list:
+  [FR-080](#fr-080) – [FR-083](#fr-083).
 
 **CSV import**
 
@@ -505,10 +482,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 **Categories**
 
 - <a id="fr-030"></a>**FR-030**: System MUST keep expense categories and income categories as two separate sets. A
-  category picker MUST show only the set matching the transaction's kind. A list that offers both
-  sets, such as a filter, MUST show them as two groups, each named by its side and clearly divided
-  from the other. Category pickers in manual entry and import review MUST NOT offer
-  "Unaccounted"; only reconciliation assigns it ([FR-035](#fr-035)).
+  category picker MUST show only the set matching the transaction's kind, and the two sets MUST
+  never appear in one list. Category pickers in manual entry and import review MUST NOT offer
+  "Unaccounted"; only reconciliation assigns it ([FR-035](#fr-035)). v1.1 makes one exception, the
+  transaction list's category filter: [FR-082](#fr-082).
 - <a id="fr-031"></a>**FR-031**: On first launch, both sets MUST contain a predefined list of categories, each set
   including the protected categories "Uncategorised" and "Unaccounted".
 - <a id="fr-032"></a>**FR-032**: Users MUST be able to create, rename, recolour, and delete categories. Names MUST be
@@ -537,11 +514,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 
 - <a id="fr-050"></a>**FR-050**: Users MUST be able to select a time period by start and end date,
   with presets for common periods, defaulting to the current
-  calendar month.
-- <a id="fr-051"></a>**FR-051**: Insights MUST show, for the selected period: spending over time as a line, where
-  hovering over a point previews that point's spending by expense category; the
+  calendar month. v1.1 sets where "This year" ends: [FR-086](#fr-086).
+- <a id="fr-051"></a>**FR-051**: Insights MUST show, for the selected period: spending over time as a line; the
   proportion of spending by expense category; the proportion of income by income category; and
   budget progress per budgeted expense category for the most recent calendar month in the period.
+  v1.1 adds a preview to the line: [FR-087](#fr-087).
 - <a id="fr-052"></a>**FR-052**: "Unaccounted" MUST appear in its side's breakdown at its true share, visually
   distinguished as a known unknown, and MUST NOT be hidden or merged.
 - <a id="fr-053"></a>**FR-053**: Charts MUST be read-only in v1.
@@ -621,6 +598,37 @@ testable for v1.
 - <a id="fr-075"></a>**FR-075**: The browser may clear the app's data when disk space runs low, unless
   the browser has agreed to keep it. The backup screen MUST say when the browser has not agreed,
   and that a saved backup is the safeguard ([User Story 7](#user-story-7)).
+
+**UI improvements (v1.1)**
+
+Changes the owner asked for after v1.0, released together as v1.1. Each v1.0 requirement they
+change points to them.
+
+- <a id="fr-080"></a>**FR-080**: The transaction list MUST name its columns in a header above the
+  rows.
+- <a id="fr-081"></a>**FR-081**: Users MUST be able to change each value a row of the transaction
+  list shows in place, without opening a form. Selecting a row MUST NOT open the form. Instead, a
+  button on each row MUST open the transaction for editing, including its kind, or deletion
+  ([FR-013](#fr-013)). This replaces the last sentence of [FR-016](#fr-016).
+- <a id="fr-082"></a>**FR-082**: The transaction list's category filter MUST offer the expense and
+  the income categories in one list, without first asking for a side. The two sets MUST show as
+  two groups, each named by its side and clearly divided from the other. This is the one list that
+  may hold both sets ([FR-030](#fr-030)).
+- <a id="fr-083"></a>**FR-083**: Users MUST be able to filter the transaction list by a range of
+  dates, with the start, the end or both set, each end included. It MUST combine with the account
+  and category filters ([FR-016](#fr-016)). A start after the end MUST be refused with a message
+  at the fields ([FR-068](#fr-068)).
+- <a id="fr-084"></a>**FR-084**: The sidebar MUST list the screens in this order: Transactions,
+  Categories, Accounts, Budgets, Backup, Insights.
+- <a id="fr-085"></a>**FR-085**: Import MUST NOT have its own sidebar entry. It MUST open from a
+  button on the transaction list, since an import feeds that list. On Import and the screens
+  reached from it, the sidebar MUST mark Transactions as the current screen.
+- <a id="fr-086"></a>**FR-086**: The "This year" period on Insights MUST run from 1 January of the
+  current year to today, not to 31 December ([FR-050](#fr-050)). The rest of the year has no
+  transactions yet, and the period's end decides which month's budgets show ([FR-051](#fr-051)).
+- <a id="fr-087"></a>**FR-087**: Hovering over a point of the spending line MUST preview that
+  point's spending by expense category, largest first, with "Unaccounted" marked as unknown
+  ([FR-051](#fr-051), [FR-052](#fr-052)).
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -738,7 +746,7 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Drill-down from a chart into its transactions. Desirable, to be considered in UX design, not a v1
   commitment.
 - Searching the transaction list, paginating it, and editing several transactions at once. v1 has
-  only the filters in [FR-016](#fr-016).
+  only the filters in [FR-016](#fr-016) and [FR-083](#fr-083).
 - Showing the transaction list within 1 second at 10,000 transactions in every browser
   ([R-21](research.md#r-21)). Firefox takes longer, as R-21 records.
   The time goes into building every row, so `content-visibility` does not help. The fix is to show
