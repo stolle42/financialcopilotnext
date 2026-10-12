@@ -752,10 +752,14 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     `n8n/financial-copilot-categories.json`:
     1. a Webhook node, the trigger, which answers through the Respond to Webhook node and allows
        the app's origins;
-    2. a Basic LLM Chain, the reasoning step, with an Anthropic Chat Model (`claude-opus-5-5`,
-       adaptive thinking at low effort, at most 16,000 output tokens) and a Structured Output
-       Parser holding the answer's JSON Schema;
-    3. a Respond to Webhook node, which returns the parsed answer.
+    2. an HTTP Request node, **Ask Claude**, the reasoning step: it posts to Anthropic's Messages
+       API with n8n's Anthropic credential (`claude-opus-5-5`, adaptive thinking at low effort, at
+       most 16,000 output tokens), and with structured outputs, whose JSON Schema the API enforces;
+    3. a Respond to Webhook node, which returns Claude's answer text, skipping its thinking.
+
+    The first version used n8n's Basic LLM Chain with a Structured Output Parser. The parser only
+    checks the model's text afterwards, and failed on real answers with "Model output doesn't fit
+    required format" (owner, 2026-10-12); structured outputs cannot return another shape.
   - The app turns the answer into assignments itself, so the automated action, filling the batch,
     keeps every rule of review ([FR-092](spec.md#fr-092)).
   - **The data-sharing warning** ([FR-095](spec.md#fr-095)) is a dialog that Suggest categories

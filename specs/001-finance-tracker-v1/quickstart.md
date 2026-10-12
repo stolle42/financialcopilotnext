@@ -178,8 +178,9 @@ works without them.
 
 1. In your n8n instance, create a workflow, choose **Import from File…** in its menu, and pick
    `n8n/financial-copilot-categories.json`.
-2. Open the **Anthropic Chat Model** node and create an Anthropic credential with your API key. The
-   key stays in n8n, never in this repository, the app or a backup.
+2. Open the **Ask Claude** node and, under Credential for Anthropic, choose or create an Anthropic
+   credential with your API key. The key stays in n8n, never in this repository, the app or a
+   backup.
 3. In the Anthropic Console, set a monthly spending limit for that key. The workflow's address is in
    every build of the app, so anyone could call it ([R-23](research.md#r-23)).
 4. Publish the workflow (older n8n versions call this activating it). Copy its production address
