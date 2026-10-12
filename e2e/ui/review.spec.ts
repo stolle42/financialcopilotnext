@@ -516,3 +516,142 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     await expect(suggestButton(page)).toBeDisabled();
   });
 });
+
+test.describe("the suggested mark (FR-093)", () => {
+  const mark = (scope: Locator) => scope.getByText("Suggested", { exact: true });
+
+  /**
+   * Imports August with data sharing on and lets Claude's stand-in suggest: Groceries for every
+   * Shop purchase, a mix for the Bäckerei Krüger group, and Transport for the parking ticket.
+   */
+  async function withSuggestions(page: Page) {
+    await standInCategoriser(page, () => ({
+      json: {
+        suggestions: [
+          { rowNumber: 3, category: "Groceries" },
+          { rowNumber: 5, category: "Groceries" },
+          { rowNumber: 7, category: "Groceries" },
+          { rowNumber: 4, category: "Eating out" },
+          { rowNumber: 8, category: "Groceries" },
+          { rowNumber: 17, category: "Eating out" },
+          { rowNumber: 9, category: "Transport" },
+        ],
+      },
+    }));
+    await importAugust(page);
+    await turnOnDataSharing(page);
+    await page
+      .getByRole("region", { name: "Suggestions" })
+      .getByRole("button", { name: /^Suggest categories/ })
+      .click();
+    await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toHaveText(
+      notifications.categoriesSuggested(7, 13),
+    );
+  }
+
+  test("a suggested row shows the mark next to its category; a row Claude left alone does not", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+
+    const parking = assignment(page, "row 9");
+    await expect(parking).toContainText("Transport");
+    await expect(mark(parking)).toBeVisible();
+    await expect(mark(assignment(page, "row 11"))).toHaveCount(0);
+  });
+
+  test("a group shows the mark only when all its rows hold the same suggested category", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+
+    const shop = assignment(page, "Shop, expenses");
+    await expect(shop).toContainText("Groceries");
+    await expect(mark(shop)).toBeVisible();
+
+    const bakery = group(page, "Bäckerei Krüger, expenses");
+    await expect(assignment(bakery, "Bäckerei Krüger, expenses")).toContainText("Mixed");
+    await expect(mark(assignment(bakery, "Bäckerei Krüger, expenses"))).toHaveCount(0);
+    await bakery.getByRole("button", { name: "Show rows" }).click();
+    for (const rowNumber of [4, 8, 17]) {
+      await expect(mark(assignment(bakery, `row ${rowNumber}`))).toBeVisible();
+    }
+  });
+
+  test("choosing the suggested category itself removes the mark, on screen and in storage", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+    const transport = await categoryId(page, "expense", "Transport");
+
+    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+
+    await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
+    await expect
+      .poll(async () => (await storedRow(page, 9)).assignment)
+      .toEqual({ type: "category", categoryId: transport });
+  });
+
+  test("a group whose rows share a category, but not all as suggestions, shows it without the mark", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+    const shop = group(page, "Shop, expenses");
+    await shop.getByRole("button", { name: "Show rows" }).click();
+
+    await choose(page, assignment(shop, "row 3"), "Category", "Groceries");
+
+    await expect(mark(assignment(shop, "row 3"))).toHaveCount(0);
+    await expect(assignment(shop, "Shop, expenses")).toContainText("Groceries");
+    await expect(mark(assignment(shop, "Shop, expenses"))).toHaveCount(0);
+    for (const rowNumber of [5, 7]) {
+      await expect(mark(assignment(shop, `row ${rowNumber}`))).toBeVisible();
+    }
+  });
+
+  test("a choice for the group removes the marks of all its rows", async ({ page }) => {
+    await withSuggestions(page);
+
+    await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+
+    await expect(mark(assignment(page, "Shop, expenses"))).toHaveCount(0);
+    for (const rowNumber of [3, 5, 7]) {
+      await expect
+        .poll(async () => (await storedRow(page, rowNumber)).assignment)
+        .not.toHaveProperty("suggested");
+    }
+  });
+
+  test("the marks survive a reload, and a removed mark stays removed", async ({ page }) => {
+    await withSuggestions(page);
+    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+    await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
+
+    await page.reload();
+
+    await expect(mark(assignment(page, "Shop, expenses"))).toBeVisible();
+    await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
+  });
+
+  test("confirming books suggested rows like chosen ones, and the ledger keeps no mark", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+    const groceries = await categoryId(page, "expense", "Groceries");
+
+    await page
+      .getByRole("region", { name: "Finish review" })
+      .getByRole("button", { name: /^Confirm/ })
+      .click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Add 13 transactions" })
+      .click();
+    await expect(page).toHaveURL(/#\/$/);
+
+    const booked = await storedRecords<Transaction>(page, "transactions");
+    const shopPurchases = booked.filter((t) => t.kind === "expense" && t.categoryId === groceries);
+    expect(shopPurchases.length).toBeGreaterThanOrEqual(4);
+    for (const transaction of booked) expect(transaction).not.toHaveProperty("suggested");
+  });
+});
