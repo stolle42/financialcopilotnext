@@ -115,6 +115,23 @@ describe("confirmBatch (FR-027)", () => {
     expect(next.pendingBatch).toBeNull();
   });
 
+  test("books a category Claude suggested exactly as a chosen one, without the mark (FR-093)", () => {
+    const groceries = (s: State) => categoryNamed(s, "expense", "Groceries");
+    const chosen = withBatch((s) => [
+      row(s, 2, -4520, { assignment: { type: "category", categoryId: groceries(s) } }),
+    ]);
+    const suggested = withBatch((s) => [
+      row(s, 2, -4520, {
+        assignment: { type: "category", categoryId: groceries(s), suggested: true },
+      }),
+    ]);
+
+    const booked = added(suggested, confirmed(suggested));
+
+    expect(booked).toStrictEqual(added(chosen, confirmed(chosen)));
+    expect(booked[0]).not.toHaveProperty("suggested");
+  });
+
   test("books a payment to the credit card as a transfer with no category (scenario 7)", () => {
     const transfer: Assignment = { type: "transfer", counterAccountId: "card" };
     const state = withBatch((s) => [row(s, 2, -25000, { assignment: transfer })]);

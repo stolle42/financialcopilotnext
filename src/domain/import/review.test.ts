@@ -65,6 +65,18 @@ const rowOf = (state: State, rowNumber: number) =>
 
 const shopExpenses = { key: "shop", side: "expense" as const };
 
+/** `state` with the rows numbered `rowNumbers` holding `categoryId` as Claude's suggestion. */
+function withSuggestion(state: State, rowNumbers: number[], categoryId: string): State {
+  const batch = state.pendingBatch!;
+  const suggested: Assignment = { type: "category", categoryId, suggested: true };
+  const rows = batch.rows.map((row) =>
+    row.status === "parsed" && rowNumbers.includes(row.rowNumber)
+      ? { ...row, assignment: suggested }
+      : row,
+  );
+  return applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+}
+
 describe("assignGroup (FR-026)", () => {
   test("assigns a category to every row currently in the group, and to no other row (scenario 4)", () => {
     const state = withBatch();
@@ -172,6 +184,80 @@ describe("assignRow", () => {
     const state = withBatch();
     expect(() => assignRow(state, 7, "uncategorised")).toThrow();
     expect(() => assignRow(state, 99, "uncategorised")).toThrow();
+  });
+});
+
+describe("the suggested mark (FR-093)", () => {
+  test("stores a chosen category without the mark, even when the choice carries one", () => {
+    const state = withBatch();
+    const groceries = categoryNamed(state, "expense", "Groceries");
+    const choice: Assignment = { type: "category", categoryId: groceries, suggested: true };
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, choice)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual({ type: "category", categoryId: groceries });
+  });
+
+  test("removes the mark when the user chooses the suggested category itself", () => {
+    const groceries = categoryNamed(withBatch(), "expense", "Groceries");
+    const state = withSuggestion(withBatch(), [2], groceries);
+
+    const next = applyValid(
+      state,
+      changesOf(assignRow(state, 2, { type: "category", categoryId: groceries })),
+    );
+
+    expect(rowOf(next, 2).assignment).toStrictEqual({ type: "category", categoryId: groceries });
+  });
+
+  test("removes the mark when the user chooses another category, a transfer or Uncategorised", () => {
+    const groceries = categoryNamed(withBatch(), "expense", "Groceries");
+    const state = withSuggestion(withBatch(), [2, 3, 6], groceries);
+    const travel: Assignment = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Travel"),
+    };
+    const transfer: Assignment = { type: "transfer", counterAccountId: "card" };
+
+    let next = applyValid(state, changesOf(assignRow(state, 2, travel)));
+    next = applyValid(next, changesOf(assignRow(next, 3, transfer)));
+    next = applyValid(next, changesOf(assignRow(next, 6, "uncategorised")));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(travel);
+    expect(rowOf(next, 3).assignment).toStrictEqual(transfer);
+    expect(rowOf(next, 6).assignment).toStrictEqual(uncategorised(state, "expense"));
+  });
+
+  test("removes the marks of a group's rows when the user chooses for the group", () => {
+    const groceries = categoryNamed(withBatch(), "expense", "Groceries");
+    const state = withSuggestion(withBatch(), [2, 3], groceries);
+    const choice: Assignment = { type: "category", categoryId: groceries, suggested: true };
+
+    const next = applyValid(state, changesOf(assignGroup(state, shopExpenses, choice)));
+
+    for (const rowNumber of [2, 3]) {
+      expect(rowOf(next, rowNumber).assignment).toStrictEqual({
+        type: "category",
+        categoryId: groceries,
+      });
+    }
+  });
+
+  test("keeps the mark of a row the choice does not reach", () => {
+    const groceries = categoryNamed(withBatch(), "expense", "Groceries");
+    const state = withSuggestion(withBatch(), [2, 3], groceries);
+    const travel: Assignment = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Travel"),
+    };
+
+    const next = applyValid(state, changesOf(assignRow(state, 3, travel)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual({
+      type: "category",
+      categoryId: groceries,
+      suggested: true,
+    });
   });
 });
 

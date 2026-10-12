@@ -132,6 +132,15 @@ describe("messages", () => {
     expect(messageFor({ code: "backup-damaged" })).toMatch(/incomplete|damaged/i);
   });
 
+  test("words a backup whose pending row holds a protected category as Claude's suggestion (FR-093)", () => {
+    const message = messageFor({
+      code: "backup-damaged",
+      details: { rule: "pending-row-suggestion-invalid", rowNumber: 2 },
+    });
+    expect(message).toMatch(/suggest/i);
+    expect(message).not.toContain("pending-row-suggestion-invalid");
+  });
+
   test("words the restore notification with the file's name", () => {
     expect(notifications.restored("financial-copilot-backup-2026-09-03.json")).toContain(
       "financial-copilot-backup-2026-09-03.json",
