@@ -18,6 +18,7 @@ import { toast } from "@/ui/components/ui/toast";
 import { messageFor, notifications, type MessageCode } from "@/ui/messages";
 import { ReviewGroups } from "./ReviewGroups";
 import { RowSummary } from "./RowSummary";
+import { SuggestCategories } from "./SuggestCategories";
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -110,11 +111,14 @@ function ReviewFooter({
   batch,
   count,
   accountName,
+  claudeAnswering,
   onRefusal,
 }: {
   batch: PendingBatch;
   count: number;
   accountName: string;
+  /** Claude is answering, so confirming waits (FR-027). */
+  claudeAnswering: boolean;
   onRefusal: (refusal: Refusal<MessageCode> | null) => void;
 }) {
   const store = useStoreApi();
@@ -144,7 +148,9 @@ function ReviewFooter({
       <Button variant="outline" onClick={() => setAsking("discard")}>
         Discard
       </Button>
-      <Button onClick={() => setAsking("confirm")}>Confirm {added}</Button>
+      <Button disabled={claudeAnswering} onClick={() => setAsking("confirm")}>
+        Confirm {added}
+      </Button>
       <ConfirmDialog
         open={asking === "confirm"}
         title={`Add ${added} to ${accountName}?`}
@@ -170,6 +176,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
   const view = useMemo(() => reviewView(batch), [batch]);
   const [drawer, setDrawer] = useState<"duplicates" | "unparsable" | null>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
+  const [askingClaude, setAskingClaude] = useState(false);
   const { counts } = view;
 
   return (
@@ -193,6 +200,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           </Button>
         </div>
       </section>
+      <SuggestCategories view={view} onRefusal={setRefusal} onAskingChange={setAskingClaude} />
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
           {messageFor(refusal)}
@@ -203,6 +211,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
         batch={batch}
         count={counts.review}
         accountName={account?.name ?? ""}
+        claudeAnswering={askingClaude}
         onRefusal={setRefusal}
       />
       <DuplicatesDrawer

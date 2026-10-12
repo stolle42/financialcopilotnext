@@ -245,6 +245,11 @@ export const dataSharingWarning =
   "descriptions go to the project's n8n workflow and to Anthropic, whose Claude suggests the " +
   "categories.";
 
+/** Beside Suggest categories while data sharing is off (FR-090). */
+export const dataSharingNeeded =
+  "Suggestions send the rows' texts to Claude, so they need data sharing. Turn it on with the " +
+  "switch in the header.";
+
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {
   importConfirmed: (count: number, accountName: string) =>
@@ -254,6 +259,12 @@ export const notifications = {
   reconciled: (kind: Side, cents: number, categoryName: string) =>
     `Booked an ${kind} of ${formatAmount(cents)} to ${categoryName}.`,
   restored: (fileName: string) => `Restored all data from ${fileName}.`,
+  /** The status line after an answer: how many of the rows sent got a category (FR-094). */
+  categoriesSuggested: (filled: number, sent: number) =>
+    filled === 0
+      ? `Claude found no category for the ${sent} row${sent === 1 ? "" : "s"} sent.`
+      : `Claude suggested ${filled === 1 ? "a category" : "categories"} for ${filled} of ${sent} ` +
+        `row${sent === 1 ? "" : "s"}.`,
 };
 
 /** The plain-language message for a refusal or failure (FR-067). */

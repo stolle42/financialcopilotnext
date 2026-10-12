@@ -969,7 +969,7 @@ and research change first, in the commits that add this phase.
   and storage unchanged; a row the user assigns while the request runs keeps the user's choice; a
   batch discarded meanwhile gives `suggestions-outdated` and writes nothing; and an aborted request
   writes nothing, even when its answer had arrived.
-- [ ] T097 Suggest categories in review: `src/ui/screens/import/SuggestCategories.tsx`, and
+- [X] T097 Suggest categories in review: `src/ui/screens/import/SuggestCategories.tsx`, and
   `ReviewScreen.tsx`, where Confirm waits and leaving aborts; the codes and the outcome in
   `src/ui/messages.ts`; and the workflow's origin in `connect-src` of `vite.config.ts`
   ([ui.md](contracts/ui.md#review), [FR-027](spec.md#fr-027), [FR-061](spec.md#fr-061),

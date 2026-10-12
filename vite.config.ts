@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
+import { CATEGORISER_URL } from "./src/categoriser/endpoint";
 
 // Names the commit in the built page, so CI's `deployed` job can wait until the production domain
 // serves the commit it was triggered for (R-18). Vercel provides the id to its builds.
@@ -22,14 +23,15 @@ function appCommit(): Plugin {
 
 // Limits scripts, styles, images, fonts and connections to the app's own origin, with no exception
 // for inline styles (R-19). Only the production build carries it, because the dev server's hot
-// reload needs inline scripts and a WebSocket.
+// reload needs inline scripts and a WebSocket. The one other connection is the n8n workflow behind
+// category suggestions, which the app reaches only while data sharing is on (R-23).
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self'",
   "font-src 'self'",
-  "connect-src 'self'",
+  `connect-src 'self' ${new URL(CATEGORISER_URL).origin}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
