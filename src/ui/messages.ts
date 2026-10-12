@@ -3,6 +3,7 @@ import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { CategoryRefusalCode } from "@/domain/categories";
 import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
+import type { SuggestionRefusalCode } from "@/domain/import/suggestions";
 import type { DraftFieldCode } from "@/domain/transactions";
 import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/types";
 import type { InvariantCode } from "@/domain/invariants";
@@ -31,6 +32,7 @@ export type MessageCode =
   | RowFailureCode
   | DecodingRefusal["code"]
   | BatchRefusalCode
+  | SuggestionRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
@@ -198,6 +200,8 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
+  "suggestions-outdated":
+    "The import changed while Claude was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
   "category-name-empty": "The category needs a name.",
   "category-name-taken": (details) =>

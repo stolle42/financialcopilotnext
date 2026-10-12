@@ -912,7 +912,7 @@ and research change first, in the commits that add this phase.
     `src/files/backup.test.ts` and `src/store/backup.test.ts` keep it ([SC-014](spec.md#sc-014));
     and in `src/files/backup.test.ts`, a file without the key loads, while `suggested: false` is
     refused as damaged.
-- [ ] T092 Suggestion rules in `src/domain/import/suggestions.ts`: `suggestableRows`,
+- [X] T092 Suggestion rules in `src/domain/import/suggestions.ts`: `suggestableRows`,
   `suggestionRequest` and `applySuggestions` ([FR-090](spec.md#fr-090) – [FR-093](spec.md#fr-093),
   [categoriser.md](contracts/categoriser.md)). Test first in
   `src/domain/import/suggestions.test.ts`:
