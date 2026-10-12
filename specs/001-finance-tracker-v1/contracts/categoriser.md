@@ -10,10 +10,11 @@ sends a request only while data sharing is on ([FR-095](../spec.md#fr-095)).
 
 ## Address
 
-`POST https://your-instance.app.n8n.cloud/webhook/financial-copilot-categories`, the production
-address of the published workflow. `your-instance` is a placeholder until the owner's instance
-exists; only the tests reach it. The app's one copy of the address is
-`src/categoriser/endpoint.ts`, which the production CSP also reads ([R-19](../research.md#r-19)).
+`POST https://ai-software-egnineering.app.n8n.cloud/webhook/financial-copilot-categories`, the
+production address of the published workflow. n8n's test address (`/webhook-test/…`) answers only
+while the editor listens for one test event, so the app never uses it. The app's one copy of the
+address is `src/categoriser/endpoint.ts`, which the production CSP also reads
+([R-19](../research.md#r-19)).
 
 ## Request
 
