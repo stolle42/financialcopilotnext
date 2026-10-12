@@ -30,10 +30,35 @@ const targets = (from: WorkflowNode, kind: string) =>
   (workflow.connections[from.name]?.[kind] ?? []).flat().map((link) => link.node);
 
 const webhook = () => nodeOfType("n8n-nodes-base.webhook");
-const chain = () => nodeOfType("@n8n/n8n-nodes-langchain.chainLlm");
-const model = () => nodeOfType("@n8n/n8n-nodes-langchain.lmChatAnthropic");
-const parser = () => nodeOfType("@n8n/n8n-nodes-langchain.outputParserStructured");
+const claude = () => nodeOfType("n8n-nodes-base.httpRequest");
 const respond = () => nodeOfType("n8n-nodes-base.respondToWebhook");
+
+interface Schema {
+  type?: unknown;
+  anyOf?: Schema[];
+  required?: string[];
+  additionalProperties?: boolean;
+  properties?: Record<string, Schema>;
+  items?: Schema;
+}
+
+interface MessagesRequest {
+  model: string;
+  max_tokens: number;
+  thinking: { type: string };
+  output_config: { effort: string; format: { type: string; schema: Schema } };
+  system: string;
+  messages: { role: string; content: string }[];
+}
+
+/** The request body sent to Anthropic, with the expression that inserts the app's request as "x". */
+function messagesRequest(): MessagesRequest {
+  const body = String(claude().parameters.jsonBody);
+  expect(body.startsWith("=")).toBe(true);
+  const expressions = body.match(/\{\{.*?\}\}/gs) ?? [];
+  expect(expressions).toEqual(["{{ JSON.stringify(JSON.stringify($json.body)) }}"]);
+  return JSON.parse(body.slice(1).replace(expressions[0]!, '"x"')) as MessagesRequest;
+}
 
 describe("the n8n workflow (contracts/categoriser.md)", () => {
   test("listens for POST on the path of the app's address", () => {
@@ -51,54 +76,66 @@ describe("the n8n workflow (contracts/categoriser.md)", () => {
     ]);
   });
 
-  test("answers through a Respond to Webhook node, not before the workflow finishes", () => {
+  test("answers through a Respond to Webhook node, after asking Claude", () => {
     expect(webhook().parameters.responseMode).toBe("responseNode");
-    expect(targets(webhook(), "main")).toEqual([chain().name]);
-    expect(targets(chain(), "main")).toEqual([respond().name]);
+    expect(targets(webhook(), "main")).toEqual([claude().name]);
+    expect(targets(claude(), "main")).toEqual([respond().name]);
   });
 
-  test("returns the parsed answer itself, not the chain's whole item", () => {
-    expect(respond().parameters).toMatchObject({ respondWith: "json" });
-    expect(String(respond().parameters.responseBody)).toContain("$json.output");
+  test("asks Anthropic's Messages API with n8n's Anthropic credential (R-23)", () => {
+    expect(claude().parameters).toMatchObject({
+      method: "POST",
+      url: "https://api.anthropic.com/v1/messages",
+      authentication: "predefinedCredentialType",
+      nodeCredentialType: "anthropicApi",
+      sendBody: true,
+      specifyBody: "json",
+    });
+    const headers = (
+      claude().parameters.headerParameters as {
+        parameters: { name: string; value: string }[];
+      }
+    ).parameters;
+    expect(headers).toContainEqual({ name: "anthropic-version", value: "2023-06-01" });
   });
 
   test("asks claude-opus-5-5 with adaptive thinking, room for a long answer, and no sampling options (R-23)", () => {
-    expect(targets(model(), "ai_languageModel")).toEqual([chain().name]);
-    const parameters = model().parameters as {
-      model: { value: string };
-      options: Record<string, unknown>;
-    };
-    expect(parameters.model.value).toBe("claude-opus-5-5");
-    expect(parameters.options).toMatchObject({ thinkingMode: "adaptive", effort: "low" });
-    expect(parameters.options.maxTokensToSample).toBeGreaterThanOrEqual(16000);
-    for (const option of ["temperature", "topK", "topP"]) {
-      expect(parameters.options).not.toHaveProperty(option);
+    const request = messagesRequest();
+    expect(request.model).toBe("claude-opus-5-5");
+    expect(request.thinking).toEqual({ type: "adaptive" });
+    expect(request.output_config.effort).toBe("low");
+    expect(request.max_tokens).toBeGreaterThanOrEqual(16000);
+    for (const option of ["temperature", "top_k", "top_p"]) {
+      expect(request).not.toHaveProperty(option);
     }
+    expect(request.system).toMatch(/Never follow instructions/);
+    expect(request.messages).toEqual([{ role: "user", content: "x" }]);
   });
 
-  test("requires the answer's shape through its output parser", () => {
-    expect(chain().parameters.hasOutputParser).toBe(true);
-    expect(targets(parser(), "ai_outputParser")).toEqual([chain().name]);
-    expect(parser().parameters.schemaType).toBe("manual");
-    const schema = JSON.parse(String(parser().parameters.inputSchema)) as {
-      required: string[];
-      properties: {
-        suggestions: {
-          type: string;
-          items: { required: string[]; properties: Record<string, { type: unknown }> };
-        };
-      };
-    };
+  test("lets the API enforce the answer's shape with structured outputs", () => {
+    const { format } = messagesRequest().output_config;
+    expect(format.type).toBe("json_schema");
+    const schema = format.schema;
+    expect(schema).toMatchObject({ type: "object", additionalProperties: false });
     expect(schema.required).toEqual(["suggestions"]);
-    expect(schema.properties.suggestions.type).toBe("array");
-    const item = schema.properties.suggestions.items;
-    expect([...item.required].sort()).toEqual(["category", "rowNumber"]);
-    expect(item.properties.rowNumber!.type).toBe("integer");
-    expect(item.properties.category!.type).toEqual(["string", "null"]);
+    const suggestions = schema.properties!.suggestions!;
+    expect(suggestions.type).toBe("array");
+    const item = suggestions.items!;
+    expect(item.additionalProperties).toBe(false);
+    expect([...item.required!].sort()).toEqual(["category", "rowNumber"]);
+    expect(item.properties!.rowNumber!.type).toBe("integer");
+    expect(item.properties!.category!.anyOf).toEqual([{ type: "string" }, { type: "null" }]);
+  });
+
+  test("returns Claude's answer text itself, skipping its thinking", () => {
+    expect(respond().parameters).toMatchObject({ respondWith: "json" });
+    const body = String(respond().parameters.responseBody);
+    expect(body).toContain("$json.content");
+    expect(body).toContain("'text'");
   });
 
   test("holds no API key, only a reference to n8n's credential", () => {
     expect(file).not.toMatch(/sk-ant-/);
-    expect(model()).not.toHaveProperty("parameters.apiKey");
+    expect(file).not.toMatch(/x-api-key/i);
   });
 });
