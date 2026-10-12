@@ -938,7 +938,7 @@ and research change first, in the commits that add this phase.
   gives `categoriser-answer-invalid`; with fake timers, no answer within 4 minutes gives
   `categoriser-timeout`; aborting the caller's signal resolves as cancelled; and nothing ever
   rejects. The test commit adds `endpoint.ts`, the address only, so the T097 specs can load.
-- [ ] T094 [P] The workflow `n8n/financial-copilot-categories.json`, as [R-23](research.md#r-23)
+- [X] T094 [P] The workflow `n8n/financial-copilot-categories.json`, as [R-23](research.md#r-23)
   describes it, and `n8n/` in `.prettierignore`, so a file exported from n8n is committed as it is
   ([categoriser.md](contracts/categoriser.md)). Test first in `src/categoriser/workflow.test.ts`:
   the Webhook node listens for POST on the path of `endpoint.ts`, allows the app's origins and
