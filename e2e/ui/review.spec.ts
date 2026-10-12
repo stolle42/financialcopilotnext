@@ -6,8 +6,19 @@ import type {
   PendingBatch,
   Transaction,
 } from "../../src/domain/types";
-import { messageFor, notifications } from "../../src/ui/messages";
+import {
+  dataSharingNeeded,
+  messageFor,
+  notifications,
+  type MessageCode,
+} from "../../src/ui/messages";
 import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
+import {
+  standInCategoriser,
+  suggestBySide,
+  turnOnDataSharing,
+  type Reply,
+} from "../support/categoriser";
 import { importWithProfile, saveDebitCreditProfile, saveMyBankProfile } from "../support/import";
 import { euros, expect, setToday, test } from "../support/test";
 
@@ -300,4 +311,208 @@ test("discarding asks first, then books nothing (scenario 10)", async ({ page })
   await expect(page.getByText(notifications.importDiscarded("mybank-2026-08.csv"))).toBeVisible();
   expect(await storedRecords(page, "pendingBatch")).toEqual([]);
   expect(await storedRecords(page, "transactions")).toEqual([]);
+});
+
+test.describe("Suggest categories (FR-090 – FR-094)", () => {
+  const suggestions = (page: Page) => page.getByRole("region", { name: "Suggestions" });
+  const suggestButton = (page: Page) =>
+    suggestions(page).getByRole("button", { name: /^(Suggest categories|Asking Claude)/ });
+  const outcome = (page: Page) => suggestions(page).getByRole("status");
+  const confirmButton = (page: Page) =>
+    page.getByRole("region", { name: "Finish review" }).getByRole("button", { name: /^Confirm/ });
+
+  /** The August file's rows under review in review order: Shop, Bäckerei, then plain rows by date. */
+  const reviewOrder = [3, 5, 7, 4, 8, 17, 2, 6, 9, 11, 12, 13, 16];
+
+  async function storedRows(page: Page): Promise<ParsedRow[]> {
+    const [batch] = await storedRecords<PendingBatch>(page, "pendingBatch");
+    return batch!.rows.filter((row): row is ParsedRow => row.status === "parsed");
+  }
+
+  test("with data sharing off, the button is unavailable and review says suggestions need it", async ({
+    page,
+  }) => {
+    await importAugust(page);
+
+    await expect(suggestButton(page)).toBeDisabled();
+    await expect(suggestions(page)).toContainText(dataSharingNeeded);
+  });
+
+  test("with data sharing on, the button names its rows, and nothing is sent before the click", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await importAugust(page);
+    await turnOnDataSharing(page);
+
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
+    await expect(suggestButton(page)).toBeEnabled();
+    await page.waitForTimeout(200);
+    expect(standIn.bodies).toEqual([]);
+  });
+
+  test("sends the rows in review order, the category names and an earlier decision, and no amount or date (FR-091)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await page.goto("/");
+    await addTransaction(page, {
+      amount: "12.50",
+      category: "Groceries",
+      description: "Weekly shop",
+    });
+    await importAugust(page);
+    await turnOnDataSharing(page);
+
+    await suggestButton(page).click();
+
+    await expect.poll(() => standIn.bodies.length).toBe(1);
+    const body = standIn.bodies[0]!;
+    expect(body.rows.map((row) => row.rowNumber)).toEqual(reviewOrder);
+    expect(body.rows[0]).toStrictEqual({
+      rowNumber: 3,
+      side: "expense",
+      counterparty: "Shop",
+      description: "Groceries",
+    });
+    expect(body.categories.expense).toContain("Groceries");
+    expect(body.categories.expense).not.toContain("Uncategorised");
+    expect(body.categories.expense).not.toContain("Unaccounted");
+    expect(body.categories.income).toContain("Salary");
+    expect(body.examples).toContainEqual({
+      side: "expense",
+      description: "Weekly shop",
+      category: "Groceries",
+    });
+    const text = JSON.stringify(body);
+    for (const leak of ["amountCents", '"date"', "2026-08", "accountId", "fileName", "mybank"]) {
+      expect(text).not.toContain(leak);
+    }
+  });
+
+  test("after the answer, counts the rows filled; named rows hold their category, marked, and bad names change nothing (FR-092, FR-094)", async ({
+    page,
+  }) => {
+    await standInCategoriser(page, () => ({
+      json: {
+        suggestions: [
+          { rowNumber: 3, category: "Groceries" },
+          { rowNumber: 5, category: " groceries" },
+          { rowNumber: 2, category: "Salary" },
+          { rowNumber: 16, category: "Netflix" },
+          { rowNumber: 9, category: "Salary" },
+          { rowNumber: 11, category: "Unaccounted" },
+        ],
+      },
+    }));
+    await importAugust(page);
+    await turnOnDataSharing(page);
+
+    await suggestButton(page).click();
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(3, 13));
+    const groceries = await categoryId(page, "expense", "Groceries");
+    const salary = await categoryId(page, "income", "Salary");
+    for (const rowNumber of [3, 5]) {
+      expect((await storedRow(page, rowNumber)).assignment).toEqual({
+        type: "category",
+        categoryId: groceries,
+        suggested: true,
+      });
+    }
+    expect((await storedRow(page, 2)).assignment).toEqual({
+      type: "category",
+      categoryId: salary,
+      suggested: true,
+    });
+    for (const rowNumber of [16, 9, 11]) {
+      expect((await storedRow(page, rowNumber)).assignment).not.toHaveProperty("suggested");
+    }
+  });
+
+  test("while Claude answers, the button says so, Confirm waits, and a choice made meanwhile is kept (FR-027, FR-092)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
+    await importAugust(page);
+    await turnOnDataSharing(page);
+    standIn.hold();
+
+    await suggestButton(page).click();
+
+    await expect(suggestButton(page)).toHaveText("Asking Claude…");
+    await expect(suggestButton(page)).toBeDisabled();
+    await expect(confirmButton(page)).toBeDisabled();
+    await choose(page, assignment(page, "Shop, expenses"), "Category", "Travel");
+    const travel = await categoryId(page, "expense", "Travel");
+    await expect
+      .poll(async () => (await storedRow(page, 3)).assignment)
+      .toEqual({ type: "category", categoryId: travel });
+
+    standIn.release();
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(10, 13));
+    for (const rowNumber of [3, 5, 7]) {
+      expect((await storedRow(page, rowNumber)).assignment).toEqual({
+        type: "category",
+        categoryId: travel,
+      });
+    }
+    await expect(confirmButton(page)).toBeEnabled();
+  });
+
+  test("leaving review while Claude answers cancels the request and fills nothing (FR-090)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
+    await importAugust(page);
+    await turnOnDataSharing(page);
+    standIn.hold();
+    await suggestButton(page).click();
+    await expect.poll(() => standIn.bodies.length).toBe(1);
+
+    await page.goto("/#/");
+    standIn.release();
+    await page.waitForTimeout(300);
+    await page.goto("/#/import/review");
+
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
+    for (const row of await storedRows(page)) {
+      expect(row.assignment).not.toHaveProperty("suggested");
+    }
+  });
+
+  const failures: [MessageCode, Reply][] = [
+    ["categoriser-unreachable", () => "unreachable"],
+    ["categoriser-failed", () => ({ status: 500, json: { message: "Error in workflow" } })],
+    ["categoriser-answer-invalid", () => ({ json: { message: "Workflow was started" } })],
+  ];
+  for (const [code, reply] of failures) {
+    test(`${code}: shows its message in review's alert and changes no row (FR-094)`, async ({
+      page,
+    }) => {
+      await standInCategoriser(page, reply);
+      await importAugust(page);
+      await turnOnDataSharing(page);
+      const before = await storedRows(page);
+
+      await suggestButton(page).click();
+
+      await expect(page.getByRole("main").getByRole("alert")).toHaveText(messageFor({ code }));
+      expect(await storedRows(page)).toEqual(before);
+      await expect(suggestButton(page)).toBeEnabled();
+    });
+  }
+
+  test("the button is unavailable once no row is left in Uncategorised", async ({ page }) => {
+    await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
+    await importAugust(page);
+    await turnOnDataSharing(page);
+
+    await suggestButton(page).click();
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(13, 13));
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 0 rows");
+    await expect(suggestButton(page)).toBeDisabled();
+  });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { formatAmount } from "./format";
 import {
+  dataSharingNeeded,
   dataSharingWarning,
   messageFor,
   messages,
@@ -156,6 +157,41 @@ describe("messages", () => {
     expect(dataSharingWarning).toContain("100");
     expect(dataSharingWarning).toContain("n8n");
     expect(dataSharingWarning).toContain("Anthropic");
+  });
+
+  test("words the outcome of suggestions with the rows filled of the rows sent (FR-094)", () => {
+    expect(notifications.categoriesSuggested(14, 20)).toBe(
+      "Claude suggested categories for 14 of 20 rows.",
+    );
+    expect(notifications.categoriesSuggested(1, 3)).toBe(
+      "Claude suggested a category for 1 of 3 rows.",
+    );
+    expect(notifications.categoriesSuggested(1, 1)).toBe(
+      "Claude suggested a category for 1 of 1 row.",
+    );
+    expect(notifications.categoriesSuggested(0, 3)).toBe(
+      "Claude found no category for the 3 rows sent.",
+    );
+  });
+
+  test("says that suggestions need data sharing, and where to turn it on (FR-090)", () => {
+    expect(dataSharingNeeded).toMatch(/data sharing/i);
+    expect(dataSharingNeeded).toMatch(/header/i);
+  });
+
+  test("words each categoriser failure with what to do, and that no row changed (FR-094)", () => {
+    const codes = [
+      "categoriser-unreachable",
+      "categoriser-timeout",
+      "categoriser-failed",
+      "categoriser-answer-invalid",
+    ] as const;
+    for (const code of codes) {
+      expect(messageFor({ code })).toMatch(/no row changed/i);
+    }
+    expect(messageFor({ code: "categoriser-unreachable" })).toMatch(/published/i);
+    expect(messageFor({ code: "categoriser-failed" })).toMatch(/credential/i);
+    expect(messageFor({ code: "suggestions-outdated" })).toMatch(/no suggestion was used/i);
   });
 
   test("words the restore notification with the file's name", () => {
