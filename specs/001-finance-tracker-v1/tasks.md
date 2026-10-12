@@ -990,7 +990,7 @@ and research change first, in the commits that add this phase.
   - in `e2e/messages.spec.ts`: `categoriser-unreachable` in the review's alert
     ([SC-012](spec.md#sc-012));
   - in `src/ui/messages.test.ts`: the outcome for no row, one row and several rows.
-- [ ] T098 The suggested mark in `src/ui/screens/import/AssignmentControl.tsx` and
+- [X] T098 The suggested mark in `src/ui/screens/import/AssignmentControl.tsx` and
   `ReviewGroups.tsx` ([ui.md](contracts/ui.md#review), [FR-093](spec.md#fr-093)). Test first:
   - in `e2e/ui/review.spec.ts`: a suggested row shows "Suggested"; a group shows it only when its
     rows hold the same suggested category, and otherwise "Mixed", with the marks on the unfolded

@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { sortAccounts } from "@/domain/accounts";
 import type { AssignmentChoice } from "@/domain/import/review";
@@ -20,6 +21,8 @@ interface AssignmentControlProps {
   side: Side;
   /** `null` when the rows of a group differ. */
   assignment: Assignment | null;
+  /** Claude suggested the category, and the user has not assigned it since (FR-093). */
+  suggested: boolean;
   batchAccountId: string;
   onChoose: (choice: AssignmentChoice) => void;
 }
@@ -32,6 +35,7 @@ export function AssignmentControl({
   label,
   side,
   assignment,
+  suggested,
   batchAccountId,
   onChoose,
 }: AssignmentControlProps) {
@@ -94,6 +98,12 @@ export function AssignmentControl({
           </>
         )}
       </div>
+      {suggested && !isTransfer && (
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Sparkles aria-hidden className="size-3.5" />
+          Suggested
+        </span>
+      )}
       <div className="flex items-center gap-2">
         <Switch
           id={ids.transfer}
