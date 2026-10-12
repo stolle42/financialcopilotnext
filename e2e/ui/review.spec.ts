@@ -6,12 +6,9 @@ import type {
   PendingBatch,
   Transaction,
 } from "../../src/domain/types";
-import {
-  dataSharingNeeded,
-  messageFor,
-  notifications,
-  type MessageCode,
-} from "../../src/ui/messages";
+import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
+// A namespace import, so the spec loads even before the catalogue words a new message.
+import * as catalogue from "../../src/ui/messages";
 import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
 import {
   standInCategoriser,
@@ -335,7 +332,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     await importAugust(page);
 
     await expect(suggestButton(page)).toBeDisabled();
-    await expect(suggestions(page)).toContainText(dataSharingNeeded);
+    await expect(suggestions(page)).toContainText(catalogue.dataSharingNeeded);
   });
 
   test("with data sharing on, the button names its rows, and nothing is sent before the click", async ({

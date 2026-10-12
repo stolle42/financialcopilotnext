@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import type { Settings } from "../../src/domain/types";
-import { dataSharingWarning } from "../../src/ui/messages";
+// A namespace import, so the spec loads even before the catalogue words a new message.
+import * as catalogue from "../../src/ui/messages";
 import { storedRecords } from "../support/app";
 import { expect, test } from "../support/test";
 
@@ -41,7 +42,8 @@ test("opens Transactions for an unknown link (FR-063)", async ({ page }) => {
 test.describe("data sharing (FR-095, FR-061)", () => {
   const sharingSwitch = (page: Page) =>
     page.getByRole("banner").getByRole("switch", { name: "Data sharing" });
-  const warning = (page: Page) => page.getByRole("alert").filter({ hasText: dataSharingWarning });
+  const warning = (page: Page) =>
+    page.getByRole("alert").filter({ hasText: catalogue.dataSharingWarning });
   const storedSettings = async (page: Page) => (await storedRecords<Settings>(page, "settings"))[0];
 
   test("starts off, without a warning", async ({ page }) => {
