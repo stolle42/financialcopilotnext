@@ -22,9 +22,9 @@ It is built as a client-only TypeScript single-page app.
 - **Bank files**: decoded with `TextDecoder` and split into records with Papa Parse. Mapping,
   parsing and duplicate flagging are domain rules ([contracts/csv-import.md](contracts/csv-import.md)).
 - **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
-- **Category suggestions** (v1.2): review asks Claude for categories through an n8n workflow on the
-  user's computer, the one request the app makes outside its origin
-  ([contracts/categoriser.md](contracts/categoriser.md), [R-23](research.md#r-23)).
+- **Category suggestions** (v1.2): review asks Claude for categories through a hosted n8n workflow,
+  the one request the app makes outside its origin, and only while the user has turned on data
+  sharing ([contracts/categoriser.md](contracts/categoriser.md), [R-23](research.md#r-23)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
@@ -93,9 +93,9 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
 
 **Constraints**:
 
-- No network use and no external requests, except the category suggestions the user asks for,
-  which go to the local n8n workflow ([FR-061](spec.md#fr-061), [R-19](research.md#r-19),
-  [R-23](research.md#r-23)).
+- No network use and no external requests, except the category suggestions the user asks for with
+  data sharing on, which go to the hosted n8n workflow ([FR-061](spec.md#fr-061),
+  [R-19](research.md#r-19), [R-23](research.md#r-23)).
 - Money in integer euro cents and dates as local calendar strings ([R-08](research.md#r-08)).
 - Every change that touches several records is atomic ([R-06](research.md#r-06)).
 - One running tab ([R-07](research.md#r-07)).
@@ -139,8 +139,9 @@ quality gate.
 **Result**: the plan passes every principle and gate, both before research and after design. No
 deviation needs justifying.
 
-**v1.2**: category suggestions add n8n, with Anthropic behind it, as an optional part outside the
-app, and the one request outside the app's origin ([R-23](research.md#r-23)). That deviates from
+**v1.2**: category suggestions add a hosted n8n workflow, with Anthropic behind it, as an optional
+part outside the app, and the one request outside the app's origin, sent only while data sharing
+is on ([R-23](research.md#r-23)). That deviates from
 KISS's "no server process" and from the single origin of [R-19](research.md#r-19). The owner
 decided it, and [Complexity Tracking](#complexity-tracking) justifies it.
 
@@ -186,7 +187,7 @@ playwright.config.ts                   # Chromium and Firefox against `vite prev
 components.json                        # shadcn/ui: Base UI, aliases into src/ui/ (R-03)
 tsconfig.json, tsconfig.app.json, tsconfig.node.json  # `@/*` alias via `paths` alone (R-03)
 vite.config.ts                         # Tailwind plugin, base "./", strict ports, Vitest settings (R-20)
-n8n/financial-copilot-categories.json  # The n8n workflow behind category suggestions (R-23)
+n8n/financial-copilot-categories.json  # The n8n workflow behind category suggestions, imported into the hosted n8n (R-23)
 
 src/
 ├── main.tsx              # Start-up: lock, open storage, load state, render (R-07, R-15)
@@ -268,4 +269,4 @@ v1.0 and v1.1 had no deviation to justify. v1.2 adds one:
 
 | Violation | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| n8n, with Anthropic behind it, as a part outside the app, and the one request outside the app's origin, for category suggestions ([FR-061](spec.md#fr-061), [R-23](research.md#r-23)) | The owner asked for suggestions by Claude in review. n8n keeps the API key and the prompt out of the app, and the app works fully without it | Calling Anthropic from the browser would put the key into the app and its backups. A proxy of our own would be a server to write, run and secure |
+| A hosted n8n workflow, with Anthropic behind it, as a part outside the app, and the one request outside the app's origin, for category suggestions while data sharing is on ([FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095), [R-23](research.md#r-23)) | The owner asked for suggestions by Claude in review. n8n keeps the API key and the prompt out of the app, and the app works fully without it | Calling Anthropic from the browser would put the key into the app and its backups. A proxy of our own would be a server to write, run and secure |

@@ -4,14 +4,16 @@
 **Decisions**: [R-23](../research.md#r-23)
 
 This contract fixes the interface between the app and the n8n workflow that asks Claude for
-category suggestions. The workflow is `n8n/financial-copilot-categories.json`. This contract and
-the workflow change in the same commit.
+category suggestions. The workflow is `n8n/financial-copilot-categories.json`, imported into the
+owner's hosted n8n instance. This contract and the workflow change in the same commit. The app
+sends a request only while data sharing is on ([FR-095](../spec.md#fr-095)).
 
 ## Address
 
-`POST http://localhost:5678/webhook/financial-copilot-categories`, the production address of the
-published workflow. The app's one copy of the address is `src/categoriser/endpoint.ts`, which the
-production CSP also reads ([R-19](../research.md#r-19)).
+`POST https://your-instance.app.n8n.cloud/webhook/financial-copilot-categories`, the production
+address of the published workflow. `your-instance` is a placeholder until the owner's instance
+exists; only the tests reach it. The app's one copy of the address is
+`src/categoriser/endpoint.ts`, which the production CSP also reads ([R-19](../research.md#r-19)).
 
 ## Request
 
@@ -62,8 +64,10 @@ Status `200`, with JSON such as:
 ## CORS
 
 The app runs on another origin than n8n. The workflow therefore allows the origins
-`http://localhost:4173` and `http://localhost:5173`, and answers the browser's preflight for the
-`content-type` header.
+`http://localhost:4173`, `http://localhost:5173` and `https://financialcopilot-three.vercel.app`,
+the Vercel production domain, and answers the browser's preflight for the `content-type` header.
+CORS only keeps other web pages out: anyone can call the address directly
+([R-23](../research.md#r-23)).
 
 ## Failures
 
@@ -72,7 +76,7 @@ unchanged and becomes a code of the [message catalogue](ui.md#message-catalogue)
 
 | What happens | Code |
 |---|---|
-| The request cannot be sent or gets no response: n8n is not running, CORS refused it, or the connection was lost | `categoriser-unreachable` |
+| The request cannot be sent or gets no response: the computer is offline, n8n is down, CORS refused it, or the connection was lost | `categoriser-unreachable` |
 | Status 404: the workflow is not published, or listens on another path | `categoriser-unreachable` |
 | Any other status outside 200–299 | `categoriser-failed` |
 | No answer within 4 minutes | `categoriser-timeout` |

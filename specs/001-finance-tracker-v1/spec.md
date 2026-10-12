@@ -536,17 +536,18 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
-  party, except what the user sends to Claude by selecting Suggest categories in review
-  ([FR-090](#fr-090), [FR-091](#fr-091)). That request goes only to the n8n workflow at
-  `http://localhost:5678` on the user's own computer, which passes it on to Anthropic. No other
-  flow may make a request to any host other than the one serving the app: no analytics, no error
-  reports, no update checks, and no fonts, scripts or other files from third parties. No capability
-  may require a network connection, except category suggestions, which need n8n running and its
-  connection to Anthropic; without them, everything else works. Serving the app from the user's own
-  computer (`localhost`) is not a network connection. Real data lives only in the app as run
-  locally. A copy hosted on the web, such as the one the project's post-push check deploys, needs a
-  network connection to open, so it serves only checks and demonstrations
-  ([Out of Scope](#out-of-scope)). Changed in v1.2: [FR-090](#fr-090), [FR-091](#fr-091).
+  party unless the user has turned on data sharing ([FR-095](#fr-095)). While data sharing is off,
+  as it is until the user turns it on, no flow may make a request to any host other than the one
+  serving the app: no analytics, no error reports, no update checks, and no fonts, scripts or other
+  files from third parties. While it is on, the one other request is the one the user starts by
+  selecting Suggest categories in review ([FR-090](#fr-090), [FR-091](#fr-091)). It goes to the
+  project's n8n workflow, which runs on n8n's servers and passes it on to Anthropic. No capability
+  may require a network connection, except category suggestions; everything else works without
+  one. Serving the app from the user's own computer (`localhost`) is not a network connection. Real
+  data lives only in the app as run locally. A copy hosted on the web, such as the one the
+  project's post-push check deploys, needs a network connection to open, so it serves only checks
+  and demonstrations ([Out of Scope](#out-of-scope)). Changed in v1.2: [FR-090](#fr-090),
+  [FR-095](#fr-095).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -585,7 +586,8 @@ testable for v1.
 
 - <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
   app holds, including accounts, transactions, categories, budgets, mapping profiles, the pending
-  batch, and the manual-entry default account ([FR-006](#fr-006)).
+  batch, the manual-entry default account ([FR-006](#fr-006)) and whether data sharing is on
+  ([FR-095](#fr-095)). Changed in v1.2: [FR-095](#fr-095).
 - <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
@@ -652,7 +654,8 @@ it changes states the new behaviour and names the change.
 - <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks Claude to
   suggest a category for the rows under review that still hold their side's "Uncategorised"
   ([FR-029](#fr-029)). Only selecting it sends a request; importing, opening review and every other
-  action send nothing ([FR-061](#fr-061)).
+  action send nothing ([FR-061](#fr-061)). While data sharing is off, Suggest categories MUST be
+  unavailable, and review MUST say that it needs data sharing ([FR-095](#fr-095)).
   - A row is sent only when it has a description or a counterparty, and its side has a category
     other than "Uncategorised" and "Unaccounted".
   - One request sends at most 300 rows, the first in review order ([FR-026](#fr-026)); the user
@@ -665,9 +668,9 @@ it changes states the new behaviour and names the change.
   - as examples of the user's own decisions, the description and category name of at most 100
     earlier expenses and incomes in such categories, the most recent for each description.
 
-  It MUST NOT hold amounts, dates, account names or the file name. It goes to the n8n workflow on
-  the user's computer, which passes it to Claude by Anthropic ([FR-061](#fr-061)). Review MUST say,
-  next to the button, what is sent and to whom.
+  It MUST NOT hold amounts, dates, account names or the file name. It goes to the project's n8n
+  workflow, which runs on n8n's servers and passes it to Claude by Anthropic ([FR-061](#fr-061)).
+  The data-sharing warning says so ([FR-095](#fr-095)).
 - <a id="fr-092"></a>**FR-092**: A suggestion MUST fill a row only if, when the answer arrives, the
   row is still under review and still holds its side's "Uncategorised", and the suggested name is
   that of a category of the row's side other than "Uncategorised" and "Unaccounted", compared as
@@ -686,6 +689,12 @@ it changes states the new behaviour and names the change.
   - no answer arrives within 4 minutes;
   - n8n reports a failure;
   - the answer is not in the expected form.
+- <a id="fr-095"></a>**FR-095**: The header MUST offer a **Data sharing** switch, off until the user
+  turns it on. Turning it on MUST take effect at once. For as long as data sharing is on, every
+  screen MUST show a warning that says what Suggest categories sends and to whom
+  ([FR-091](#fr-091)), with a button that turns data sharing off again. The setting MUST survive
+  closing the app and MUST be part of a backup ([FR-070](#fr-070)); a backup without it restores
+  data sharing off.
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -742,8 +751,8 @@ it changes states the new behaviour and names the change.
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
   settings, in line with [FR-066](#fr-066).
 - <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
-  account balance, transaction, category, budget, mapping profile, the pending batch, and the
-  manual-entry default account exactly.
+  account balance, transaction, category, budget, mapping profile, the pending batch, the
+  manual-entry default account, and whether data sharing is on, exactly.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -797,7 +806,12 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   ledger must be provably trustworthy before anything probabilistic sits on top of it, which is why
   a suggestion stays a suggestion until the user confirms ([FR-092](#fr-092)). The name Financial
   Copilot anticipates these features.
-- For category suggestions ([FR-090](#fr-090)): choosing in the app where n8n runs, which model
+- Category suggestions that send nothing off the computer and so need no data sharing
+  ([FR-095](#fr-095)): running the n8n workflow on the user's own computer, and a local model
+  through Ollama in place of Claude. v1.2 uses n8n's hosted service and Claude, because with Claude
+  the texts reach Anthropic either way, so a local n8n would add setup for little gain, and a local
+  model needs a large download and suggests worse ([R-23](research.md#r-23)).
+- For category suggestions ([FR-090](#fr-090)): choosing in the app which n8n workflow or model
   answers, or another AI provider; suggesting transfers, suggesting for rows that already hold a
   category, or suggesting without being asked, for example during import; stopping a request other
   than by leaving review, and sending more than 300 rows at once; learning from the user's

@@ -888,9 +888,10 @@ commit of its last task sets the version to `1.1.0`. Push and run the post-push 
 ## Phase 12: Category suggestions
 
 **Purpose**: Claude suggests categories for the rows that review still holds in "Uncategorised",
-through the n8n workflow in `n8n/` ([FR-090](spec.md#fr-090) – [FR-094](spec.md#fr-094),
-[R-23](research.md#r-23), [categoriser.md](contracts/categoriser.md)). The owner asked for it after
-v1.1. The spec, contracts and research change first, in the commit that adds this phase.
+through the n8n workflow in `n8n/`, and only while the user has turned on data sharing
+([FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [R-23](research.md#r-23),
+[categoriser.md](contracts/categoriser.md)). The owner asked for it after v1.1. The spec, contracts
+and research change first, in the commits that add this phase.
 
 - [ ] T091 The suggested mark on a pending row: `suggested?: true` on the category assignment in
   `src/domain/types.ts`; `resolve` in `src/domain/import/review.ts` stores a chosen category
@@ -936,41 +937,60 @@ v1.1. The spec, contracts and research change first, in the commit that adds thi
   JSON, or has another shape such as n8n's "Workflow was started" or the chain's `{"output": …}`,
   gives `categoriser-answer-invalid`; with fake timers, no answer within 4 minutes gives
   `categoriser-timeout`; aborting the caller's signal resolves as cancelled; and nothing ever
-  rejects. The test commit adds `endpoint.ts`, the address only, so the T096 specs can load.
+  rejects. The test commit adds `endpoint.ts`, the address only, so the T097 specs can load.
 - [ ] T094 [P] The workflow `n8n/financial-copilot-categories.json`, as [R-23](research.md#r-23)
   describes it, and `n8n/` in `.prettierignore`, so a file exported from n8n is committed as it is
   ([categoriser.md](contracts/categoriser.md)). Test first in `src/categoriser/workflow.test.ts`:
-  the Webhook node listens for POST on the path of `endpoint.ts`, allows both app origins and
+  the Webhook node listens for POST on the path of `endpoint.ts`, allows the app's origins and
   answers through a Respond to Webhook node, and the output parser's schema requires the answer of
   the contract.
-- [ ] T095 `suggestCategories` in `src/store/import.ts` ([FR-090](spec.md#fr-090) –
-  [FR-094](spec.md#fr-094)). Test first in `src/store/import.test.ts`, with `fetch` stubbed: it
-  sends the request of `suggestionRequest`; it fills rows, and the marks survive reopening the
-  database ([FR-022](spec.md#fr-022)); it resolves to the rows sent and filled; each refusal leaves
-  memory and storage unchanged; a row the user assigns while the request runs keeps the user's
-  choice; a batch discarded meanwhile gives `suggestions-outdated` and writes nothing; and an
-  aborted request writes nothing, even when its answer had arrived.
-- [ ] T096 Suggest categories in review: `src/ui/screens/import/SuggestCategories.tsx`, and
+- [ ] T095 Data sharing: `dataSharing?: true` in the settings of `src/domain/types.ts`;
+  `setDataSharing` in a new `src/domain/settings.ts` and a new `src/store/settings.ts`; the
+  optional key in the settings schema of `src/files/backup.ts`; and the header's switch and the
+  warning on every screen in `src/ui/app/App.tsx`, worded in `src/ui/messages.ts`
+  ([ui.md](contracts/ui.md#shell-and-navigation), [FR-061](spec.md#fr-061),
+  [FR-095](spec.md#fr-095), [data-model.md](data-model.md#settings)). Test first:
+  - in `src/domain/settings.test.ts`, turning sharing on stores `dataSharing: true`, turning it off
+    removes the key, and neither changes the rest of the settings;
+  - in `src/store/settings.test.ts`, with `fake-indexeddb`, the choice survives reopening the
+    database;
+  - `everyEntityState` in `src/domain/testing.ts` gains data sharing on, so the backup round trips
+    keep it ([SC-014](spec.md#sc-014)); and in `src/files/backup.test.ts`, a file without the key
+    loads with sharing off, while `dataSharing: false` is refused as damaged;
+  - in `e2e/ui/shell.spec.ts`, the switch starts off; turning it on shows the warning, which names
+    Anthropic, on every screen and after a reload; Turn off and the switch each remove it; and
+    turning sharing on sends nothing.
+- [ ] T096 `suggestCategories` in `src/store/import.ts`, and `data-sharing-off` worded in
+  `src/ui/messages.ts` ([FR-061](spec.md#fr-061), [FR-090](spec.md#fr-090) –
+  [FR-094](spec.md#fr-094)). Test first in `src/store/import.test.ts`, with `fetch` stubbed: with
+  data sharing off, it gives `data-sharing-off` and sends nothing; it sends the request of
+  `suggestionRequest`; it fills rows, and the marks survive reopening the database
+  ([FR-022](spec.md#fr-022)); it resolves to the rows sent and filled; each refusal leaves memory
+  and storage unchanged; a row the user assigns while the request runs keeps the user's choice; a
+  batch discarded meanwhile gives `suggestions-outdated` and writes nothing; and an aborted request
+  writes nothing, even when its answer had arrived.
+- [ ] T097 Suggest categories in review: `src/ui/screens/import/SuggestCategories.tsx`, and
   `ReviewScreen.tsx`, where Confirm waits and leaving aborts; the codes and the outcome in
   `src/ui/messages.ts`; and the workflow's origin in `connect-src` of `vite.config.ts`
   ([ui.md](contracts/ui.md#review), [FR-027](spec.md#fr-027), [FR-061](spec.md#fr-061),
   [FR-090](spec.md#fr-090), [FR-091](spec.md#fr-091), [FR-094](spec.md#fr-094)). Test first:
-  - `e2e/support/categoriser.ts` grants `local-network-access`, answers at the address in the
-    workflow's place, records the request bodies, and can hold or fail an answer;
-  - in `e2e/ui/review.spec.ts`: the button names its rows, and the line beside it says what goes
-    where; nothing is requested before the click; the request holds the rows in review order, the
-    category names and an example from an earlier transaction, and no amount or date; after the
-    answer, the status line counts the rows, the named rows hold their categories, and bad names
-    change nothing; while an answer is held, the button reads "Asking Claude…", Confirm is
-    unavailable, and a row assigned meanwhile is kept; leaving review while an answer is held fills
-    nothing; an unreachable n8n, a 500 and "Workflow was started" each show their message and
-    change nothing; and the button is unavailable once no row qualifies;
-  - in `e2e/network-guard.spec.ts`: reviewing an import sends nothing, and a press with no answer in
-    the workflow's place fails the guard;
+  - `e2e/support/categoriser.ts` turns data sharing on, answers at the address in the workflow's
+    place, records the request bodies, and can hold or fail an answer;
+  - in `e2e/ui/review.spec.ts`: with data sharing off, the button is unavailable and review says
+    that it needs data sharing; with it on, the button names its rows; nothing is requested before
+    the click; the request holds the rows in review order, the category names and an example from
+    an earlier transaction, and no amount or date; after the answer, the status line counts the
+    rows, the named rows hold their categories, and bad names change nothing; while an answer is
+    held, the button reads "Asking Claude…", Confirm is unavailable, and a row assigned meanwhile is
+    kept; leaving review while an answer is held fills nothing; an unreachable n8n, a 500 and
+    "Workflow was started" each show their message and change nothing; and the button is
+    unavailable once no row qualifies;
+  - in `e2e/network-guard.spec.ts`: with data sharing on, reviewing an import sends nothing, and a
+    press with no answer in the workflow's place fails the guard;
   - in `e2e/messages.spec.ts`: `categoriser-unreachable` in the review's alert
     ([SC-012](spec.md#sc-012));
   - in `src/ui/messages.test.ts`: the outcome for no row, one row and several rows.
-- [ ] T097 The suggested mark in `src/ui/screens/import/AssignmentControl.tsx` and
+- [ ] T098 The suggested mark in `src/ui/screens/import/AssignmentControl.tsx` and
   `ReviewGroups.tsx` ([ui.md](contracts/ui.md#review), [FR-093](spec.md#fr-093)). Test first:
   - in `e2e/ui/review.spec.ts`: a suggested row shows "Suggested"; a group shows it only when its
     rows hold the same suggested category, and otherwise "Mixed", with the marks on the unfolded
@@ -978,9 +998,10 @@ v1.1. The spec, contracts and research change first, in the commit that adds thi
     other marks survive a reload; and confirming books suggested rows like chosen ones;
   - in `e2e/us7-backup.spec.ts`: the round trip includes a suggested row
     ([SC-014](spec.md#sc-014)).
-- [ ] T098 (Project owner, manual) Walk [category suggestions](quickstart.md#category-suggestions)
-  with n8n running and an Anthropic key, including the SC-001 file. The commit of this task sets
-  the version to `1.2.0`.
+- [ ] T099 (Project owner, manual) Publish the workflow on the hosted n8n, put its address into
+  `src/categoriser/endpoint.ts` and [categoriser.md](contracts/categoriser.md#address), and walk
+  [category suggestions](quickstart.md#category-suggestions), including the SC-001 file. The commit
+  of this task sets the version to `1.2.0`.
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), MINOR
 because v1.1 reads v1.2 storage and backups and only drops the marks ([R-23](research.md#r-23)).
@@ -1011,7 +1032,7 @@ Push and run the post-push check.
   screens.
 - **Category suggestions (Phase 12)**: depends on US2, whose review it fills, and US7, whose
   backup keeps the marks. It follows Phase 11, whose version it raises. Order: T091 → T092 →
-  T093 and T094 together → T095 → T096 → T097 → T098.
+  T093 and T094 together → T095 → T096 → T097 → T098 → T099.
 
 ### Within Each Task and Story
 

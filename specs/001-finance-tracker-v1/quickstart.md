@@ -14,8 +14,8 @@ defined during implementation ([plan.md](plan.md#project-structure)).
 - Git
 - For the post-push check only: a Vercel project for this repository
   ([Vercel setup](#vercel-setup))
-- For category suggestions only: n8n, run with `npx n8n`, and an Anthropic API key
-  ([Category suggestions](#category-suggestions))
+- For category suggestions only: a hosted n8n instance, such as n8n Cloud, and an Anthropic API
+  key ([Category suggestions](#category-suggestions))
 
 ## Setup
 
@@ -169,47 +169,50 @@ noted. Use `npm start` with a fresh browser profile.
 <a id="category-suggestions"></a>
 ## Category suggestions
 
-**Suggest categories** in review ([FR-090](spec.md#fr-090)) needs n8n running on this computer
-with the workflow from `n8n/`, which asks Claude ([R-23](research.md#r-23)). Everything else works
-without it.
+**Suggest categories** in review ([FR-090](spec.md#fr-090)) needs data sharing on
+([FR-095](spec.md#fr-095)) and the workflow from `n8n/` published on the owner's hosted n8n
+instance, which asks Claude ([R-23](research.md#r-23)). Everything else works without them.
 
-**Once per machine**:
+**Once**:
 
-1. Start n8n with `npx n8n`. It runs on Node.js 20.19 to 24.x, so the project's Node works.
-2. Open `http://localhost:5678` and create the n8n owner account when asked.
-3. Create a workflow, choose **Import from File…** in its menu, and pick
+1. In your n8n instance, create a workflow, choose **Import from File…** in its menu, and pick
    `n8n/financial-copilot-categories.json`.
-4. Open the **Anthropic Chat Model** node and create an Anthropic credential with your API key. The
+2. Open the **Anthropic Chat Model** node and create an Anthropic credential with your API key. The
    key stays in n8n, never in this repository, the app or a backup.
-5. Publish the workflow (older n8n versions call this activating it). Its production address is the
-   one in [categoriser.md](contracts/categoriser.md#address).
+3. In the Anthropic Console, set a monthly spending limit for that key. The workflow's address is in
+   every build of the app, so anyone could call it ([R-23](research.md#r-23)).
+4. Publish the workflow (older n8n versions call this activating it). Copy its production address
+   into `src/categoriser/endpoint.ts` in place of the placeholder, and into
+   [categoriser.md](contracts/categoriser.md#address), in one commit.
 
-**Smoke test**, with n8n running:
+**Smoke test**, with `<address>` the production address:
 
 ```bash
-curl -s -X POST http://localhost:5678/webhook/financial-copilot-categories \
+curl -s -X POST <address> \
   -H "Content-Type: application/json" \
   -d '{"rows":[{"rowNumber":2,"side":"expense","counterparty":"REWE Markt GmbH","description":"Card payment REWE Berlin"}],"categories":{"expense":["Groceries","Housing"],"income":["Salary"]},"examples":[]}'
 ```
 
 ```powershell
 $body = '{"rows":[{"rowNumber":2,"side":"expense","counterparty":"REWE Markt GmbH","description":"Card payment REWE Berlin"}],"categories":{"expense":["Groceries","Housing"],"income":["Salary"]},"examples":[]}'
-Invoke-RestMethod -Method Post -ContentType application/json -Body $body -Uri http://localhost:5678/webhook/financial-copilot-categories
+Invoke-RestMethod -Method Post -ContentType application/json -Body $body -Uri <address>
 ```
 
 Expected: `{"suggestions":[{"rowNumber":2,"category":"Groceries"}]}`. To check the browser's
 preflight, send
-`curl -i -X OPTIONS -H "Origin: http://localhost:4173" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" http://localhost:5678/webhook/financial-copilot-categories`.
+`curl -i -X OPTIONS -H "Origin: http://localhost:4173" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" <address>`.
 The answer must carry `Access-Control-Allow-Origin: http://localhost:4173`.
 
 **Manual checks**, with `npm start`:
 
 | Check | Procedure | Pass |
 |---|---|---|
-| Suggestions | Import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
+| Sharing off | Open review with data sharing off | Suggest categories is unavailable, and review says it needs data sharing |
+| Sharing on | Turn on Data sharing in the header, then visit several screens and reload | The warning shows on every screen and after the reload; Turn off removes it and switches sharing off |
+| Suggestions | With sharing on, import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
 | [SC-001](spec.md#sc-001) file | The same with the SC-001 file of about 300 rows | The answer arrives within 2 minutes |
 | Mark | Change one suggested row, reload, then confirm | The changed row loses its mark, the other marks survive the reload, and the ledger holds the categories |
-| n8n stopped | Stop n8n, then select Suggest categories | `categoriser-unreachable`, and no row changes |
+| Offline | Disconnect from the internet, then select Suggest categories | `categoriser-unreachable`, and no row changes |
 | Not published | Unpublish the workflow, then select Suggest categories | `categoriser-unreachable` |
 | Leaving | Select Suggest categories, then leave review before the answer | No row changes |
 

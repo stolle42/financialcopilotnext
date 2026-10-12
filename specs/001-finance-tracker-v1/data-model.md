@@ -143,6 +143,7 @@ A category assignment uses the row's side: expense when `amountCents` ≤ 0, inc
 | Field | Type | Notes |
 |---|---|---|
 | `manualEntryAccountId` | Account id | Default account of the manual-entry form ([FR-006](spec.md#fr-006)) |
+| `dataSharing` | `true`, or absent | Present while the user has data sharing on ([FR-095](spec.md#fr-095)); never `false` |
 
 ## Derived values
 
@@ -229,6 +230,9 @@ side's "Uncategorised". The last part keeps invariant 7 true ([R-12](research.md
 
 **Manual-entry default** ([FR-006](spec.md#fr-006)): `settings.manualEntryAccountId` changes only
 when a transaction is created from the manual-entry form. It becomes that transaction's `accountId`.
+
+**Data sharing** ([FR-095](spec.md#fr-095)): `settings.dataSharing` is set by the header switch and
+removed by the switch or the warning's button. Nothing else changes it.
 
 ## Storage layout
 
