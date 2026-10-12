@@ -944,7 +944,7 @@ and research change first, in the commits that add this phase.
   the Webhook node listens for POST on the path of `endpoint.ts`, allows the app's origins and
   answers through a Respond to Webhook node, and the output parser's schema requires the answer of
   the contract.
-- [ ] T095 Data sharing: `dataSharing?: true` in the settings of `src/domain/types.ts`;
+- [X] T095 Data sharing: `dataSharing?: true` in the settings of `src/domain/types.ts`;
   `setDataSharing` in a new `src/domain/settings.ts` and a new `src/store/settings.ts`; the
   optional key in the settings schema of `src/files/backup.ts`; and the header's switch and the
   warning on every screen in `src/ui/app/App.tsx`, worded in `src/ui/messages.ts`

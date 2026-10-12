@@ -16,6 +16,7 @@ import { ReviewScreen } from "@/ui/screens/import/ReviewScreen";
 import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
+import { DataSharingSwitch, DataSharingWarning } from "./DataSharing";
 import { useRoute, type Route } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
 import { version } from "../../../package.json";
@@ -102,9 +103,13 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                     <span className="text-lg font-semibold">Financial Copilot</span>
                     <span className="text-xs text-muted-foreground">Version {appVersion}</span>
                   </div>
-                  {/* The primary action, reachable from every screen (FR-066). */}
-                  <Button onClick={() => openForm(null)}>Add transaction</Button>
+                  <div className="flex items-center gap-6">
+                    <DataSharingSwitch />
+                    {/* The primary action, reachable from every screen (FR-066). */}
+                    <Button onClick={() => openForm(null)}>Add transaction</Button>
+                  </div>
                 </header>
+                <DataSharingWarning />
                 <div className="flex flex-1">
                   <nav
                     aria-label="Screens"

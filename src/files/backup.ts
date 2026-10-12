@@ -153,7 +153,10 @@ const dataSchema: z.ZodType<State> = z.object({
   budgets: z.array(budgetSchema),
   profiles: z.array(profileSchemas),
   pendingBatch: pendingBatchSchema.nullable(),
-  settings: z.object({ manualEntryAccountId: z.string() }),
+  settings: z.object({
+    manualEntryAccountId: z.string(),
+    dataSharing: z.literal(true).optional(),
+  }),
 });
 
 // What the UI calls the records of each part of `data`.

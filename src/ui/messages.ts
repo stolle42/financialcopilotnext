@@ -234,6 +234,13 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
+/** The warning shown on every screen while data sharing is on (FR-095, FR-091). */
+export const dataSharingWarning =
+  "Data sharing is on. When you select Suggest categories in an import's review, the payee and " +
+  "purpose of the rows still to categorise, your category names and up to 100 earlier " +
+  "descriptions go to the project's n8n workflow and to Anthropic, whose Claude suggests the " +
+  "categories.";
+
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {
   importConfirmed: (count: number, accountName: string) =>

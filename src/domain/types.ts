@@ -155,6 +155,8 @@ export interface PendingBatch {
 
 export interface Settings {
   manualEntryAccountId: string;
+  /** Present while the user has data sharing on, never `false` (FR-095). */
+  dataSharing?: true;
 }
 
 /** The seven stores of the storage layout, held in memory (R-05). */
