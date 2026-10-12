@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { formatAmount } from "./format";
-import { messageFor, messages, notifications, type MessageCode } from "./messages";
+import {
+  dataSharingWarning,
+  messageFor,
+  messages,
+  notifications,
+  type MessageCode,
+} from "./messages";
 
 describe("messages", () => {
   test.each(Object.keys(messages) as MessageCode[])(
@@ -139,6 +145,17 @@ describe("messages", () => {
     });
     expect(message).toMatch(/suggest/i);
     expect(message).not.toContain("pending-row-suggestion-invalid");
+  });
+
+  test("warns, while data sharing is on, what Suggest categories sends and to whom (FR-095, FR-091)", () => {
+    expect(dataSharingWarning).toMatch(/data sharing is on/i);
+    expect(dataSharingWarning).toMatch(/Suggest categories/);
+    expect(dataSharingWarning).toMatch(/payee/i);
+    expect(dataSharingWarning).toMatch(/purpose/i);
+    expect(dataSharingWarning).toMatch(/category names/i);
+    expect(dataSharingWarning).toContain("100");
+    expect(dataSharingWarning).toContain("n8n");
+    expect(dataSharingWarning).toContain("Anthropic");
   });
 
   test("words the restore notification with the file's name", () => {
