@@ -888,7 +888,7 @@ commit of its last task sets the version to `1.1.0`. Push and run the post-push 
 ## Phase 12: Category suggestions
 
 **Purpose**: Claude suggests categories for the rows that review still holds in "Uncategorised",
-through the n8n workflow in `n8n/`, and only while the user has turned on data sharing
+through the n8n workflow in `n8n/`, and only after the user agreed to a data-sharing warning
 ([FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [R-23](research.md#r-23),
 [categoriser.md](contracts/categoriser.md)). The owner asked for it after v1.1. The spec, contracts
 and research change first, in the commits that add this phase.
@@ -998,6 +998,29 @@ and research change first, in the commits that add this phase.
     other marks survive a reload; and confirming books suggested rows like chosen ones;
   - in `e2e/us7-backup.spec.ts`: the round trip includes a suggested row
     ([SC-014](spec.md#sc-014)).
+- [ ] T100 The data-sharing warning on Suggest categories, replacing T095's switch and banner
+  (owner, 2026-10-12): `skipSharingWarning?: true` in place of `dataSharing` in the settings of
+  `src/domain/types.ts` and `src/files/backup.ts`; `skipSharingWarning` in place of
+  `setDataSharing` in `src/domain/settings.ts` and `src/store/settings.ts`; `suggestCategories`
+  in `src/store/import.ts` without `data-sharing-off`; the dialog in
+  `src/ui/screens/import/SuggestCategories.tsx`, worded in `src/ui/messages.ts`; and
+  `src/ui/app/DataSharing.tsx` and its place in `App.tsx` removed
+  ([ui.md](contracts/ui.md#review), [FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095),
+  [data-model.md](data-model.md#settings)). Test first:
+  - in `src/domain/settings.test.ts`, it stores `skipSharingWarning: true` and leaves the rest of
+    the settings as they were; in `src/store/settings.test.ts`, the choice survives reopening the
+    database;
+  - `everyEntityState` in `src/domain/testing.ts` holds `skipSharingWarning`, so the backup round
+    trips keep it ([SC-014](spec.md#sc-014)); in `src/files/backup.test.ts`, a file without the key
+    loads, while `skipSharingWarning: false` is refused as damaged;
+  - in `src/store/import.test.ts`, `suggestCategories` sends without any setting;
+  - in `src/ui/messages.test.ts`, the warning names n8n and Anthropic;
+  - `e2e/support/categoriser.ts` selects Suggest categories and agrees to the warning;
+  - in `e2e/ui/review.spec.ts`: the button is available without any setting; selecting it shows
+    the warning, and Cancel sends and saves nothing; agreeing sends, and the next selection warns
+    again; agreeing with Don't warn me again ticked stores the choice, and later selections send at
+    once, also after a reload;
+  - in `e2e/ui/shell.spec.ts`, the header holds no data-sharing switch.
 - [ ] T099 (Project owner, manual) Publish the workflow on the hosted n8n, put its address into
   `src/categoriser/endpoint.ts` and [categoriser.md](contracts/categoriser.md#address), and walk
   [category suggestions](quickstart.md#category-suggestions), including the SC-001 file. The commit
@@ -1032,7 +1055,7 @@ Push and run the post-push check.
   screens.
 - **Category suggestions (Phase 12)**: depends on US2, whose review it fills, and US7, whose
   backup keeps the marks. It follows Phase 11, whose version it raises. Order: T091 → T092 →
-  T093 and T094 together → T095 → T096 → T097 → T098 → T099.
+  T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T099.
 
 ### Within Each Task and Story
 

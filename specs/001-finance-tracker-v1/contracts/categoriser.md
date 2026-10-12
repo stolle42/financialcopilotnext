@@ -6,7 +6,8 @@
 This contract fixes the interface between the app and the n8n workflow that asks Claude for
 category suggestions. The workflow is `n8n/financial-copilot-categories.json`, imported into the
 owner's hosted n8n instance. This contract and the workflow change in the same commit. The app
-sends a request only while data sharing is on ([FR-095](../spec.md#fr-095)).
+sends a request only after the user agreed to the data-sharing warning
+([FR-095](../spec.md#fr-095)).
 
 ## Address
 

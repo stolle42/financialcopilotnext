@@ -80,5 +80,5 @@ Loading a backup and saving again produces a `data` object deep-equal to the ori
 - v1.2 added the optional key `suggested` to a pending row's category assignment
   ([data-model.md](../data-model.md#pending-row), [FR-093](../spec.md#fr-093)). A file without it
   is complete, and earlier versions of the app drop it on loading, so the format stays version 1.
-  The same holds for the optional `dataSharing` key that v1.2 added to the settings
-  ([FR-095](../spec.md#fr-095)); a file without it restores data sharing off.
+  The same holds for the optional `skipSharingWarning` key that v1.2 added to the settings
+  ([FR-095](../spec.md#fr-095)); a file without it restores the data-sharing warning.

@@ -169,9 +169,10 @@ noted. Use `npm start` with a fresh browser profile.
 <a id="category-suggestions"></a>
 ## Category suggestions
 
-**Suggest categories** in review ([FR-090](spec.md#fr-090)) needs data sharing on
-([FR-095](spec.md#fr-095)) and the workflow from `n8n/` published on the owner's hosted n8n
-instance, which asks Claude ([R-23](research.md#r-23)). Everything else works without them.
+**Suggest categories** in review ([FR-090](spec.md#fr-090)) needs the workflow from
+`n8n/` published on the owner's hosted n8n instance, which asks Claude ([R-23](research.md#r-23)),
+and the user's agreement to the data-sharing warning ([FR-095](spec.md#fr-095)). Everything else
+works without them.
 
 **Once**:
 
@@ -207,9 +208,9 @@ The answer must carry `Access-Control-Allow-Origin: http://localhost:4173`.
 
 | Check | Procedure | Pass |
 |---|---|---|
-| Sharing off | Open review with data sharing off | Suggest categories is unavailable, and review says it needs data sharing |
-| Sharing on | Turn on Data sharing in the header, then visit several screens and reload | The warning shows on every screen and after the reload; Turn off removes it and switches sharing off |
-| Suggestions | With sharing on, import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
+| Warning | In review, select Suggest categories, then Cancel | The data-sharing warning says what goes to n8n and Anthropic; Cancel sends nothing |
+| Don't warn me again | Select it again, tick Don't warn me again, Share and suggest; reload and select it once more | The second request goes without the warning, also after the reload |
+| Suggestions | Import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
 | [SC-001](spec.md#sc-001) file | The same with the SC-001 file of about 300 rows | The answer arrives within 2 minutes |
 | Mark | Change one suggested row, reload, then confirm | The changed row loses its mark, the other marks survive the reload, and the ledger holds the categories |
 | Offline | Disconnect from the internet, then select Suggest categories | `categoriser-unreachable`, and no row changes |

@@ -19,7 +19,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 - **Decision**: v1 is a single-page application that runs entirely in the browser and is served
   locally as static files. All data lives in IndexedDB in the user's browser profile. There is no
   backend, no server-side code and no network traffic, except the category suggestions the user
-  asks for in review with data sharing on, which go to a hosted n8n workflow ([R-23](#r-23)).
+  asks for in review after a data-sharing warning, which go to a hosted n8n workflow
+  ([R-23](#r-23)).
 - **Rationale**:
   - The spec describes this shape. v1 is "a local web app". Losing "the browser data" loses
     everything ([User Story 7](spec.md#user-story-7)). No capability may need a network
@@ -616,8 +617,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     - Notifications use Base UI's toast, not Sonner.
   - **One exception, since v1.2**: `connect-src` also lists the origin of the hosted n8n workflow
     that answers category suggestions, read from `src/categoriser/endpoint.ts`. The app sends a
-    request there only while data sharing is on and only when the user selects Suggest categories
-    ([FR-061](spec.md#fr-061), [R-23](#r-23)).
+    request there only when the user selects Suggest categories and agrees to the data-sharing
+    warning ([FR-061](spec.md#fr-061), [R-23](#r-23)).
   - No web fonts and no CDN assets: the app uses the system font stack and bundled icons.
   - No analytics and no error-reporting SDK.
   - **Regression test**: the browser-test guard ([R-17](#r-17)) fails on any request outside the
@@ -757,9 +758,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     3. a Respond to Webhook node, which returns the parsed answer.
   - The app turns the answer into assignments itself, so the automated action, filling the batch,
     keeps every rule of review ([FR-092](spec.md#fr-092)).
-  - **Data sharing** ([FR-095](spec.md#fr-095)) is a switch in the header, stored as an optional
-    `dataSharing: true` in the settings ([data-model.md](data-model.md#settings)). While it is off,
-    Suggest categories is unavailable, and the store refuses to send with `data-sharing-off`.
+  - **The data-sharing warning** ([FR-095](spec.md#fr-095)) is a dialog that Suggest categories
+    opens before it sends. **Don't warn me again** stores an optional `skipSharingWarning: true` in
+    the settings ([data-model.md](data-model.md#settings)).
   - `src/categoriser/` is the only code that makes a request. `endpoint.ts` holds the address, in
     the code; `categoriser.ts` sends the request, gives up after 4 minutes and checks the answer
     with zod. The domain builds the request and applies the answer as pure functions
@@ -769,9 +770,13 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - The mark is an optional `suggested: true` on a category assignment
     ([data-model.md](data-model.md#pending-row)).
 - **Rationale**:
-  - **A switch for consent**: nothing leaves the app unless the user turned data sharing on, and
-    the warning stays in view for as long as it is on ([FR-061](spec.md#fr-061)). The store checks
-    the setting itself, so a mistake in a screen cannot send data with sharing off.
+  - **Consent at the moment of sending** (owner, 2026-10-12): the warning shows exactly when data
+    would leave, and says what and to whom ([FR-061](spec.md#fr-061)). It replaced a header switch
+    with a banner on every screen, which asked for consent away from the action and stayed in view
+    long after it mattered. **Don't warn me again** spares a user who has understood it the dialog
+    on every import. Without the switch there is no setting for the store to check, so the screen
+    is the one place that asks; the network guard of the tests proves nothing is sent before the
+    user agrees.
   - **Hosted, not local** (owner, 2026-10-12): with Claude, the texts reach Anthropic whatever
     runs the workflow, so running n8n on the user's computer adds a process to start for little
     gain. A fully local setup is listed under Not in v1 ([Out of Scope](spec.md#out-of-scope)).
@@ -809,7 +814,7 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     answers the CORS preflight itself, so the `deployed` job on the Vercel origin runs the same
     specs ([R-18](#r-18)).
   - **The hosted copy** can use suggestions too, with its demonstration data, because the workflow
-    allows its origin; data sharing is off there until the visitor turns it on.
+    allows its origin; there too, the visitor sees the data-sharing warning first.
   - **The answer is untrusted**: bank texts could carry instructions to the model. Only names of the
     row's own side, for rows that were sent, are accepted. Nothing becomes a transfer or a protected
     category, every suggestion is marked, and confirming stays the user's step.
@@ -818,7 +823,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     in the app's code or storage, and in every backup.
   - **A proxy of our own**: a server process to write, run and secure, which n8n already is.
   - **n8n on the user's computer, and a local model through Ollama**: only together do they keep
-    everything on the computer, and then suggestions would need no data sharing. A local model needs
+    everything on the computer, and then suggestions would need no data-sharing warning. A local
+    model needs
     a large download and suggests worse on bank texts. Listed under Not in v1; the workflow's chat
     model node can be swapped without changing the app.
   - **The address entered in the app, or set at build time**: keeps it out of the public build, but
