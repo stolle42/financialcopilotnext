@@ -1,3 +1,4 @@
+import type { CategoriserRefusalCode } from "@/categoriser/categoriser";
 import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { CategoryRefusalCode } from "@/domain/categories";
@@ -33,6 +34,7 @@ export type MessageCode =
   | DecodingRefusal["code"]
   | BatchRefusalCode
   | SuggestionRefusalCode
+  | CategoriserRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
@@ -200,6 +202,18 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
+  "categoriser-unreachable":
+    "Claude could not be asked. Check your internet connection and that the n8n workflow is " +
+    "published, then try again. No row changed.",
+  "categoriser-timeout":
+    "Claude took too long to answer. Try again, or categorise some rows first so fewer are sent. " +
+    "No row changed.",
+  "categoriser-failed":
+    "The n8n workflow reported a failure. Check its executions in n8n, for example its Anthropic " +
+    "credential. No row changed.",
+  "categoriser-answer-invalid":
+    "The answer of the n8n workflow could not be read. Import the workflow from the n8n folder " +
+    "of the project again. No row changed.",
   "suggestions-outdated":
     "The import changed while Claude was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",

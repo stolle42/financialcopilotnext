@@ -927,7 +927,7 @@ and research change first, in the commits that add this phase.
     and unknown rows; the first suggestion for a row counts; it counts the rows filled; and every
     result passes the invariants;
   - `suggestions-outdated` when no batch, or another batch, is pending.
-- [ ] T093 [P] The categoriser boundary in `src/categoriser/`: `endpoint.ts`, the address, and
+- [X] T093 [P] The categoriser boundary in `src/categoriser/`: `endpoint.ts`, the address, and
   `categoriser.ts`, which posts the request, gives up after 4 minutes and checks the answer; zod
   comes from a new `src/files/zod.ts`, which `src/files/backup.ts` uses too
   ([categoriser.md](contracts/categoriser.md), [FR-094](spec.md#fr-094), [R-23](research.md#r-23)).
