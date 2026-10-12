@@ -10,6 +10,7 @@ import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/typ
 import type { InvariantCode } from "@/domain/invariants";
 import type { BackupRefusalCode } from "@/files/backup";
 import type { DecodingRefusal } from "@/files/csv";
+import type { SuggestRefusalCode } from "@/store/import";
 import type { StoreRefusalCode } from "@/store/store";
 import { formatAmount } from "./format";
 
@@ -35,6 +36,7 @@ export type MessageCode =
   | BatchRefusalCode
   | SuggestionRefusalCode
   | CategoriserRefusalCode
+  | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
@@ -202,6 +204,8 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
+  "data-sharing-off":
+    "Suggestions need data sharing, which the switch in the header turns on. Nothing was sent.",
   "categoriser-unreachable":
     "Claude could not be asked. Check your internet connection and that the n8n workflow is " +
     "published, then try again. No row changed.",

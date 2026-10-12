@@ -960,7 +960,7 @@ and research change first, in the commits that add this phase.
   - in `e2e/ui/shell.spec.ts`, the switch starts off; turning it on shows the warning, which names
     Anthropic, on every screen and after a reload; Turn off and the switch each remove it; and
     turning sharing on sends nothing.
-- [ ] T096 `suggestCategories` in `src/store/import.ts`, and `data-sharing-off` worded in
+- [X] T096 `suggestCategories` in `src/store/import.ts`, and `data-sharing-off` worded in
   `src/ui/messages.ts` ([FR-061](spec.md#fr-061), [FR-090](spec.md#fr-090) –
   [FR-094](spec.md#fr-094)). Test first in `src/store/import.test.ts`, with `fetch` stubbed: with
   data sharing off, it gives `data-sharing-off` and sends nothing; it sends the request of
