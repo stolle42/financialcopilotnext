@@ -893,7 +893,7 @@ through the n8n workflow in `n8n/`, and only while the user has turned on data s
 [categoriser.md](contracts/categoriser.md)). The owner asked for it after v1.1. The spec, contracts
 and research change first, in the commits that add this phase.
 
-- [ ] T091 The suggested mark on a pending row: `suggested?: true` on the category assignment in
+- [X] T091 The suggested mark on a pending row: `suggested?: true` on the category assignment in
   `src/domain/types.ts`; `resolve` in `src/domain/import/review.ts` stores a chosen category
   without the mark; invariant 7 in `src/domain/invariants.ts` gains
   `pending-row-suggestion-invalid`, worded in `src/ui/messages.ts`; and `pendingRowSchema` in

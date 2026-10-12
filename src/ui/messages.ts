@@ -87,6 +87,8 @@ const brokenRules: Record<InvariantCode, string> = {
   "pending-row-amount-invalid": "a row of the pending import has an amount that is not valid",
   "pending-row-category-invalid":
     "a row of the pending import refers to a category that is not in the backup or is on the other side",
+  "pending-row-suggestion-invalid":
+    "a row of the pending import holds a category Claude suggested that it cannot suggest",
   "pending-row-transfer-invalid":
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",

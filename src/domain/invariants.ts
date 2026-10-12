@@ -41,6 +41,7 @@ export type InvariantCode =
   | "pending-row-date-invalid"
   | "pending-row-amount-invalid"
   | "pending-row-category-invalid"
+  | "pending-row-suggestion-invalid"
   | "pending-row-transfer-invalid"
   | "pending-row-failure-unknown"
   | "settings-account-missing";
@@ -228,6 +229,10 @@ function checkRow(
     const category = categoriesById.get(assignment.categoryId);
     if (category?.side !== proposedSide(row.amountCents) || category.role === "unaccounted") {
       return violation("pending-row-category-invalid", { rowNumber });
+    }
+    // Claude suggests only ordinary categories (FR-092).
+    if (assignment.suggested && category.role !== null) {
+      return violation("pending-row-suggestion-invalid", { rowNumber });
     }
   } else if (
     !accountIds.has(assignment.counterAccountId) ||

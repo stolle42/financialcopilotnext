@@ -127,7 +127,11 @@ const pendingRowSchema = z.discriminatedUnion("status", [
     duplicate: z.boolean(),
     included: z.boolean(),
     assignment: z.discriminatedUnion("type", [
-      z.object({ type: z.literal("category"), categoryId: z.string() }),
+      z.object({
+        type: z.literal("category"),
+        categoryId: z.string(),
+        suggested: z.literal(true).optional(),
+      }),
       z.object({ type: z.literal("transfer"), counterAccountId: z.string() }),
     ]),
   }),
