@@ -998,7 +998,7 @@ and research change first, in the commits that add this phase.
     other marks survive a reload; and confirming books suggested rows like chosen ones;
   - in `e2e/us7-backup.spec.ts`: the round trip includes a suggested row
     ([SC-014](spec.md#sc-014)).
-- [ ] T100 The data-sharing warning on Suggest categories, replacing T095's switch and banner
+- [X] T100 The data-sharing warning on Suggest categories, replacing T095's switch and banner
   (owner, 2026-10-12): `skipSharingWarning?: true` in place of `dataSharing` in the settings of
   `src/domain/types.ts` and `src/files/backup.ts`; `skipSharingWarning` in place of
   `setDataSharing` in `src/domain/settings.ts` and `src/store/settings.ts`; `suggestCategories`

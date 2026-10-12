@@ -90,9 +90,6 @@ export function discardBatch(store: Store) {
   return store.run<never>((state) => decideDiscard(state));
 }
 
-/** Suggestions are asked for with data sharing off, which the UI never offers (FR-061). */
-export type SuggestRefusalCode = "data-sharing-off";
-
 /** How many rows a request sent, and how many of them got a category (FR-094). */
 export interface SuggestOutcome {
   sent: number;
@@ -106,8 +103,6 @@ export interface SuggestOutcome {
  */
 export async function suggestCategories(store: Store, signal: AbortSignal) {
   const state = store.getState();
-  // Checked here too, so no screen can send data with sharing off (FR-061, R-23).
-  if (state.settings.dataSharing !== true) return { code: "data-sharing-off" as const };
   if (!state.pendingBatch) return { code: "suggestions-outdated" as const };
   const request = suggestionRequest(state);
   const sent = { batchId: state.pendingBatch.id, rowNumbers: request.rows.map((r) => r.rowNumber) };

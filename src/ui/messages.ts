@@ -10,7 +10,6 @@ import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/typ
 import type { InvariantCode } from "@/domain/invariants";
 import type { BackupRefusalCode } from "@/files/backup";
 import type { DecodingRefusal } from "@/files/csv";
-import type { SuggestRefusalCode } from "@/store/import";
 import type { StoreRefusalCode } from "@/store/store";
 import { formatAmount } from "./format";
 
@@ -36,7 +35,6 @@ export type MessageCode =
   | BatchRefusalCode
   | SuggestionRefusalCode
   | CategoriserRefusalCode
-  | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
@@ -204,8 +202,7 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
-  "data-sharing-off":
-    "Suggestions need data sharing, which the switch in the header turns on. Nothing was sent.",
+
   "categoriser-unreachable":
     "Claude could not be asked. Check your internet connection and that the n8n workflow is " +
     "published, then try again. No row changed.",
@@ -238,17 +235,11 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
-/** The warning shown on every screen while data sharing is on (FR-095, FR-091). */
-export const dataSharingWarning =
-  "Data sharing is on. When you select Suggest categories in an import's review, the payee and " +
-  "purpose of the rows still to categorise, your category names and up to 100 earlier " +
-  "descriptions go to the project's n8n workflow and to Anthropic, whose Claude suggests the " +
-  "categories.";
-
-/** Beside Suggest categories while data sharing is off (FR-090). */
-export const dataSharingNeeded =
-  "Suggestions send the rows' texts to Claude, so they need data sharing. Turn it on with the " +
-  "switch in the header.";
+/** The data-sharing warning, shown before Suggest categories sends (FR-095, FR-091). */
+export const sharingWarning =
+  "The payee and purpose of the rows still to categorise, your category names and up to 100 " +
+  "earlier descriptions now leave the app. They go to the project's n8n workflow and to " +
+  "Anthropic, whose Claude suggests the categories. Amounts, dates and account names stay here.";
 
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {
