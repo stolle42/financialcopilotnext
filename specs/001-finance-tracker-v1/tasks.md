@@ -885,6 +885,109 @@ commit of its last task sets the version to `1.1.0`. Push and run the post-push 
 
 ---
 
+## Phase 12: Category suggestions
+
+**Purpose**: Claude suggests categories for the rows that review still holds in "Uncategorised",
+through the n8n workflow in `n8n/` ([FR-090](spec.md#fr-090) – [FR-094](spec.md#fr-094),
+[R-23](research.md#r-23), [categoriser.md](contracts/categoriser.md)). The owner asked for it after
+v1.1. The spec, contracts and research change first, in the commit that adds this phase.
+
+- [ ] T091 The suggested mark on a pending row: `suggested?: true` on the category assignment in
+  `src/domain/types.ts`; `resolve` in `src/domain/import/review.ts` stores a chosen category
+  without the mark; invariant 7 in `src/domain/invariants.ts` gains
+  `pending-row-suggestion-invalid`, worded in `src/ui/messages.ts`; and `pendingRowSchema` in
+  `src/files/backup.ts` keeps the key ([data-model.md](data-model.md#pending-row),
+  [FR-093](spec.md#fr-093), [backup-file.md](contracts/backup-file.md#compatibility)). Test first:
+  - in `src/domain/import/review.test.ts`, a choice that carries the mark is stored without it, and
+    choosing for a suggested row, alone or through its group, removes the mark, even when it is the
+    same category;
+  - in `src/domain/categories.test.ts`, deleting the category of a suggested row moves the row to
+    "Uncategorised" without the mark;
+  - in `src/domain/import/confirm.test.ts`, a suggested row books exactly the transaction a chosen
+    one does;
+  - in `src/domain/invariants.test.ts`, a suggested "Uncategorised" or "Unaccounted" breaks
+    invariant 7;
+  - `everyEntityState` in `src/domain/testing.ts` gains a suggested row, so the round trips in
+    `src/files/backup.test.ts` and `src/store/backup.test.ts` keep it ([SC-014](spec.md#sc-014));
+    and in `src/files/backup.test.ts`, a file without the key loads, while `suggested: false` is
+    refused as damaged.
+- [ ] T092 Suggestion rules in `src/domain/import/suggestions.ts`: `suggestableRows`,
+  `suggestionRequest` and `applySuggestions` ([FR-090](spec.md#fr-090) – [FR-093](spec.md#fr-093),
+  [categoriser.md](contracts/categoriser.md)). Test first in
+  `src/domain/import/suggestions.test.ts`:
+  - which rows qualify: an included duplicate does; an excluded duplicate, a transfer, a row with
+    another category, a row with no text, and a row whose side has only protected categories do
+    not; at most 300, in review order;
+  - the request holds exactly each row's number, side, counterparty and description, the
+    unprotected names per side, and at most 100 examples, newest first, one per side and
+    description, with no amount, date or account;
+  - applying fills only rows that still qualify, matching names ignoring case and surrounding
+    spaces; it ignores `null`, unknown names, names of the other side or of protected categories,
+    and unknown rows; the first suggestion for a row counts; it counts the rows filled; and every
+    result passes the invariants;
+  - `suggestions-outdated` when no batch, or another batch, is pending.
+- [ ] T093 [P] The categoriser boundary in `src/categoriser/`: `endpoint.ts`, the address, and
+  `categoriser.ts`, which posts the request, gives up after 4 minutes and checks the answer; zod
+  comes from a new `src/files/zod.ts`, which `src/files/backup.ts` uses too
+  ([categoriser.md](contracts/categoriser.md), [FR-094](spec.md#fr-094), [R-23](research.md#r-23)).
+  Test first in `src/categoriser/categoriser.test.ts`, with `fetch` stubbed: it posts JSON to the
+  address; a valid answer gives its suggestions without extra keys; a rejected fetch and a 404 give
+  `categoriser-unreachable`; another error status gives `categoriser-failed`; a body that is not
+  JSON, or has another shape such as n8n's "Workflow was started" or the chain's `{"output": …}`,
+  gives `categoriser-answer-invalid`; with fake timers, no answer within 4 minutes gives
+  `categoriser-timeout`; aborting the caller's signal resolves as cancelled; and nothing ever
+  rejects. The test commit adds `endpoint.ts`, the address only, so the T096 specs can load.
+- [ ] T094 [P] The workflow `n8n/financial-copilot-categories.json`, as [R-23](research.md#r-23)
+  describes it, and `n8n/` in `.prettierignore`, so a file exported from n8n is committed as it is
+  ([categoriser.md](contracts/categoriser.md)). Test first in `src/categoriser/workflow.test.ts`:
+  the Webhook node listens for POST on the path of `endpoint.ts`, allows both app origins and
+  answers through a Respond to Webhook node, and the output parser's schema requires the answer of
+  the contract.
+- [ ] T095 `suggestCategories` in `src/store/import.ts` ([FR-090](spec.md#fr-090) –
+  [FR-094](spec.md#fr-094)). Test first in `src/store/import.test.ts`, with `fetch` stubbed: it
+  sends the request of `suggestionRequest`; it fills rows, and the marks survive reopening the
+  database ([FR-022](spec.md#fr-022)); it resolves to the rows sent and filled; each refusal leaves
+  memory and storage unchanged; a row the user assigns while the request runs keeps the user's
+  choice; a batch discarded meanwhile gives `suggestions-outdated` and writes nothing; and an
+  aborted request writes nothing, even when its answer had arrived.
+- [ ] T096 Suggest categories in review: `src/ui/screens/import/SuggestCategories.tsx`, and
+  `ReviewScreen.tsx`, where Confirm waits and leaving aborts; the codes and the outcome in
+  `src/ui/messages.ts`; and the workflow's origin in `connect-src` of `vite.config.ts`
+  ([ui.md](contracts/ui.md#review), [FR-027](spec.md#fr-027), [FR-061](spec.md#fr-061),
+  [FR-090](spec.md#fr-090), [FR-091](spec.md#fr-091), [FR-094](spec.md#fr-094)). Test first:
+  - `e2e/support/categoriser.ts` grants `local-network-access`, answers at the address in the
+    workflow's place, records the request bodies, and can hold or fail an answer;
+  - in `e2e/ui/review.spec.ts`: the button names its rows, and the line beside it says what goes
+    where; nothing is requested before the click; the request holds the rows in review order, the
+    category names and an example from an earlier transaction, and no amount or date; after the
+    answer, the status line counts the rows, the named rows hold their categories, and bad names
+    change nothing; while an answer is held, the button reads "Asking Claude…", Confirm is
+    unavailable, and a row assigned meanwhile is kept; leaving review while an answer is held fills
+    nothing; an unreachable n8n, a 500 and "Workflow was started" each show their message and
+    change nothing; and the button is unavailable once no row qualifies;
+  - in `e2e/network-guard.spec.ts`: reviewing an import sends nothing, and a press with no answer in
+    the workflow's place fails the guard;
+  - in `e2e/messages.spec.ts`: `categoriser-unreachable` in the review's alert
+    ([SC-012](spec.md#sc-012));
+  - in `src/ui/messages.test.ts`: the outcome for no row, one row and several rows.
+- [ ] T097 The suggested mark in `src/ui/screens/import/AssignmentControl.tsx` and
+  `ReviewGroups.tsx` ([ui.md](contracts/ui.md#review), [FR-093](spec.md#fr-093)). Test first:
+  - in `e2e/ui/review.spec.ts`: a suggested row shows "Suggested"; a group shows it only when its
+    rows hold the same suggested category, and otherwise "Mixed", with the marks on the unfolded
+    rows; any choice, even the same category, removes the mark, on screen and after a reload; the
+    other marks survive a reload; and confirming books suggested rows like chosen ones;
+  - in `e2e/us7-backup.spec.ts`: the round trip includes a suggested row
+    ([SC-014](spec.md#sc-014)).
+- [ ] T098 (Project owner, manual) Walk [category suggestions](quickstart.md#category-suggestions)
+  with n8n running and an Anthropic key, including the SC-001 file. The commit of this task sets
+  the version to `1.2.0`.
+
+**Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), MINOR
+because v1.1 reads v1.2 storage and backups and only drops the marks ([R-23](research.md#r-23)).
+Push and run the post-push check.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -906,6 +1009,9 @@ commit of its last task sets the version to `1.1.0`. Push and run the post-push 
 - **Polish (Phase 10)**: depends on every story. T079 needs T076 and T078.
 - **UI improvements (Phase 11)**: depends on every story, because its changes reach into their
   screens.
+- **Category suggestions (Phase 12)**: depends on US2, whose review it fills, and US7, whose
+  backup keeps the marks. It follows Phase 11, whose version it raises. Order: T091 → T092 →
+  T093 and T094 together → T095 → T096 → T097 → T098.
 
 ### Within Each Task and Story
 

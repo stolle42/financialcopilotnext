@@ -18,7 +18,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 
 - **Decision**: v1 is a single-page application that runs entirely in the browser and is served
   locally as static files. All data lives in IndexedDB in the user's browser profile. There is no
-  backend, no server-side code and no network traffic.
+  backend, no server-side code and no network traffic, except the category suggestions the user
+  asks for in review, which go to a local n8n workflow ([R-23](#r-23)).
 - **Rationale**:
   - The spec describes this shape. v1 is "a local web app". Losing "the browser data" loses
     everything ([User Story 7](spec.md#user-story-7)). No capability may need a network
@@ -613,6 +614,10 @@ in the spec, so that the spec stays the single source of behaviour (constitution
       instead of the `<style>` element it injects by default. React applies style props through the
       DOM's style API, which CSP does not restrict, so per-category colours work the same way.
     - Notifications use Base UI's toast, not Sonner.
+  - **One exception, since v1.2**: `connect-src` also lists the origin of the local n8n workflow
+    that answers category suggestions, read from `src/categoriser/endpoint.ts`. The app sends a
+    request there only when the user selects Suggest categories ([FR-061](spec.md#fr-061),
+    [R-23](#r-23)).
   - No web fonts and no CDN assets: the app uses the system font stack and bundled icons.
   - No analytics and no error-reporting SDK.
   - **Regression test**: the browser-test guard ([R-17](#r-17)) fails on any request outside the
@@ -733,3 +738,72 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   detect a private window.
 - **Delimiter detection**: detection can guess wrong on a file with a single column. The preview
   shows the misreading before any batch exists.
+
+## Category suggestions (v1.2)
+
+<a id="r-23"></a>
+### R-23 · Category suggestions through a local n8n workflow that asks Claude
+
+- **Decision** (owner, 2026-10-09):
+  - **Suggest categories** in review ([FR-090](spec.md#fr-090)) posts one JSON request to an n8n
+    workflow on the user's computer ([contracts/categoriser.md](contracts/categoriser.md)). The
+    workflow is committed as `n8n/financial-copilot-categories.json`:
+    1. a Webhook node, the trigger, which answers through the Respond to Webhook node and allows
+       the app's two origins;
+    2. a Basic LLM Chain, the reasoning step, with an Anthropic Chat Model (`claude-opus-5-5`,
+       adaptive thinking at low effort, at most 16,000 output tokens) and a Structured Output
+       Parser holding the answer's JSON Schema;
+    3. a Respond to Webhook node, which returns the parsed answer.
+  - The app turns the answer into assignments itself, so the automated action, filling the batch,
+    keeps every rule of review ([FR-092](spec.md#fr-092)).
+  - `src/categoriser/` is the only code that makes a request. `endpoint.ts` holds the address;
+    `categoriser.ts` sends the request, gives up after 4 minutes and checks the answer with zod.
+    The domain builds the request and applies the answer as pure functions
+    (`src/domain/import/suggestions.ts`).
+  - The production CSP adds the workflow's origin to `connect-src`, read from `endpoint.ts`
+    ([R-19](#r-19)).
+  - The mark is an optional `suggested: true` on a category assignment
+    ([data-model.md](data-model.md#pending-row)).
+- **Rationale**:
+  - **n8n holds the key and the prompt.** The Anthropic API key stays in n8n's credential store,
+    never in the browser, IndexedDB or a backup file. The prompt and the model change in n8n without
+    a release of the app.
+  - **Data minimisation** ([FR-091](spec.md#fr-091)): a category needs the texts, not the amounts,
+    dates or accounts. Examples carry only descriptions, because confirmation drops the
+    counterparty ([data-model.md](data-model.md#state-transitions)). That costs some accuracy for
+    banks whose descriptions say less than their counterparty.
+  - **Names, not ids**: names are unique per side by name key ([R-08](#r-08)), so the mapping is
+    unambiguous, and the model cannot invent an id. Names also keep the request readable when the
+    workflow is tested by hand.
+  - **One suggestion per row**, not per vendor group: a group can mix purposes, for example
+    PayPal, and review already shows such a group as "Mixed".
+  - **Size and time**: about 12–15 output tokens per row, plus thinking. 300 rows is SC-001's
+    month, an estimated 1–3 minutes with Opus. The 4-minute timeout sits above that and below
+    Firefox's own 300-second response timeout, so the app's message comes first. Thinking counts
+    toward the model's output limit, so the node's default of 4,096 tokens would cut a long answer
+    short.
+  - **The mark lives on the assignment**: every user choice stores a new assignment without it,
+    and confirmation copies only the category, so no rule has to remember to clear it. Earlier
+    versions drop the unknown key on loading, so v1.2 is a MINOR release (constitution IX).
+  - **Concurrency**: Confirm waits for the answer, leaving review aborts the request, and applying
+    re-checks the batch and every row, so a late answer never overrides the user.
+  - **zod and the CSP**: zod probes `new Function` when it builds a schema, which the CSP reports as
+    a violation. `src/files/zod.ts` switches the probe off once, and every schema module imports
+    `z` from it, whatever the order the modules load in.
+  - **Tests need neither n8n nor a key**: Vitest stubs `fetch`; Playwright routes the address,
+    answers the CORS preflight itself, and grants `local-network-access`, so the `deployed` job on
+    the public Vercel origin runs the same specs ([R-18](#r-18)).
+  - **The hosted copy** carries the same CSP, but it can reach only the visitor's own n8n, after the
+    browser asks permission to access the local network.
+  - **The answer is untrusted**: bank texts could carry instructions to the model. Only names of the
+    row's own side, for rows that were sent, are accepted. Nothing becomes a transfer or a protected
+    category, every suggestion is marked, and confirming stays the user's step.
+- **Alternatives considered**:
+  - **Calling Anthropic from the browser**: the API key would sit in the app's code or storage, and
+    in every backup.
+  - **A proxy of our own**: a server process to write, run and secure, which n8n already is.
+  - **A local model through Ollama**: keeps everything on the computer, but needs a large download
+    and suggests worse on bank texts. The owner chose Claude. The workflow's chat model node can be
+    swapped without changing the app.
+  - **Chunked or parallel requests, one item per vendor group, or streaming**: faster for very
+    large files, but more code for a size SC-001 does not reach.

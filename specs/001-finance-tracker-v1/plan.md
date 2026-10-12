@@ -22,6 +22,9 @@ It is built as a client-only TypeScript single-page app.
 - **Bank files**: decoded with `TextDecoder` and split into records with Papa Parse. Mapping,
   parsing and duplicate flagging are domain rules ([contracts/csv-import.md](contracts/csv-import.md)).
 - **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
+- **Category suggestions** (v1.2): review asks Claude for categories through an n8n workflow on the
+  user's computer, the one request the app makes outside its origin
+  ([contracts/categoriser.md](contracts/categoriser.md), [R-23](research.md#r-23)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
@@ -51,7 +54,7 @@ our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 | Recharts, with its `react-is` peer | 3.8, as pinned by shadcn's chart component | Charts ([R-14](research.md#r-14)) |
 | `idb` | 8.0 | IndexedDB ([R-06](research.md#r-06)) |
 | Papa Parse, with `@types/papaparse` 5.5 | 5.7 | CSV ([R-09](research.md#r-09)) |
-| zod | 4.6 | Backup validation ([R-13](research.md#r-13)) |
+| zod | 4.6 | Validating backups and the categoriser's answers ([R-13](research.md#r-13), [R-23](research.md#r-23)) |
 
 | Dev dependency | Version |
 |---|---|
@@ -90,7 +93,9 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
 
 **Constraints**:
 
-- No network use and no external requests ([FR-061](spec.md#fr-061), [R-19](research.md#r-19)).
+- No network use and no external requests, except the category suggestions the user asks for,
+  which go to the local n8n workflow ([FR-061](spec.md#fr-061), [R-19](research.md#r-19),
+  [R-23](research.md#r-23)).
 - Money in integer euro cents and dates as local calendar strings ([R-08](research.md#r-08)).
 - Every change that touches several records is atomic ([R-06](research.md#r-06)).
 - One running tab ([R-07](research.md#r-07)).
@@ -134,6 +139,11 @@ quality gate.
 **Result**: the plan passes every principle and gate, both before research and after design. No
 deviation needs justifying.
 
+**v1.2**: category suggestions add n8n, with Anthropic behind it, as an optional part outside the
+app, and the one request outside the app's origin ([R-23](research.md#r-23)). That deviates from
+KISS's "no server process" and from the single origin of [R-19](research.md#r-19). The owner
+decided it, and [Complexity Tracking](#complexity-tracking) justifies it.
+
 ### Interpretations to confirm
 
 None remain. The two that filled gaps in the spec were confirmed on 2026-10-02 and are now
@@ -151,12 +161,13 @@ in [R-22](research.md#r-22).
 specs/001-finance-tracker-v1/
 ├── spec.md              # The feature specification
 ├── plan.md              # This file
-├── research.md          # Phase 0: technical decisions R-01 – R-22
+├── research.md          # Phase 0: technical decisions R-01 – R-23
 ├── data-model.md        # Phase 1: entities, invariants, storage layout, seed data
 ├── quickstart.md        # Phase 1: how to run and validate v1
 ├── contracts/
 │   ├── csv-import.md    # Bank CSV files → pending batch
 │   ├── backup-file.md   # Backup file format, version 1
+│   ├── categoriser.md   # Category suggestions: the app ↔ the n8n workflow (v1.2)
 │   └── ui.md            # Screens, navigation, shared patterns, message catalogue
 └── tasks.md             # Phase 2: written by /speckit-tasks, not by this command
 ```
@@ -175,6 +186,7 @@ playwright.config.ts                   # Chromium and Firefox against `vite prev
 components.json                        # shadcn/ui: Base UI, aliases into src/ui/ (R-03)
 tsconfig.json, tsconfig.app.json, tsconfig.node.json  # `@/*` alias via `paths` alone (R-03)
 vite.config.ts                         # Tailwind plugin, base "./", strict ports, Vitest settings (R-20)
+n8n/financial-copilot-categories.json  # The n8n workflow behind category suggestions (R-23)
 
 src/
 ├── main.tsx              # Start-up: lock, open storage, load state, render (R-07, R-15)
@@ -193,7 +205,9 @@ src/
 │   └── import/           # Profile checks, date parsing, rows, duplicates, vendor groups,
 │                         # review edits, confirmation
 ├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse);
-│                         # backup JSON in and out (zod)
+│                         # backup JSON in and out (zod, configured once in zod.ts)
+├── categoriser/          # The one network boundary: the n8n workflow's address, the request
+│                         # and the check of its answer (R-23)
 ├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
 ├── store/                # In-memory state and actions: decide in the domain, write, then apply
 └── ui/                   # React, shadcn/ui and Tailwind CSS
@@ -239,7 +253,8 @@ Tests for `src/` sit next to the module they test, as in `src/domain/accounts.te
 Dependencies point inward:
 
 - `ui` depends on `store` and on `domain`, for types and pure derivations.
-- `store` depends on `persistence`, `files` and `domain`.
+- `store` depends on `persistence`, `files`, `categoriser` and `domain`.
+- `categoriser` depends on `files`, for zod, and on `domain`, for types only.
 - `persistence` and `files` depend on `domain`, for types only.
 - `domain` depends on nothing.
 
@@ -249,4 +264,8 @@ The UI reaches storage only through the store. The domain rule is the one automa
 
 ## Complexity Tracking
 
-None. The Constitution Check passes with no deviation to justify.
+v1.0 and v1.1 had no deviation to justify. v1.2 adds one:
+
+| Violation | Why needed | Simpler alternative rejected because |
+|---|---|---|
+| n8n, with Anthropic behind it, as a part outside the app, and the one request outside the app's origin, for category suggestions ([FR-061](spec.md#fr-061), [R-23](research.md#r-23)) | The owner asked for suggestions by Claude in review. n8n keeps the API key and the prompt out of the app, and the app works fully without it | Calling Anthropic from the browser would put the key into the app and its backups. A proxy of our own would be a server to write, run and secure |

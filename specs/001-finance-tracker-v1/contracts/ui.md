@@ -168,6 +168,22 @@ Routes use the URL hash so the build works from any static host or local file ([
     row joins the review list.
   - The **unparsable** drawer lists the row number, the raw cells and the reason. These rows cannot
     be included.
+- **Suggestions**, between the header and the body ([FR-090](../spec.md#fr-090) –
+  [FR-094](../spec.md#fr-094), [categoriser.md](categoriser.md)):
+  - An outline button **Suggest categories for N rows**, where N is the number of rows a request
+    would send. It is unavailable when N is 0.
+  - Beside it, one line says what is sent and to whom ([FR-091](../spec.md#fr-091)): the payee and
+    purpose of these rows, the category names and up to 100 earlier decisions, through n8n on this
+    computer to Claude by Anthropic.
+  - While Claude answers, the button reads **Asking Claude…** and is unavailable. The rows stay
+    editable, Confirm is unavailable, and leaving review cancels the request.
+  - The outcome shows in a status line beside the button, such as "Claude suggested categories for
+    14 of 20 rows". A failure shows in the review's alert, with the codes of
+    [categoriser.md](categoriser.md#failures).
+- **Suggested mark** ([FR-093](../spec.md#fr-093)): a sparkle icon and "Suggested" after the
+  category select of a row whose category Claude suggested. A group header shows the mark only when
+  all its rows hold the same suggested category. Otherwise the group shows what it would without
+  suggestions, a shared category or "Mixed", and the marks show on the unfolded rows.
 - **Body**: vendor groups first, largest first, collapsed. Plain rows follow by date
   ([csv-import.md](csv-import.md#vendor-groups)). Large groups first gets the most rows out of
   "Uncategorised" with the fewest actions ([SC-001](../spec.md#sc-001)).
@@ -184,7 +200,8 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Footer**:
   - **Discard** asks for confirmation.
   - **Confirm N transactions** opens a modal stating the count ([FR-027](../spec.md#fr-027)). After
-    confirmation, a notification reports what was added and the app opens Transactions.
+    confirmation, a notification reports what was added and the app opens Transactions. It is
+    unavailable while Claude answers a request for suggestions.
 
 ### Budgets
 
@@ -282,6 +299,11 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `import-duplicate-header` | [csv-import.md](csv-import.md#pipeline) step 4 | Which column name appears twice in the file |
 | `import-no-transactions` | [Edge cases](../spec.md#edge-cases), SC-012 | The file contained no transactions |
 | Row failure codes | [FR-028](../spec.md#fr-028), SC-012 | One reason per row, as in [csv-import.md](csv-import.md#unparsable-rows) |
+| `categoriser-unreachable` | [FR-094](../spec.md#fr-094), SC-012: n8n is not running, the workflow is not published, or the browser refused the request | Claude could not be asked; start n8n with `npx n8n` and publish the workflow, then try again. No row changed |
+| `categoriser-timeout` | [FR-094](../spec.md#fr-094): no answer within 4 minutes | Claude took too long; try again, or categorise some rows first so fewer are sent. No row changed |
+| `categoriser-failed` | [FR-094](../spec.md#fr-094): n8n reports a failure | The workflow failed; check its executions in n8n, for example its Anthropic credential. No row changed |
+| `categoriser-answer-invalid` | [FR-094](../spec.md#fr-094): the answer has the wrong form | The workflow's answer could not be read; import the workflow from `n8n/` again. No row changed |
+| `suggestions-outdated` | [FR-092](../spec.md#fr-092): the batch was confirmed, discarded or replaced while Claude answered | The import changed meanwhile, so no suggestion was used |
 | `reconcile-already-matches` | [FR-005](../spec.md#fr-005), SC-012 | The account already holds this amount; nothing was booked |
 | `backup-not-a-backup` | [FR-072](../spec.md#fr-072), SC-012 | The file is not a Financial Copilot backup; current data is unchanged |
 | `backup-newer-version` | [FR-072](../spec.md#fr-072), SC-012 | The backup comes from a newer version of the app; current data is unchanged |

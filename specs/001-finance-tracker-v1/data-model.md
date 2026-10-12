@@ -133,7 +133,7 @@ row 1, as a spreadsheet shows it. It identifies the row within the batch and in 
 | `counterparty` | string \| `null` | Trimmed cell text; `null` when unmapped or empty, so the row has no vendor ([FR-026](spec.md#fr-026)) |
 | `duplicate` | boolean | Set once when the batch is created, never recomputed ([FR-024](spec.md#fr-024)) |
 | `included` | boolean | Starts as `!duplicate` ([FR-025](spec.md#fr-025)) |
-| `assignment` | `{ type: "category", categoryId }` \| `{ type: "transfer", counterAccountId }` | Starts as the row side's "Uncategorised" ([FR-029](spec.md#fr-029)) |
+| `assignment` | `{ type: "category", categoryId, suggested? }` \| `{ type: "transfer", counterAccountId }` | Starts as the row side's "Uncategorised" ([FR-029](spec.md#fr-029)). `suggested` is `true` when Claude suggested the category, and absent otherwise: never `false`, never on a transfer ([FR-093](spec.md#fr-093)) |
 
 A category assignment uses the row's side: expense when `amountCents` ≤ 0, income otherwise
 ([R-12](research.md#r-12)). A transfer's counter-account differs from the batch account.
@@ -188,8 +188,9 @@ fails ([FR-072](spec.md#fr-072)); domain tests assert that no operation can brea
 7. At most one pending batch exists, and it references an existing account. Its row numbers are
    unique. Every parsed row has a valid date and a safe-integer amount. A category assignment
    references an existing category of the row's side with a role other than `unaccounted`
-   ([FR-030](spec.md#fr-030)). A transfer assignment references an existing account other than the
-   batch account. Every unparsable row carries a known failure code.
+   ([FR-030](spec.md#fr-030)). A suggested category assignment references a category with role
+   `null` ([FR-092](spec.md#fr-092)). A transfer assignment references an existing account other
+   than the batch account. Every unparsable row carries a known failure code.
 8. `settings.manualEntryAccountId` references an existing account.
 
 ## State transitions
@@ -206,7 +207,9 @@ pending ── import another file ───────▶ refused, unchanged F
 **Pending row**: an unparsable row never changes and is never confirmed. In a parsed row,
 `assignment` switches between a category of the row's side and a transfer
 ([FR-023](spec.md#fr-023)). The UI offers the `included` toggle only for duplicate rows
-([FR-025](spec.md#fr-025)).
+([FR-025](spec.md#fr-025)). Applying suggestions turns a row's "Uncategorised" into a suggested
+category ([FR-092](spec.md#fr-092)). Every assignment the user makes, and every category deletion,
+stores an assignment without `suggested` ([FR-093](spec.md#fr-093)).
 
 **Confirmation** turns each row under review into a transaction on the batch account, all in one
 storage transaction ([FR-027](spec.md#fr-027)):
@@ -217,7 +220,8 @@ storage transaction ([FR-027](spec.md#fr-027)):
 | transfer | transfer from the batch account to the counter-account | transfer from the counter-account to the batch account |
 
 The amount becomes the absolute value. New transactions get consecutive `seq` values in file
-order. Confirmation does not change `settings` ([FR-006](spec.md#fr-006)).
+order. Confirmation does not change `settings` ([FR-006](spec.md#fr-006)). A suggested category
+books exactly as a chosen one, and the transaction keeps no mark ([FR-093](spec.md#fr-093)).
 
 **Category deletion** ([FR-034](spec.md#fr-034)): the category's transactions move to the same
 side's "Uncategorised", its budget is removed, and pending rows assigned to it move to the same

@@ -433,10 +433,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
     batch, which keeps its parsed rows.
 - <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
   figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app,
-  together with every choice made in review: categories, rows marked as transfers, and flagged rows
-  included.
+  together with every choice made in review: categories, rows marked as transfers, flagged rows
+  included, and the categories Claude suggested, with their marks ([FR-093](#fr-093)).
   At most one pending batch MAY exist at any time, across all accounts; starting an import while one
-  is pending MUST be refused with a message that leads the user to review or discard it.
+  is pending MUST be refused with a message that leads the user to review or discard it. Changed in
+  v1.2: [FR-093](#fr-093).
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
   applying the profile's sign inversion (money out is an expense, money in is an income, and a zero
   amount is an expense), and MUST let the user change any row to a transfer with a
@@ -464,9 +465,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   - Assigning a category to a group MUST assign it to every row in the group. The user MUST be able
     to unfold a group and assign categories per row.
 - <a id="fr-027"></a>**FR-027**: Confirming a batch MUST move its included rows into the ledger with the categories
-  shown in review, and MUST first state how many rows will enter the ledger. Discarding a batch MUST
-  leave the ledger unchanged. A confirmed batch cannot be undone as a whole ([Out of
-  Scope](#out-of-scope)).
+  shown in review, and MUST first state how many rows will enter the ledger. While Claude answers a
+  request for suggestions, confirming MUST wait for the answer, so no suggestion enters the ledger
+  unseen ([FR-090](#fr-090)). Discarding a batch MUST leave the ledger unchanged. A confirmed batch
+  cannot be undone as a whole ([Out of Scope](#out-of-scope)). Changed in v1.2:
+  [FR-090](#fr-090).
 - <a id="fr-028"></a>**FR-028**: Rows the profile cannot parse MUST NOT appear among the rows under review and MUST
   NOT be confirmable. Review MUST show how many there are; selecting that number MUST present them
   with the reason each failed. The remaining rows MUST stay reviewable.
@@ -497,9 +500,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   allowing them to be renamed and recoloured.
 - <a id="fr-034"></a>**FR-034**: Deleting a category MUST move its transactions to "Uncategorised" on the same side and
   MUST remove any budget attached to it.
-- <a id="fr-035"></a>**FR-035**: System MUST itself assign "Uncategorised" to imported rows the
-  user did not recategorise ([FR-029](#fr-029)) and to transactions whose category is deleted, and
-  "Unaccounted" to reconciliation differences.
+- <a id="fr-035"></a>**FR-035**: System MUST itself assign "Uncategorised" to imported rows that
+  hold no category the user chose or Claude suggested ([FR-029](#fr-029), [FR-092](#fr-092)) and to
+  transactions whose category is deleted, and "Unaccounted" to reconciliation differences. Changed
+  in v1.2: [FR-092](#fr-092).
 
 **Budgets**
 
@@ -532,13 +536,17 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
-  party, and MUST NOT require a network connection for any v1 capability. Concretely, no flow may
-  make a request to any host other than the one serving the app: no analytics, no error reports, no
-  update checks, and no fonts, scripts or other files from third parties. Serving the app from the
-  user's own computer (`localhost`) is not a network connection. Real data lives only in
-  the app as run locally. A copy hosted on the web, such as the one the project's post-push check
-  deploys, needs a network connection to open, so it serves only checks and demonstrations
-  ([Out of Scope](#out-of-scope)).
+  party, except what the user sends to Claude by selecting Suggest categories in review
+  ([FR-090](#fr-090), [FR-091](#fr-091)). That request goes only to the n8n workflow at
+  `http://localhost:5678` on the user's own computer, which passes it on to Anthropic. No other
+  flow may make a request to any host other than the one serving the app: no analytics, no error
+  reports, no update checks, and no fonts, scripts or other files from third parties. No capability
+  may require a network connection, except category suggestions, which need n8n running and its
+  connection to Anthropic; without them, everything else works. Serving the app from the user's own
+  computer (`localhost`) is not a network connection. Real data lives only in the app as run
+  locally. A copy hosted on the web, such as the one the project's post-push check deploys, needs a
+  network connection to open, so it serves only checks and demonstrations
+  ([Out of Scope](#out-of-scope)). Changed in v1.2: [FR-090](#fr-090), [FR-091](#fr-091).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -636,6 +644,49 @@ them changes states the new behaviour and names the change.
   "Version 1.1", so a user restoring a backup or reporting a problem can tell which release they
   run ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)).
 
+**Category suggestions (v1.2)**
+
+A change the owner asked for after v1.1, released as v1.2. A requirement of an earlier version that
+it changes states the new behaviour and names the change.
+
+- <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks Claude to
+  suggest a category for the rows under review that still hold their side's "Uncategorised"
+  ([FR-029](#fr-029)). Only selecting it sends a request; importing, opening review and every other
+  action send nothing ([FR-061](#fr-061)).
+  - A row is sent only when it has a description or a counterparty, and its side has a category
+    other than "Uncategorised" and "Unaccounted".
+  - One request sends at most 300 rows, the first in review order ([FR-026](#fr-026)); the user
+    asks again for the rest.
+  - While Claude answers, the rows MUST stay editable, and leaving review MUST cancel the request
+    and fill nothing.
+- <a id="fr-091"></a>**FR-091**: A request MUST hold only:
+  - each row's number, side, description and counterparty;
+  - the names of each side's categories other than "Uncategorised" and "Unaccounted";
+  - as examples of the user's own decisions, the description and category name of at most 100
+    earlier expenses and incomes in such categories, the most recent for each description.
+
+  It MUST NOT hold amounts, dates, account names or the file name. It goes to the n8n workflow on
+  the user's computer, which passes it to Claude by Anthropic ([FR-061](#fr-061)). Review MUST say,
+  next to the button, what is sent and to whom.
+- <a id="fr-092"></a>**FR-092**: A suggestion MUST fill a row only if, when the answer arrives, the
+  row is still under review and still holds its side's "Uncategorised", and the suggested name is
+  that of a category of the row's side other than "Uncategorised" and "Unaccounted", compared as
+  category names are ([FR-032](#fr-032)). Everything else in the answer MUST be ignored. A
+  suggestion never makes a row a transfer and never replaces the user's choice. Suggested
+  categories enter the ledger only on confirmation, like chosen ones ([FR-027](#fr-027)).
+- <a id="fr-093"></a>**FR-093**: Review MUST mark each suggested category as suggested: on its row,
+  and on a vendor group whose rows all hold the same suggested category. The mark MUST go when the
+  user assigns the row anything, directly or through its group, even the same category, and when
+  its category is deleted ([FR-034](#fr-034)). Marks are review progress: they survive closing the
+  app ([FR-022](#fr-022)) and are part of a backup ([FR-070](#fr-070)). The ledger keeps no mark.
+- <a id="fr-094"></a>**FR-094**: After an answer, review MUST say how many of the rows sent got a
+  suggestion. Review MUST say which of these happened and what the user can do, and MUST leave
+  every row as it was ([FR-067](#fr-067)), when:
+  - n8n cannot be reached or has no published workflow;
+  - no answer arrives within 4 minutes;
+  - n8n reports a failure;
+  - the answer is not in the expected form.
+
 <a id="key-entities"></a>
 ### Key Entities
 
@@ -656,8 +707,9 @@ them changes states the new behaviour and names the change.
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or
   discarded. Belongs to one account and one profile. At most one exists at a time.
 - **Pending row**: One parsed line in a pending batch: its parsed fields, its vendor group, its
-  proposed kind, its category or counter-account, whether it is flagged as a duplicate, whether it
-  failed to parse, and whether it is included in confirmation.
+  proposed kind, its category or counter-account, whether Claude suggested that category
+  ([FR-093](#fr-093)), whether it is flagged as a duplicate, whether it failed to parse, and whether
+  it is included in confirmation.
 
 ## Success Criteria *(mandatory)*
 
@@ -683,8 +735,8 @@ them changes states the new behaviour and names the change.
 - <a id="sc-012"></a>**SC-012**: For every refusal or failure called out in this spec (duplicate account,
   profile, or category name; protected category deletion; import file with no transactions;
   reconciliation when balances already match; unparsable import rows; an import while a batch is
-  pending; an invalid backup file; and
-  validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
+  pending; an invalid backup file; category suggestions that n8n cannot provide
+  ([FR-094](#fr-094)); and validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
   in line with [FR-067](#fr-067).
 - <a id="sc-013"></a>**SC-013**: A new user who follows only on-screen labels and defaults can complete [User Story
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
@@ -738,12 +790,18 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   first digit (punctuation removed, whitespace collapsed, ignoring case). Fine for a later version;
   v1 groups only by a mapped counterparty column ([FR-026](#fr-026)).
 - Learned recall: pre-filling a vendor's category from the user's own past decisions, with nothing
-  to author. The first thing to add once import is proven.
-- AI features, deferred by design rather than rejected: receipt scanning into a transaction,
-  analysis with recommendations, and transaction pre-categorisation on import (local-only,
-  suggestion-only, user-invoked, and needed only if learned recall proves insufficient). The ledger
-  must be provably trustworthy before anything probabilistic sits on top of it. The name Financial
+  to author and nothing sent anywhere. Category suggestions use earlier decisions only as examples
+  in a request the user starts ([FR-091](#fr-091)).
+- AI features other than category suggestions in review ([FR-090](#fr-090)), deferred by design
+  rather than rejected: receipt scanning into a transaction, and analysis with recommendations. The
+  ledger must be provably trustworthy before anything probabilistic sits on top of it, which is why
+  a suggestion stays a suggestion until the user confirms ([FR-092](#fr-092)). The name Financial
   Copilot anticipates these features.
+- For category suggestions ([FR-090](#fr-090)): choosing in the app where n8n runs, which model
+  answers, or another AI provider; suggesting transfers, suggesting for rows that already hold a
+  category, or suggesting without being asked, for example during import; stopping a request other
+  than by leaving review, and sending more than 300 rows at once; learning from the user's
+  corrections; and keeping the counterparty in the ledger to give Claude better examples.
 - Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
   v1 must not foreclose them.
 - Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,

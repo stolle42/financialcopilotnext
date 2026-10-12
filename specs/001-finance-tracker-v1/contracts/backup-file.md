@@ -77,3 +77,6 @@ Loading a backup and saving again produces a `data` object deep-equal to the ori
 - A later change to the stored data must either keep version 1 readable, by migrating it on load,
   or increase `formatVersion` and add that migration. Version 1 files are never refused for being
   old.
+- v1.2 added the optional key `suggested` to a pending row's category assignment
+  ([data-model.md](../data-model.md#pending-row), [FR-093](../spec.md#fr-093)). A file without it
+  is complete, and earlier versions of the app drop it on loading, so the format stays version 1.
