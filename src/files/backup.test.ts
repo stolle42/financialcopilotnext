@@ -146,14 +146,17 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(row).not.toHaveProperty("assignment.suggested");
   });
 
-  test("keeps data sharing on (FR-095)", () => {
+  test("keeps Don't warn me again (FR-095)", () => {
     const loaded = parseBackup(serializeBackup(everyEntityState(), EXPORTED_AT)) as State;
-    expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro", dataSharing: true });
+    expect(loaded.settings).toStrictEqual({
+      manualEntryAccountId: "giro",
+      skipSharingWarning: true,
+    });
   });
 
-  test("loads a file without data sharing, as earlier versions saved it, with sharing off", () => {
+  test("loads a file without the choice, as earlier versions saved it, with the warning back", () => {
     const json = fileJson();
-    delete (json.data.settings as Json).dataSharing;
+    delete (json.data.settings as Json).skipSharingWarning;
 
     const loaded = parsed(json) as State;
 
@@ -276,13 +279,13 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     expect(parsed(json)).toMatchObject({ code: "backup-damaged", details: { record, field } });
   });
 
-  test("names settings whose data sharing is not true (FR-095)", () => {
+  test("names settings whose choice to skip the warning is not true (FR-095)", () => {
     const json = fileJson();
-    (json.data.settings as Json).dataSharing = false;
+    (json.data.settings as Json).skipSharingWarning = false;
 
     expect(parsed(json)).toMatchObject({
       code: "backup-damaged",
-      details: { record: "settings", field: "dataSharing" },
+      details: { record: "settings", field: "skipSharingWarning" },
     });
   });
 

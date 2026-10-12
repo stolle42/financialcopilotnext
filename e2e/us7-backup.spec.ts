@@ -10,7 +10,7 @@ import {
   storedRecords,
 } from "./support/app";
 import { byKey, chooseBackupFile, restoreBackup, saveBackup, storedData } from "./support/backup";
-import { standInCategoriser, turnOnDataSharing } from "./support/categoriser";
+import { standInCategoriser, suggestCategories } from "./support/categoriser";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, setToday, test } from "./support/test";
 
@@ -108,15 +108,11 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await duplicates.getByRole("switch").first().click();
   await expect(duplicates.getByRole("switch").first()).toBeChecked();
   await page.keyboard.press("Escape");
-  // A category Claude suggested, which needs data sharing on (FR-093, FR-095).
+  // A category Claude suggested, with Don't warn me again ticked (FR-093, FR-095).
   await standInCategoriser(page, () => ({
     json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
   }));
-  await turnOnDataSharing(page);
-  await page
-    .getByRole("region", { name: "Suggestions" })
-    .getByRole("button", { name: /^Suggest categories/ })
-    .click();
+  await suggestCategories(page, { dontWarnAgain: true });
   await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toContainText(
     "Claude suggested a category for 1 of",
   );
@@ -134,7 +130,7 @@ test("saves everything to one file and restores exactly that, also into a fresh 
       (r) => r.status === "parsed" && r.assignment.type === "category" && r.assignment.suggested,
     ),
   ).toBe(true);
-  expect(filled.settings.dataSharing).toBe(true);
+  expect(filled.settings.skipSharingWarning).toBe(true);
 
   // 1. Saving gives one file with every record, and changes nothing in the app.
   const backup = await saveBackup(page);

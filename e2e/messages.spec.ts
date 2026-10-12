@@ -9,7 +9,7 @@ import {
   storedRecords,
 } from "./support/app";
 import { backupText, chooseBackupFile, storedData } from "./support/backup";
-import { standInCategoriser, turnOnDataSharing } from "./support/categoriser";
+import { standInCategoriser, suggestCategories } from "./support/categoriser";
 import { importWithProfile, mapMyBank, saveMyBankProfile, startImport } from "./support/import";
 import { expect, setToday, test } from "./support/test";
 
@@ -167,12 +167,8 @@ test("categoriser-unreachable: Claude could not be asked, in review's alert (FR-
   await standInCategoriser(page, () => "unreachable");
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
-  await turnOnDataSharing(page);
 
-  await page
-    .getByRole("region", { name: "Suggestions" })
-    .getByRole("button", { name: /^Suggest categories/ })
-    .click();
+  await suggestCategories(page);
 
   await expectWording(main(page).getByRole("alert"), "categoriser-unreachable");
 });

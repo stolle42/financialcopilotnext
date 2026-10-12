@@ -16,7 +16,6 @@ import {
   saveProfile,
   suggestCategories,
 } from "./import";
-import { setDataSharing } from "./settings";
 import { createStore } from "./store";
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -272,28 +271,19 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
   const categoryNamed = (state: State, name: string) =>
     state.categories.find((c) => c.side === "expense" && c.name === name)!.id;
 
-  /** The batch of `file` pending on Cash, with data sharing on unless `sharing` is false. */
-  async function withBatch(sharing = true) {
+  /** The batch of `file` pending on Cash. */
+  async function withBatch() {
     const setup = await setUp();
     await importInto(setup.store, setup.cash, setup.profile);
-    if (sharing) await setDataSharing(setup.store, true);
     return setup;
   }
 
   const ask = (store: Parameters<typeof suggestCategories>[0], signal?: AbortSignal) =>
     suggestCategories(store, signal ?? new AbortController().signal);
 
-  test("with data sharing off, gives data-sharing-off and sends nothing (FR-061)", async () => {
-    const { store } = await withBatch(false);
-    const before = store.getState();
-
-    expect(await ask(store)).toEqual({ code: "data-sharing-off" });
-
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(store.getState()).toBe(before);
-  });
-
-  test("sends the request of the suggestion rules", async () => {
+  // The user agreed to the data-sharing warning before the screen calls this, so no setting is
+  // needed (FR-095).
+  test("sends the request of the suggestion rules, with no setting", async () => {
     const { store } = await withBatch();
     fetchMock.mockResolvedValue(json({ suggestions: [] }));
 

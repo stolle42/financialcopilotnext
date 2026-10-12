@@ -1,6 +1,5 @@
-import type { Page } from "@playwright/test";
 import { messageFor } from "../src/ui/messages";
-import { turnOnDataSharing } from "./support/categoriser";
+import { sharingWarning, suggestButton, suggestCategories } from "./support/categoriser";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, test } from "./support/test";
 
@@ -21,18 +20,14 @@ test("opening the app makes no request to another origin", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 });
 
-const suggestButton = (page: Page) =>
-  page
-    .getByRole("region", { name: "Suggestions" })
-    .getByRole("button", { name: /^Suggest categories/ });
-
-test("with data sharing on, reviewing an import sends nothing until Suggest categories (FR-090)", async ({
+test("reviewing an import sends nothing until the user agrees to the data-sharing warning (FR-090, FR-095)", async ({
   page,
 }) => {
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
-  await turnOnDataSharing(page);
   await expect(suggestButton(page)).toBeEnabled();
+  await suggestButton(page).click();
+  await expect(sharingWarning(page)).toBeVisible();
   await page.waitForLoadState("networkidle");
 });
 
@@ -45,9 +40,7 @@ test("the guard catches Suggest categories when no test answers in the workflow'
   const check = await guardNetwork(context, page, baseURL);
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
-  await turnOnDataSharing(page);
-
-  await suggestButton(page).click();
+  await suggestCategories(page);
 
   // The guard aborted the request, so the app reports it as unreachable, and the guard fails.
   await expect(page.getByRole("main").getByRole("alert")).toHaveText(

@@ -71,9 +71,24 @@ export async function standInCategoriser(page: Page, reply: Reply = suggestNothi
   return standIn;
 }
 
-/** Turns data sharing on with the header's switch (FR-095). */
-export async function turnOnDataSharing(page: Page) {
-  const sharing = page.getByRole("banner").getByRole("switch", { name: "Data sharing" });
-  await sharing.click();
-  await expect(sharing).toBeChecked();
+/** The button in review's Suggestions section (contracts/ui.md, review). */
+export const suggestButton = (page: Page) =>
+  page
+    .getByRole("region", { name: "Suggestions" })
+    .getByRole("button", { name: /^(Suggest categories|Asking Claude)/ });
+
+/** The warning Suggest categories shows before it sends (FR-095). */
+export const sharingWarning = (page: Page) =>
+  page.getByRole("alertdialog", { name: "Share data with Claude?" });
+
+/**
+ * Selects Suggest categories and agrees to the data-sharing warning, ticking Don't warn me again
+ * when asked to (FR-095).
+ */
+export async function suggestCategories(page: Page, { dontWarnAgain = false } = {}) {
+  await suggestButton(page).click();
+  const warning = sharingWarning(page);
+  if (dontWarnAgain) await warning.getByRole("checkbox", { name: "Don't warn me again" }).check();
+  await warning.getByRole("button", { name: "Share and suggest" }).click();
+  await expect(warning).toBeHidden();
 }

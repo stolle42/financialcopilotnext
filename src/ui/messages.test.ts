@@ -1,13 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { formatAmount } from "./format";
-import {
-  dataSharingNeeded,
-  dataSharingWarning,
-  messageFor,
-  messages,
-  notifications,
-  type MessageCode,
-} from "./messages";
+import { messageFor, messages, notifications, type MessageCode } from "./messages";
+// A namespace import, so the tests load before the catalogue words a new message.
+import * as catalogue from "./messages";
 
 describe("messages", () => {
   test.each(Object.keys(messages) as MessageCode[])(
@@ -148,15 +143,13 @@ describe("messages", () => {
     expect(message).not.toContain("pending-row-suggestion-invalid");
   });
 
-  test("warns, while data sharing is on, what Suggest categories sends and to whom (FR-095, FR-091)", () => {
-    expect(dataSharingWarning).toMatch(/data sharing is on/i);
-    expect(dataSharingWarning).toMatch(/Suggest categories/);
-    expect(dataSharingWarning).toMatch(/payee/i);
-    expect(dataSharingWarning).toMatch(/purpose/i);
-    expect(dataSharingWarning).toMatch(/category names/i);
-    expect(dataSharingWarning).toContain("100");
-    expect(dataSharingWarning).toContain("n8n");
-    expect(dataSharingWarning).toContain("Anthropic");
+  test("warns, before Suggest categories sends, what now leaves the app and to whom (FR-095, FR-091)", () => {
+    expect(catalogue.sharingWarning).toMatch(/payee/i);
+    expect(catalogue.sharingWarning).toMatch(/purpose/i);
+    expect(catalogue.sharingWarning).toMatch(/category names/i);
+    expect(catalogue.sharingWarning).toContain("100");
+    expect(catalogue.sharingWarning).toContain("n8n");
+    expect(catalogue.sharingWarning).toContain("Anthropic");
   });
 
   test("words the outcome of suggestions with the rows filled of the rows sent (FR-094)", () => {
@@ -172,11 +165,6 @@ describe("messages", () => {
     expect(notifications.categoriesSuggested(0, 3)).toBe(
       "Claude found no category for the 3 rows sent.",
     );
-  });
-
-  test("says that suggestions need data sharing, and where to turn it on (FR-090)", () => {
-    expect(dataSharingNeeded).toMatch(/data sharing/i);
-    expect(dataSharingNeeded).toMatch(/header/i);
   });
 
   test("words each categoriser failure with what to do, and that no row changed (FR-094)", () => {
