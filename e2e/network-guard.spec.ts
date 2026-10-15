@@ -1,5 +1,5 @@
 import { messageFor } from "../src/ui/messages";
-import { sharingWarning, suggestButton, suggestCategories } from "./support/categoriser";
+import { suggestButton, suggestCategories, turnOnAiFeatures } from "./support/categoriser";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, test } from "./support/test";
 
@@ -20,14 +20,13 @@ test("opening the app makes no request to another origin", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 });
 
-test("reviewing an import sends nothing until the user agrees to the data-sharing warning (FR-090, FR-095)", async ({
+test("turning AI features on and reviewing an import send nothing until Suggest categories (FR-090, FR-095)", async ({
   page,
 }) => {
+  await turnOnAiFeatures(page);
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
   await expect(suggestButton(page)).toBeEnabled();
-  await suggestButton(page).click();
-  await expect(sharingWarning(page)).toBeVisible();
   await page.waitForLoadState("networkidle");
 });
 
@@ -40,6 +39,7 @@ test("the guard catches Suggest categories when no test answers in the workflow'
   const check = await guardNetwork(context, page, baseURL);
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await turnOnAiFeatures(page);
   await suggestCategories(page);
 
   // The guard aborted the request, so the app reports it as unreachable, and the guard fails.

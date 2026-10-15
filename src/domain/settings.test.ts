@@ -1,31 +1,38 @@
 import { describe, expect, test } from "vitest";
 import { seedState } from "./seed";
-import { skipSharingWarning } from "./settings";
+import { setAiFeatures } from "./settings";
 import { applyValid, idCounter } from "./testing";
 
-// FR-095; data-model.md, settings and state transitions (data-sharing warning).
+// FR-095; data-model.md, settings and state transitions (AI features).
 
-describe("skipSharingWarning (FR-095)", () => {
-  test("the warning shows on first launch", () => {
-    expect(seedState(idCounter()).settings).not.toHaveProperty("skipSharingWarning");
+describe("setAiFeatures (FR-095)", () => {
+  test("AI features are off on first launch", () => {
+    expect(seedState(idCounter()).settings).not.toHaveProperty("aiFeatures");
   });
 
-  test("stores skipSharingWarning: true and keeps the other settings", () => {
+  test("turning them on stores aiFeatures: true and keeps the other settings", () => {
     const state = seedState(idCounter());
-    const next = applyValid(state, skipSharingWarning(state));
-    expect(next.settings).toStrictEqual({ ...state.settings, skipSharingWarning: true });
+    const next = applyValid(state, setAiFeatures(state, true));
+    expect(next.settings).toStrictEqual({ ...state.settings, aiFeatures: true });
+  });
+
+  test("turning them off removes the key and keeps the other settings", () => {
+    const state = seedState(idCounter());
+    const on = applyValid(state, setAiFeatures(state, true));
+    const off = applyValid(on, setAiFeatures(on, false));
+    expect(off.settings).toStrictEqual(state.settings);
+    expect(off.settings).not.toHaveProperty("aiFeatures");
   });
 
   test("changes the settings only", () => {
     const state = seedState(idCounter());
-    expect(Object.keys(skipSharingWarning(state))).toEqual(["settings"]);
+    expect(Object.keys(setAiFeatures(state, true))).toEqual(["settings"]);
+    expect(Object.keys(setAiFeatures(state, false))).toEqual(["settings"]);
   });
 
-  test("asking twice keeps it", () => {
+  test("turning them on twice keeps them on", () => {
     const state = seedState(idCounter());
-    const skipped = applyValid(state, skipSharingWarning(state));
-    expect(applyValid(skipped, skipSharingWarning(skipped)).settings).toStrictEqual(
-      skipped.settings,
-    );
+    const on = applyValid(state, setAiFeatures(state, true));
+    expect(applyValid(on, setAiFeatures(on, true)).settings).toStrictEqual(on.settings);
   });
 });

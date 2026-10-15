@@ -4,7 +4,6 @@ import type {
   Category,
   ParsedRow,
   PendingBatch,
-  Settings,
   Transaction,
 } from "../../src/domain/types";
 import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
@@ -12,11 +11,11 @@ import { messageFor, notifications, type MessageCode } from "../../src/ui/messag
 import * as catalogue from "../../src/ui/messages";
 import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
 import {
-  sharingWarning,
   standInCategoriser,
   suggestBySide,
   suggestButton,
   suggestCategories,
+  turnOnAiFeatures,
   type Reply,
 } from "../support/categoriser";
 import { importWithProfile, saveDebitCreditProfile, saveMyBankProfile } from "../support/import";
@@ -328,77 +327,45 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     return batch!.rows.filter((row): row is ParsedRow => row.status === "parsed");
   }
 
-  const storedSettings = async (page: Page) => (await storedRecords<Settings>(page, "settings"))[0];
-  const dontWarnAgain = (page: Page) =>
-    sharingWarning(page).getByRole("checkbox", { name: "Don't warn me again" });
-
-  test("the button names its rows without any setting, and nothing is sent before the click", async ({
+  test("with AI features off, the button is unavailable and review says they are needed, linking to Settings (FR-090)", async ({
     page,
   }) => {
     const standIn = await standInCategoriser(page);
     await importAugust(page);
+
+    await expect(suggestButton(page)).toBeDisabled();
+    await expect(suggestions(page)).toContainText(catalogue.aiFeaturesNeeded);
+    expect(standIn.bodies).toEqual([]);
+    await suggestions(page).getByRole("link", { name: "Settings" }).click();
+    await expect(page).toHaveURL(/#\/settings$/);
+  });
+
+  test("with AI features on, the button names its rows, and nothing is sent before the click", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await importAugust(page);
+    await turnOnAiFeatures(page);
 
     await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
     await expect(suggestButton(page)).toBeEnabled();
+    await expect(suggestions(page)).not.toContainText(catalogue.aiFeaturesNeeded);
     await page.waitForTimeout(200);
     expect(standIn.bodies).toEqual([]);
   });
 
-  test("selecting it warns what is shared and with whom; Cancel sends and saves nothing (FR-095)", async ({
+  test("with AI features on, selecting it sends at once, without a dialog (FR-095)", async ({
     page,
   }) => {
     const standIn = await standInCategoriser(page);
     await importAugust(page);
-    const before = await storedRows(page);
+    await turnOnAiFeatures(page);
 
     await suggestButton(page).click();
-
-    await expect(sharingWarning(page)).toContainText(catalogue.sharingWarning);
-    await expect(dontWarnAgain(page)).not.toBeChecked();
-    await dontWarnAgain(page).check();
-    await sharingWarning(page).getByRole("button", { name: "Cancel" }).click();
-
-    await expect(sharingWarning(page)).toBeHidden();
-    await page.waitForTimeout(200);
-    expect(standIn.bodies).toEqual([]);
-    expect(await storedRows(page)).toEqual(before);
-    expect(await storedSettings(page)).not.toHaveProperty("skipSharingWarning");
-    await suggestButton(page).click();
-    await expect(sharingWarning(page)).toBeVisible();
-  });
-
-  test("agreeing sends, and the next selection warns again (FR-095)", async ({ page }) => {
-    const standIn = await standInCategoriser(page);
-    await importAugust(page);
-
-    await suggestCategories(page);
 
     await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(0, 13));
     expect(standIn.bodies).toHaveLength(1);
-    expect(await storedSettings(page)).not.toHaveProperty("skipSharingWarning");
-    await suggestButton(page).click();
-    await expect(sharingWarning(page)).toBeVisible();
-    expect(standIn.bodies).toHaveLength(1);
-  });
-
-  test("with Don't warn me again ticked, later selections send at once, also after a reload (FR-095)", async ({
-    page,
-  }) => {
-    const standIn = await standInCategoriser(page);
-    await importAugust(page);
-
-    await suggestCategories(page, { dontWarnAgain: true });
-
-    await expect.poll(() => standIn.bodies.length).toBe(1);
-    await expect
-      .poll(async () => await storedSettings(page))
-      .toMatchObject({ skipSharingWarning: true });
-    await suggestButton(page).click();
-    await expect.poll(() => standIn.bodies.length).toBe(2);
-    await page.reload();
-    await suggestButton(page).click();
-    await expect.poll(() => standIn.bodies.length).toBe(3);
-    await expect(sharingWarning(page)).toHaveCount(0);
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
   });
 
   test("sends the rows in review order, the category names and an earlier decision, and no amount or date (FR-091)", async ({
@@ -412,6 +379,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
       description: "Weekly shop",
     });
     await importAugust(page);
+    await turnOnAiFeatures(page);
 
     await suggestCategories(page);
 
@@ -455,6 +423,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
       },
     }));
     await importAugust(page);
+    await turnOnAiFeatures(page);
 
     await suggestCategories(page);
 
@@ -483,6 +452,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
   }) => {
     const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
     await importAugust(page);
+    await turnOnAiFeatures(page);
     standIn.hold();
 
     await suggestCategories(page);
@@ -513,6 +483,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
   }) => {
     const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
     await importAugust(page);
+    await turnOnAiFeatures(page);
     standIn.hold();
     await suggestCategories(page);
     await expect.poll(() => standIn.bodies.length).toBe(1);
@@ -539,6 +510,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     }) => {
       await standInCategoriser(page, reply);
       await importAugust(page);
+      await turnOnAiFeatures(page);
       const before = await storedRows(page);
 
       await suggestCategories(page);
@@ -552,6 +524,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
   test("the button is unavailable once no row is left in Uncategorised", async ({ page }) => {
     await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
     await importAugust(page);
+    await turnOnAiFeatures(page);
 
     await suggestCategories(page);
 
@@ -565,7 +538,7 @@ test.describe("the suggested mark (FR-093)", () => {
   const mark = (scope: Locator) => scope.getByText("Suggested", { exact: true });
 
   /**
-   * Imports August and lets Claude's stand-in suggest: Groceries for every
+   * Imports August with AI features on and lets Claude's stand-in suggest: Groceries for every
    * Shop purchase, a mix for the Bäckerei Krüger group, and Transport for the parking ticket.
    */
   async function withSuggestions(page: Page) {
@@ -583,6 +556,7 @@ test.describe("the suggested mark (FR-093)", () => {
       },
     }));
     await importAugust(page);
+    await turnOnAiFeatures(page);
     await suggestCategories(page);
 
     await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toHaveText(

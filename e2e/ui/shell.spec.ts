@@ -34,7 +34,7 @@ test("opens Transactions for an unknown link (FR-063)", async ({ page }) => {
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
 });
 
-test("holds no data-sharing switch; Suggest categories warns instead (FR-095)", async ({
+test("holds no data-sharing switch; AI features are turned on in Settings (FR-095)", async ({
   page,
 }) => {
   await page.goto("/");

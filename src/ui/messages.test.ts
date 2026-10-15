@@ -143,7 +143,8 @@ describe("messages", () => {
     expect(message).not.toContain("pending-row-suggestion-invalid");
   });
 
-  test("warns, before Suggest categories sends, what now leaves the app and to whom (FR-095, FR-091)", () => {
+  test("warns, when AI features are turned on, what now leaves the app and to whom (FR-095, FR-091)", () => {
+    expect(catalogue.sharingWarning).toMatch(/Suggest categories/);
     expect(catalogue.sharingWarning).toMatch(/payee/i);
     expect(catalogue.sharingWarning).toMatch(/purpose/i);
     expect(catalogue.sharingWarning).toMatch(/category names/i);
@@ -165,6 +166,13 @@ describe("messages", () => {
     expect(notifications.categoriesSuggested(0, 3)).toBe(
       "Claude found no category for the 3 rows sent.",
     );
+  });
+
+  test("says that suggestions need AI features, and where to turn them on (FR-090)", () => {
+    expect(catalogue.aiFeaturesNeeded).toMatch(/AI features/);
+    expect(catalogue.aiFeaturesNeeded).toMatch(/Settings/);
+    expect(messageFor({ code: "ai-features-off" })).toMatch(/AI features/);
+    expect(messageFor({ code: "ai-features-off" })).toMatch(/nothing was sent/i);
   });
 
   test("words each categoriser failure with what to do, and that no row changed (FR-094)", () => {

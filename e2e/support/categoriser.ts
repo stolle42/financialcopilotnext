@@ -77,18 +77,28 @@ export const suggestButton = (page: Page) =>
     .getByRole("region", { name: "Suggestions" })
     .getByRole("button", { name: /^(Suggest categories|Asking Claude)/ });
 
-/** The warning Suggest categories shows before it sends (FR-095). */
+/** The AI features switch on the Settings screen (contracts/ui.md, settings). */
+export const aiFeaturesSwitch = (page: Page) =>
+  page.getByRole("main").getByRole("switch", { name: "AI features" });
+
+/** The warning that turning AI features on shows first (FR-095). */
 export const sharingWarning = (page: Page) =>
-  page.getByRole("alertdialog", { name: "Share data with Claude?" });
+  page.getByRole("alertdialog", { name: "Turn on AI features?" });
 
 /**
- * Selects Suggest categories and agrees to the data-sharing warning, ticking Don't warn me again
- * when asked to (FR-095).
+ * Turns AI features on in Settings and agrees to the data-sharing warning (FR-095), then returns
+ * to the screen the page was on, if any.
  */
-export async function suggestCategories(page: Page, { dontWarnAgain = false } = {}) {
+export async function turnOnAiFeatures(page: Page) {
+  const from = page.url().startsWith("http") ? page.url() : null;
+  await page.goto("/#/settings");
+  await aiFeaturesSwitch(page).click();
+  await sharingWarning(page).getByRole("button", { name: "Turn on" }).click();
+  await expect(aiFeaturesSwitch(page)).toBeChecked();
+  if (from) await page.goto(from);
+}
+
+/** Selects Suggest categories, which sends at once while AI features are on (FR-090). */
+export async function suggestCategories(page: Page) {
   await suggestButton(page).click();
-  const warning = sharingWarning(page);
-  if (dontWarnAgain) await warning.getByRole("checkbox", { name: "Don't warn me again" }).check();
-  await warning.getByRole("button", { name: "Share and suggest" }).click();
-  await expect(warning).toBeHidden();
 }

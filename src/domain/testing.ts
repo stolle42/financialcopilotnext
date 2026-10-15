@@ -32,7 +32,7 @@ export function applyValid(state: State, changes: Changes): State {
  * A valid state with every entity type and every variant of each: accounts of several types, a
  * renamed and a new category, each kind of transaction including a reconciliation entry, budgets,
  * profiles with and without a header row, a pending batch with review progress, a category Claude
- * suggested and an unparsable row, a manual-entry account other than Cash, and the data-sharing warning skipped.
+ * suggested and an unparsable row, a manual-entry account other than Cash, and AI features on.
  * Backup tests round-trip it (SC-014).
  */
 export function everyEntityState(): State {
@@ -223,6 +223,6 @@ export function everyEntityState(): State {
         },
       ],
     },
-    settings: { put: { manualEntryAccountId: "giro", skipSharingWarning: true } },
+    settings: { put: { manualEntryAccountId: "giro", aiFeatures: true } },
   });
 }

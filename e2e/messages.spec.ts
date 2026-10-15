@@ -9,7 +9,7 @@ import {
   storedRecords,
 } from "./support/app";
 import { backupText, chooseBackupFile, storedData } from "./support/backup";
-import { standInCategoriser, suggestCategories } from "./support/categoriser";
+import { standInCategoriser, suggestCategories, turnOnAiFeatures } from "./support/categoriser";
 import { importWithProfile, mapMyBank, saveMyBankProfile, startImport } from "./support/import";
 import { expect, setToday, test } from "./support/test";
 
@@ -167,6 +167,7 @@ test("categoriser-unreachable: Claude could not be asked, in review's alert (FR-
   await standInCategoriser(page, () => "unreachable");
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await turnOnAiFeatures(page);
 
   await suggestCategories(page);
 

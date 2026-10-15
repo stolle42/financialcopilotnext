@@ -16,6 +16,7 @@ import {
   saveProfile,
   suggestCategories,
 } from "./import";
+import { setAiFeatures } from "./settings";
 import { createStore } from "./store";
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -271,19 +272,28 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
   const categoryNamed = (state: State, name: string) =>
     state.categories.find((c) => c.side === "expense" && c.name === name)!.id;
 
-  /** The batch of `file` pending on Cash. */
-  async function withBatch() {
+  /** The batch of `file` pending on Cash, with AI features on unless `aiFeatures` is false. */
+  async function withBatch(aiFeatures = true) {
     const setup = await setUp();
     await importInto(setup.store, setup.cash, setup.profile);
+    if (aiFeatures) await setAiFeatures(setup.store, true);
     return setup;
   }
 
   const ask = (store: Parameters<typeof suggestCategories>[0], signal?: AbortSignal) =>
     suggestCategories(store, signal ?? new AbortController().signal);
 
-  // The user agreed to the data-sharing warning before the screen calls this, so no setting is
-  // needed (FR-095).
-  test("sends the request of the suggestion rules, with no setting", async () => {
+  test("with AI features off, gives ai-features-off and sends nothing (FR-061, FR-095)", async () => {
+    const { store } = await withBatch(false);
+    const before = store.getState();
+
+    expect(await ask(store)).toEqual({ code: "ai-features-off" });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(store.getState()).toBe(before);
+  });
+
+  test("sends the request of the suggestion rules", async () => {
     const { store } = await withBatch();
     fetchMock.mockResolvedValue(json({ suggestions: [] }));
 

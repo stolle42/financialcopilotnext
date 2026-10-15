@@ -146,17 +146,14 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(row).not.toHaveProperty("assignment.suggested");
   });
 
-  test("keeps Don't warn me again (FR-095)", () => {
+  test("keeps AI features on (FR-095)", () => {
     const loaded = parseBackup(serializeBackup(everyEntityState(), EXPORTED_AT)) as State;
-    expect(loaded.settings).toStrictEqual({
-      manualEntryAccountId: "giro",
-      skipSharingWarning: true,
-    });
+    expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro", aiFeatures: true });
   });
 
-  test("loads a file without the choice, as earlier versions saved it, with the warning back", () => {
+  test("loads a file without AI features, as earlier versions saved it, with them off", () => {
     const json = fileJson();
-    delete (json.data.settings as Json).skipSharingWarning;
+    delete (json.data.settings as Json).aiFeatures;
 
     const loaded = parsed(json) as State;
 
@@ -279,13 +276,13 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     expect(parsed(json)).toMatchObject({ code: "backup-damaged", details: { record, field } });
   });
 
-  test("names settings whose choice to skip the warning is not true (FR-095)", () => {
+  test("names settings whose AI features are not true (FR-095)", () => {
     const json = fileJson();
-    (json.data.settings as Json).skipSharingWarning = false;
+    (json.data.settings as Json).aiFeatures = false;
 
     expect(parsed(json)).toMatchObject({
       code: "backup-damaged",
-      details: { record: "settings", field: "skipSharingWarning" },
+      details: { record: "settings", field: "aiFeatures" },
     });
   });
 
