@@ -50,11 +50,12 @@ async function expectPressedPreset(page: Page, name: string | null) {
 }
 
 test.describe("the screen", () => {
-  test("is the last entry in the sidebar", async ({ page }) => {
+  test("follows Backup in the sidebar, with only Settings after it (FR-084)", async ({ page }) => {
     await page.goto("/");
     const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
-    await expect(links.last()).toHaveText("Insights");
-    await links.last().click();
+    await expect(links.nth(5)).toHaveText("Insights");
+    await expect(links).toHaveCount(7);
+    await links.nth(5).click();
     await expect(page).toHaveURL(/#\/insights$/);
     await expect(main(page).getByRole("heading", { name: "Insights", level: 1 })).toBeVisible();
   });

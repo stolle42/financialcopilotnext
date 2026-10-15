@@ -9,6 +9,7 @@ import {
   storedRecords,
 } from "./support/app";
 import { backupText, chooseBackupFile, storedData } from "./support/backup";
+import { standInCategoriser, suggestCategories, turnOnAiFeatures } from "./support/categoriser";
 import { importWithProfile, mapMyBank, saveMyBankProfile, startImport } from "./support/import";
 import { expect, setToday, test } from "./support/test";
 
@@ -158,6 +159,19 @@ test.describe("an alert at the top of the region, with its next step", () => {
     await expectWording(form.getByRole("alert"), "import-batch-pending");
     await expect(form.getByRole("button", { name: "Open pending batch" })).toBeVisible();
   });
+});
+
+test("categoriser-unreachable: Claude could not be asked, in review's alert (FR-094)", async ({
+  page,
+}) => {
+  await standInCategoriser(page, () => "unreachable");
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await turnOnAiFeatures(page);
+
+  await suggestCategories(page);
+
+  await expectWording(main(page).getByRole("alert"), "categoriser-unreachable");
 });
 
 test("unparsable import rows: each is listed with the reason it failed", async ({ page }) => {

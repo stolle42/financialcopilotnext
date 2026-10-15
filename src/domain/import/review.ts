@@ -28,14 +28,24 @@ function pendingBatchOf(state: State): PendingBatch {
 }
 
 /** The assignment `choice` gives a row of `side`, or `null` when the rules do not allow it. */
-function resolve(state: State, batch: PendingBatch, side: Side, choice: AssignmentChoice) {
+function resolve(
+  state: State,
+  batch: PendingBatch,
+  side: Side,
+  choice: AssignmentChoice,
+): Assignment | null {
   if (choice === "uncategorised") return uncategorisedAssignment(state.categories, side);
   if (choice.type === "category") {
     const category = state.categories.find((c) => c.id === choice.categoryId);
-    return category?.side === side && category.role !== "unaccounted" ? choice : null;
+    // A new assignment, so a user's choice never carries Claude's mark (FR-093).
+    return category?.side === side && category.role !== "unaccounted"
+      ? { type: "category", categoryId: category.id }
+      : null;
   }
   const account = state.accounts.find((a) => a.id === choice.counterAccountId);
-  return account && account.id !== batch.accountId ? choice : null;
+  return account && account.id !== batch.accountId
+    ? { type: "transfer", counterAccountId: account.id }
+    : null;
 }
 
 /** The batch with `update` applied to the parsed rows numbered in `rowNumbers`. */

@@ -1,13 +1,16 @@
+import type { CategoriserRefusalCode } from "@/categoriser/categoriser";
 import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { CategoryRefusalCode } from "@/domain/categories";
 import type { BatchRefusalCode } from "@/domain/import/batch";
 import type { ProfileRefusalCode } from "@/domain/import/profiles";
+import type { SuggestionRefusalCode } from "@/domain/import/suggestions";
 import type { DraftFieldCode } from "@/domain/transactions";
 import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/types";
 import type { InvariantCode } from "@/domain/invariants";
 import type { BackupRefusalCode } from "@/files/backup";
 import type { DecodingRefusal } from "@/files/csv";
+import type { SuggestRefusalCode } from "@/store/import";
 import type { StoreRefusalCode } from "@/store/store";
 import { formatAmount } from "./format";
 
@@ -31,6 +34,9 @@ export type MessageCode =
   | RowFailureCode
   | DecodingRefusal["code"]
   | BatchRefusalCode
+  | SuggestionRefusalCode
+  | CategoriserRefusalCode
+  | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
@@ -87,6 +93,8 @@ const brokenRules: Record<InvariantCode, string> = {
   "pending-row-amount-invalid": "a row of the pending import has an amount that is not valid",
   "pending-row-category-invalid":
     "a row of the pending import refers to a category that is not in the backup or is on the other side",
+  "pending-row-suggestion-invalid":
+    "a row of the pending import holds a category Claude suggested that it cannot suggest",
   "pending-row-transfer-invalid":
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
@@ -196,6 +204,22 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
+  "ai-features-off":
+    "Suggestions need AI features, which you turn on in Settings. Nothing was sent.",
+  "categoriser-unreachable":
+    "Claude could not be asked. Check your internet connection and that the n8n workflow is " +
+    "published, then try again. No row changed.",
+  "categoriser-timeout":
+    "Claude took too long to answer. Try again, or categorise some rows first so fewer are sent. " +
+    "No row changed.",
+  "categoriser-failed":
+    "The n8n workflow reported a failure. Check its executions in n8n, for example its Anthropic " +
+    "credential. No row changed.",
+  "categoriser-answer-invalid":
+    "The answer of the n8n workflow could not be read. Import the workflow from the n8n folder " +
+    "of the project again. No row changed.",
+  "suggestions-outdated":
+    "The import changed while Claude was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
   "category-name-empty": "The category needs a name.",
   "category-name-taken": (details) =>
@@ -214,6 +238,21 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
+/** What AI features do and where their data goes, on the Settings screen (FR-095). */
+export const aiFeaturesDescription =
+  "Suggest categories in review. AI features send data to the project's n8n workflow and to " +
+  "Anthropic.";
+
+/** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
+export const sharingWarning =
+  "Data will now be shared. Suggest categories sends the payee and purpose of the rows still to " +
+  "categorise, your category names and up to 100 earlier descriptions to the project's n8n " +
+  "workflow and to Anthropic, whose Claude suggests the categories. Amounts, dates and account " +
+  "names stay here.";
+
+/** Beside Suggest categories while AI features are off (FR-090). */
+export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
+
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {
   importConfirmed: (count: number, accountName: string) =>
@@ -223,6 +262,12 @@ export const notifications = {
   reconciled: (kind: Side, cents: number, categoryName: string) =>
     `Booked an ${kind} of ${formatAmount(cents)} to ${categoryName}.`,
   restored: (fileName: string) => `Restored all data from ${fileName}.`,
+  /** The status line after an answer: how many of the rows sent got a category (FR-094). */
+  categoriesSuggested: (filled: number, sent: number) =>
+    filled === 0
+      ? `Claude found no category for the ${sent} row${sent === 1 ? "" : "s"} sent.`
+      : `Claude suggested ${filled === 1 ? "a category" : "categories"} for ${filled} of ${sent} ` +
+        `row${sent === 1 ? "" : "s"}.`,
 };
 
 /** The plain-language message for a refusal or failure (FR-067). */

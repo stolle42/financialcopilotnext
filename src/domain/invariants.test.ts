@@ -153,6 +153,19 @@ describe("checkInvariants", () => {
     expect(checkInvariants(validState())).toBeNull();
   });
 
+  test("passes a row holding a category of its side as Claude's suggestion (FR-093)", () => {
+    const suggested = { type: "category", categoryId: "groceries", suggested: true };
+    expect(checkInvariants(withRow({ assignment: suggested }))).toBeNull();
+  });
+
+  test("names the row whose suggestion is a protected category", () => {
+    const suggested = { type: "category", categoryId: "expense-uncategorised", suggested: true };
+    expect(checkInvariants(withRow({ assignment: suggested }))).toEqual({
+      code: "pending-row-suggestion-invalid",
+      details: { rowNumber: 2 },
+    });
+  });
+
   test("names the record that breaks a rule", () => {
     expect(checkInvariants(withTransaction(0, { accountId: "gone" }))).toEqual({
       code: "transaction-account-missing",
@@ -354,6 +367,22 @@ describe("checkInvariants", () => {
     [
       "7: a row in Unaccounted",
       () => withRow({ assignment: { type: "category", categoryId: "expense-unaccounted" } }),
+      "pending-row-category-invalid",
+    ],
+    [
+      "7: a row in Uncategorised marked as Claude's suggestion",
+      () =>
+        withRow({
+          assignment: { type: "category", categoryId: "expense-uncategorised", suggested: true },
+        }),
+      "pending-row-suggestion-invalid",
+    ],
+    [
+      "7: a row in Unaccounted marked as Claude's suggestion",
+      () =>
+        withRow({
+          assignment: { type: "category", categoryId: "expense-unaccounted", suggested: true },
+        }),
       "pending-row-category-invalid",
     ],
     [

@@ -470,6 +470,41 @@ describe("deleteCategory (FR-033, FR-034)", () => {
     ]);
   });
 
+  test("moves a pending row whose suggested category is deleted to Uncategorised, without the mark (FR-093)", () => {
+    const { state: ledger, restaurants } = withRestaurants();
+    const row: ParsedRow = {
+      rowNumber: 2,
+      status: "parsed",
+      date: "2026-09-10",
+      amountCents: -1200,
+      description: "Lunch",
+      counterparty: "Bistro",
+      duplicate: false,
+      included: true,
+      assignment: { type: "category", categoryId: restaurants.id, suggested: true },
+    };
+    const state = applyValid(ledger, {
+      pendingBatch: {
+        put: [
+          {
+            id: "batch",
+            accountId: ledger.accounts.find((a) => a.name === "Cash")!.id,
+            fileName: "mybank-2026-09.csv",
+            createdAt: "2026-09-10T10:00:00.000Z",
+            rows: [row],
+          },
+        ],
+      },
+    });
+
+    const next = applyValid(state, changesOf(deleteCategory(state, restaurants.id)));
+
+    expect((next.pendingBatch?.rows[0] as ParsedRow).assignment).toStrictEqual({
+      type: "category",
+      categoryId: roleOf(state, "expense", "uncategorised").id,
+    });
+  });
+
   test("leaves no pending batch where there was none", () => {
     const { state, restaurants } = withRestaurants();
 

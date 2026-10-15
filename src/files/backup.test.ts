@@ -125,6 +125,42 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(byKey(parseBackup(serializeBackup(state, EXPORTED_AT)) as State)).toEqual(byKey(state));
   });
 
+  test("keeps the mark of a category Claude suggested (FR-093)", () => {
+    const loaded = parseBackup(serializeBackup(everyEntityState(), EXPORTED_AT)) as State;
+    const row = loaded.pendingBatch?.rows.find((r) => r.rowNumber === 2);
+    expect(row).toMatchObject({
+      assignment: { type: "category", suggested: true },
+    });
+  });
+
+  test("loads a file without marks, as earlier versions saved it (backup-file.md, compatibility)", () => {
+    const json = fileJson();
+    const rows = (json.data.pendingBatch as { rows: { assignment?: Json }[] }).rows;
+    for (const row of rows) delete row.assignment?.suggested;
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    const row = loaded.pendingBatch?.rows.find((r) => r.rowNumber === 2);
+    expect(row).toHaveProperty("assignment.type", "category");
+    expect(row).not.toHaveProperty("assignment.suggested");
+  });
+
+  test("keeps AI features on (FR-095)", () => {
+    const loaded = parseBackup(serializeBackup(everyEntityState(), EXPORTED_AT)) as State;
+    expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro", aiFeatures: true });
+  });
+
+  test("loads a file without AI features, as earlier versions saved it, with them off", () => {
+    const json = fileJson();
+    delete (json.data.settings as Json).aiFeatures;
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro" });
+  });
+
   test("saves the loaded state as the same file", () => {
     const text = serializeBackup(everyEntityState(), EXPORTED_AT);
     expect(JSON.parse(serializeBackup(parseBackup(text) as State, EXPORTED_AT))).toEqual(
@@ -238,6 +274,27 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     const json = fileJson();
     damage(json);
     expect(parsed(json)).toMatchObject({ code: "backup-damaged", details: { record, field } });
+  });
+
+  test("names settings whose AI features are not true (FR-095)", () => {
+    const json = fileJson();
+    (json.data.settings as Json).aiFeatures = false;
+
+    expect(parsed(json)).toMatchObject({
+      code: "backup-damaged",
+      details: { record: "settings", field: "aiFeatures" },
+    });
+  });
+
+  test("names a pending row's assignment whose mark is not true (FR-093)", () => {
+    const json = fileJson();
+    const rows = (json.data.pendingBatch as { rows: { assignment: Json }[] }).rows;
+    rows[0]!.assignment.suggested = false;
+
+    expect(parsed(json)).toMatchObject({
+      code: "backup-damaged",
+      details: { record: "pendingRow", field: "assignment" },
+    });
   });
 
   test("leaves the rules between records to the invariant check of step 4", () => {

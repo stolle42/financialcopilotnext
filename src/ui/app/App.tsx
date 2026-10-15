@@ -13,6 +13,7 @@ import { ImportScreen } from "@/ui/screens/import/ImportScreen";
 import { emptyImport, ImportStateContext, type ImportState } from "@/ui/screens/import/importState";
 import { ProfileEditor } from "@/ui/screens/import/ProfileEditor";
 import { ReviewScreen } from "@/ui/screens/import/ReviewScreen";
+import { SettingsScreen } from "@/ui/screens/settings/SettingsScreen";
 import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
@@ -32,6 +33,7 @@ const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = 
   { route: "budgets", label: "Budgets", href: "#/budgets" },
   { route: "backup", label: "Backup", href: "#/backup" },
   { route: "insights", label: "Insights", href: "#/insights" },
+  { route: "settings", label: "Settings", href: "#/settings" },
 ];
 
 /**
@@ -72,6 +74,8 @@ function screenFor(route: Route): ReactNode {
       return <AccountsScreen />;
     case "backup":
       return <BackupScreen />;
+    case "settings":
+      return <SettingsScreen />;
     default:
       return null;
   }

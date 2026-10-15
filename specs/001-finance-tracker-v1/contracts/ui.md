@@ -31,6 +31,7 @@ as the current entry, since an import feeds its list ([FR-085](../spec.md#fr-085
 | `#/budgets` | [Budgets](#budgets) | 4 |
 | `#/backup` | [Backup](#backup) | 5 |
 | `#/insights` | [Insights](#insights) | 6 |
+| `#/settings` | [Settings](#settings) | 7 |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 
@@ -168,6 +169,22 @@ Routes use the URL hash so the build works from any static host or local file ([
     row joins the review list.
   - The **unparsable** drawer lists the row number, the raw cells and the reason. These rows cannot
     be included.
+- **Suggestions**, between the header and the body ([FR-090](../spec.md#fr-090) –
+  [FR-094](../spec.md#fr-094), [categoriser.md](categoriser.md)):
+  - An outline button **Suggest categories for N rows**, where N is the number of rows a request
+    would send. It is unavailable when N is 0.
+  - While AI features are off ([FR-095](../spec.md#fr-095)), the button is unavailable, and a line
+    beside it says that suggestions need AI features, with a link to [Settings](#settings). While
+    they are on, selecting the button sends the request at once, without a dialog.
+  - While Claude answers, the button reads **Asking Claude…** and is unavailable. The rows stay
+    editable, Confirm is unavailable, and leaving review cancels the request.
+  - The outcome shows in a status line beside the button, such as "Claude suggested categories for
+    14 of 20 rows". A failure shows in the review's alert, with the codes of
+    [categoriser.md](categoriser.md#failures).
+- **Suggested mark** ([FR-093](../spec.md#fr-093)): a sparkle icon and "Suggested" after the
+  category select of a row whose category Claude suggested. A group header shows the mark only when
+  all its rows hold the same suggested category. Otherwise the group shows what it would without
+  suggestions, a shared category or "Mixed", and the marks show on the unfolded rows.
 - **Body**: vendor groups first, largest first, collapsed. Plain rows follow by date
   ([csv-import.md](csv-import.md#vendor-groups)). Large groups first gets the most rows out of
   "Uncategorised" with the fewest actions ([SC-001](../spec.md#sc-001)).
@@ -184,7 +201,8 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Footer**:
   - **Discard** asks for confirmation.
   - **Confirm N transactions** opens a modal stating the count ([FR-027](../spec.md#fr-027)). After
-    confirmation, a notification reports what was added and the app opens Transactions.
+    confirmation, a notification reports what was added and the app opens Transactions. It is
+    unavailable while Claude answers a request for suggestions.
 
 ### Budgets
 
@@ -230,6 +248,24 @@ Routes use the URL hash so the build works from any static host or local file ([
 - When the browser has not granted persistent storage, the screen says so. It explains that the
   browser may then clear the data under storage pressure, and that a backup is the safeguard
   ([R-07](../research.md#r-07)).
+
+### Settings
+
+- **AI features** ([FR-095](../spec.md#fr-095)): a section with one switch, **AI features**, off
+  until the user turns it on. Under it, a line lists what the AI features do, today "Suggest
+  categories in review", and says that they send data to the project's n8n workflow and to
+  Anthropic.
+  - Turning the switch on opens the **data-sharing warning**, a dialog titled "Turn on AI
+    features?". It says that data will now be shared: Suggest categories sends the payee and
+    purpose of the rows under review, the category names and up to 100 earlier descriptions to the
+    project's n8n workflow and to Anthropic ([FR-091](../spec.md#fr-091)). It holds the buttons
+    **Cancel** and **Turn on**.
+    - **Cancel** (or Escape) closes it; the switch stays off and nothing is saved.
+    - **Turn on** saves the setting and turns the switch on. Nothing is sent.
+  - Turning the switch off saves at once, without a dialog.
+  - The switch saves at once, so the choice survives closing the app. No other screen shows a
+    notice while AI features are on.
+- Later settings join this screen as sections of their own.
 
 ## Shared patterns
 
@@ -282,6 +318,12 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `import-duplicate-header` | [csv-import.md](csv-import.md#pipeline) step 4 | Which column name appears twice in the file |
 | `import-no-transactions` | [Edge cases](../spec.md#edge-cases), SC-012 | The file contained no transactions |
 | Row failure codes | [FR-028](../spec.md#fr-028), SC-012 | One reason per row, as in [csv-import.md](csv-import.md#unparsable-rows) |
+| `ai-features-off` | [FR-061](../spec.md#fr-061): suggestions asked for while AI features are off | Suggestions need AI features, which Settings turns on; nothing was sent |
+| `categoriser-unreachable` | [FR-094](../spec.md#fr-094), SC-012: the computer is offline, n8n is down, the workflow is not published, or the browser refused the request | Claude could not be asked; check the internet connection and that the n8n workflow is published, then try again. No row changed |
+| `categoriser-timeout` | [FR-094](../spec.md#fr-094): no answer within 4 minutes | Claude took too long; try again, or categorise some rows first so fewer are sent. No row changed |
+| `categoriser-failed` | [FR-094](../spec.md#fr-094): n8n reports a failure | The workflow failed; check its executions in n8n, for example its Anthropic credential. No row changed |
+| `categoriser-answer-invalid` | [FR-094](../spec.md#fr-094): the answer has the wrong form | The workflow's answer could not be read; import the workflow from `n8n/` again. No row changed |
+| `suggestions-outdated` | [FR-092](../spec.md#fr-092): the batch was confirmed, discarded or replaced while Claude answered | The import changed meanwhile, so no suggestion was used |
 | `reconcile-already-matches` | [FR-005](../spec.md#fr-005), SC-012 | The account already holds this amount; nothing was booked |
 | `backup-not-a-backup` | [FR-072](../spec.md#fr-072), SC-012 | The file is not a Financial Copilot backup; current data is unchanged |
 | `backup-newer-version` | [FR-072](../spec.md#fr-072), SC-012 | The backup comes from a newer version of the app; current data is unchanged |

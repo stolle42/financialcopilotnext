@@ -6,8 +6,18 @@ import type {
   PendingBatch,
   Transaction,
 } from "../../src/domain/types";
-import { messageFor, notifications } from "../../src/ui/messages";
+import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
+// A namespace import, so the spec loads even before the catalogue words a new message.
+import * as catalogue from "../../src/ui/messages";
 import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
+import {
+  standInCategoriser,
+  suggestBySide,
+  suggestButton,
+  suggestCategories,
+  turnOnAiFeatures,
+  type Reply,
+} from "../support/categoriser";
 import { importWithProfile, saveDebitCreditProfile, saveMyBankProfile } from "../support/import";
 import { euros, expect, setToday, test } from "../support/test";
 
@@ -300,4 +310,363 @@ test("discarding asks first, then books nothing (scenario 10)", async ({ page })
   await expect(page.getByText(notifications.importDiscarded("mybank-2026-08.csv"))).toBeVisible();
   expect(await storedRecords(page, "pendingBatch")).toEqual([]);
   expect(await storedRecords(page, "transactions")).toEqual([]);
+});
+
+test.describe("Suggest categories (FR-090 – FR-094)", () => {
+  const suggestions = (page: Page) => page.getByRole("region", { name: "Suggestions" });
+
+  const outcome = (page: Page) => suggestions(page).getByRole("status");
+  const confirmButton = (page: Page) =>
+    page.getByRole("region", { name: "Finish review" }).getByRole("button", { name: /^Confirm/ });
+
+  /** The August file's rows under review in review order: Shop, Bäckerei, then plain rows by date. */
+  const reviewOrder = [3, 5, 7, 4, 8, 17, 2, 6, 9, 11, 12, 13, 16];
+
+  async function storedRows(page: Page): Promise<ParsedRow[]> {
+    const [batch] = await storedRecords<PendingBatch>(page, "pendingBatch");
+    return batch!.rows.filter((row): row is ParsedRow => row.status === "parsed");
+  }
+
+  test("with AI features off, the button is unavailable and review says they are needed, linking to Settings (FR-090)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await importAugust(page);
+
+    await expect(suggestButton(page)).toBeDisabled();
+    await expect(suggestions(page)).toContainText(catalogue.aiFeaturesNeeded);
+    expect(standIn.bodies).toEqual([]);
+    await suggestions(page).getByRole("link", { name: "Settings" }).click();
+    await expect(page).toHaveURL(/#\/settings$/);
+  });
+
+  test("with AI features on, the button names its rows, and nothing is sent before the click", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
+    await expect(suggestButton(page)).toBeEnabled();
+    await expect(suggestions(page)).not.toContainText(catalogue.aiFeaturesNeeded);
+    await page.waitForTimeout(200);
+    expect(standIn.bodies).toEqual([]);
+  });
+
+  test("with AI features on, selecting it sends at once, without a dialog (FR-095)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+
+    await suggestButton(page).click();
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(0, 13));
+    expect(standIn.bodies).toHaveLength(1);
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
+
+  test("sends the rows in review order, the category names and an earlier decision, and no amount or date (FR-091)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page);
+    await page.goto("/");
+    await addTransaction(page, {
+      amount: "12.50",
+      category: "Groceries",
+      description: "Weekly shop",
+    });
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+
+    await suggestCategories(page);
+
+    await expect.poll(() => standIn.bodies.length).toBe(1);
+    const body = standIn.bodies[0]!;
+    expect(body.rows.map((row) => row.rowNumber)).toEqual(reviewOrder);
+    expect(body.rows[0]).toStrictEqual({
+      rowNumber: 3,
+      side: "expense",
+      counterparty: "Shop",
+      description: "Groceries",
+    });
+    expect(body.categories.expense).toContain("Groceries");
+    expect(body.categories.expense).not.toContain("Uncategorised");
+    expect(body.categories.expense).not.toContain("Unaccounted");
+    expect(body.categories.income).toContain("Salary");
+    expect(body.examples).toContainEqual({
+      side: "expense",
+      description: "Weekly shop",
+      category: "Groceries",
+    });
+    const text = JSON.stringify(body);
+    for (const leak of ["amountCents", '"date"', "2026-08", "accountId", "fileName", "mybank"]) {
+      expect(text).not.toContain(leak);
+    }
+  });
+
+  test("after the answer, counts the rows filled; named rows hold their category, marked, and bad names change nothing (FR-092, FR-094)", async ({
+    page,
+  }) => {
+    await standInCategoriser(page, () => ({
+      json: {
+        suggestions: [
+          { rowNumber: 3, category: "Groceries" },
+          { rowNumber: 5, category: " groceries" },
+          { rowNumber: 2, category: "Salary" },
+          { rowNumber: 16, category: "Netflix" },
+          { rowNumber: 9, category: "Salary" },
+          { rowNumber: 11, category: "Unaccounted" },
+        ],
+      },
+    }));
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+
+    await suggestCategories(page);
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(3, 13));
+    const groceries = await categoryId(page, "expense", "Groceries");
+    const salary = await categoryId(page, "income", "Salary");
+    for (const rowNumber of [3, 5]) {
+      expect((await storedRow(page, rowNumber)).assignment).toEqual({
+        type: "category",
+        categoryId: groceries,
+        suggested: true,
+      });
+    }
+    expect((await storedRow(page, 2)).assignment).toEqual({
+      type: "category",
+      categoryId: salary,
+      suggested: true,
+    });
+    for (const rowNumber of [16, 9, 11]) {
+      expect((await storedRow(page, rowNumber)).assignment).not.toHaveProperty("suggested");
+    }
+  });
+
+  test("while Claude answers, the button says so, Confirm waits, and a choice made meanwhile is kept (FR-027, FR-092)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    standIn.hold();
+
+    await suggestCategories(page);
+
+    await expect(suggestButton(page)).toHaveText("Asking Claude…");
+    await expect(suggestButton(page)).toBeDisabled();
+    await expect(confirmButton(page)).toBeDisabled();
+    await choose(page, assignment(page, "Shop, expenses"), "Category", "Travel");
+    const travel = await categoryId(page, "expense", "Travel");
+    await expect
+      .poll(async () => (await storedRow(page, 3)).assignment)
+      .toEqual({ type: "category", categoryId: travel });
+
+    standIn.release();
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(10, 13));
+    for (const rowNumber of [3, 5, 7]) {
+      expect((await storedRow(page, rowNumber)).assignment).toEqual({
+        type: "category",
+        categoryId: travel,
+      });
+    }
+    await expect(confirmButton(page)).toBeEnabled();
+  });
+
+  test("leaving review while Claude answers cancels the request and fills nothing (FR-090)", async ({
+    page,
+  }) => {
+    const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    standIn.hold();
+    await suggestCategories(page);
+    await expect.poll(() => standIn.bodies.length).toBe(1);
+
+    await page.goto("/#/");
+    standIn.release();
+    await page.waitForTimeout(300);
+    await page.goto("/#/import/review");
+
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
+    for (const row of await storedRows(page)) {
+      expect(row.assignment).not.toHaveProperty("suggested");
+    }
+  });
+
+  const failures: [MessageCode, Reply][] = [
+    ["categoriser-unreachable", () => "unreachable"],
+    ["categoriser-failed", () => ({ status: 500, json: { message: "Error in workflow" } })],
+    ["categoriser-answer-invalid", () => ({ json: { message: "Workflow was started" } })],
+  ];
+  for (const [code, reply] of failures) {
+    test(`${code}: shows its message in review's alert and changes no row (FR-094)`, async ({
+      page,
+    }) => {
+      await standInCategoriser(page, reply);
+      await importAugust(page);
+      await turnOnAiFeatures(page);
+      const before = await storedRows(page);
+
+      await suggestCategories(page);
+
+      await expect(page.getByRole("main").getByRole("alert")).toHaveText(messageFor({ code }));
+      expect(await storedRows(page)).toEqual(before);
+      await expect(suggestButton(page)).toBeEnabled();
+    });
+  }
+
+  test("the button is unavailable once no row is left in Uncategorised", async ({ page }) => {
+    await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+
+    await suggestCategories(page);
+
+    await expect(outcome(page)).toHaveText(notifications.categoriesSuggested(13, 13));
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 0 rows");
+    await expect(suggestButton(page)).toBeDisabled();
+  });
+});
+
+test.describe("the suggested mark (FR-093)", () => {
+  const mark = (scope: Locator) => scope.getByText("Suggested", { exact: true });
+
+  /**
+   * Imports August with AI features on and lets Claude's stand-in suggest: Groceries for every
+   * Shop purchase, a mix for the Bäckerei Krüger group, and Transport for the parking ticket.
+   */
+  async function withSuggestions(page: Page) {
+    await standInCategoriser(page, () => ({
+      json: {
+        suggestions: [
+          { rowNumber: 3, category: "Groceries" },
+          { rowNumber: 5, category: "Groceries" },
+          { rowNumber: 7, category: "Groceries" },
+          { rowNumber: 4, category: "Eating out" },
+          { rowNumber: 8, category: "Groceries" },
+          { rowNumber: 17, category: "Eating out" },
+          { rowNumber: 9, category: "Transport" },
+        ],
+      },
+    }));
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    await suggestCategories(page);
+
+    await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toHaveText(
+      notifications.categoriesSuggested(7, 13),
+    );
+  }
+
+  test("a suggested row shows the mark next to its category; a row Claude left alone does not", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+
+    const parking = assignment(page, "row 9");
+    await expect(parking).toContainText("Transport");
+    await expect(mark(parking)).toBeVisible();
+    await expect(mark(assignment(page, "row 11"))).toHaveCount(0);
+  });
+
+  test("a group shows the mark only when all its rows hold the same suggested category", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+
+    const shop = assignment(page, "Shop, expenses");
+    await expect(shop).toContainText("Groceries");
+    await expect(mark(shop)).toBeVisible();
+
+    const bakery = group(page, "Bäckerei Krüger, expenses");
+    await expect(assignment(bakery, "Bäckerei Krüger, expenses")).toContainText("Mixed");
+    await expect(mark(assignment(bakery, "Bäckerei Krüger, expenses"))).toHaveCount(0);
+    await bakery.getByRole("button", { name: "Show rows" }).click();
+    for (const rowNumber of [4, 8, 17]) {
+      await expect(mark(assignment(bakery, `row ${rowNumber}`))).toBeVisible();
+    }
+  });
+
+  test("choosing the suggested category itself removes the mark, on screen and in storage", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+    const transport = await categoryId(page, "expense", "Transport");
+
+    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+
+    await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
+    await expect
+      .poll(async () => (await storedRow(page, 9)).assignment)
+      .toEqual({ type: "category", categoryId: transport });
+  });
+
+  test("a group whose rows share a category, but not all as suggestions, shows it without the mark", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+    const shop = group(page, "Shop, expenses");
+    await shop.getByRole("button", { name: "Show rows" }).click();
+
+    await choose(page, assignment(shop, "row 3"), "Category", "Groceries");
+
+    await expect(mark(assignment(shop, "row 3"))).toHaveCount(0);
+    await expect(assignment(shop, "Shop, expenses")).toContainText("Groceries");
+    await expect(mark(assignment(shop, "Shop, expenses"))).toHaveCount(0);
+    for (const rowNumber of [5, 7]) {
+      await expect(mark(assignment(shop, `row ${rowNumber}`))).toBeVisible();
+    }
+  });
+
+  test("a choice for the group removes the marks of all its rows", async ({ page }) => {
+    await withSuggestions(page);
+
+    await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+
+    await expect(mark(assignment(page, "Shop, expenses"))).toHaveCount(0);
+    for (const rowNumber of [3, 5, 7]) {
+      await expect
+        .poll(async () => (await storedRow(page, rowNumber)).assignment)
+        .not.toHaveProperty("suggested");
+    }
+  });
+
+  test("the marks survive a reload, and a removed mark stays removed", async ({ page }) => {
+    await withSuggestions(page);
+    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+    await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
+
+    await page.reload();
+
+    await expect(mark(assignment(page, "Shop, expenses"))).toBeVisible();
+    await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
+  });
+
+  test("confirming books suggested rows like chosen ones, and the ledger keeps no mark", async ({
+    page,
+  }) => {
+    await withSuggestions(page);
+    const groceries = await categoryId(page, "expense", "Groceries");
+
+    await page
+      .getByRole("region", { name: "Finish review" })
+      .getByRole("button", { name: /^Confirm/ })
+      .click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Add 13 transactions" })
+      .click();
+    await expect(page).toHaveURL(/#\/$/);
+
+    const booked = await storedRecords<Transaction>(page, "transactions");
+    const shopPurchases = booked.filter((t) => t.kind === "expense" && t.categoryId === groceries);
+    expect(shopPurchases.length).toBeGreaterThanOrEqual(4);
+    for (const transaction of booked) expect(transaction).not.toHaveProperty("suggested");
+  });
 });

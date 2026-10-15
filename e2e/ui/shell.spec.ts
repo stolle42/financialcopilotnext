@@ -34,6 +34,15 @@ test("opens Transactions for an unknown link (FR-063)", async ({ page }) => {
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
 });
 
+test("holds no data-sharing switch; AI features are turned on in Settings (FR-095)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("banner").getByRole("button", { name: "Add transaction" }),
+  ).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Data sharing" })).toHaveCount(0);
+});
 test("carries a Content-Security-Policy that keeps everything on the app's origin", async ({
   page,
 }) => {

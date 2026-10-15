@@ -18,6 +18,10 @@ const assignmentKey = (assignment: Assignment) =>
     ? `category ${assignment.categoryId}`
     : `transfer ${assignment.counterAccountId}`;
 
+/** Whether Claude suggested the row's category, which the user has not assigned since (FR-093). */
+const isSuggested = (row: ParsedRow) =>
+  row.assignment.type === "category" && row.assignment.suggested === true;
+
 /** The assignment every row of the group shares, or `null` when the rows differ. */
 function sharedAssignment(rows: readonly ParsedRow[]): Assignment | null {
   const first = rows[0]?.assignment;
@@ -44,6 +48,7 @@ function ReviewRow({
         label={`row ${row.rowNumber}`}
         side={proposedSide(row.amountCents)}
         assignment={row.assignment}
+        suggested={isSuggested(row)}
         batchAccountId={batchAccountId}
         onChoose={(choice) => onChoose(row, choice)}
       />
@@ -65,6 +70,7 @@ function GroupCard({
 }) {
   const [open, setOpen] = useState(false);
   const name = `${group.counterparty}, ${sideLabel[group.side]}`;
+  const shared = sharedAssignment(group.rows);
   return (
     <div role="group" aria-label={name} className="rounded-lg border">
       <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
@@ -82,7 +88,9 @@ function GroupCard({
           <AssignmentControl
             label={name}
             side={group.side}
-            assignment={sharedAssignment(group.rows)}
+            assignment={shared}
+            // Marked only when every row holds the same category as a suggestion.
+            suggested={shared !== null && group.rows.every(isSuggested)}
             batchAccountId={batchAccountId}
             onChoose={(choice) => onChooseGroup(group, choice)}
           />

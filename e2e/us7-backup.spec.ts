@@ -10,13 +10,15 @@ import {
   storedRecords,
 } from "./support/app";
 import { byKey, chooseBackupFile, restoreBackup, saveBackup, storedData } from "./support/backup";
+import { standInCategoriser, suggestCategories, turnOnAiFeatures } from "./support/categoriser";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, setToday, test } from "./support/test";
 
 // The journey of User Story 7, scenarios 1–3, and the round trip of SC-014 (quickstart.md, US7).
-// It fills every entity type through the UI, including a pending batch with review progress,
-// saves a backup, and restores it over changed data. Then it restores the file into a fresh
-// browser context with empty storage, saves again there, and compares the two files' `data`.
+// It fills every entity type through the UI, including a pending batch with review progress and a
+// category Claude suggested, saves a backup, and restores it over changed data. Then it restores the
+// file into a fresh browser context with empty storage, saves again there, and compares the two
+// files' `data`.
 
 const main = (page: Page) => page.getByRole("main");
 const ledgerRows = (page: Page) =>
@@ -106,6 +108,15 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await duplicates.getByRole("switch").first().click();
   await expect(duplicates.getByRole("switch").first()).toBeChecked();
   await page.keyboard.press("Escape");
+  // A category Claude suggested, with AI features on (FR-093, FR-095).
+  await standInCategoriser(page, () => ({
+    json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
+  }));
+  await turnOnAiFeatures(page);
+  await suggestCategories(page);
+  await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toContainText(
+    "Claude suggested a category for 1 of",
+  );
 
   const filled = await storedData(page);
   const giro = (await storedRecords<Account>(page, "accounts")).find((a) => a.name === "Giro")!;
@@ -115,6 +126,12 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   expect(
     filled.pendingBatch?.rows.some((r) => r.status === "parsed" && r.duplicate && r.included),
   ).toBe(true);
+  expect(
+    filled.pendingBatch?.rows.some(
+      (r) => r.status === "parsed" && r.assignment.type === "category" && r.assignment.suggested,
+    ),
+  ).toBe(true);
+  expect(filled.settings.aiFeatures).toBe(true);
 
   // 1. Saving gives one file with every record, and changes nothing in the app.
   const backup = await saveBackup(page);

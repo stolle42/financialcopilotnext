@@ -1,8 +1,9 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ProfileDraft } from "@/domain/import/profiles";
-import type { MappingProfile } from "@/domain/types";
+import { suggestionRequest } from "@/domain/import/suggestions";
+import type { MappingProfile, ParsedRow, State } from "@/domain/types";
 import { loadState, openDatabase } from "@/persistence/db";
 import {
   assignGroup,
@@ -13,11 +14,21 @@ import {
   importFile,
   includeDuplicate,
   saveProfile,
+  suggestCategories,
 } from "./import";
+import { setAiFeatures } from "./settings";
 import { createStore } from "./store";
+
+const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
+  fetchMock.mockReset();
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 const draft: ProfileDraft = {
@@ -236,5 +247,165 @@ describe("review actions", () => {
     const state = await reopened();
     expect(state.pendingBatch).toBeNull();
     expect(state.transactions).toEqual([]);
+  });
+});
+
+describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+
+  /** A fetch that answers only when the test says so, as Claude thinking. */
+  function heldAnswer() {
+    let answer!: (response: Response) => void;
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => (answer = resolve)));
+    return async (body: unknown) => {
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      answer(json(body));
+    };
+  }
+
+  const rowOf = (state: State, rowNumber: number) =>
+    state.pendingBatch!.rows.find((row) => row.rowNumber === rowNumber) as ParsedRow;
+  const categoryNamed = (state: State, name: string) =>
+    state.categories.find((c) => c.side === "expense" && c.name === name)!.id;
+
+  /** The batch of `file` pending on Cash, with AI features on unless `aiFeatures` is false. */
+  async function withBatch(aiFeatures = true) {
+    const setup = await setUp();
+    await importInto(setup.store, setup.cash, setup.profile);
+    if (aiFeatures) await setAiFeatures(setup.store, true);
+    return setup;
+  }
+
+  const ask = (store: Parameters<typeof suggestCategories>[0], signal?: AbortSignal) =>
+    suggestCategories(store, signal ?? new AbortController().signal);
+
+  test("with AI features off, gives ai-features-off and sends nothing (FR-061, FR-095)", async () => {
+    const { store } = await withBatch(false);
+    const before = store.getState();
+
+    expect(await ask(store)).toEqual({ code: "ai-features-off" });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(store.getState()).toBe(before);
+  });
+
+  test("sends the request of the suggestion rules", async () => {
+    const { store } = await withBatch();
+    fetchMock.mockResolvedValue(json({ suggestions: [] }));
+
+    await ask(store);
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as unknown;
+    expect(body).toEqual(suggestionRequest(store.getState()));
+  });
+
+  test("fills rows with marks that survive reopening, and counts the rows sent and filled", async () => {
+    const { db, store } = await withBatch();
+    fetchMock.mockResolvedValue(
+      json({
+        suggestions: [
+          { rowNumber: 2, category: "Groceries" },
+          { rowNumber: 3, category: "Groceries" },
+          { rowNumber: 4, category: "Transport" },
+          { rowNumber: 6, category: null },
+        ],
+      }),
+    );
+
+    expect(await ask(store)).toEqual({ sent: 4, filled: 3 });
+
+    db.close();
+    const state = await reopened();
+    expect(rowOf(state, 2).assignment).toStrictEqual({
+      type: "category",
+      categoryId: categoryNamed(state, "Groceries"),
+      suggested: true,
+    });
+    expect(rowOf(state, 4).assignment).toMatchObject({ suggested: true });
+    expect(rowOf(state, 6).assignment).not.toHaveProperty("suggested");
+  });
+
+  test.each<[string, () => void, string]>([
+    [
+      "n8n cannot be reached",
+      () => fetchMock.mockRejectedValue(new TypeError("Failed to fetch")),
+      "categoriser-unreachable",
+    ],
+    [
+      "n8n reports a failure",
+      () => fetchMock.mockResolvedValue(json({ message: "Error" }, 500)),
+      "categoriser-failed",
+    ],
+    [
+      "the answer has the wrong form",
+      () => fetchMock.mockResolvedValue(json({ message: "Workflow was started" })),
+      "categoriser-answer-invalid",
+    ],
+  ])("when %s, refuses and changes nothing in memory or storage", async (_, answer, code) => {
+    const { db, store } = await withBatch();
+    answer();
+    const before = store.getState();
+    const stored = await loadState(db);
+
+    expect(await ask(store)).toEqual({ code });
+
+    expect(store.getState()).toBe(before);
+    expect(await loadState(db)).toEqual(stored);
+  });
+
+  test("keeps a choice the user makes while Claude answers", async () => {
+    const { store } = await withBatch();
+    const answer = heldAnswer();
+    const travel = categoryNamed(store.getState(), "Travel");
+
+    const result = ask(store);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(await assignRow(store, 2, { type: "category", categoryId: travel })).toBeNull();
+    await answer({
+      suggestions: [
+        { rowNumber: 2, category: "Groceries" },
+        { rowNumber: 3, category: "Groceries" },
+      ],
+    });
+
+    expect(await result).toEqual({ sent: 4, filled: 1 });
+    expect(rowOf(store.getState(), 2).assignment).toStrictEqual({
+      type: "category",
+      categoryId: travel,
+    });
+    expect(rowOf(store.getState(), 3).assignment).toMatchObject({ suggested: true });
+  });
+
+  test("gives suggestions-outdated and writes nothing when the batch is discarded meanwhile", async () => {
+    const { db, store } = await withBatch();
+    const answer = heldAnswer();
+
+    const result = ask(store);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(await discardBatch(store)).toBeNull();
+    await answer({ suggestions: [{ rowNumber: 2, category: "Groceries" }] });
+
+    expect(await result).toEqual({ code: "suggestions-outdated" });
+    expect(store.getState().pendingBatch).toBeNull();
+    expect((await loadState(db)).pendingBatch).toBeNull();
+  });
+
+  test("writes nothing once the request is aborted, even when its answer had arrived", async () => {
+    const { db, store } = await withBatch();
+    const answer = heldAnswer();
+    const controller = new AbortController();
+    const before = store.getState();
+
+    const result = ask(store, controller.signal);
+    await answer({ suggestions: [{ rowNumber: 2, category: "Groceries" }] });
+    controller.abort();
+
+    expect(await result).toBeNull();
+    expect(store.getState()).toBe(before);
+    expect((await loadState(db)).pendingBatch).toEqual(before.pendingBatch);
   });
 });

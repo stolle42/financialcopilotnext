@@ -1,4 +1,3 @@
-import { z } from "zod";
 import {
   DATE_FORMATS,
   ENCODINGS,
@@ -6,14 +5,10 @@ import {
   type Refusal,
   type State,
 } from "@/domain/types";
+import { z } from "./zod";
 
 // The backup file, format version 1 (contracts/backup-file.md, R-13). The schemas check the shape
 // of every part; the rules between records are the domain's invariants (loading step 4).
-
-// Zod's fast path compiles each schema with `new Function`, which the Content-Security-Policy
-// blocks (R-19). Even a probe that is caught is reported as a violation, so it is switched off
-// before the first schema is built. The parser is plain and fast enough for one file at a time.
-z.config({ jitless: true });
 
 const APP = "financial-copilot";
 const FORMAT_VERSION = 1;
@@ -127,7 +122,11 @@ const pendingRowSchema = z.discriminatedUnion("status", [
     duplicate: z.boolean(),
     included: z.boolean(),
     assignment: z.discriminatedUnion("type", [
-      z.object({ type: z.literal("category"), categoryId: z.string() }),
+      z.object({
+        type: z.literal("category"),
+        categoryId: z.string(),
+        suggested: z.literal(true).optional(),
+      }),
       z.object({ type: z.literal("transfer"), counterAccountId: z.string() }),
     ]),
   }),
@@ -154,7 +153,10 @@ const dataSchema: z.ZodType<State> = z.object({
   budgets: z.array(budgetSchema),
   profiles: z.array(profileSchemas),
   pendingBatch: pendingBatchSchema.nullable(),
-  settings: z.object({ manualEntryAccountId: z.string() }),
+  settings: z.object({
+    manualEntryAccountId: z.string(),
+    aiFeatures: z.literal(true).optional(),
+  }),
 });
 
 // What the UI calls the records of each part of `data`.

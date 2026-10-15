@@ -113,8 +113,10 @@ export const ROW_FAILURE_CODES = [
 
 export type RowFailureCode = (typeof ROW_FAILURE_CODES)[number];
 
+/** `suggested` marks a category Claude suggested, until the user assigns the row (FR-093). */
 export type Assignment =
-  { type: "category"; categoryId: string } | { type: "transfer"; counterAccountId: string };
+  | { type: "category"; categoryId: string; suggested?: true }
+  | { type: "transfer"; counterAccountId: string };
 
 interface RowFields {
   /** The record number in the file, counting a header row as 1, as a spreadsheet shows it. */
@@ -153,6 +155,8 @@ export interface PendingBatch {
 
 export interface Settings {
   manualEntryAccountId: string;
+  /** Present while the user has AI features on, never `false` (FR-095). */
+  aiFeatures?: true;
 }
 
 /** The seven stores of the storage layout, held in memory (R-05). */

@@ -1,3 +1,4 @@
+import { askCategoriser } from "@/categoriser/categoriser";
 import { canStartImport, createBatch } from "@/domain/import/batch";
 import {
   confirmBatch as decideConfirm,
@@ -15,6 +16,7 @@ import {
   includeDuplicate as decideIncludeDuplicate,
   type AssignmentChoice,
 } from "@/domain/import/review";
+import { applySuggestions, suggestionRequest } from "@/domain/import/suggestions";
 import type { MappingProfile } from "@/domain/types";
 import { decodeFile, tokenise } from "@/files/csv";
 import type { Store } from "./store";
@@ -86,4 +88,45 @@ export function confirmBatch(store: Store) {
 
 export function discardBatch(store: Store) {
   return store.run<never>((state) => decideDiscard(state));
+}
+
+/** Suggestions are asked for with AI features off, which the UI never offers (FR-061). */
+export type SuggestRefusalCode = "ai-features-off";
+
+/** How many rows a request sent, and how many of them got a category (FR-094). */
+export interface SuggestOutcome {
+  sent: number;
+  filled: number;
+}
+
+/**
+ * Asks Claude, through the n8n workflow, to suggest categories for the pending batch, and fills the
+ * rows the answer may fill (FR-090 – FR-094). Resolves to the outcome, a refusal, or `null` when
+ * `signal` aborts first; nothing is written then, even if the answer had arrived. Never rejects.
+ */
+export async function suggestCategories(store: Store, signal: AbortSignal) {
+  const state = store.getState();
+  // Checked here too, so no screen can send data with AI features off (FR-061, R-23).
+  if (state.settings.aiFeatures !== true) return { code: "ai-features-off" as const };
+  if (!state.pendingBatch) return { code: "suggestions-outdated" as const };
+  const request = suggestionRequest(state);
+  const sent = { batchId: state.pendingBatch.id, rowNumbers: request.rows.map((r) => r.rowNumber) };
+
+  const answer = await askCategoriser(request, signal);
+  if (answer === null || signal.aborted) return null;
+  if (!Array.isArray(answer)) return answer;
+
+  let filled = 0;
+  const refusal = await store.run((current) => {
+    // The request may be cancelled while earlier actions still hold the queue.
+    if (signal.aborted) return { code: "cancelled" as const };
+    const applied = applySuggestions(current, sent, answer);
+    if ("code" in applied) return applied;
+    filled = applied.filled;
+    return applied.changes;
+  });
+  if (refusal?.code === "cancelled") return null;
+  if (refusal) return refusal;
+  const outcome: SuggestOutcome = { sent: sent.rowNumbers.length, filled };
+  return outcome;
 }
