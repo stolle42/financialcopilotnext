@@ -536,8 +536,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
-  party, except in the one request the user starts by selecting Suggest categories in review and
-  agreeing to the data-sharing warning ([FR-090](#fr-090), [FR-091](#fr-091), [FR-095](#fr-095)).
+  party, except in the one request the user starts by selecting Suggest categories in review while
+  AI features are on ([FR-090](#fr-090), [FR-091](#fr-091), [FR-095](#fr-095)). They are on only
+  once the user turned them on in Settings and agreed to their warning.
   No other flow may make a request to any host other than the one serving the app: no analytics, no
   error reports, no update checks, and no fonts, scripts or other files from third parties. That one
   request goes to the project's n8n workflow, which runs on n8n's servers and passes it on to
@@ -586,8 +587,8 @@ testable for v1.
 
 - <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
   app holds, including accounts, transactions, categories, budgets, mapping profiles, the pending
-  batch, the manual-entry default account ([FR-006](#fr-006)) and whether the user asked never to
-  be warned about data sharing again ([FR-095](#fr-095)). Changed in v1.2: [FR-095](#fr-095).
+  batch, the manual-entry default account ([FR-006](#fr-006)) and whether AI features are on
+  ([FR-095](#fr-095)). Changed in v1.2: [FR-095](#fr-095).
 - <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
@@ -632,7 +633,8 @@ them changes states the new behaviour and names the change.
   and category filters ([FR-016](#fr-016)). A start after the end MUST be refused with a message
   at the fields ([FR-068](#fr-068)).
 - <a id="fr-084"></a>**FR-084**: The sidebar MUST list the screens in this order: Transactions,
-  Categories, Accounts, Budgets, Backup, Insights.
+  Categories, Accounts, Budgets, Backup, Insights, Settings. Changed in v1.2: Settings
+  ([FR-095](#fr-095)).
 - <a id="fr-085"></a>**FR-085**: Import MUST NOT have its own sidebar entry. It MUST open from a
   button on the transaction list, since an import feeds that list. On Import and the screens
   reached from it, the sidebar MUST mark Transactions as the current screen.
@@ -653,9 +655,10 @@ it changes states the new behaviour and names the change.
 
 - <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks Claude to
   suggest a category for the rows under review that still hold their side's "Uncategorised"
-  ([FR-029](#fr-029)). Only selecting it and agreeing to the data-sharing warning sends a request
-  ([FR-095](#fr-095)); importing, opening review and every other action send nothing
-  ([FR-061](#fr-061)).
+  ([FR-029](#fr-029)). Only selecting it sends a request; importing, opening review, turning AI
+  features on and every other action send nothing ([FR-061](#fr-061)). While AI features are off
+  ([FR-095](#fr-095)), Suggest categories MUST be unavailable, and review MUST say that it needs AI
+  features, which Settings turns on.
   - A row is sent only when it has a description or a counterparty, and its side has a category
     other than "Uncategorised" and "Unaccounted".
   - One request sends at most 300 rows, the first in review order ([FR-026](#fr-026)); the user
@@ -670,7 +673,7 @@ it changes states the new behaviour and names the change.
 
   It MUST NOT hold amounts, dates, account names or the file name. It goes to the project's n8n
   workflow, which runs on n8n's servers and passes it to Claude by Anthropic ([FR-061](#fr-061)).
-  The data-sharing warning says so ([FR-095](#fr-095)).
+  The warning shown when the user turns AI features on says so ([FR-095](#fr-095)).
 - <a id="fr-092"></a>**FR-092**: A suggestion MUST fill a row only if, when the answer arrives, the
   row is still under review and still holds its side's "Uncategorised", and the suggested name is
   that of a category of the row's side other than "Uncategorised" and "Unaccounted", compared as
@@ -689,12 +692,17 @@ it changes states the new behaviour and names the change.
   - no answer arrives within 4 minutes;
   - n8n reports a failure;
   - the answer is not in the expected form.
-- <a id="fr-095"></a>**FR-095**: Selecting Suggest categories MUST first show a warning that data
-  will now be shared: what the request sends and to whom ([FR-091](#fr-091)). The request MUST be
-  sent only when the user agrees; cancelling sends nothing and changes nothing. The warning MUST
-  offer **Don't warn me again**. When the user agrees with it ticked, later selections send at
-  once, without the warning. That choice MUST survive closing the app and MUST be part of a backup
-  ([FR-070](#fr-070)); a backup without it restores the warning.
+- <a id="fr-095"></a>**FR-095**: A **Settings** screen MUST offer an **AI features** switch, off
+  until the user turns it on. The one switch covers every feature that sends data off the
+  computer; in v1.2 that is Suggest categories ([FR-090](#fr-090)).
+  - Turning it on MUST first show a warning that data will now be shared: what each AI feature
+    sends and to whom ([FR-091](#fr-091)). AI features MUST turn on only when the user agrees;
+    cancelling leaves them off and changes nothing. Turning them on sends nothing by itself.
+  - Turning it off MUST take effect at once, without a warning.
+  - Using an AI feature MUST NOT show a further warning, and no other screen shows a notice while
+    AI features are on; Settings shows whether they are.
+  - The setting MUST survive closing the app and MUST be part of a backup ([FR-070](#fr-070)); a
+    backup without it restores AI features off.
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -752,7 +760,7 @@ it changes states the new behaviour and names the change.
   settings, in line with [FR-066](#fr-066).
 - <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
   account balance, transaction, category, budget, mapping profile, the pending batch, the
-  manual-entry default account, and whether the data-sharing warning is still shown, exactly.
+  manual-entry default account, and whether AI features are on, exactly.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -806,7 +814,7 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   ledger must be provably trustworthy before anything probabilistic sits on top of it, which is why
   a suggestion stays a suggestion until the user confirms ([FR-092](#fr-092)). The name Financial
   Copilot anticipates these features.
-- Category suggestions that send nothing off the computer and so need no data-sharing warning
+- Category suggestions that send nothing off the computer and so need no consent to data sharing
   ([FR-095](#fr-095)): running the n8n workflow on the user's own computer, and a local model
   through Ollama in place of Claude. v1.2 uses n8n's hosted service and Claude, because with Claude
   the texts reach Anthropic either way, so a local n8n would add setup for little gain, and a local
@@ -816,10 +824,9 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   category, or suggesting without being asked, for example during import; stopping a request other
   than by leaving review, and sending more than 300 rows at once; learning from the user's
   corrections; and keeping the counterparty in the ledger to give Claude better examples.
-- A data-sharing switch or a lasting notice while sharing is allowed. v1.2 warns at the moment data
-  would leave, on Suggest categories ([FR-095](#fr-095)). After **Don't warn me again**, only
-  restoring a backup saved before brings the warning back; a setting to turn it on again can come
-  later.
+- A switch per AI feature, a notice on every screen while AI features are on, and a warning each
+  time an AI feature sends. v1.2 warns once, when the user turns AI features on in Settings
+  ([FR-095](#fr-095)), and Settings shows whether they are on.
 - Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
   v1 must not foreclose them.
 - Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,

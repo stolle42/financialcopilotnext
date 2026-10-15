@@ -143,7 +143,7 @@ A category assignment uses the row's side: expense when `amountCents` ≤ 0, inc
 | Field | Type | Notes |
 |---|---|---|
 | `manualEntryAccountId` | Account id | Default account of the manual-entry form ([FR-006](spec.md#fr-006)) |
-| `skipSharingWarning` | `true`, or absent | Present once the user agreed to the data-sharing warning with **Don't warn me again** ticked ([FR-095](spec.md#fr-095)); never `false` |
+| `aiFeatures` | `true`, or absent | Present while the user has AI features on ([FR-095](spec.md#fr-095)); never `false` |
 
 ## Derived values
 
@@ -231,8 +231,9 @@ side's "Uncategorised". The last part keeps invariant 7 true ([R-12](research.md
 **Manual-entry default** ([FR-006](spec.md#fr-006)): `settings.manualEntryAccountId` changes only
 when a transaction is created from the manual-entry form. It becomes that transaction's `accountId`.
 
-**Data-sharing warning** ([FR-095](spec.md#fr-095)): `settings.skipSharingWarning` is set when the
-user agrees to the warning with **Don't warn me again** ticked. Only restoring a backup removes it.
+**AI features** ([FR-095](spec.md#fr-095)): `settings.aiFeatures` is set when the user turns the
+switch in Settings on and agrees to the data-sharing warning, and removed when the user turns it
+off. Nothing else changes it, apart from restoring a backup.
 
 ## Storage layout
 

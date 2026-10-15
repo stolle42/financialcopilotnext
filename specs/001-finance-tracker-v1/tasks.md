@@ -888,7 +888,7 @@ commit of its last task sets the version to `1.1.0`. Push and run the post-push 
 ## Phase 12: Category suggestions
 
 **Purpose**: Claude suggests categories for the rows that review still holds in "Uncategorised",
-through the n8n workflow in `n8n/`, and only after the user agreed to a data-sharing warning
+through the n8n workflow in `n8n/`, and only while the user has AI features on in Settings
 ([FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [R-23](research.md#r-23),
 [categoriser.md](contracts/categoriser.md)). The owner asked for it after v1.1. The spec, contracts
 and research change first, in the commits that add this phase.
@@ -1021,6 +1021,34 @@ and research change first, in the commits that add this phase.
     again; agreeing with Don't warn me again ticked stores the choice, and later selections send at
     once, also after a reload;
   - in `e2e/ui/shell.spec.ts`, the header holds no data-sharing switch.
+- [ ] T101 AI features in Settings, replacing T100's warning on Suggest categories (owner,
+  2026-10-15): `aiFeatures?: true` in place of `skipSharingWarning` in the settings of
+  `src/domain/types.ts` and `src/files/backup.ts`; `setAiFeatures` in place of
+  `skipSharingWarning` in `src/domain/settings.ts` and `src/store/settings.ts`;
+  `suggestCategories` in `src/store/import.ts` refusing with `ai-features-off`; a new
+  `src/ui/screens/settings/SettingsScreen.tsx` with the switch and the data-sharing warning, at
+  `#/settings` and last in the sidebar of `src/ui/app/App.tsx`; `SuggestCategories.tsx` without
+  the dialog, unavailable with AI features off; all worded in `src/ui/messages.ts`
+  ([ui.md](contracts/ui.md#settings), [ui.md](contracts/ui.md#review), [FR-061](spec.md#fr-061),
+  [FR-084](spec.md#fr-084), [FR-090](spec.md#fr-090), [FR-095](spec.md#fr-095),
+  [data-model.md](data-model.md#settings)). Test first:
+  - in `src/domain/settings.test.ts`, turning AI features on stores `aiFeatures: true`, turning
+    them off removes the key, and neither changes the rest of the settings; in
+    `src/store/settings.test.ts`, the choice survives reopening the database;
+  - `everyEntityState` in `src/domain/testing.ts` holds `aiFeatures`, so the backup round trips
+    keep it ([SC-014](spec.md#sc-014)); in `src/files/backup.test.ts`, a file without the key loads
+    with AI features off, while `aiFeatures: false` is refused as damaged;
+  - in `src/store/import.test.ts`, with AI features off, `suggestCategories` gives
+    `ai-features-off` and sends nothing;
+  - in `src/ui/messages.test.ts`, the warning names n8n and Anthropic;
+  - `e2e/support/categoriser.ts` turns AI features on in Settings and agrees to the warning;
+  - in a new `e2e/ui/settings.spec.ts`: the sidebar lists Settings last; the switch starts off;
+    turning it on shows the warning, and Cancel leaves it off and saves nothing; Turn on keeps it
+    on after a reload and sends nothing; turning it off takes effect at once, without a warning;
+  - in `e2e/ui/review.spec.ts`: with AI features off, the button is unavailable and review says
+    that it needs AI features, linking to Settings; with them on, selecting it sends at once,
+    without a dialog;
+  - in `e2e/network-guard.spec.ts`: turning AI features on and reviewing an import send nothing.
 - [ ] T099 (Project owner, manual) Publish the workflow on the hosted n8n, put its address into
   `src/categoriser/endpoint.ts` and [categoriser.md](contracts/categoriser.md#address), and walk
   [category suggestions](quickstart.md#category-suggestions), including the SC-001 file. The commit

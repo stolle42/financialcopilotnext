@@ -93,8 +93,8 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
 
 **Constraints**:
 
-- No network use and no external requests, except the category suggestions the user asks for after
-  a data-sharing warning, which go to the hosted n8n workflow ([FR-061](spec.md#fr-061),
+- No network use and no external requests, except the category suggestions the user asks for with
+  AI features on, which go to the hosted n8n workflow ([FR-061](spec.md#fr-061),
   [R-19](research.md#r-19), [R-23](research.md#r-23)).
 - Money in integer euro cents and dates as local calendar strings ([R-08](research.md#r-08)).
 - Every change that touches several records is atomic ([R-06](research.md#r-06)).
@@ -104,7 +104,7 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
   ([FR-061](spec.md#fr-061), [R-20](research.md#r-20)).
 
 **Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
-years of use, with headroom to about 50,000. There are 7 stored entity types and 10 screens
+years of use, with headroom to about 50,000. There are 7 stored entity types and 11 screens
 ([data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md)).
 
 Nothing in this context remains marked NEEDS CLARIFICATION: every open technical question is
@@ -140,8 +140,8 @@ quality gate.
 deviation needs justifying.
 
 **v1.2**: category suggestions add a hosted n8n workflow, with Anthropic behind it, as an optional
-part outside the app, and the one request outside the app's origin, sent only after the user
-agrees to a data-sharing warning ([R-23](research.md#r-23)). That deviates from
+part outside the app, and the one request outside the app's origin, sent only while the user has
+AI features on ([R-23](research.md#r-23)). That deviates from
 KISS's "no server process" and from the single origin of [R-19](research.md#r-19). The owner
 decided it, and [Complexity Tracking](#complexity-tracking) justifies it.
 
@@ -269,4 +269,4 @@ v1.0 and v1.1 had no deviation to justify. v1.2 adds one:
 
 | Violation | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| A hosted n8n workflow, with Anthropic behind it, as a part outside the app, and the one request outside the app's origin, for category suggestions the user agreed to share ([FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095), [R-23](research.md#r-23)) | The owner asked for suggestions by Claude in review. n8n keeps the API key and the prompt out of the app, and the app works fully without it | Calling Anthropic from the browser would put the key into the app and its backups. A proxy of our own would be a server to write, run and secure |
+| A hosted n8n workflow, with Anthropic behind it, as a part outside the app, and the one request outside the app's origin, for category suggestions while the user has AI features on ([FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095), [R-23](research.md#r-23)) | The owner asked for suggestions by Claude in review. n8n keeps the API key and the prompt out of the app, and the app works fully without it | Calling Anthropic from the browser would put the key into the app and its backups. A proxy of our own would be a server to write, run and secure |

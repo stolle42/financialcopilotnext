@@ -33,7 +33,7 @@ only, before `/speckit-tasks`.
 - [x] CHK006 Is "usage information" in FR-061 defined? For example, do error reports, update checks, or fetching fonts and scripts from third parties count as sending it? [Clarity, Spec §FR-061]
   - **Review 2026-10-02**: Partly covered. "Telemetry or analytics of any kind" under Never covers usage tracking, but error reports, update checks and third-party fonts or scripts are not named. The design forbids them all, using a CSP that allows only the app's own origin ([R-19](../research.md#r-19)). A definition such as "no request to any host other than the one serving the app" would settle CHK006, CHK007 and CHK017 together.
   - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
-  - **Revisited 2026-10-12 (v1.2)**: still clear. FR-061 now lets data leave only in the category suggestions the user asks for, after agreeing to the data-sharing warning ([FR-095](../spec.md#fr-095)); [FR-091](../spec.md#fr-091) lists exactly what such a request holds.
+  - **Revisited 2026-10-12 (v1.2)**: still clear. FR-061 now lets data leave only in the category suggestions the user asks for while AI features are on, which needs agreeing to the data-sharing warning in Settings ([FR-095](../spec.md#fr-095)); [FR-091](../spec.md#fr-091) lists exactly what such a request holds.
 - [x] CHK007 Is "network connection" in FR-061 defined so that serving the app from the user's own computer clearly does not count as one? [Ambiguity, Spec §FR-061]
   - **Review 2026-10-02**: Implied, not defined. "Real data lives only in the app as run locally" suggests that serving from `localhost` does not count, but a strict reading could count loopback HTTP as a network connection. One sentence would settle it (see CHK006).
   - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
@@ -57,7 +57,7 @@ only, before `/speckit-tasks`.
   - **Resolved 2026-10-02**: [FR-069](../spec.md#fr-069).
 - [x] CHK013 Is FR-061's ban on sending usage information to any external party consistent with a hosted copy, whose host sees every request for the app's files? [Consistency, Spec §FR-061]
   - **Review 2026-10-02**: Consistent since the 2026-10-01 clarification. FR-061 confines a hosted copy to checks and demonstrations, and Out of Scope excludes it for real data. The host sees requests for the app's files, never ledger data ([R-20](../research.md#r-20)).
-  - **Revisited 2026-10-12 (v1.2)**: still consistent. After the data-sharing warning, a hosted copy can send suggestions too, but it holds demonstration data only ([R-23](../research.md#r-23)), and its host still sees no ledger data.
+  - **Revisited 2026-10-12 (v1.2)**: still consistent. With AI features on, a hosted copy can send suggestions too, but it holds demonstration data only ([R-23](../research.md#r-23)), and its host still sees no ledger data.
 
 ## Scenario & Edge Case Coverage
 
@@ -76,7 +76,7 @@ only, before `/speckit-tasks`.
 - [x] CHK017 Can FR-061 be objectively verified, for example because it states that no request may leave the computer during any v1 flow? [Measurability, Spec §FR-061]
   - **Review 2026-10-02**: Half measurable. "MUST NOT require a network connection" can be tested by running offline. "Any external party" cannot be tested until it is defined (see CHK006). The design's test guard already checks the stricter rule ([R-19](../research.md#r-19)).
   - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
-  - **Revisited 2026-10-12 (v1.2)**: still measurable. The test guard still fails every request outside the app's origin, so the tests of category suggestions must answer in the workflow's place, and every other test proves that nothing is sent unasked or before the user agrees to the data-sharing warning ([R-23](../research.md#r-23)).
+  - **Revisited 2026-10-12 (v1.2)**: still measurable. The test guard still fails every request outside the app's origin, so the tests of category suggestions must answer in the workflow's place, and every other test proves that nothing is sent unasked or with AI features off ([R-23](../research.md#r-23)).
 - [x] CHK018 Is "reproduces … exactly" in SC-014 precise enough to compare a restored state with the original, for example item by item? [Measurability, Spec §SC-014]
   - **Review 2026-10-02**: Precise enough. "Every account balance, transaction, category, budget, mapping profile, and the pending batch" is an item-by-item list, and the design turns "exactly" into a deep-equal round trip ([contracts/backup-file.md](../contracts/backup-file.md#exactness-sc-014)). It covers the default account once CHK010 is fixed.
 
