@@ -10,6 +10,7 @@ import type { Refusal, RefusalDetails, RowFailureCode, Side } from "@/domain/typ
 import type { InvariantCode } from "@/domain/invariants";
 import type { BackupRefusalCode } from "@/files/backup";
 import type { DecodingRefusal } from "@/files/csv";
+import type { SuggestRefusalCode } from "@/store/import";
 import type { StoreRefusalCode } from "@/store/store";
 import { formatAmount } from "./format";
 
@@ -35,6 +36,7 @@ export type MessageCode =
   | BatchRefusalCode
   | SuggestionRefusalCode
   | CategoriserRefusalCode
+  | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
@@ -202,7 +204,8 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
-
+  "ai-features-off":
+    "Suggestions need AI features, which you turn on in Settings. Nothing was sent.",
   "categoriser-unreachable":
     "Claude could not be asked. Check your internet connection and that the n8n workflow is " +
     "published, then try again. No row changed.",
@@ -235,11 +238,20 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
-/** The data-sharing warning, shown before Suggest categories sends (FR-095, FR-091). */
+/** What AI features do and where their data goes, on the Settings screen (FR-095). */
+export const aiFeaturesDescription =
+  "Suggest categories in review. AI features send data to the project's n8n workflow and to " +
+  "Anthropic.";
+
+/** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
 export const sharingWarning =
-  "The payee and purpose of the rows still to categorise, your category names and up to 100 " +
-  "earlier descriptions now leave the app. They go to the project's n8n workflow and to " +
-  "Anthropic, whose Claude suggests the categories. Amounts, dates and account names stay here.";
+  "Data will now be shared. Suggest categories sends the payee and purpose of the rows still to " +
+  "categorise, your category names and up to 100 earlier descriptions to the project's n8n " +
+  "workflow and to Anthropic, whose Claude suggests the categories. Amounts, dates and account " +
+  "names stay here.";
+
+/** Beside Suggest categories while AI features are off (FR-090). */
+export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
 
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {

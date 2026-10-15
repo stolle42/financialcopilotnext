@@ -12,7 +12,8 @@ export type Route =
   | { name: "budgets" }
   | { name: "categories" }
   | { name: "accounts" }
-  | { name: "backup" };
+  | { name: "backup" }
+  | { name: "settings" };
 
 const fixedRoutes: Record<string, Route> = {
   "/": { name: "transactions" },
@@ -24,6 +25,7 @@ const fixedRoutes: Record<string, Route> = {
   "/categories": { name: "categories" },
   "/accounts": { name: "accounts" },
   "/backup": { name: "backup" },
+  "/settings": { name: "settings" },
 };
 
 const home: Route = { name: "transactions" };

@@ -27,6 +27,7 @@ test("Import has no entry in the sidebar", async ({ page }) => {
     "Budgets",
     "Backup",
     "Insights",
+    "Settings",
   ]);
 });
 

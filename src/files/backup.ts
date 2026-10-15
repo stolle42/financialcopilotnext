@@ -155,7 +155,7 @@ const dataSchema: z.ZodType<State> = z.object({
   pendingBatch: pendingBatchSchema.nullable(),
   settings: z.object({
     manualEntryAccountId: z.string(),
-    skipSharingWarning: z.literal(true).optional(),
+    aiFeatures: z.literal(true).optional(),
   }),
 });
 

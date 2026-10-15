@@ -1021,7 +1021,7 @@ and research change first, in the commits that add this phase.
     again; agreeing with Don't warn me again ticked stores the choice, and later selections send at
     once, also after a reload;
   - in `e2e/ui/shell.spec.ts`, the header holds no data-sharing switch.
-- [ ] T101 AI features in Settings, replacing T100's warning on Suggest categories (owner,
+- [X] T101 AI features in Settings, replacing T100's warning on Suggest categories (owner,
   2026-10-15): `aiFeatures?: true` in place of `skipSharingWarning` in the settings of
   `src/domain/types.ts` and `src/files/backup.ts`; `setAiFeatures` in place of
   `skipSharingWarning` in `src/domain/settings.ts` and `src/store/settings.ts`;

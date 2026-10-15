@@ -155,8 +155,8 @@ export interface PendingBatch {
 
 export interface Settings {
   manualEntryAccountId: string;
-  /** Present once the user agreed to the data-sharing warning with Don't warn me again, never `false` (FR-095). */
-  skipSharingWarning?: true;
+  /** Present while the user has AI features on, never `false` (FR-095). */
+  aiFeatures?: true;
 }
 
 /** The seven stores of the storage layout, held in memory (R-05). */
