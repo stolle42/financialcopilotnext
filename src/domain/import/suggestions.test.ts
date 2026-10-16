@@ -21,7 +21,7 @@ import {
   suggestionRequest,
 } from "./suggestions";
 
-// FR-090 – FR-093; contracts/categoriser.md, request and answer; R-23.
+// FR-090 – FR-093; contracts/ai.md, request and answer; R-23.
 
 const categoryNamed = (state: State, side: Side, name: string): Category =>
   state.categories.find((c) => c.side === side && c.name === name)!;
@@ -151,7 +151,7 @@ describe("suggestableRows (FR-090)", () => {
   });
 });
 
-describe("suggestionRequest (FR-091, contracts/categoriser.md)", () => {
+describe("suggestionRequest (FR-091, contracts/ai.md)", () => {
   test("holds exactly each row's number, side, counterparty and description", () => {
     expect(suggestionRequest(mixedBatch()).rows).toStrictEqual([
       {
@@ -391,7 +391,7 @@ describe("applySuggestions (FR-092, FR-093)", () => {
     });
   });
 
-  test("never replaces what the user chose or changed while Claude answered", () => {
+  test("never replaces what the user chose or changed while the AI answered", () => {
     const state = mixedBatch();
     const sent = sentRows(state);
     const travel: Assignment = {

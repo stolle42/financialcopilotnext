@@ -6,12 +6,34 @@ import {
   putBudgets,
   putRecords,
   reconcileAccount,
+  storedRecord,
   storedRecords,
   storedTransactions,
 } from "../support/app";
+import { messageFor } from "../../src/ui/messages";
+// A namespace import, so the spec loads even before the catalogue words a new message.
+import * as catalogue from "../../src/ui/messages";
+import {
+  aiFeaturesSwitch,
+  answer,
+  askInChat,
+  chat,
+  chatButton,
+  conversation,
+  LOCAL_ONLY,
+  onHostedCopy,
+  openChat,
+  outOfScope,
+  questionField,
+  standInChat,
+  suggestions,
+  turnOnAiFeatures,
+  type SourceNamed,
+} from "../support/ai";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, insights; FR-050 – FR-053; R-14, R-19.
+// contracts/ui.md, insights and finance chat; FR-050 – FR-053, FR-100 – FR-111; R-14, R-19, R-25,
+// R-26.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");
@@ -558,5 +580,528 @@ test.describe("the budgets (FR-041, FR-042, SC-011)", () => {
 
     await expect(page).toHaveURL(/#\/insights$/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("the finance chat (FR-100 – FR-111)", () => {
+  test.skip(({ baseURL }) => onHostedCopy(baseURL), LOCAL_ONLY);
+  const examples = (page: Page) =>
+    chat(page).getByRole("button", {
+      name: new RegExp(`^(${catalogue.financeChat.examples.map(escape).join("|")})$`),
+    });
+  const sendButton = (page: Page) => chat(page).getByRole("button", { name: "Send" });
+  const stopButton = (page: Page) => chat(page).getByRole("button", { name: "Stop" });
+  const clearButton = (page: Page) =>
+    chat(page).getByRole("button", { name: "Clear conversation" });
+  /** The sources of the answers, each answer's in a navigation region of its own (FR-110). */
+  const sources = (page: Page) => chat(page).getByRole("navigation", { name: "Sources" });
+  const groceriesInSeptember: SourceNamed = {
+    name: "Groceries, September 2026",
+    from: "2026-09-01",
+    to: "2026-09-30",
+    category: { side: "expense", name: "Groceries" },
+    account: null,
+  };
+
+  test("the chat button on Insights opens the chat, which names itself and offers the example questions (FR-100, FR-101)", async ({
+    page,
+  }) => {
+    await turnOnAiFeatures(page);
+    await page.goto("/#/insights");
+
+    await chatButton(page).click();
+
+    await expect(chat(page)).toBeVisible();
+    expect(catalogue.financeChat.examples).toEqual(
+      expect.arrayContaining([
+        "How can I reduce my spending?",
+        "Which of my subscriptions have become more expensive?",
+      ]),
+    );
+    for (const example of catalogue.financeChat.examples) {
+      await expect(chat(page).getByRole("button", { name: example, exact: true })).toBeEnabled();
+    }
+    await expect(conversation(page)).toHaveCount(0);
+    await expect(clearButton(page)).toHaveCount(0);
+  });
+
+  test("with AI features off, says they are needed, links to Settings, and offers nothing to send (FR-100)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page);
+    await openChat(page);
+
+    await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
+    await expect(examples(page)).toHaveCount(0);
+    await expect(questionField(page)).toHaveCount(0);
+    await chat(page).getByRole("link", { name: "Settings" }).click();
+    await expect(page).toHaveURL(/#\/settings$/);
+    expect(standIn.requests).toEqual([]);
+  });
+
+  test("with AI features turned off later, the stored conversation still shows, with nothing to send (FR-100, FR-104)", async ({
+    page,
+  }) => {
+    await standInChat(page, answer("Groceries."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Groceries."]);
+
+    await page.goto("/#/settings");
+    await aiFeaturesSwitch(page).click();
+    await expect(aiFeaturesSwitch(page)).not.toBeChecked();
+    await openChat(page);
+
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Groceries."]);
+    await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
+    await expect(questionField(page)).toHaveCount(0);
+  });
+
+  test("the chat opens on every screen, with the conversation asked on another (FR-100, FR-104)", async ({
+    page,
+  }) => {
+    await standInChat(page, answer("Groceries."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    const kept = ["Where does my money go?", "Groceries."];
+    await expect(conversation(page)).toHaveText(kept);
+
+    await page.goto("/#/budgets");
+    await expect(chat(page)).toBeHidden();
+    await chatButton(page).click();
+
+    await expect(conversation(page)).toHaveText(kept);
+    await expect(questionField(page)).toBeEditable();
+  });
+
+  test("opening another screen closes the chat, by its link to Settings or by going back (FR-100)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await chatButton(page).click();
+    await expect(chat(page)).toBeVisible();
+
+    await chat(page).getByRole("link", { name: "Settings" }).click();
+
+    await expect(page).toHaveURL(/#\/settings$/);
+    await expect(chat(page)).toBeHidden();
+    await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+
+    await chatButton(page).click();
+    await expect(chat(page)).toBeVisible();
+    await page.goBack();
+
+    await expect(chat(page)).toBeHidden();
+    await expect(main(page).getByRole("heading", { name: "Transactions", level: 1 })).toBeVisible();
+  });
+
+  test("an example question sends at once, with today's data, and its answer follows it as plain text (FR-101 – FR-103)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(
+      page,
+      answer("Spotify Premium rose from €10.99 to €11.99.\n- <b>Check it</b>"),
+    );
+    await page.goto("/");
+    await addTransaction(page, {
+      amount: "11.99",
+      category: "Leisure",
+      description: "Spotify Premium",
+    });
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await chat(page)
+      .getByRole("button", { name: "Which of my subscriptions have become more expensive?" })
+      .click();
+
+    await expect(conversation(page)).toHaveText([
+      "Which of my subscriptions have become more expensive?",
+      /^Spotify Premium rose from €10\.99 to €11\.99\.\s+- <b>Check it<\/b>$/,
+    ]);
+    await expect(chat(page).locator("b")).toHaveCount(0);
+    await expect(sources(page)).toHaveCount(0);
+    expect(standIn.requests).toHaveLength(1);
+    const [sent] = standIn.requests;
+    expect(sent!.question).toBe("Which of my subscriptions have become more expensive?");
+    expect(sent!.turns).toEqual([]);
+    expect(sent!.request.stream).toBe(true);
+    expect(sent!.context.today).toBe("2026-09-03");
+    expect(sent!.context.transactions.rows).toContainEqual([
+      "2026-09-03",
+      "Spotify Premium",
+      -11.99,
+      "Leisure",
+    ]);
+    await expect(examples(page)).toHaveCount(0);
+  });
+
+  test("an answer ends with its sources as links, named as the answer names them, leaving out those the app cannot use (FR-110)", async ({
+    page,
+  }) => {
+    await standInChat(
+      page,
+      answer("You spent €40.00 on groceries in September.", [
+        groceriesInSeptember,
+        { ...groceriesInSeptember, name: "An account you do not have", account: "Savings" },
+        { ...groceriesInSeptember, name: "September 2026", category: null },
+      ]),
+    );
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await askInChat(page, "How much did I spend on groceries?");
+
+    await expect(sources(page)).toHaveCount(1);
+    await expect(sources(page)).toContainText(catalogue.financeChat.sources);
+    await expect(sources(page).getByRole("link")).toHaveText([
+      "Groceries, September 2026",
+      "September 2026",
+    ]);
+    await expect(conversation(page).last()).toContainText(
+      "You spent €40.00 on groceries in September.",
+    );
+  });
+
+  test("a source closes the chat and opens Transactions with its filters, where the chat shows the conversation (FR-100, FR-104, FR-110)", async ({
+    page,
+  }) => {
+    await standInChat(
+      page,
+      answer("You spent €40.00 on groceries in September.", [groceriesInSeptember]),
+    );
+    await page.goto("/");
+    await addTransaction(page, { amount: "40.00", category: "Groceries", description: "Shop" });
+    await addTransaction(page, { amount: "3.00", category: "Eating out", description: "Cafe" });
+    await addTransaction(page, {
+      amount: "25.00",
+      category: "Groceries",
+      date: "2026-08-20",
+      description: "August shop",
+    });
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "How much did I spend on groceries?");
+
+    await sources(page).getByRole("link", { name: "Groceries, September 2026" }).click();
+
+    await expect(chat(page)).toBeHidden();
+    const groceries = (await storedRecords<Category>(page, "categories")).find(
+      (c) => c.side === "expense" && c.name === "Groceries",
+    )!;
+    await expect(page).toHaveURL(
+      new RegExp(`#/\\?category=${groceries.id}&from=2026-09-01&to=2026-09-30$`),
+    );
+    const listed = page.getByRole("list", { name: "Transactions" }).getByRole("listitem");
+    await expect(listed).toHaveCount(1);
+    await expect(listed).toContainText("Shop");
+    await expect(
+      page.getByRole("region", { name: "Filters" }).getByLabel("From", { exact: true }),
+    ).toHaveValue("2026-09-01");
+
+    await chatButton(page).click();
+    await expect(conversation(page)).toHaveText([
+      "How much did I spend on groceries?",
+      /^You spent €40\.00 on groceries in September\./,
+    ]);
+  });
+
+  test("a source whose category was deleted shows its name as text, without a link (FR-110)", async ({
+    page,
+  }) => {
+    await standInChat(
+      page,
+      answer("Leisure took €12.00.", [
+        {
+          ...groceriesInSeptember,
+          name: "Leisure, September 2026",
+          category: { side: "expense", name: "Leisure" },
+        },
+      ]),
+    );
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "What did leisure cost?");
+    await expect(sources(page).getByRole("link")).toHaveText(["Leisure, September 2026"]);
+
+    await page.goto("/#/categories");
+    await main(page)
+      .getByRole("tabpanel")
+      .getByRole("listitem")
+      .filter({ has: page.getByText("Leisure", { exact: true }) })
+      .getByRole("button", { name: "Delete" })
+      .click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Delete category" }).click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await openChat(page);
+
+    await expect(sources(page)).toContainText("Leisure, September 2026");
+    await expect(sources(page).getByRole("link")).toHaveCount(0);
+  });
+
+  test("a typed question sends with Enter, and the next one sends the earlier turn too (FR-101, FR-102)", async ({
+    page,
+  }) => {
+    let count = 0;
+    const standIn = await standInChat(page, () => ({
+      json: { inScope: true, answer: `Answer ${++count}`, sources: [], followUps: [] },
+    }));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await expect(sendButton(page)).toBeDisabled();
+    await askInChat(page, "Where does my money go?");
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Answer 1"]);
+    await expect(questionField(page)).toHaveValue("");
+    await askInChat(page, "And last month?");
+
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      "Answer 1",
+      "And last month?",
+      "Answer 2",
+    ]);
+    expect(standIn.requests[1]!.turns).toEqual([
+      { question: "Where does my money go?", answer: "Answer 1" },
+    ]);
+  });
+
+  test("while an answer is awaited, says Thinking…, offers Stop in place of Send, keeps the field editable and sends nothing more (FR-107, FR-108)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, answer("Done."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "First question?");
+    await expect(conversation(page)).toHaveText(["First question?", "Done."]);
+    standIn.hold();
+
+    await askInChat(page, "Where does my money go?");
+
+    await expect(conversation(page)).toHaveText([
+      "First question?",
+      "Done.",
+      "Where does my money go?",
+      catalogue.financeChat.thinking,
+    ]);
+    await expect(sendButton(page)).toHaveCount(0);
+    await expect(stopButton(page)).toBeEnabled();
+    await expect(clearButton(page)).toBeDisabled();
+    await questionField(page).fill("Another question");
+    await expect(questionField(page)).toHaveValue("Another question");
+    await questionField(page).press("Enter");
+    await expect(questionField(page)).toHaveValue("Another question");
+
+    standIn.release();
+    await expect(conversation(page)).toHaveText([
+      "First question?",
+      "Done.",
+      "Where does my money go?",
+      "Done.",
+    ]);
+    await expect(chat(page)).not.toContainText(catalogue.financeChat.thinking);
+    await expect(stopButton(page)).toHaveCount(0);
+    await expect(sendButton(page)).toBeEnabled();
+    expect(standIn.requests).toHaveLength(2);
+  });
+
+  test("Stop ends the answer at once, marked Stopped and without sources, and nothing arrives later (FR-108)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, answer("Late answer.", [groceriesInSeptember]));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    standIn.hold();
+    await askInChat(page, "Where does my money go?");
+    await expect(stopButton(page)).toBeVisible();
+
+    await stopButton(page).click();
+
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      catalogue.financeChat.stopped,
+    ]);
+    await expect(sendButton(page)).toBeVisible();
+    standIn.release();
+    await page.waitForTimeout(300);
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      catalogue.financeChat.stopped,
+    ]);
+    await expect(sources(page)).toHaveCount(0);
+    await expect(chat(page).getByRole("alert")).toHaveCount(0);
+    expect(await storedRecord(page, "settings", "conversation")).toEqual([
+      { question: "Where does my money go?", answer: "", stopped: true, sources: [] },
+    ]);
+  });
+
+  test("a question out of scope gets the fixed answer, not the model's text, no sources, and the example questions again (FR-101, FR-103)", async ({
+    page,
+  }) => {
+    await standInChat(page, outOfScope);
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await askInChat(page, "What is the capital of France?");
+
+    await expect(conversation(page)).toHaveText([
+      "What is the capital of France?",
+      catalogue.financeChat.outOfScope,
+    ]);
+    await expect(chat(page)).not.toContainText("Paris");
+    await expect(sources(page)).toHaveCount(0);
+    await expect(suggestions(page).getByRole("button")).toHaveText([
+      ...catalogue.financeChat.examples,
+    ]);
+    await expect(chat(page)).not.toContainText("And of Spain?");
+  });
+
+  test("an answer's follow-up questions show under it as suggestions, also after a reload, and one sends at once without them (FR-111)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, (request) =>
+      request.question === "Where does my money go?"
+        ? answer("Groceries.", [], ["And last month?", "Where could I save?"])(request)
+        : answer("On eating out.")(request),
+    );
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+
+    const followUps = ["And last month?", "Where could I save?"];
+    await expect(suggestions(page).getByRole("button")).toHaveText(followUps);
+    await expect(examples(page)).toHaveCount(0);
+    await page.reload();
+    await chatButton(page).click();
+    await expect(suggestions(page).getByRole("button")).toHaveText(followUps);
+
+    standIn.hold();
+    await suggestions(page).getByRole("button", { name: "Where could I save?" }).click();
+
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      "Groceries.",
+      "Where could I save?",
+      catalogue.financeChat.thinking,
+    ]);
+    await expect(suggestions(page)).toHaveCount(0);
+    await expect.poll(() => standIn.requests.length).toBe(2);
+    expect(standIn.requests[1]!.question).toBe("Where could I save?");
+    expect(JSON.stringify(standIn.requests[1]!.request.input)).not.toContain("And last month?");
+    standIn.release();
+    await expect(conversation(page).nth(3)).toHaveText("On eating out.");
+    await expect(suggestions(page)).toHaveCount(0);
+  });
+
+  test("offers no suggestions while an answer is awaited, nor after it is stopped (FR-108, FR-111)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, answer("Groceries.", [], ["And last month?"]));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    standIn.hold();
+    await askInChat(page, "Where does my money go?");
+    await expect(suggestions(page)).toHaveCount(0);
+
+    await stopButton(page).click();
+    await expect(conversation(page).nth(1)).toHaveText(catalogue.financeChat.stopped);
+    standIn.release();
+
+    await expect(suggestions(page)).toHaveCount(0);
+  });
+
+  test("a failure shows its message and keeps the conversation, with the question in the field (FR-104)", async ({
+    page,
+  }) => {
+    let fail = false;
+    await standInChat(page, () =>
+      fail
+        ? "unreachable"
+        : { json: { inScope: true, answer: "Fine.", sources: [], followUps: [] } },
+    );
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Am I on track?");
+    await expect(conversation(page)).toHaveText(["Am I on track?", "Fine."]);
+    fail = true;
+
+    await askInChat(page, "And next month?");
+
+    await expect(chat(page).getByRole("alert")).toHaveText(messageFor({ code: "ai-unreachable" }));
+    await expect(conversation(page)).toHaveText(["Am I on track?", "Fine."]);
+    await expect(questionField(page)).toHaveValue("And next month?");
+  });
+
+  test("closing and opening the chat, leaving Insights and reloading all keep the conversation (FR-104)", async ({
+    page,
+  }) => {
+    await standInChat(page, answer("Groceries."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    const kept = ["Where does my money go?", "Groceries."];
+    await expect(conversation(page)).toHaveText(kept);
+
+    await page.keyboard.press("Escape");
+    await expect(chat(page)).toBeHidden();
+    await chatButton(page).click();
+    await expect(conversation(page)).toHaveText(kept);
+
+    await page.goto("/#/");
+    await openChat(page);
+    await expect(conversation(page)).toHaveText(kept);
+
+    await page.reload();
+    await chatButton(page).click();
+    await expect(conversation(page)).toHaveText(kept);
+    await expect(examples(page)).toHaveCount(0);
+  });
+
+  test("an answer awaited while the user leaves Insights is there once the user is back (FR-108)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, answer("Late answer."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    standIn.hold();
+    await askInChat(page, "Where does my money go?");
+    await expect.poll(() => standIn.requests.length).toBe(1);
+
+    await page.goto("/#/");
+    standIn.release();
+    await page.waitForTimeout(300);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await page.goto("/#/insights");
+    await chatButton(page).click();
+
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Late answer."]);
+  });
+
+  test("Clear conversation asks first: Cancel keeps it, and confirming shows the examples again, also after a reload (FR-069, FR-104)", async ({
+    page,
+  }) => {
+    await standInChat(page, answer("Groceries."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    await expect(conversation(page)).toHaveCount(2);
+
+    await clearButton(page).click();
+    const confirmation = page.getByRole("alertdialog");
+    await expect(confirmation).toContainText(catalogue.financeChat.clearWarning);
+    await confirmation.getByRole("button", { name: "Cancel" }).click();
+    await expect(conversation(page)).toHaveCount(2);
+
+    await clearButton(page).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Clear conversation" }).click();
+
+    await expect(conversation(page)).toHaveCount(0);
+    await expect(examples(page)).toHaveCount(catalogue.financeChat.examples.length);
+    await expect(clearButton(page)).toHaveCount(0);
+    await page.reload();
+    await chatButton(page).click();
+    await expect(conversation(page)).toHaveCount(0);
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { checkInvariants } from "./invariants";
 import type {
   Category,
+  ChatTurn,
   MappingProfile,
   ParsedRow,
   PendingBatch,
@@ -70,6 +71,52 @@ const batch: PendingBatch = {
   ],
 };
 
+const answeredTurn: ChatTurn = {
+  question: "How much did I spend on groceries?",
+  answer: "€40.00 in September 2026.",
+  sources: [
+    {
+      name: "Groceries, September 2026",
+      from: "2026-09-01",
+      to: "2026-09-30",
+      categoryId: "groceries",
+      accountId: "cash",
+    },
+    // A category deleted since the answer: the source then shows as text (FR-110).
+    {
+      name: "Pets, 2026",
+      from: "2026-01-01",
+      to: "2026-09-30",
+      categoryId: "gone",
+      accountId: null,
+    },
+    {
+      name: "September 2026",
+      from: "2026-09-01",
+      to: "2026-09-01",
+      categoryId: null,
+      accountId: null,
+    },
+  ],
+};
+
+/**
+ * The turns of data-model.md: answered, stopped with and without text, out of scope, and answered
+ * with follow-ups.
+ */
+const conversation: ChatTurn[] = [
+  answeredTurn,
+  { question: "And on eating out?", answer: "You spent", stopped: true, sources: [] },
+  { question: "Where does my money go?", answer: "", stopped: true, sources: [] },
+  { question: "What is the capital of France?", answer: "", outOfScope: true, sources: [] },
+  {
+    question: "And on rent?",
+    answer: "€800.00 a month.",
+    sources: [],
+    followUps: ["And last year?", "Where could I save on rent?", "Is that more than last year?"],
+  },
+];
+
 /** A valid state that touches every entity type. */
 function validState(): State {
   return {
@@ -121,7 +168,16 @@ function validState(): State {
     profiles: [headerProfile, positionProfile],
     pendingBatch: batch,
     settings: { manualEntryAccountId: "cash" },
+    conversation,
   };
+}
+
+function withTurn(change: Record<string, unknown>): State {
+  return { ...validState(), conversation: [{ ...answeredTurn, ...change } as ChatTurn] };
+}
+
+function withSource(change: Record<string, unknown>): State {
+  return withTurn({ sources: [{ ...answeredTurn.sources[0]!, ...change }] });
 }
 
 function withTransaction(index: number, change: Record<string, unknown>): State {
@@ -153,7 +209,21 @@ describe("checkInvariants", () => {
     expect(checkInvariants(validState())).toBeNull();
   });
 
-  test("passes a row holding a category of its side as Claude's suggestion (FR-093)", () => {
+  test("passes a conversation whose source names a category deleted since (FR-110)", () => {
+    expect(validState().conversation[0]!.sources[1]!.categoryId).toBe("gone");
+    expect(checkInvariants(withSource({ categoryId: "gone", accountId: "gone" }))).toBeNull();
+  });
+
+  test("names the turn that breaks a rule of the conversation, counting from 1", () => {
+    const state = validState();
+    const conversation = [...state.conversation, { ...answeredTurn, question: " " }];
+    expect(checkInvariants({ ...state, conversation })).toEqual({
+      code: "conversation-question-missing",
+      details: { turn: conversation.length },
+    });
+  });
+
+  test("passes a row holding a category of its side as the AI's suggestion (FR-093)", () => {
     const suggested = { type: "category", categoryId: "groceries", suggested: true };
     expect(checkInvariants(withRow({ assignment: suggested }))).toBeNull();
   });
@@ -370,7 +440,7 @@ describe("checkInvariants", () => {
       "pending-row-category-invalid",
     ],
     [
-      "7: a row in Uncategorised marked as Claude's suggestion",
+      "7: a row in Uncategorised marked as the AI's suggestion",
       () =>
         withRow({
           assignment: { type: "category", categoryId: "expense-uncategorised", suggested: true },
@@ -378,7 +448,7 @@ describe("checkInvariants", () => {
       "pending-row-suggestion-invalid",
     ],
     [
-      "7: a row in Unaccounted marked as Claude's suggestion",
+      "7: a row in Unaccounted marked as the AI's suggestion",
       () =>
         withRow({
           assignment: { type: "category", categoryId: "expense-unaccounted", suggested: true },
@@ -408,6 +478,84 @@ describe("checkInvariants", () => {
       "8: a default account that does not exist",
       () => ({ ...validState(), settings: { manualEntryAccountId: "gone" } }),
       "settings-account-missing",
+    ],
+    // 9. The conversation.
+    ["9: an empty question", () => withTurn({ question: "" }), "conversation-question-missing"],
+    [
+      "9: a question of spaces only",
+      () => withTurn({ question: "  " }),
+      "conversation-question-missing",
+    ],
+    [
+      "9: an answer in scope, not stopped, without text",
+      () => withTurn({ answer: "", sources: [] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a turn out of scope with an answer",
+      () => withTurn({ outOfScope: true, sources: [] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a turn out of scope with sources",
+      () => withTurn({ outOfScope: true, answer: "" }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a turn out of scope marked as stopped",
+      () => withTurn({ outOfScope: true, answer: "", sources: [], stopped: true }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a stopped turn with sources",
+      () => withTurn({ stopped: true }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: follow-ups on a turn out of scope",
+      () => withTurn({ outOfScope: true, answer: "", sources: [], followUps: ["Why?"] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: follow-ups on a stopped turn",
+      () => withTurn({ stopped: true, sources: [], followUps: ["Why?"] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: an empty list of follow-ups",
+      () => withTurn({ followUps: [] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: more than three follow-ups",
+      () => withTurn({ followUps: ["One?", "Two?", "Three?", "Four?"] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a follow-up of spaces only",
+      () => withTurn({ followUps: ["Why?", " "] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a repeated follow-up",
+      () => withTurn({ followUps: ["Why?", "Why?"] }),
+      "conversation-turn-invalid",
+    ],
+    ["9: a source without a name", () => withSource({ name: " " }), "conversation-source-invalid"],
+    [
+      "9: a source whose start does not exist",
+      () => withSource({ from: "2026-02-30" }),
+      "conversation-source-invalid",
+    ],
+    [
+      "9: a source whose end is not a date",
+      () => withSource({ to: "soon" }),
+      "conversation-source-invalid",
+    ],
+    [
+      "9: a source that ends before it starts",
+      () => withSource({ from: "2026-09-30", to: "2026-09-01" }),
+      "conversation-source-invalid",
     ],
   ])("refuses %s", (_, makeState, code) => {
     expect(checkInvariants(makeState())?.code).toBe(code);

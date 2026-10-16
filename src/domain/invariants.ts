@@ -6,6 +6,7 @@ import {
   ENCODINGS,
   ROW_FAILURE_CODES,
   type Category,
+  type ChatTurn,
   type MappingProfile,
   type PendingRow,
   type Refusal,
@@ -44,7 +45,10 @@ export type InvariantCode =
   | "pending-row-suggestion-invalid"
   | "pending-row-transfer-invalid"
   | "pending-row-failure-unknown"
-  | "settings-account-missing";
+  | "settings-account-missing"
+  | "conversation-question-missing"
+  | "conversation-turn-invalid"
+  | "conversation-source-invalid";
 
 export type InvariantViolation = Refusal<InvariantCode>;
 
@@ -230,7 +234,7 @@ function checkRow(
     if (category?.side !== proposedSide(row.amountCents) || category.role === "unaccounted") {
       return violation("pending-row-category-invalid", { rowNumber });
     }
-    // Claude suggests only ordinary categories (FR-092).
+    // The AI suggests only ordinary categories (FR-092).
     if (assignment.suggested && category.role !== null) {
       return violation("pending-row-suggestion-invalid", { rowNumber });
     }
@@ -269,6 +273,46 @@ const settings: Check = (state) => {
     : violation("settings-account-missing", { accountId });
 };
 
+/** Whether the turn's follow-ups, if it has any, fit its marks and are one to three questions. */
+function followUpsFit(turn: ChatTurn): boolean {
+  const { followUps } = turn;
+  if (followUps === undefined) return true;
+  return (
+    !turn.outOfScope &&
+    !turn.stopped &&
+    followUps.length >= 1 &&
+    followUps.length <= 3 &&
+    followUps.every((followUp) => followUp.trim() !== "") &&
+    firstRepeat(followUps) === undefined
+  );
+}
+
+// 9. Every turn of the conversation has a question, and an answer that fits its marks; its
+// follow-ups, when present, are one to three distinct questions on a turn neither out of scope nor
+// stopped; every source has a name and valid dates. A source's category or account need not exist
+// (FR-110, FR-111).
+const conversation: Check = (state) => {
+  for (const [index, turn] of state.conversation.entries()) {
+    const details = { turn: index + 1 };
+    if (turn.question.trim() === "") return violation("conversation-question-missing", details);
+    const fits = turn.outOfScope
+      ? turn.answer === "" && turn.sources.length === 0 && !turn.stopped
+      : turn.stopped
+        ? turn.sources.length === 0
+        : turn.answer.trim() !== "";
+    if (!fits || !followUpsFit(turn)) return violation("conversation-turn-invalid", details);
+    const sourceBroken = turn.sources.some(
+      (source) =>
+        source.name.trim() === "" ||
+        !isCalendarDate(source.from) ||
+        !isCalendarDate(source.to) ||
+        source.from > source.to,
+    );
+    if (sourceBroken) return violation("conversation-source-invalid", details);
+  }
+  return null;
+};
+
 const checks: readonly Check[] = [
   uniqueIds,
   accountNames,
@@ -278,6 +322,7 @@ const checks: readonly Check[] = [
   profiles,
   pendingBatch,
   settings,
+  conversation,
 ];
 
 /**

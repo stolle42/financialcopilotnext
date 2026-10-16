@@ -322,6 +322,61 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 
 ---
 
+<a id="user-story-8"></a>
+### User Story 8 - Ask about my own finances (Priority: P8)
+
+The user opens the finance chat from any screen and asks about their own money, such as how to
+reduce spending or which subscriptions have become more expensive, about money and finance in
+general, or about how the app works. An answer about their money appears as it is written, rests
+only on the user's data, says plainly what that data cannot tell, and ends with links to the
+transactions it rests on, so the user can check it. After each answer, the chat suggests what to
+ask next. Added in v1.3.
+
+**Why this priority**: It reads the data of every other story and sends it to OpenAI, so it comes
+last, and only for a user who turned AI features on ([FR-095](#fr-095)).
+
+**Independent Test**: With AI features on, a few months of transactions and a stand-in in OpenAI's
+place, ask an example question, follow one of its sources and open the chat again there, stop a
+second answer midway, then close and reopen the app, and verify that the conversation is as it
+was.
+
+**Acceptance Scenarios**:
+
+1. **Given** any screen, **Then** it shows the chat's button with its name; **Given** AI features
+   are off, **When** the user opens the chat, **Then** it says that it needs AI features, which
+   Settings turns on, and offers nothing to send ([FR-100](#fr-100)).
+2. **Given** AI features are on and an empty conversation, **When** the user opens the chat,
+   **Then** it offers example questions; **When** they select one, **Then** it is sent at once
+   ([FR-101](#fr-101)).
+3. **Given** a question was sent, **Then** the chat says "Thinking…" until the answer's first words
+   arrive, and then shows the answer as it is written ([FR-107](#fr-107)).
+4. **Given** an answer is being written, **Then** the user can scroll, close and open the chat, and
+   type their next question; **When** they select Stop, **Then** the answer ends at once, and its
+   text so far stays, marked as stopped ([FR-108](#fr-108)).
+5. **Given** a question about neither finance nor the app, such as general knowledge, **Then**
+   the chat gives its fixed answer, which says what it can help with, and offers the example
+   questions again ([FR-101](#fr-101), [FR-103](#fr-103)).
+6. **Given** a question the data answers only in part, **Then** the answer says explicitly what is
+   missing and states no figure that the data does not hold ([FR-109](#fr-109)).
+7. **Given** an answer about the user's data, **Then** it ends with its sources; **When** the user
+   selects one, **Then** the chat closes and the transaction list shows, filtered as the source
+   says; **When** they open the chat again, **Then** the conversation is as they left it
+   ([FR-110](#fr-110)).
+8. **Given** a conversation, **When** the user closes and reopens the app, **Then** the
+   conversation is still there; **When** they clear it and confirm, **Then** the chat offers the
+   example questions again ([FR-104](#fr-104)).
+9. **Given** a question that fails, **Then** the chat says why and what the user can do, keeps the
+   conversation as it was, and puts the question back in the field ([FR-104](#fr-104)).
+10. **Given** a complete answer, **Then** the chat offers one to three follow-up questions under
+    it, as it offers the example questions; **When** the user selects one, **Then** it is sent at
+    once ([FR-111](#fr-111)).
+11. **Given** a question about how the app works, a general question about finance, or a request
+    to change something, such as a budget, **Then** the chat answers it; to a request to change
+    something, it says that it cannot change anything and explains how the user can do it in the
+    app ([FR-103](#fr-103), [FR-109](#fr-109)).
+
+---
+
 <a id="edge-cases"></a>
 ### Edge Cases
 
@@ -357,6 +412,22 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   refused ([FR-001](#fr-001), [FR-021](#fr-021), [FR-032](#fr-032)).
 - A very large expense "Unaccounted" share appears in Insights: it is shown at its true size
   ([FR-052](#fr-052)).
+- The user asks the finance chat about a time before the months a question sends: the answer says
+  that the data does not reach back that far, and gives no figure for it ([FR-109](#fr-109)).
+- An answer names as a source a category or account the user does not have: that source is left
+  out ([FR-110](#fr-110)).
+- A category or account that a stored answer's source names is deleted: the source shows its name
+  without a link ([FR-110](#fr-110)).
+- The user selects Stop before an answer's first words arrive: the answer stays empty, marked as
+  stopped ([FR-108](#fr-108)).
+- The user turns AI features off while an answer is being written: the answer stops, as with Stop
+  ([FR-108](#fr-108)).
+- The app is closed while an answer is being written: neither the question nor the text so far is
+  kept ([FR-104](#fr-104)).
+- The user asks the chat to change something, such as to delete a transaction: nothing changes,
+  and the answer says that the chat cannot and how to do it in the app ([FR-103](#fr-103)).
+- The AI suggests no follow-up questions, or more than three: the chat shows none, or the first
+  three ([FR-111](#fr-111)).
 
 ## Requirements *(mandatory)*
 
@@ -434,10 +505,10 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
   figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app,
   together with every choice made in review: categories, rows marked as transfers, flagged rows
-  included, and the categories Claude suggested, with their marks ([FR-093](#fr-093)).
+  included, and the categories the AI suggested, with their marks ([FR-093](#fr-093)).
   At most one pending batch MAY exist at any time, across all accounts; starting an import while one
   is pending MUST be refused with a message that leads the user to review or discard it. Changed in
-  v1.2: [FR-093](#fr-093).
+  v1.2: [FR-093](#fr-093). Changed in v1.3: [FR-105](#fr-105).
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
   applying the profile's sign inversion (money out is an expense, money in is an income, and a zero
   amount is an expense), and MUST let the user change any row to a transfer with a
@@ -465,11 +536,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   - Assigning a category to a group MUST assign it to every row in the group. The user MUST be able
     to unfold a group and assign categories per row.
 - <a id="fr-027"></a>**FR-027**: Confirming a batch MUST move its included rows into the ledger with the categories
-  shown in review, and MUST first state how many rows will enter the ledger. While Claude answers a
+  shown in review, and MUST first state how many rows will enter the ledger. While the AI answers a
   request for suggestions, confirming MUST wait for the answer, so no suggestion enters the ledger
   unseen ([FR-090](#fr-090)). Discarding a batch MUST leave the ledger unchanged. A confirmed batch
   cannot be undone as a whole ([Out of Scope](#out-of-scope)). Changed in v1.2:
-  [FR-090](#fr-090).
+  [FR-090](#fr-090). Changed in v1.3: [FR-105](#fr-105).
 - <a id="fr-028"></a>**FR-028**: Rows the profile cannot parse MUST NOT appear among the rows under review and MUST
   NOT be confirmable. Review MUST show how many there are; selecting that number MUST present them
   with the reason each failed. The remaining rows MUST stay reviewable.
@@ -501,9 +572,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 - <a id="fr-034"></a>**FR-034**: Deleting a category MUST move its transactions to "Uncategorised" on the same side and
   MUST remove any budget attached to it.
 - <a id="fr-035"></a>**FR-035**: System MUST itself assign "Uncategorised" to imported rows that
-  hold no category the user chose or Claude suggested ([FR-029](#fr-029), [FR-092](#fr-092)) and to
+  hold no category the user chose or the AI suggested ([FR-029](#fr-029), [FR-092](#fr-092)) and to
   transactions whose category is deleted, and "Unaccounted" to reconciliation differences. Changed
-  in v1.2: [FR-092](#fr-092).
+  in v1.2: [FR-092](#fr-092). Changed in v1.3: [FR-105](#fr-105).
 
 **Budgets**
 
@@ -536,19 +607,23 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   the € symbol and two decimal places, using the browser's number format. Amounts in this spec are
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
-  party, except in the one request the user starts by selecting Suggest categories in review while
-  AI features are on ([FR-090](#fr-090), [FR-091](#fr-091), [FR-095](#fr-095)). They are on only
-  once the user turned them on in Settings and agreed to their warning.
-  No other flow may make a request to any host other than the one serving the app: no analytics, no
-  error reports, no update checks, and no fonts, scripts or other files from third parties. That one
-  request goes to the project's n8n workflow, which runs on n8n's servers and passes it on to
-  Anthropic. No capability
-  may require a network connection, except category suggestions; everything else works without
-  one. Serving the app from the user's own computer (`localhost`) is not a network connection. Real
-  data lives only in the app as run locally. A copy hosted on the web, such as the one the
-  project's post-push check deploys, needs a network connection to open, so it serves only checks
-  and demonstrations ([Out of Scope](#out-of-scope)). Changed in v1.2: [FR-090](#fr-090),
-  [FR-095](#fr-095).
+  party, except in the requests the user starts with an AI feature while AI features are on: by
+  selecting Suggest categories in review, and by asking the finance chat
+  ([FR-090](#fr-090), [FR-091](#fr-091), [FR-095](#fr-095), [FR-100](#fr-100),
+  [FR-102](#fr-102)). They are on only once the user turned them on in Settings and agreed to
+  their warning.
+  No flow may make a request to any host other than the one serving the app: no analytics, no
+  error reports, no update checks, and no fonts, scripts or other files from third parties. An AI
+  feature's request goes to the server that serves the app on the user's own computer, which
+  passes it on to OpenAI with the owner's API key. The key stays on that computer, outside the
+  app's code, storage and backups. No capability may require a network connection, except the AI
+  features; everything else works without one. Serving the app from the user's own computer
+  (`localhost`) is not a network connection. Real data lives only in the app as run locally. A copy
+  hosted on the web, such as the one the project's post-push check deploys, needs a network
+  connection to open, so it serves only checks and demonstrations
+  ([Out of Scope](#out-of-scope)). It cannot pass requests on to OpenAI, so there AI features
+  cannot be turned on ([FR-106](#fr-106)). Changed in v1.2: [FR-090](#fr-090), [FR-095](#fr-095).
+  Changed in v1.3: [FR-100](#fr-100), [FR-105](#fr-105), [FR-106](#fr-106).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -578,17 +653,19 @@ testable for v1.
   submit, with enough context to correct the input without external documentation.
 - <a id="fr-069"></a>**FR-069**: Every action that deletes or replaces data MUST ask the user to confirm,
   and the request MUST state the consequence. These actions are: deleting a transaction, a
-  category, or a mapping profile; discarding a pending batch; changing an opening balance; and
-  loading a backup. Changing an opening balance and loading a backup MUST use a severe warning
-  ([FR-001](#fr-001), [FR-071](#fr-071)). Confirming a batch first states its row count
-  ([FR-027](#fr-027)).
+  category, or a mapping profile; discarding a pending batch; changing an opening balance;
+  clearing the finance chat's conversation ([FR-104](#fr-104)); and loading a backup. Changing an
+  opening balance and loading a backup MUST use a severe warning ([FR-001](#fr-001),
+  [FR-071](#fr-071)). Confirming a batch first states its row count ([FR-027](#fr-027)). Changed
+  in v1.3: [FR-104](#fr-104).
 
 **Backup**
 
 - <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
   app holds, including accounts, transactions, categories, budgets, mapping profiles, the pending
-  batch, the manual-entry default account ([FR-006](#fr-006)) and whether AI features are on
-  ([FR-095](#fr-095)). Changed in v1.2: [FR-095](#fr-095).
+  batch, the manual-entry default account ([FR-006](#fr-006)), whether AI features are on
+  ([FR-095](#fr-095)) and the finance chat's conversation ([FR-104](#fr-104)). Changed in v1.2:
+  [FR-095](#fr-095). Changed in v1.3: [FR-104](#fr-104).
 - <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
@@ -653,17 +730,17 @@ them changes states the new behaviour and names the change.
 A change the owner asked for after v1.1, released as v1.2. A requirement of an earlier version that
 it changes states the new behaviour and names the change.
 
-- <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks Claude to
-  suggest a category for the rows under review that still hold their side's "Uncategorised"
-  ([FR-029](#fr-029)). Only selecting it sends a request; importing, opening review, turning AI
-  features on and every other action send nothing ([FR-061](#fr-061)). While AI features are off
-  ([FR-095](#fr-095)), Suggest categories MUST be unavailable, and review MUST say that it needs AI
-  features, which Settings turns on.
+- <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks an AI model of
+  OpenAI to suggest a category for the rows under review that still hold their side's
+  "Uncategorised" ([FR-029](#fr-029)). Only selecting it sends a request; importing, opening
+  review, turning AI features on and every other action send nothing ([FR-061](#fr-061)). While AI
+  features are off ([FR-095](#fr-095)), Suggest categories MUST be unavailable, and review MUST say
+  that it needs AI features, which Settings turns on. Changed in v1.3: [FR-105](#fr-105).
   - A row is sent only when it has a description or a counterparty, and its side has a category
     other than "Uncategorised" and "Unaccounted".
   - One request sends at most 300 rows, the first in review order ([FR-026](#fr-026)); the user
     asks again for the rest.
-  - While Claude answers, the rows MUST stay editable, and leaving review MUST cancel the request
+  - While the AI answers, the rows MUST stay editable, and leaving review MUST cancel the request
     and fill nothing.
 - <a id="fr-091"></a>**FR-091**: A request MUST hold only:
   - each row's number, side, description and counterparty;
@@ -671,9 +748,9 @@ it changes states the new behaviour and names the change.
   - as examples of the user's own decisions, the description and category name of at most 100
     earlier expenses and incomes in such categories, the most recent for each description.
 
-  It MUST NOT hold amounts, dates, account names or the file name. It goes to the project's n8n
-  workflow, which runs on n8n's servers and passes it to Claude by Anthropic ([FR-061](#fr-061)).
-  The warning shown when the user turns AI features on says so ([FR-095](#fr-095)).
+  It MUST NOT hold amounts, dates, account names or the file name. It goes through the server
+  that serves the app to OpenAI ([FR-061](#fr-061)). The warning shown when the user turns AI
+  features on says so ([FR-095](#fr-095)). Changed in v1.3: [FR-105](#fr-105).
 - <a id="fr-092"></a>**FR-092**: A suggestion MUST fill a row only if, when the answer arrives, the
   row is still under review and still holds its side's "Uncategorised", and the suggested name is
   that of a category of the row's side other than "Uncategorised" and "Unaccounted", compared as
@@ -688,21 +765,147 @@ it changes states the new behaviour and names the change.
 - <a id="fr-094"></a>**FR-094**: After an answer, review MUST say how many of the rows sent got a
   suggestion. Review MUST say which of these happened and what the user can do, and MUST leave
   every row as it was ([FR-067](#fr-067)), when:
-  - n8n cannot be reached or has no published workflow;
+  - the AI cannot be reached: the server that serves the app holds no OpenAI key, or OpenAI cannot
+    be reached;
   - no answer arrives within 4 minutes;
-  - n8n reports a failure;
+  - OpenAI reports a failure, such as a rejected key or no credit left;
   - the answer is not in the expected form.
+
+  Changed in v1.3: [FR-105](#fr-105).
 - <a id="fr-095"></a>**FR-095**: A **Settings** screen MUST offer an **AI features** switch, off
   until the user turns it on. The one switch covers every feature that sends data off the
-  computer; in v1.2 that is Suggest categories ([FR-090](#fr-090)).
+  computer; in v1.3 these are Suggest categories and the finance chat ([FR-090](#fr-090),
+  [FR-100](#fr-100)). Outside the user's own computer the switch is unavailable
+  ([FR-106](#fr-106)). Changed in v1.3: [FR-100](#fr-100), [FR-102](#fr-102),
+  [FR-106](#fr-106).
   - Turning it on MUST first show a warning that data will now be shared: what each AI feature
-    sends and to whom ([FR-091](#fr-091)). AI features MUST turn on only when the user agrees;
-    cancelling leaves them off and changes nothing. Turning them on sends nothing by itself.
+    sends and to whom ([FR-091](#fr-091), [FR-102](#fr-102)). AI features MUST turn on only when
+    the user agrees; cancelling leaves them off and changes nothing. Turning them on sends nothing
+    by itself.
   - Turning it off MUST take effect at once, without a warning.
   - Using an AI feature MUST NOT show a further warning, and no other screen shows a notice while
     AI features are on; Settings shows whether they are.
   - The setting MUST survive closing the app and MUST be part of a backup ([FR-070](#fr-070)); a
     backup without it restores AI features off.
+  - A setting turned on in v1.2, under v1.2's warning, stays on after the update to v1.3. The
+    owner, the app's one user, agrees to v1.3's warning by turning AI features off and on once
+    ([quickstart.md](quickstart.md#ai-features)).
+
+**Finance chat, through OpenAI (v1.3)**
+
+A change the owner asked for after v1.2, released as v1.3. With it, both AI features ask OpenAI
+through the server that serves the app, in place of v1.2's n8n workflow and Claude
+([FR-105](#fr-105)). [User Story 8](#user-story-8) describes the chat. A requirement of an earlier
+version that it changes states the new behaviour and names the change.
+
+- <a id="fr-100"></a>**FR-100**: Every screen MUST offer the **finance chat** through a button
+  fixed at the bottom right of the window, which shows a chat icon and its name, "Ask about your
+  finances", in the colour of the primary action, so it stands out wherever the user is. The
+  button MUST NOT keep any of a screen's content hidden: scrolled to its end, a screen's content
+  ends above it. The button opens the chat beside the screen. Opening another screen, also by
+  following a link in the chat such as a source, closes the chat, so that screen shows. Opening
+  and closing the chat send nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say that it needs AI
+  features, which Settings turns on, and MUST offer nothing to send; a stored conversation still
+  shows ([FR-104](#fr-104)).
+- <a id="fr-101"></a>**FR-101**: While its conversation is empty, and after a question out of
+  scope ([FR-103](#fr-103)), the chat MUST offer example questions, among them how to reduce
+  spending and which subscriptions have become more expensive. Selecting one MUST send it at once,
+  as if the user had typed it. The user MUST also be able to type a question and send it. Only
+  sending a question sends a request ([FR-061](#fr-061)).
+- <a id="fr-102"></a>**FR-102**: A question MUST send only:
+  - the question, and the conversation's earlier questions with their answers, at most the last
+    10;
+  - today's date;
+  - for the current month and the 12 months before it: each expense and income with its date,
+    description, amount and category name, and each month's totals of expenses and of income by
+    category;
+  - each budgeted category's limit and its spending in the current month;
+  - each account's name, type and balance.
+
+  It MUST NOT hold transfers, ids, colours, mapping profiles, the pending import or the settings.
+  With it go the chat's rules and a guide to the app, which hold no user data
+  ([FR-103](#fr-103)). It goes through the server that serves the app to OpenAI
+  ([FR-061](#fr-061)). The warning shown when the user turns AI features on says so
+  ([FR-095](#fr-095)).
+- <a id="fr-103"></a>**FR-103**: The chat MUST answer:
+  - questions about the user's own finances, such as where the money goes, how spending changes,
+    whether budgets hold, which payments recur and whether their price rose, and where the user
+    could save;
+  - general questions about money and finance, such as what an index fund is or how to build an
+    emergency fund;
+  - questions about how the app works, such as how to import a bank file or set a budget, from the
+    guide to the app that the question sends ([FR-102](#fr-102)).
+
+  A request to change something, such as a transaction, a category, a budget or the app itself,
+  MUST get an answer that says the chat cannot change anything and explains how the user can do it
+  in the app. Any other question, such as general knowledge outside finance or a request to write
+  or code something, MUST get one fixed answer that says what the chat can help with. Answers MUST
+  show as plain text in the conversation, after their question, with their sources
+  ([FR-110](#fr-110)). An answer never changes the user's data: it is advice, and acting on it
+  stays the user's step.
+- <a id="fr-104"></a>**FR-104**: There is one conversation, and it MUST be stored: it stays when
+  the chat is closed, when the user opens another screen and when the app is closed, and it is
+  part of a backup ([FR-070](#fr-070)). A backup without one restores an empty conversation.
+  - A question and its answer are stored once the answer is complete or stopped
+    ([FR-108](#fr-108)).
+  - The chat MUST offer to clear the conversation, which asks the user to confirm
+    ([FR-069](#fr-069)) and then offers the example questions again ([FR-101](#fr-101)).
+  - While a question waits for its answer or receives it, the chat MUST NOT send another.
+  - When a question fails for one of the reasons of [FR-094](#fr-094), also after part of its
+    answer showed, the chat MUST say which and what the user can do, MUST keep the conversation as
+    it was before the question, and MUST put the question back in the field. For the chat, the 4
+    minutes of FR-094 run until the answer is complete.
+- <a id="fr-105"></a>**FR-105**: Both AI features MUST ask OpenAI through the server that serves
+  the app on the user's own computer, which holds the owner's OpenAI API key. The key MUST NOT
+  reach the app's code, its storage or a backup. A copy hosted on the web has no such server
+  ([FR-061](#fr-061), [FR-106](#fr-106)). This replaces v1.2's n8n workflow and Claude.
+- <a id="fr-106"></a>**FR-106**: A copy of the app not served from the user's own computer, such as
+  the hosted copy, MUST NOT let AI features be turned on. There, Settings MUST show the AI features
+  switch off and unavailable, also when a restored backup holds them on, and MUST say beside it
+  that AI features need the app run locally. Review and the finance chat MUST then behave as with
+  AI features off, and such a copy MUST send nothing for an AI feature, not even to the server
+  that serves it ([FR-061](#fr-061), [FR-095](#fr-095)).
+- <a id="fr-107"></a>**FR-107**: An answer MUST show as it is written, after its question, so the
+  user can read its start while the rest follows. From sending until the answer's first words
+  arrive, its place MUST say "Thinking…". A question out of scope MUST show the fixed answer of
+  [FR-103](#fr-103) whole, and nothing the AI wrote for it.
+- <a id="fr-108"></a>**FR-108**: While an answer is awaited or written, the chat and the rest of the
+  app MUST stay usable: the user can scroll the conversation, close and open the chat, type the
+  next question, and open another screen, which does not stop the answer.
+  - In place of Send, the chat MUST offer **Stop**. Selecting it MUST end the answer at once and
+    cancel its request.
+  - The text written so far MUST stay after its question, marked as stopped and without sources.
+    It counts as that question's answer when later questions send the conversation
+    ([FR-102](#fr-102)).
+  - Turning AI features off stops an answer in the same way ([FR-095](#fr-095)).
+- <a id="fr-109"></a>**FR-109**: What an answer says about the user's finances MUST rest only on
+  the data its question sent ([FR-102](#fr-102)). Every amount, date, payment, category and account
+  it names MUST come from that data, and it MUST NOT estimate or fill in anything the data does not
+  hold. When the data answers a question only in part, such as a comparison with a time before the
+  months sent, the answer MUST answer the rest and say explicitly what is missing and why. When the
+  data holds nothing that answers it, the answer MUST say only that, and name what is missing.
+  General knowledge about finance MUST be marked as general, never given as a fact about the
+  user's finances. What an answer says about the app MUST come from the guide to the app, and
+  where the guide does not say, the answer MUST say so. The app cannot prove this of every answer;
+  the sources let the user check what rests on their data ([FR-110](#fr-110)).
+- <a id="fr-110"></a>**FR-110**: An answer that states something from the data MUST end with its
+  **sources**: links, each named by what it covers, such as "Groceries, September 2026". Selecting
+  a source MUST open the transaction list with its filters set to the source: a range of dates,
+  and the expense or income category, the account, or both, when the answer rests on them
+  ([FR-016](#fr-016), [FR-083](#fr-083)). The user can change or clear the filters there, and
+  opening the chat again shows the conversation as it was ([FR-104](#fr-104)).
+  - A source whose category or account the user does not have when the answer arrives MUST be left
+    out, like anything else in the answer the app cannot use.
+  - A source whose category or account is deleted later MUST show its name without a link. A
+    source keeps working when its category or account is renamed.
+- <a id="fr-111"></a>**FR-111**: With every answer it completes in scope, the chat MUST suggest one
+  to three follow-up questions that the user could ask next and that it can answer, and MUST offer
+  them under that answer as it offers the example questions ([FR-101](#fr-101)): selecting one
+  sends it at once. Only the latest answer's follow-ups show, and none while a question waits for
+  its answer or receives it. A stopped answer has none ([FR-108](#fr-108)). Follow-ups are stored
+  with their answer ([FR-104](#fr-104)) and are not sent with later questions
+  ([FR-102](#fr-102)). Of what the AI suggests, the chat keeps at most the first three distinct
+  questions that are not empty.
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -724,9 +927,14 @@ it changes states the new behaviour and names the change.
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or
   discarded. Belongs to one account and one profile. At most one exists at a time.
 - **Pending row**: One parsed line in a pending batch: its parsed fields, its vendor group, its
-  proposed kind, its category or counter-account, whether Claude suggested that category
+  proposed kind, its category or counter-account, whether the AI suggested that category
   ([FR-093](#fr-093)), whether it is flagged as a duplicate, whether it failed to parse, and whether
   it is included in confirmation.
+- **Conversation**: The finance chat's questions, each with its answer, in the order asked. An
+  answer has its text, whether it was stopped, its sources and its follow-up questions. A source
+  has a name, a range of
+  dates, and a category, an account, both or neither. There is one conversation; it is stored and
+  is part of a backup ([FR-104](#fr-104), [FR-110](#fr-110)).
 
 ## Success Criteria *(mandatory)*
 
@@ -752,15 +960,20 @@ it changes states the new behaviour and names the change.
 - <a id="sc-012"></a>**SC-012**: For every refusal or failure called out in this spec (duplicate account,
   profile, or category name; protected category deletion; import file with no transactions;
   reconciliation when balances already match; unparsable import rows; an import while a batch is
-  pending; an invalid backup file; category suggestions that n8n cannot provide
-  ([FR-094](#fr-094)); and validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
+  pending; an invalid backup file; an AI feature that gets no usable answer ([FR-094](#fr-094),
+  [FR-104](#fr-104)); and validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
   in line with [FR-067](#fr-067).
 - <a id="sc-013"></a>**SC-013**: A new user who follows only on-screen labels and defaults can complete [User Story
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
   settings, in line with [FR-066](#fr-066).
 - <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
   account balance, transaction, category, budget, mapping profile, the pending batch, the
-  manual-entry default account, and whether AI features are on, exactly.
+  manual-entry default account, whether AI features are on, and the finance chat's conversation,
+  exactly.
+- <a id="sc-015"></a>**SC-015**: With 5,000 transactions in the months a question sends, the finance
+  chat shows the question and "Thinking…" within 1 second of sending, and selecting Stop ends the
+  answer within 1 second, after which no further text appears ([FR-107](#fr-107),
+  [FR-108](#fr-108)).
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -799,7 +1012,9 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   transfer on different days; v1 matches the exact date only ([FR-024](#fr-024)).
 - Undoing a confirmed import batch as a whole. Confirmation states the row count
   ([FR-027](#fr-027)) and a backup ([User Story 7](#user-story-7)) is the safety net.
-- Recurring-transaction detection and forecasting.
+- Recurring-transaction detection and forecasting. The finance chat may point out recurring
+  payments in the data a question sends ([FR-103](#fr-103)), but the app itself detects none and
+  forecasts nothing.
 - Budget rollover, and budget periods other than monthly. Both are wanted later and will be
   user-selectable when they arrive.
 - Rule-based auto-categorisation on import; it collides with KISS as a product rule.
@@ -809,24 +1024,32 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Learned recall: pre-filling a vendor's category from the user's own past decisions, with nothing
   to author and nothing sent anywhere. Category suggestions use earlier decisions only as examples
   in a request the user starts ([FR-091](#fr-091)).
-- AI features other than category suggestions in review ([FR-090](#fr-090)), deferred by design
-  rather than rejected: receipt scanning into a transaction, and analysis with recommendations. The
-  ledger must be provably trustworthy before anything probabilistic sits on top of it, which is why
-  a suggestion stays a suggestion until the user confirms ([FR-092](#fr-092)). The name Financial
-  Copilot anticipates these features.
-- Category suggestions that send nothing off the computer and so need no consent to data sharing
-  ([FR-095](#fr-095)): running the n8n workflow on the user's own computer, and a local model
-  through Ollama in place of Claude. v1.2 uses n8n's hosted service and Claude, because with Claude
-  the texts reach Anthropic either way, so a local n8n would add setup for little gain, and a local
-  model needs a large download and suggests worse ([R-23](research.md#r-23)).
-- For category suggestions ([FR-090](#fr-090)): choosing in the app which n8n workflow or model
-  answers, or another AI provider; suggesting transfers, suggesting for rows that already hold a
+- AI features other than category suggestions in review and the finance chat
+  ([FR-090](#fr-090), [FR-100](#fr-100)), deferred by design rather than rejected: receipt
+  scanning into a transaction. The ledger must be provably trustworthy before anything
+  probabilistic sits on top of it, which is why a suggestion stays a suggestion until the user
+  confirms ([FR-092](#fr-092)), and the chat answers but never changes data
+  ([FR-103](#fr-103)). The name Financial Copilot anticipates these features.
+- AI features that send nothing off the computer and so need no consent to data sharing
+  ([FR-095](#fr-095)), such as a local model through Ollama in place of OpenAI. v1.3 uses OpenAI,
+  because a local model needs a large download and answers worse ([R-24](research.md#r-24)).
+- AI features in a hosted copy. It has no server of its own to hold the key, and a public address
+  that passes requests on to OpenAI would let anyone spend the owner's credit
+  ([R-24](research.md#r-24)). There, the switch is unavailable ([FR-106](#fr-106)).
+- For category suggestions ([FR-090](#fr-090)): choosing in the app which model or AI provider
+  answers; suggesting transfers, suggesting for rows that already hold a
   category, or suggesting without being asked, for example during import; stopping a request other
   than by leaving review, and sending more than 300 rows at once; learning from the user's
-  corrections; and keeping the counterparty in the ledger to give Claude better examples.
+  corrections; and keeping the counterparty in the ledger to give the AI better examples.
+- For the finance chat ([FR-100](#fr-100)): more than one conversation, or a list of earlier
+  ones; charts and tables in answers, and links other than sources; sources that show exactly the
+  transactions an answer rests on, since a monthly total rests on dozens that the AI would have to
+  cite one by one ([FR-110](#fr-110)); acting on an answer, such as changing a category or a
+  budget; sending data from before the current month and the 12 months before it, or transfers;
+  and the chat on other screens.
 - A switch per AI feature, a notice on every screen while AI features are on, and a warning each
-  time an AI feature sends. v1.2 warns once, when the user turns AI features on in Settings
-  ([FR-095](#fr-095)), and Settings shows whether they are on.
+  time an AI feature sends. Since v1.2, the app warns once, when the user turns AI features on in
+  Settings ([FR-095](#fr-095)), and Settings shows whether they are on.
 - Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
   v1 must not foreclose them.
 - Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,

@@ -31,9 +31,10 @@ export function applyValid(state: State, changes: Changes): State {
 /**
  * A valid state with every entity type and every variant of each: accounts of several types, a
  * renamed and a new category, each kind of transaction including a reconciliation entry, budgets,
- * profiles with and without a header row, a pending batch with review progress, a category Claude
- * suggested and an unparsable row, a manual-entry account other than Cash, and AI features on.
- * Backup tests round-trip it (SC-014).
+ * profiles with and without a header row, a pending batch with review progress, a category the AI
+ * suggested and an unparsable row, a manual-entry account other than Cash, AI features on, and a
+ * conversation of the finance chat with every kind of turn and source. Backup tests round-trip it
+ * (SC-014).
  */
 export function everyEntityState(): State {
   const seeded = seedState(idCounter("seed"));
@@ -224,5 +225,45 @@ export function everyEntityState(): State {
       ],
     },
     settings: { put: { manualEntryAccountId: "giro", aiFeatures: true } },
+    conversation: {
+      put: [
+        {
+          question: "How much did I spend on groceries in August?",
+          answer: "€45.20, at Bäckerei Krüger.\nThat is all.",
+          sources: [
+            {
+              name: "Groceries, August 2026",
+              from: "2026-08-01",
+              to: "2026-08-31",
+              categoryId: groceries,
+              accountId: "giro",
+            },
+            {
+              name: "Everything, 2026",
+              from: "2026-01-01",
+              to: "2026-09-03",
+              categoryId: null,
+              accountId: null,
+            },
+            {
+              name: "A category deleted since",
+              from: "2026-08-01",
+              to: "2026-08-31",
+              categoryId: "deleted-category",
+              accountId: null,
+            },
+          ],
+        },
+        { question: "And on pets?", answer: "Nothing so", stopped: true, sources: [] },
+        { question: "Where does my money go?", answer: "", stopped: true, sources: [] },
+        { question: "What is the capital of France?", answer: "", outOfScope: true, sources: [] },
+        {
+          question: "And on rent?",
+          answer: "€800.00 a month.",
+          sources: [],
+          followUps: ["And last year?", "Where could I save on rent?"],
+        },
+      ],
+    },
   });
 }

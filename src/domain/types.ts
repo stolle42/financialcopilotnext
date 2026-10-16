@@ -113,7 +113,7 @@ export const ROW_FAILURE_CODES = [
 
 export type RowFailureCode = (typeof ROW_FAILURE_CODES)[number];
 
-/** `suggested` marks a category Claude suggested, until the user assigns the row (FR-093). */
+/** `suggested` marks a category the AI suggested, until the user assigns the row (FR-093). */
 export type Assignment =
   | { type: "category"; categoryId: string; suggested?: true }
   | { type: "transfer"; counterAccountId: string };
@@ -159,7 +159,37 @@ export interface Settings {
   aiFeatures?: true;
 }
 
-/** The seven stores of the storage layout, held in memory (R-05). */
+/**
+ * A source of a finance chat answer: what the transaction list's filters show to check it, by id,
+ * so a rename does not break it. Its category may be deleted since (FR-110, data-model.md).
+ */
+export interface ChatSource {
+  name: string;
+  from: string;
+  to: string;
+  categoryId: string | null;
+  accountId: string | null;
+}
+
+/** One question of the finance chat with its answer, as the conversation stores it (FR-104). */
+export interface ChatTurn {
+  question: string;
+  /** The text shown; empty when out of scope, and when stopped before its first words. */
+  answer: string;
+  /** The chat shows its fixed answer instead (FR-103). Never `false`. */
+  outOfScope?: true;
+  /** The user stopped the answer, or turned AI features off (FR-108). Never `false`. */
+  stopped?: true;
+  /** Empty when out of scope or stopped. */
+  sources: readonly ChatSource[];
+  /**
+   * The follow-up questions the AI suggested with a complete answer (FR-111): one to three
+   * distinct ones. Absent when out of scope, stopped, or none was suggested.
+   */
+  followUps?: readonly string[];
+}
+
+/** The seven stores of the storage layout, held in memory (R-05), and the conversation (R-26). */
 export interface State {
   accounts: readonly Account[];
   categories: readonly Category[];
@@ -168,4 +198,6 @@ export interface State {
   profiles: readonly MappingProfile[];
   pendingBatch: PendingBatch | null;
   settings: Settings;
+  /** The finance chat's turns, oldest first; empty while there is no conversation. */
+  conversation: readonly ChatTurn[];
 }

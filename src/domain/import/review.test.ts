@@ -65,7 +65,7 @@ const rowOf = (state: State, rowNumber: number) =>
 
 const shopExpenses = { key: "shop", side: "expense" as const };
 
-/** `state` with the rows numbered `rowNumbers` holding `categoryId` as Claude's suggestion. */
+/** `state` with the rows numbered `rowNumbers` holding `categoryId` as the AI's suggestion. */
 function withSuggestion(state: State, rowNumbers: number[], categoryId: string): State {
   const batch = state.pendingBatch!;
   const suggested: Assignment = { type: "category", categoryId, suggested: true };

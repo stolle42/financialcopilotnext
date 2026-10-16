@@ -45,12 +45,13 @@ describe("seedState", () => {
     expect(state.categories.map((c) => [c.side, c.name, c.color, c.role])).toEqual(seedCategories);
   });
 
-  test("starts with no transactions, budgets, profiles or pending batch", () => {
+  test("starts with no transactions, budgets, profiles, pending batch or conversation", () => {
     const state = seedState(counter());
     expect(state.transactions).toEqual([]);
     expect(state.budgets).toEqual([]);
     expect(state.profiles).toEqual([]);
     expect(state.pendingBatch).toBeNull();
+    expect(state.conversation).toEqual([]);
   });
 
   test("gives every record its own new id and satisfies every invariant", () => {

@@ -18,7 +18,7 @@ const assignmentKey = (assignment: Assignment) =>
     ? `category ${assignment.categoryId}`
     : `transfer ${assignment.counterAccountId}`;
 
-/** Whether Claude suggested the row's category, which the user has not assigned since (FR-093). */
+/** Whether the AI suggested the row's category, which the user has not assigned since (FR-093). */
 const isSuggested = (row: ParsedRow) =>
   row.assignment.type === "category" && row.assignment.suggested === true;
 

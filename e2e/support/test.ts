@@ -1,8 +1,10 @@
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
+import { AI_PATH } from "../../src/ai/path";
 
 /**
- * Watches `page` in `context` for a request outside the app's origin and for any
- * Content-Security-Policy violation (FR-061, R-19). Returns the check that fails the test on any.
+ * Watches `page` in `context` for a request outside the app's origin, for a request to the AI
+ * route that no stand-in answers, and for any Content-Security-Policy violation (FR-061, R-19,
+ * R-24). Returns the check that fails the test on any.
  */
 export async function guardNetwork(
   context: BrowserContext,
@@ -14,9 +16,10 @@ export async function guardNetwork(
   const violations: string[] = [];
 
   // Abort instead of letting the request through, so a test never reaches the outside world.
-  // data: and blob: URLs never reach a route handler, so they stay allowed.
+  // data: and blob: URLs never reach a route handler, so they stay allowed. The AI route is on the
+  // app's origin, but a local server that holds a key would pass the request on to OpenAI.
   await context.route(
-    (url) => url.origin !== appOrigin,
+    (url) => url.origin !== appOrigin || url.pathname === AI_PATH,
     (route) => {
       violations.push(`request to ${route.request().url()}`);
       return route.abort();

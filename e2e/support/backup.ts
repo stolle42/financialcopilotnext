@@ -4,12 +4,13 @@ import type {
   Account,
   Budget,
   Category,
+  ChatTurn,
   MappingProfile,
   PendingBatch,
   Settings,
   Transaction,
 } from "../../src/domain/types";
-import { storedRecords } from "./app";
+import { storedRecord, storedRecords } from "./app";
 import { expect } from "./test";
 
 // Backup steps that several specs take, and the records a backup holds (contracts/backup-file.md).
@@ -23,6 +24,8 @@ export interface BackupData {
   profiles: MappingProfile[];
   pendingBatch: PendingBatch | null;
   settings: Settings;
+  /** The finance chat's turns, present only while it holds one (R-26). */
+  conversation?: ChatTurn[];
 }
 
 export interface BackupFile {
@@ -40,7 +43,7 @@ export function backupText(data: BackupData, exportedAt = "2026-09-03T10:00:00.0
 
 /** Every record the app has stored, in the shape of a backup's `data`. */
 export async function storedData(page: Page): Promise<BackupData> {
-  const [accounts, categories, transactions, budgets, profiles, batches, settings] =
+  const [accounts, categories, transactions, budgets, profiles, batches, settings, conversation] =
     await Promise.all([
       storedRecords<Account>(page, "accounts"),
       storedRecords<Category>(page, "categories"),
@@ -48,7 +51,9 @@ export async function storedData(page: Page): Promise<BackupData> {
       storedRecords<Budget>(page, "budgets"),
       storedRecords<MappingProfile>(page, "profiles"),
       storedRecords<PendingBatch>(page, "pendingBatch"),
-      storedRecords<Settings>(page, "settings"),
+      // The settings store holds the settings, and the conversation under a key of its own (R-26).
+      storedRecord<Settings>(page, "settings", "settings"),
+      storedRecord<ChatTurn[]>(page, "settings", "conversation"),
     ]);
   return {
     accounts,
@@ -57,7 +62,8 @@ export async function storedData(page: Page): Promise<BackupData> {
     budgets,
     profiles,
     pendingBatch: batches[0] ?? null,
-    settings: settings[0]!,
+    settings: settings!,
+    ...(conversation ? { conversation } : {}),
   };
 }
 

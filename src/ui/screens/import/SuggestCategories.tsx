@@ -4,6 +4,7 @@ import type { ReviewView } from "@/domain/import/groups";
 import { suggestableRows } from "@/domain/import/suggestions";
 import type { Refusal } from "@/domain/types";
 import { suggestCategories } from "@/store/import";
+import { aiFeaturesOn } from "@/store/settings";
 import { useStore, useStoreApi } from "@/store/store";
 import { Button } from "@/ui/components/ui/button";
 import { aiFeaturesNeeded, notifications, type MessageCode } from "@/ui/messages";
@@ -25,7 +26,7 @@ export function SuggestCategories({
   onAskingChange: (asking: boolean) => void;
 }) {
   const store = useStoreApi();
-  const aiFeatures = useStore((state) => state.settings.aiFeatures === true);
+  const aiFeatures = useStore(aiFeaturesOn);
   const categories = useStore((state) => state.categories);
   const count = useMemo(() => suggestableRows(view, categories).length, [view, categories]);
   const [asking, setAsking] = useState(false);
@@ -64,7 +65,7 @@ export function SuggestCategories({
         onClick={() => void ask()}
       >
         <Sparkles aria-hidden />
-        {asking ? "Asking Claude…" : `Suggest categories for ${rows(count)}`}
+        {asking ? "Asking the AI…" : `Suggest categories for ${rows(count)}`}
       </Button>
       {!aiFeatures && (
         <p className="text-sm text-muted-foreground">

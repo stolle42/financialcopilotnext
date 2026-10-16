@@ -33,5 +33,6 @@ export function seedState(newId: () => string): State {
     profiles: [],
     pendingBatch: null,
     settings: { manualEntryAccountId: cashId },
+    conversation: [],
   };
 }

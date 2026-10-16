@@ -6,6 +6,7 @@ import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
 import { BackupScreen } from "@/ui/screens/backup/BackupScreen";
+import { FinanceChat } from "@/ui/screens/chat/FinanceChat";
 import { InsightsScreen } from "@/ui/screens/insights/InsightsScreen";
 import { BudgetsScreen } from "@/ui/screens/budgets/BudgetsScreen";
 import { CategoriesScreen } from "@/ui/screens/categories/CategoriesScreen";
@@ -17,7 +18,7 @@ import { SettingsScreen } from "@/ui/screens/settings/SettingsScreen";
 import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
-import { useRoute, type Route } from "./router";
+import { type Route, transactionsPath, useRoute } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
 import { version } from "../../../package.json";
 
@@ -55,7 +56,10 @@ function sidebarEntryOf(route: Route): Route["name"] {
 function screenFor(route: Route): ReactNode {
   switch (route.name) {
     case "transactions":
-      return <TransactionsScreen />;
+      // A new address starts the list again with its own filters (FR-110).
+      return (
+        <TransactionsScreen key={transactionsPath(route.filters ?? {})} filters={route.filters} />
+      );
     case "insights":
       return <InsightsScreen />;
     case "import":
@@ -128,8 +132,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                       </a>
                     ))}
                   </nav>
-                  <main className="flex-1 p-6">{screenFor(route)}</main>
+                  {/* Ends in space taller than the chat's button, which hides no content (FR-100). */}
+                  <main className="flex-1 p-6 pb-24">{screenFor(route)}</main>
                 </div>
+                <FinanceChat />
               </div>
               {form && (
                 <TransactionForm

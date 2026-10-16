@@ -2,6 +2,7 @@ import type {
   Account,
   Budget,
   Category,
+  ChatTurn,
   MappingProfile,
   PendingBatch,
   Refusal,
@@ -29,6 +30,8 @@ export interface Changes {
   profiles?: StoreChanges<MappingProfile>;
   pendingBatch?: StoreChanges<PendingBatch>;
   settings?: { put: Settings };
+  /** The whole conversation, which replaces the one before; an empty list clears it (R-26). */
+  conversation?: { put: readonly ChatTurn[] };
 }
 
 /** The values a decision needs from outside, injected by the store so the domain stays pure (R-05). */
@@ -80,5 +83,6 @@ export function applyChanges(state: State, changes: Changes): State {
     profiles: applyStore(state.profiles, changes.profiles, byId),
     pendingBatch: changes.pendingBatch ? (batchList.at(-1) ?? null) : state.pendingBatch,
     settings: changes.settings?.put ?? state.settings,
+    conversation: changes.conversation?.put ?? state.conversation,
   };
 }

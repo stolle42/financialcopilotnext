@@ -1,9 +1,10 @@
 import type { Locator, Page } from "@playwright/test";
+import type { Account, Category } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
-import { addAccount, addTransaction, choose } from "../support/app";
+import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, transactions; FR-016, FR-063, FR-073 and FR-080 – FR-083.
+// contracts/ui.md, transactions; FR-016, FR-063, FR-073, FR-080 – FR-083 and FR-110.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");
@@ -195,6 +196,18 @@ test.describe("filters", () => {
     await expect(rows(page)).toHaveCount(4);
   });
 
+  test("an address with an account opens the list with that account set (FR-110)", async ({
+    page,
+  }) => {
+    const accounts = await storedRecords<Account>(page, "accounts");
+    const checking = accounts.find((a) => a.name === "Checking")!;
+
+    await page.goto(`/#/?account=${checking.id}`);
+
+    await expect.poll(() => descriptions(page)).toEqual(["Pay", "Shop", "Top up"]);
+    await expect(filters(page).getByLabel("Account", { exact: true })).toContainText("Checking");
+  });
+
   test("matching nothing says so and offers Clear filters", async ({ page }) => {
     await choose(page, filters(page), "Account", "Cash");
     await choose(page, filters(page), "Category", "Groceries");
@@ -256,6 +269,62 @@ test.describe("filters by date", () => {
     await expect(from(page)).toHaveValue("");
     await expect(to(page)).toHaveValue("");
     await expect(rows(page)).toHaveCount(4);
+  });
+
+  test.describe("from an address, as a source of the finance chat opens it (FR-110, R-26)", () => {
+    const categoryId = async (page: Page, side: Category["side"], name: string) =>
+      (await storedRecords<Category>(page, "categories")).find(
+        (c) => c.side === side && c.name === name,
+      )!.id;
+
+    test("a category and dates open the list with those filters set and only the matching rows", async ({
+      page,
+    }) => {
+      const groceries = await categoryId(page, "expense", "Groceries");
+
+      await page.goto(`/#/?category=${groceries}&from=2026-09-01&to=2026-09-02`);
+
+      await expect.poll(() => descriptions(page)).toEqual(["First"]);
+      await expect(from(page)).toHaveValue("2026-09-01");
+      await expect(to(page)).toHaveValue("2026-09-02");
+      const category = filters(page).getByLabel("Category", { exact: true });
+      await expect(category).toContainText("Groceries");
+      await expect(category).toContainText("Expenses");
+    });
+
+    test("dates alone limit the list to them", async ({ page }) => {
+      await page.goto("/#/?from=2026-09-02&to=2026-09-03");
+      await expect.poll(() => descriptions(page)).toEqual(["Third", "Second"]);
+    });
+
+    test("an id the app does not know, and a date that is not valid, are ignored", async ({
+      page,
+    }) => {
+      await page.goto("/#/?category=not-a-category&account=nowhere&from=2026-02-30&to=2026-09-01");
+
+      await expect.poll(() => descriptions(page)).toEqual(["First", "Late August"]);
+      await expect(from(page)).toHaveValue("");
+      await expect(to(page)).toHaveValue("2026-09-01");
+      await expect(filters(page).getByLabel("Category", { exact: true })).not.toContainText(
+        "not-a-category",
+      );
+    });
+
+    test("Clear filters clears them, and the sidebar marks Transactions", async ({ page }) => {
+      const groceries = await categoryId(page, "expense", "Groceries");
+      await page.goto(`/#/?category=${groceries}&from=2026-09-01`);
+      await expect.poll(() => descriptions(page)).toEqual(["Third", "First"]);
+      await expect(
+        page
+          .getByRole("navigation", { name: "Screens" })
+          .getByRole("link", { name: "Transactions" }),
+      ).toHaveAttribute("aria-current", "page");
+
+      await filters(page).getByRole("button", { name: "Clear filters" }).click();
+
+      await expect(rows(page)).toHaveCount(4);
+      await expect(from(page)).toHaveValue("");
+    });
   });
 
   test("a From after To shows date-range-invalid under the fields and keeps the last rows", async ({

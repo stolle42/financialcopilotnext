@@ -27,6 +27,7 @@ only, before `/speckit-tasks`.
 - [x] CHK005 Is protecting stored data and backup files from other people using the same computer (for example with encryption or a passcode) either required or explicitly excluded? [Gap, Spec §Out of Scope]
   - **Review 2026-10-02**: Gap, and the design does not cover it either. "Credential storage" under Never means bank credentials. Encryption and a passcode are neither required nor excluded. **Needs a decision.**
   - **Resolved 2026-10-02**: Out of Scope (excluded for v1).
+  - **Revisited 2026-10-16 (v1.3)**: still excluded. The stored conversation of the finance chat, whose answers talk about the user's money, is stored data and part of a backup like the rest ([FR-104](../spec.md#fr-104)), so the same exclusion covers it.
 
 ## Requirement Clarity
 
@@ -34,10 +35,12 @@ only, before `/speckit-tasks`.
   - **Review 2026-10-02**: Partly covered. "Telemetry or analytics of any kind" under Never covers usage tracking, but error reports, update checks and third-party fonts or scripts are not named. The design forbids them all, using a CSP that allows only the app's own origin ([R-19](../research.md#r-19)). A definition such as "no request to any host other than the one serving the app" would settle CHK006, CHK007 and CHK017 together.
   - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
   - **Revisited 2026-10-12 (v1.2)**: still clear. FR-061 now lets data leave only in the category suggestions the user asks for while AI features are on, which needs agreeing to the data-sharing warning in Settings ([FR-095](../spec.md#fr-095)); [FR-091](../spec.md#fr-091) lists exactly what such a request holds.
+  - **Revisited 2026-10-16 (v1.3)**: still clear. FR-061 now names both AI features, Suggest categories and the finance chat, each sent only when the user asks while AI features are on; [FR-091](../spec.md#fr-091) and [FR-102](../spec.md#fr-102) list exactly what each request holds, and the warning says it ([FR-095](../spec.md#fr-095)).
 - [x] CHK007 Is "network connection" in FR-061 defined so that serving the app from the user's own computer clearly does not count as one? [Ambiguity, Spec §FR-061]
   - **Review 2026-10-02**: Implied, not defined. "Real data lives only in the app as run locally" suggests that serving from `localhost` does not count, but a strict reading could count loopback HTTP as a network connection. One sentence would settle it (see CHK006).
   - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
   - **Revisited 2026-10-12 (v1.2)**: still clear. Category suggestions are the one capability that needs a connection, to the hosted n8n workflow and Anthropic, and FR-061 says that everything else works without one.
+  - **Revisited 2026-10-16 (v1.3)**: still clear. The AI features are the only capabilities that need a connection, now to OpenAI through the server serving the app on the same computer ([R-24](../research.md#r-24)); talking to that server is not a network connection, and FR-061 says that everything else works without one.
 - [x] CHK008 Are the criteria for "a complete, valid backup" stated, or is it explicit that the design defines them? [Clarity, Spec §FR-072]
   - **Review 2026-10-02**: Unclear. FR-072 says "complete, valid" but neither gives criteria nor hands them to the design. The design's criteria: made by this app, a known format version, every part present, and every invariant holds ([contracts/backup-file.md](../contracts/backup-file.md#loading-fr-071-fr-072)). The spec should state the criteria or point to the contract.
   - **Resolved 2026-10-02**: [FR-072](../spec.md#fr-072).
@@ -50,6 +53,7 @@ only, before `/speckit-tasks`.
 - [x] CHK010 Does SC-014's list of what a restore reproduces match FR-070's list of what a backup holds? FR-070 includes the manual-entry default account; SC-014 does not mention it. [Consistency, Spec §SC-014, §FR-070]
   - **Review 2026-10-02**: Inconsistent. SC-014 omits the manual-entry default account that FR-070 puts in the backup. Add it to SC-014.
   - **Resolved 2026-10-02**: [SC-014](../spec.md#sc-014).
+  - **Revisited 2026-10-16 (v1.3)**: still consistent. FR-070 and SC-014 both add the finance chat's conversation ([FR-104](../spec.md#fr-104)).
 - [x] CHK011 Does "all current data" in FR-071 mean exactly the items FR-070 puts in a backup, including the pending batch? [Consistency, Spec §FR-070, §FR-071]
   - **Review 2026-10-02**: Consistent. FR-070 says "all data the app holds" and FR-071 says "all current data", the same set. A pending batch is therefore replaced too, including by a backup that has none.
 - [x] CHK012 Are confirmation requirements consistent across all destructive actions: deleting a transaction, category or profile, discarding a batch, restoring a backup, and changing an opening balance? [Consistency, Spec §FR-001, §FR-013, §FR-021, §FR-027, §FR-034, §FR-071]
@@ -58,6 +62,7 @@ only, before `/speckit-tasks`.
 - [x] CHK013 Is FR-061's ban on sending usage information to any external party consistent with a hosted copy, whose host sees every request for the app's files? [Consistency, Spec §FR-061]
   - **Review 2026-10-02**: Consistent since the 2026-10-01 clarification. FR-061 confines a hosted copy to checks and demonstrations, and Out of Scope excludes it for real data. The host sees requests for the app's files, never ledger data ([R-20](../research.md#r-20)).
   - **Revisited 2026-10-12 (v1.2)**: still consistent. With AI features on, a hosted copy can send suggestions too, but it holds demonstration data only ([R-23](../research.md#r-23)), and its host still sees no ledger data.
+  - **Revisited 2026-10-16 (v1.3)**: consistent, and simpler. A hosted copy has no route to OpenAI, and AI features cannot be turned on there, so it sends nothing for them ([FR-061](../spec.md#fr-061), [FR-106](../spec.md#fr-106), [R-24](../research.md#r-24)); its host still sees no ledger data.
 
 ## Scenario & Edge Case Coverage
 
@@ -77,6 +82,7 @@ only, before `/speckit-tasks`.
   - **Review 2026-10-02**: Half measurable. "MUST NOT require a network connection" can be tested by running offline. "Any external party" cannot be tested until it is defined (see CHK006). The design's test guard already checks the stricter rule ([R-19](../research.md#r-19)).
   - **Resolved 2026-10-02**: [FR-061](../spec.md#fr-061).
   - **Revisited 2026-10-12 (v1.2)**: still measurable. The test guard still fails every request outside the app's origin, so the tests of category suggestions must answer in the workflow's place, and every other test proves that nothing is sent unasked or with AI features off ([R-23](../research.md#r-23)).
+  - **Revisited 2026-10-16 (v1.3)**: still measurable. The guard also fails a request to `/api/ai` that no test answers in OpenAI's place, so no test can reach OpenAI through a local server that holds a key, and every other test proves that nothing is sent unasked or with AI features off ([R-24](../research.md#r-24)).
 - [x] CHK018 Is "reproduces … exactly" in SC-014 precise enough to compare a restored state with the original, for example item by item? [Measurability, Spec §SC-014]
   - **Review 2026-10-02**: Precise enough. "Every account balance, transaction, category, budget, mapping profile, and the pending batch" is an item-by-item list, and the design turns "exactly" into a deep-equal round trip ([contracts/backup-file.md](../contracts/backup-file.md#exactness-sc-014)). It covers the default account once CHK010 is fixed.
 

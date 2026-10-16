@@ -2,6 +2,17 @@ import type { Page } from "@playwright/test";
 import type { PendingBatch } from "../src/domain/types";
 import { choose, storedRecords } from "./support/app";
 import { backupText, restoreBackup, storedData, type BackupData } from "./support/backup";
+import * as catalogue from "../src/ui/messages";
+import {
+  LOCAL_ONLY,
+  answer,
+  chat,
+  conversation,
+  onHostedCopy,
+  openChat,
+  questionField,
+  standInChat,
+} from "./support/ai";
 import { generateBackup, generateBankCsv } from "./support/generate";
 import { saveMyBankProfile } from "./support/import";
 import { euros, expect, setToday, test } from "./support/test";
@@ -27,6 +38,45 @@ async function freshData(page: Page): Promise<BackupData> {
   await page.goto("/");
   return storedData(page);
 }
+
+test("the finance chat shows the question with Thinking…, and Stop ends the answer, each within 1 s, with 5,000 transactions in the months a question sends (SC-015)", async ({
+  page,
+  baseURL,
+}) => {
+  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
+  test.setTimeout(180_000);
+  await setToday(page, "2026-10-16");
+  const base = await freshData(page);
+  const backup = generateBackup(
+    { ...base, settings: { ...base.settings, aiFeatures: true } },
+    { count: 5_000, start: "2025-10-01", end: "2026-10-15" },
+  );
+  await restoreBackup(page, backupText(backup), undefined, { timeout: RESTORE_TIMEOUT });
+  const standIn = await standInChat(page, answer("Too late."));
+  standIn.hold();
+  await openChat(page);
+  const question = "How can I reduce my spending?";
+  await questionField(page).fill(question);
+
+  let started = Date.now();
+  await questionField(page).press("Enter");
+  await expect(conversation(page)).toHaveText([question, catalogue.financeChat.thinking]);
+  const shown = Date.now() - started;
+
+  started = Date.now();
+  await chat(page).getByRole("button", { name: "Stop" }).click();
+  await expect(conversation(page)).toHaveText([question, catalogue.financeChat.stopped]);
+  const stopped = Date.now() - started;
+
+  standIn.release();
+  await page.waitForTimeout(300);
+  await expect(conversation(page)).toHaveText([question, catalogue.financeChat.stopped]);
+  expect(standIn.requests[0]!.context.transactions.rows).toHaveLength(5_000);
+  record(shown);
+  record(stopped);
+  expect(shown, "The question and Thinking…, from sending").toBeLessThan(1_000);
+  expect(stopped, "The end of the answer, from selecting Stop").toBeLessThan(1_000);
+});
 
 test("Insights renders every section within 2 s for a period of 5,000 transactions (SC-009)", async ({
   page,

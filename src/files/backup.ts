@@ -42,6 +42,8 @@ export function serializeBackup(state: State, exportedAt: string): string {
       profiles: inKeyOrder(state.profiles, (p) => p.id),
       pendingBatch: state.pendingBatch,
       settings: state.settings,
+      // Only while it holds a turn, so a file of an earlier version gives the same file back (R-26).
+      ...(state.conversation.length > 0 ? { conversation: state.conversation } : {}),
     },
   });
 }
@@ -146,6 +148,23 @@ const pendingBatchSchema = z.object({
   rows: z.array(pendingRowSchema),
 });
 
+const sourceSchema = z.object({
+  name: z.string(),
+  from: z.string(),
+  to: z.string(),
+  categoryId: z.string().nullable(),
+  accountId: z.string().nullable(),
+});
+
+const turnSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+  outOfScope: z.literal(true).optional(),
+  stopped: z.literal(true).optional(),
+  sources: z.array(sourceSchema),
+  followUps: z.array(z.string()).optional(),
+});
+
 const dataSchema: z.ZodType<State> = z.object({
   accounts: z.array(accountSchema),
   categories: z.array(categorySchema),
@@ -157,6 +176,8 @@ const dataSchema: z.ZodType<State> = z.object({
     manualEntryAccountId: z.string(),
     aiFeatures: z.literal(true).optional(),
   }),
+  // A file of an earlier version has none, and restores an empty conversation (R-26).
+  conversation: z.array(turnSchema).default([]),
 });
 
 // What the UI calls the records of each part of `data`.
@@ -179,12 +200,18 @@ function damaged(record: string, field?: string): Refusal<"backup-damaged"> {
  * part of `data` (`transactions`), the index of a record in it (`1`), then the field (`date`).
  */
 function damageAt(path: readonly PropertyKey[]): Refusal<"backup-damaged"> {
-  const [part, second, third, fourth] = path.map(String);
+  const [part, second, third, fourth, fifth] = path.map(String);
   // `data` itself is missing or not an object.
   if (part === undefined) return damaged("backup", "data");
   // A part of `data` that is missing, or not a list.
   if (second === undefined) return damaged("data", part);
   if (part === "settings") return damaged("settings", second);
+  if (part === "conversation") {
+    // A turn's sources are records of their own: (conversation, 0, sources, 1, from).
+    return third === "sources" && fourth !== undefined
+      ? damaged("source", fifth)
+      : damaged("turn", third);
+  }
   if (part === "pendingBatch") {
     // A batch's rows are records of their own: (pendingBatch, rows, 0, status).
     return second === "rows" && third !== undefined

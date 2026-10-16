@@ -1,4 +1,4 @@
-import type { CategoriserRefusalCode } from "@/categoriser/categoriser";
+import type { AiRefusalCode } from "@/ai/openai";
 import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { CategoryRefusalCode } from "@/domain/categories";
@@ -35,7 +35,7 @@ export type MessageCode =
   | DecodingRefusal["code"]
   | BatchRefusalCode
   | SuggestionRefusalCode
-  | CategoriserRefusalCode
+  | AiRefusalCode
   | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
@@ -94,11 +94,16 @@ const brokenRules: Record<InvariantCode, string> = {
   "pending-row-category-invalid":
     "a row of the pending import refers to a category that is not in the backup or is on the other side",
   "pending-row-suggestion-invalid":
-    "a row of the pending import holds a category Claude suggested that it cannot suggest",
+    "a row of the pending import holds a category the AI suggested that it cannot suggest",
   "pending-row-transfer-invalid":
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
   "settings-account-missing": "the settings name an account that is not in the backup",
+  "conversation-question-missing": "a question of the finance chat's conversation is empty",
+  "conversation-turn-invalid":
+    "an answer of the finance chat's conversation does not fit its marks, such as stopped or out of scope",
+  "conversation-source-invalid":
+    "a source of an answer in the finance chat's conversation has no name or no valid dates",
 };
 
 /** What a damaged backup's records are called, with their article. */
@@ -111,6 +116,8 @@ const recordWords: Record<string, string> = {
   pendingBatch: "the pending import",
   pendingRow: "a row of the pending import",
   settings: "the settings",
+  turn: "a question and answer of the finance chat's conversation",
+  source: "a source of an answer in the finance chat's conversation",
 };
 
 /** A field name in words: `openingBalanceCents` is "opening balance". */
@@ -204,22 +211,19 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
-  "ai-features-off":
-    "Suggestions need AI features, which you turn on in Settings. Nothing was sent.",
-  "categoriser-unreachable":
-    "Claude could not be asked. Check your internet connection and that the n8n workflow is " +
-    "published, then try again. No row changed.",
-  "categoriser-timeout":
-    "Claude took too long to answer. Try again, or categorise some rows first so fewer are sent. " +
-    "No row changed.",
-  "categoriser-failed":
-    "The n8n workflow reported a failure. Check its executions in n8n, for example its Anthropic " +
-    "credential. No row changed.",
-  "categoriser-answer-invalid":
-    "The answer of the n8n workflow could not be read. Import the workflow from the n8n folder " +
-    "of the project again. No row changed.",
+  "ai-features-off": "This needs AI features, which you turn on in Settings. Nothing was sent.",
+  "ai-unreachable":
+    "The AI could not be asked. AI features need the app started on this computer with an OpenAI " +
+    "key in .env, and an internet connection; then try again. Nothing changed.",
+  "ai-timeout":
+    "The AI took too long to answer. Try again, with fewer rows or a shorter question. Nothing " +
+    "changed.",
+  "ai-failed":
+    "OpenAI refused the request, for example because of the key or the project's credit. Check " +
+    "them on OpenAI's platform, then try again. Nothing changed.",
+  "ai-answer-invalid": "The AI's answer could not be read. Try again. Nothing changed.",
   "suggestions-outdated":
-    "The import changed while Claude was answering, so no suggestion was used.",
+    "The import changed while the AI was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
   "category-name-empty": "The category needs a name.",
   "category-name-taken": (details) =>
@@ -240,15 +244,46 @@ const transactions = (count: number) => `${count} transaction${count === 1 ? "" 
 
 /** What AI features do and where their data goes, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
-  "Suggest categories in review. AI features send data to the project's n8n workflow and to " +
-  "Anthropic.";
+  "Suggest categories in review, and the finance chat. AI features send data to OpenAI.";
 
 /** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
 export const sharingWarning =
-  "Data will now be shared. Suggest categories sends the payee and purpose of the rows still to " +
-  "categorise, your category names and up to 100 earlier descriptions to the project's n8n " +
-  "workflow and to Anthropic, whose Claude suggests the categories. Amounts, dates and account " +
-  "names stay here.";
+  "Data will now be shared with OpenAI. Suggest categories sends the payee and purpose of the " +
+  "rows still to categorise, your category names and up to 100 earlier descriptions, and no " +
+  "amounts, dates or account names. The finance chat sends each question with the conversation, " +
+  "the expenses and incomes of this month and the 12 months before it with their dates, " +
+  "descriptions, amounts and categories, their monthly totals, this month's budgets, and each " +
+  "account's name, type and balance.";
+
+/** Beside the AI features switch in a copy not served from the user's computer (FR-106). */
+export const aiFeaturesLocalOnly =
+  "AI features need the app running on your computer. Run it locally to use them.";
+
+/** The finance chat's wording (contracts/ui.md, finance chat; FR-100 – FR-111). */
+export const financeChat = {
+  title: "Ask about your finances",
+  examples: [
+    "How can I reduce my spending?",
+    "Which of my subscriptions have become more expensive?",
+    "Am I on track with my budgets this month?",
+    "Where did I spend more this month than last month?",
+  ],
+  /** The fixed answer to a question out of scope (FR-103). */
+  outOfScope:
+    "I can help with questions about your own finances, which I answer from your data in this " +
+    "app, such as where your money goes, whether your budgets hold and where you could save; " +
+    "with general questions about money and finance; and with questions about how this app " +
+    "works. I cannot help with other topics.",
+  /** The group of the example questions, or of the latest answer's follow-ups (FR-101, FR-111). */
+  suggestions: "Suggested questions",
+  needsAiFeatures: "The chat needs AI features, which you turn on in Settings.",
+  thinking: "Thinking…",
+  stop: "Stop",
+  stopped: "Stopped",
+  sources: "Sources",
+  clear: "Clear conversation",
+  clearWarning: "The conversation's questions and answers will be deleted.",
+};
 
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
@@ -265,8 +300,8 @@ export const notifications = {
   /** The status line after an answer: how many of the rows sent got a category (FR-094). */
   categoriesSuggested: (filled: number, sent: number) =>
     filled === 0
-      ? `Claude found no category for the ${sent} row${sent === 1 ? "" : "s"} sent.`
-      : `Claude suggested ${filled === 1 ? "a category" : "categories"} for ${filled} of ${sent} ` +
+      ? `The AI found no category for the ${sent} row${sent === 1 ? "" : "s"} sent.`
+      : `The AI suggested ${filled === 1 ? "a category" : "categories"} for ${filled} of ${sent} ` +
         `row${sent === 1 ? "" : "s"}.`,
 };
 

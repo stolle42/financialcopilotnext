@@ -14,8 +14,8 @@ defined during implementation ([plan.md](plan.md#project-structure)).
 - Git
 - For the post-push check only: a Vercel project for this repository
   ([Vercel setup](#vercel-setup))
-- For category suggestions only: a hosted n8n instance, such as n8n Cloud, and an Anthropic API
-  key ([Category suggestions](#category-suggestions))
+- For AI features only: an OpenAI API key, of a project with a monthly budget or prepaid credit
+  ([AI features](#ai-features))
 
 ## Setup
 
@@ -59,8 +59,8 @@ Each command must pass locally and in CI ([R-18](research.md#r-18)).
 
 Every end-to-end test runs behind a network guard that fails the test on any request outside the
 app's own origin. That guard is the regression test for [FR-061](spec.md#fr-061). The tests of
-category suggestions answer in place of the n8n workflow, so the checks need neither n8n nor a key
-([R-23](research.md#r-23)).
+the AI features answer at `/api/ai` in OpenAI's place, and the guard also fails a request there
+that no test answers, so the checks need no key ([R-24](research.md#r-24)).
 
 ## Validation scenarios
 
@@ -128,12 +128,21 @@ committed. Tests that need existing data load it through the backup restore
 - **Run**: `e2e/us7-backup.spec.ts`
 - **Covers**: [User Story 7](spec.md#user-story-7) scenarios 1–3
 - **Round trip** ([SC-014](spec.md#sc-014)):
-  1. Fill every entity type, including a pending batch with review progress.
+  1. Fill every entity type, including a pending batch with review progress and, where AI
+     features can be on, a conversation of the finance chat.
   2. Save a backup.
   3. Open a fresh browser context with empty storage and restore the backup there.
   4. Save again.
 - **Expected**: the two files' `data` objects are deep-equal
   ([contracts/backup-file.md](contracts/backup-file.md#exactness-sc-014)).
+
+### US8: Finance chat
+
+- **Run**: `e2e/us8-finance-chat.spec.ts`, with a stand-in answering at `/api/ai` in OpenAI's place
+  ([R-26](research.md#r-26)). On a hosted copy only scenario 1 runs ([FR-106](spec.md#fr-106)).
+- **Covers**: [User Story 8](spec.md#user-story-8) scenarios 1–11
+- **Expected**: a source closes the chat and opens the transaction list with its filters, the chat
+  opened again there shows the conversation, and it survives a reload.
 
 ### Messages
 
@@ -150,6 +159,7 @@ committed. Tests that need existing data load it through the backup restore
 |---|---|---|
 | [SC-009](spec.md#sc-009) | Restore a generated backup with 5,000 transactions in one period, then choose that period | All Insights sections render within 2 s |
 | [SC-010](spec.md#sc-010) | Import a generated 5,000-row CSV | The review is shown within 10 s |
+| [SC-015](spec.md#sc-015) | Restore a generated backup with 5,000 transactions in the last 13 months, turn on AI features, and ask the chat with the stand-in holding its answer; then select Stop | The question and "Thinking…" show within 1 s of sending, and Stop ends the answer within 1 s. Skipped on a hosted copy |
 | List render ([R-21](research.md#r-21)) | Restore a generated backup with 10,000 transactions, then open the app | The transaction list shows within 1 s. Skipped: Firefox takes longer ([R-21](research.md#r-21)), and the fix is listed under Not in v1 ([Out of Scope](spec.md#out-of-scope)) |
 
 ## Manual checks
@@ -166,58 +176,73 @@ noted. Use `npm start` with a fresh browser profile.
 
 `npm run fixtures:sc001` writes the SC-001 file to `tmp/` ([plan.md](plan.md#project-structure)).
 
-<a id="category-suggestions"></a>
-## Category suggestions
+<a id="ai-features"></a>
+## AI features
 
-**Suggest categories** in review ([FR-090](spec.md#fr-090)) needs the workflow from
-`n8n/` published on the owner's hosted n8n instance, which asks Claude ([R-23](research.md#r-23)),
-and AI features turned on in Settings ([FR-095](spec.md#fr-095)). Everything else works without
-them.
+**Suggest categories** in review ([FR-090](spec.md#fr-090)) and the **finance chat**
+([FR-100](spec.md#fr-100)) ask OpenAI through the route `/api/ai` that the local server adds
+([R-24](research.md#r-24), [contracts/ai.md](contracts/ai.md#route)). They need an OpenAI key in
+`.env` and AI features turned on in Settings ([FR-095](spec.md#fr-095)). Everything else works
+without them. A hosted copy has no such route, so there AI features cannot be turned on
+([FR-106](spec.md#fr-106)).
 
 **Once**:
 
-1. In your n8n instance, create a workflow, choose **Import from File…** in its menu, and pick
-   `n8n/financial-copilot-categories.json`.
-2. Open the **Ask Claude** node and, under Credential for Anthropic, choose or create an Anthropic
-   credential with your API key. The key stays in n8n, never in this repository, the app or a
-   backup.
-3. In the Anthropic Console, set a monthly spending limit for that key. The workflow's address is in
-   every build of the app, so anyone could call it ([R-23](research.md#r-23)).
-4. Publish the workflow (older n8n versions call this activating it). Copy its production address
-   into `src/categoriser/endpoint.ts` in place of the placeholder, and into
-   [categoriser.md](contracts/categoriser.md#address), in one commit.
+1. On OpenAI's platform, create a project for Financial Copilot and an API key in it. Give the
+   project a monthly budget, or prepaid credit without automatic recharge
+   ([R-24](research.md#r-24)).
+2. Copy `.env.example` to `.env` in the project folder and put the key after `OPENAI_API_KEY=`.
+   Git ignores `.env`: `git status` must not list it.
+3. Restart `npm start` or `npm run dev`. The server reads the key when it starts.
+4. After updating from v1.2 with AI features on, turn them off and on once in Settings, and read
+   the warning: v1.3 sends to OpenAI, and the chat sends amounts and dates
+   ([FR-095](spec.md#fr-095)).
 
-**Smoke test**, with `<address>` the production address:
+**Smoke test**, with `npm start` running:
 
 ```bash
-curl -s -X POST <address> \
+curl -s -X POST http://localhost:4173/api/ai \
   -H "Content-Type: application/json" \
-  -d '{"rows":[{"rowNumber":2,"side":"expense","counterparty":"REWE Markt GmbH","description":"Card payment REWE Berlin"}],"categories":{"expense":["Groceries","Housing"],"income":["Salary"]},"examples":[]}'
+  -d '{"model":"gpt-6.1-sol","store":false,"input":"Answer with OK."}'
 ```
 
 ```powershell
-$body = '{"rows":[{"rowNumber":2,"side":"expense","counterparty":"REWE Markt GmbH","description":"Card payment REWE Berlin"}],"categories":{"expense":["Groceries","Housing"],"income":["Salary"]},"examples":[]}'
-Invoke-RestMethod -Method Post -ContentType application/json -Body $body -Uri <address>
+$body = '{"model":"gpt-6.1-sol","store":false,"input":"Answer with OK."}'
+Invoke-RestMethod -Method Post -ContentType application/json -Body $body -Uri http://localhost:4173/api/ai
 ```
 
-Expected: `{"suggestions":[{"rowNumber":2,"category":"Groceries"}]}`. To check the browser's
-preflight, send
-`curl -i -X OPTIONS -H "Origin: http://localhost:4173" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" <address>`.
-The answer must carry `Access-Control-Allow-Origin: http://localhost:4173`.
+Expected: OpenAI's answer, with `"status": "completed"`. The same request with
+`-H "Origin: https://example.com"` gets 403, and without a key in `.env` an empty 404. The key is
+not in the build: searching `dist/` for its first characters finds nothing.
 
-**Manual checks**, with `npm start`:
+**Manual checks**, with `npm start` and the key in `.env`:
 
 | Check | Procedure | Pass |
 |---|---|---|
-| AI features off | Open review with AI features off | Suggest categories is unavailable, and review says it needs AI features, with a link to Settings |
-| Warning | In Settings, turn on AI features, then Cancel | The data-sharing warning says what goes to n8n and Anthropic; Cancel leaves the switch off |
-| AI features on | Turn on AI features again and select Turn on; reload; select Suggest categories in review | The switch stays on after the reload, and the request goes without another warning |
-| Suggestions | With AI features on, import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
+| AI features off | Open review, then the chat, with AI features off | Suggest categories is unavailable, and review says it needs AI features, with a link to Settings; the chat says the same and offers nothing to send |
+| Warning | In Settings, turn on AI features, then Cancel | The data-sharing warning names OpenAI and says what each feature sends; Cancel leaves the switch off |
+| AI features on | Turn on AI features again and select Turn on; reload | The switch stays on, and nothing was sent |
+| Suggestions | Import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
 | [SC-001](spec.md#sc-001) file | The same with the SC-001 file of about 300 rows | The answer arrives within 2 minutes |
 | Mark | Change one suggested row, reload, then confirm | The changed row loses its mark, the other marks survive the reload, and the ledger holds the categories |
-| Offline | Disconnect from the internet, then select Suggest categories | `categoriser-unreachable`, and no row changes |
-| Not published | Unpublish the workflow, then select Suggest categories | `categoriser-unreachable` |
-| Leaving | Select Suggest categories, then leave review before the answer | No row changes |
+| Chat button | Open each screen of the sidebar, then Import, and scroll each to its end | The chat button shows at the bottom right of each, in the colour of Add transaction, with its icon and name, and no content stays under it |
+| Chat example | With data that holds a subscription whose price rose, open the chat and select "Which of my subscriptions have become more expensive?" | The answer names that subscription, its old and new amount and the month of the change |
+| Streaming | Ask "How can I reduce my spending?" | "Thinking…" shows until the first words, then the answer grows as it is written |
+| Sources | Select a source under that answer, then open the chat again | The chat closes and Transactions opens with the source's category and dates as filters, and the rows add up to what the answer says; the conversation is still there |
+| Stop | Ask "Where did I spend more this month than last month?" and select Stop while the answer is written | The answer ends at once, marked "Stopped", and its text so far stays |
+| Chat follow-up | Ask "And which one costs the most?" | The answer refers to the subscriptions of the earlier answer |
+| Missing data | Ask "Did I spend more on travel than in 2024?" | The answer says that the data does not reach back to 2024, and gives no figure for it |
+| Out of scope | Ask "What is the capital of France?" | The chat's fixed answer, naming what it can help with, then the example questions |
+| Follow-ups | Look under any complete answer, and select one of its follow-up questions | One to three follow-up questions show under the latest answer only; the one selected is sent at once |
+| App question | Ask "How do I import a bank file?" | Steps that match the Import screen, with no sources |
+| Change request | Ask "Set my groceries budget to €300." | The chat says that it cannot change anything and explains how to set the limit on Budgets; no budget changes |
+| General finance | Ask "What is an emergency fund?" | An explanation marked as general, with no figure that the data does not hold |
+| Chat kept | Close the chat and open it again; then open Budgets, open the chat there, and reload | The conversation is still there each time |
+| Clear | Select Clear conversation, then Cancel; then again, and confirm | Cancel keeps the conversation; confirming empties it and shows the example questions |
+| Offline | Disconnect from the internet, then ask the chat and select Suggest categories | `ai-unreachable` in both, and nothing changes |
+| No key | Empty `OPENAI_API_KEY` in `.env`, restart `npm start`, then ask the chat | `ai-unreachable` |
+| Hosted copy | On the Vercel production domain, open Settings | The AI features switch is off and unavailable, and the line beside it says to run the app locally |
+| Leaving | Select Suggest categories, then leave review before the answer; ask the chat, close it and open another screen before the answer, then open the chat again | No row changes, and no message appears later; the chat's answer is there when it is complete |
 
 ## After pushing to main
 

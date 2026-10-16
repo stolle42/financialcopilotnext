@@ -111,14 +111,14 @@ function ReviewFooter({
   batch,
   count,
   accountName,
-  claudeAnswering,
+  aiAnswering,
   onRefusal,
 }: {
   batch: PendingBatch;
   count: number;
   accountName: string;
-  /** Claude is answering, so confirming waits (FR-027). */
-  claudeAnswering: boolean;
+  /** The AI is answering, so confirming waits (FR-027). */
+  aiAnswering: boolean;
   onRefusal: (refusal: Refusal<MessageCode> | null) => void;
 }) {
   const store = useStoreApi();
@@ -148,7 +148,7 @@ function ReviewFooter({
       <Button variant="outline" onClick={() => setAsking("discard")}>
         Discard
       </Button>
-      <Button disabled={claudeAnswering} onClick={() => setAsking("confirm")}>
+      <Button disabled={aiAnswering} onClick={() => setAsking("confirm")}>
         Confirm {added}
       </Button>
       <ConfirmDialog
@@ -176,7 +176,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
   const view = useMemo(() => reviewView(batch), [batch]);
   const [drawer, setDrawer] = useState<"duplicates" | "unparsable" | null>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
-  const [askingClaude, setAskingClaude] = useState(false);
+  const [askingAi, setAskingAi] = useState(false);
   const { counts } = view;
 
   return (
@@ -200,7 +200,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           </Button>
         </div>
       </section>
-      <SuggestCategories view={view} onRefusal={setRefusal} onAskingChange={setAskingClaude} />
+      <SuggestCategories view={view} onRefusal={setRefusal} onAskingChange={setAskingAi} />
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
           {messageFor(refusal)}
@@ -211,7 +211,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
         batch={batch}
         count={counts.review}
         accountName={account?.name ?? ""}
-        claudeAnswering={askingClaude}
+        aiAnswering={askingAi}
         onRefusal={setRefusal}
       />
       <DuplicatesDrawer

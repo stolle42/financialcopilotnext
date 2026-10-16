@@ -1,8 +1,8 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loadState, openDatabase } from "@/persistence/db";
-import { setAiFeatures } from "./settings";
+import { aiFeaturesOn, setAiFeatures } from "./settings";
 import { createStore } from "./store";
 
 // FR-095: the AI features switch saves at once.
@@ -40,5 +40,23 @@ describe("setAiFeatures (FR-095)", () => {
     expect(store.getState().settings).not.toHaveProperty("aiFeatures");
     db.close();
     expect((await reopened()).settings).not.toHaveProperty("aiFeatures");
+  });
+});
+
+describe("aiFeaturesOn (FR-095, FR-106)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("is true only with AI features on, in the app run on the user's own computer", async () => {
+    const { store } = await setUp();
+    vi.stubGlobal("location", { hostname: "localhost" });
+    expect(aiFeaturesOn(store.getState())).toBe(false);
+
+    await setAiFeatures(store, true);
+    expect(aiFeaturesOn(store.getState())).toBe(true);
+
+    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    expect(aiFeaturesOn(store.getState())).toBe(false);
   });
 });

@@ -45,5 +45,7 @@ export default defineConfig({
         command: "npx vite preview",
         url: "http://localhost:4173",
         reuseExistingServer: !process.env.CI,
+        // No key, so a request that no stand-in answers can never reach OpenAI (R-24).
+        env: { OPENAI_API_KEY: "" },
       },
 });
