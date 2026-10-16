@@ -1,5 +1,5 @@
 import { messageFor } from "../src/ui/messages";
-import { suggestButton, suggestCategories, turnOnAiFeatures } from "./support/ai";
+import { chat, openChat, suggestButton, suggestCategories, turnOnAiFeatures } from "./support/ai";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, test } from "./support/test";
 
@@ -27,6 +27,16 @@ test("turning AI features on and reviewing an import send nothing until Suggest 
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
   await expect(suggestButton(page)).toBeEnabled();
+  await page.waitForLoadState("networkidle");
+});
+
+test("turning AI features on and opening Insights and the finance chat send nothing before a question (FR-100, FR-101)", async ({
+  page,
+}) => {
+  await turnOnAiFeatures(page);
+  await openChat(page);
+  await expect(chat(page).getByRole("textbox", { name: "Your question" })).toBeEnabled();
+  await page.keyboard.press("Escape");
   await page.waitForLoadState("networkidle");
 });
 

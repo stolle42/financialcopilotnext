@@ -185,3 +185,31 @@ export async function turnOnAiFeatures(page: Page) {
 export async function suggestCategories(page: Page) {
   await suggestButton(page).click();
 }
+
+/** The button on Insights that opens the finance chat (contracts/ui.md, insights; FR-100). */
+export const chatButton = (page: Page) =>
+  page.getByRole("main").getByRole("button", { name: "Ask about your finances" });
+
+/** The finance chat's sheet. */
+export const chat = (page: Page) => page.getByRole("dialog", { name: "Ask about your finances" });
+
+/** The chat's conversation: each question, then its answer. */
+export const conversation = (page: Page) =>
+  chat(page).getByRole("log", { name: "Conversation" }).getByRole("listitem");
+
+/** The field to type a question into. */
+export const questionField = (page: Page) =>
+  chat(page).getByRole("textbox", { name: "Your question" });
+
+/** Opens Insights and its finance chat. */
+export async function openChat(page: Page) {
+  await page.goto("/#/insights");
+  await chatButton(page).click();
+  await expect(chat(page)).toBeVisible();
+}
+
+/** Types `question` into the chat and sends it with Enter (FR-101). */
+export async function askInChat(page: Page, question: string) {
+  await questionField(page).fill(question);
+  await questionField(page).press("Enter");
+}

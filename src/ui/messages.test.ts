@@ -153,6 +153,36 @@ describe("messages", () => {
     expect(catalogue.aiFeaturesDescription).toContain("OpenAI");
   });
 
+  test("says in the warning what the finance chat sends, which suggestions do not (FR-095, FR-102)", () => {
+    const warning = catalogue.sharingWarning;
+    expect(warning).toMatch(/finance chat/);
+    expect(warning).toMatch(/no amounts, dates or account names/i);
+    for (const part of ["question", "12 months", "dates", "descriptions", "amounts", "budgets"]) {
+      expect(warning).toContain(part);
+    }
+    expect(warning).toMatch(/balance/);
+    expect(catalogue.aiFeaturesDescription).toMatch(/Suggest categories/);
+    expect(catalogue.aiFeaturesDescription).toMatch(/finance chat/);
+  });
+
+  test("words the finance chat: its name, examples, the fixed answer out of scope, and AI features needed (FR-100 – FR-103)", () => {
+    const chat = catalogue.financeChat;
+    expect(chat.title).toBe("Ask about your finances");
+    expect(chat.examples).toEqual(
+      expect.arrayContaining([
+        "How can I reduce my spending?",
+        "Which of my subscriptions have become more expensive?",
+      ]),
+    );
+    expect(chat.outOfScope).toMatch(/only/i);
+    for (const topic of [/spending/, /budgets/, /subscriptions/]) {
+      expect(chat.outOfScope).toMatch(topic);
+    }
+    expect(chat.needsAiFeatures).toMatch(/AI features/);
+    expect(chat.needsAiFeatures).toMatch(/Settings/);
+    expect(chat.thinking).toBe("Thinking…");
+  });
+
   test("names OpenAI as the one recipient, and neither n8n, Anthropic nor Claude (R-24)", () => {
     const texts = [
       catalogue.sharingWarning,

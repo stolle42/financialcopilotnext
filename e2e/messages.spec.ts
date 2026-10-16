@@ -9,7 +9,15 @@ import {
   storedRecords,
 } from "./support/app";
 import { backupText, chooseBackupFile, storedData } from "./support/backup";
-import { standInCategoriser, suggestCategories, turnOnAiFeatures } from "./support/ai";
+import {
+  askInChat,
+  chat,
+  openChat,
+  standInCategoriser,
+  standInChat,
+  suggestCategories,
+  turnOnAiFeatures,
+} from "./support/ai";
 import { importWithProfile, mapMyBank, saveMyBankProfile, startImport } from "./support/import";
 import { expect, setToday, test } from "./support/test";
 
@@ -170,6 +178,18 @@ test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", as
   await suggestCategories(page);
 
   await expectWording(main(page).getByRole("alert"), "ai-unreachable");
+});
+
+test("ai-unreachable: the AI could not be asked, in the finance chat's alert (FR-104)", async ({
+  page,
+}) => {
+  await standInChat(page, () => "unreachable");
+  await turnOnAiFeatures(page);
+  await openChat(page);
+
+  await askInChat(page, "Where does my money go?");
+
+  await expectWording(chat(page).getByRole("alert"), "ai-unreachable");
 });
 
 test("unparsable import rows: each is listed with the reason it failed", async ({ page }) => {

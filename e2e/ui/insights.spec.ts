@@ -9,9 +9,24 @@ import {
   storedRecords,
   storedTransactions,
 } from "../support/app";
+import { messageFor } from "../../src/ui/messages";
+// A namespace import, so the spec loads even before the catalogue words a new message.
+import * as catalogue from "../../src/ui/messages";
+import {
+  answer,
+  askInChat,
+  chat,
+  chatButton,
+  conversation,
+  openChat,
+  outOfScope,
+  questionField,
+  standInChat,
+  turnOnAiFeatures,
+} from "../support/ai";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, insights; FR-050 – FR-053; R-14, R-19.
+// contracts/ui.md, insights; FR-050 – FR-053, FR-100 – FR-104; R-14, R-19, R-25.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");
@@ -558,5 +573,204 @@ test.describe("the budgets (FR-041, FR-042, SC-011)", () => {
 
     await expect(page).toHaveURL(/#\/insights$/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("the finance chat (FR-100 – FR-104)", () => {
+  const examples = (page: Page) =>
+    chat(page).getByRole("button", {
+      name: new RegExp(`^(${catalogue.financeChat.examples.map(escape).join("|")})$`),
+    });
+  const sendButton = (page: Page) => chat(page).getByRole("button", { name: "Send" });
+
+  test("the chat button on Insights opens the chat, which names itself and offers the example questions (FR-100, FR-101)", async ({
+    page,
+  }) => {
+    await turnOnAiFeatures(page);
+    await page.goto("/#/insights");
+
+    await chatButton(page).click();
+
+    await expect(chat(page)).toBeVisible();
+    expect(catalogue.financeChat.examples).toEqual(
+      expect.arrayContaining([
+        "How can I reduce my spending?",
+        "Which of my subscriptions have become more expensive?",
+      ]),
+    );
+    for (const example of catalogue.financeChat.examples) {
+      await expect(chat(page).getByRole("button", { name: example, exact: true })).toBeEnabled();
+    }
+    await expect(conversation(page)).toHaveCount(0);
+  });
+
+  test("with AI features off, says they are needed, links to Settings, and offers nothing to send (FR-100)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page);
+    await openChat(page);
+
+    await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
+    await expect(examples(page)).toHaveCount(0);
+    await expect(questionField(page)).toHaveCount(0);
+    await chat(page).getByRole("link", { name: "Settings" }).click();
+    await expect(page).toHaveURL(/#\/settings$/);
+    expect(standIn.requests).toEqual([]);
+  });
+
+  test("an example question sends at once, with today's data, and its answer follows it as plain text (FR-101 – FR-103)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(
+      page,
+      answer("Spotify Premium rose from €10.99 to €11.99.\n- <b>Check it</b>"),
+    );
+    await page.goto("/");
+    await addTransaction(page, {
+      amount: "11.99",
+      category: "Leisure",
+      description: "Spotify Premium",
+    });
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await chat(page)
+      .getByRole("button", { name: "Which of my subscriptions have become more expensive?" })
+      .click();
+
+    await expect(conversation(page)).toHaveText([
+      "Which of my subscriptions have become more expensive?",
+      /^Spotify Premium rose from €10\.99 to €11\.99\.\s+- <b>Check it<\/b>$/,
+    ]);
+    await expect(chat(page).locator("b")).toHaveCount(0);
+    expect(standIn.requests).toHaveLength(1);
+    const [sent] = standIn.requests;
+    expect(sent!.question).toBe("Which of my subscriptions have become more expensive?");
+    expect(sent!.turns).toEqual([]);
+    expect(sent!.context.today).toBe("2026-09-03");
+    expect(sent!.context.transactions.rows).toContainEqual([
+      "2026-09-03",
+      "Spotify Premium",
+      -11.99,
+      "Leisure",
+    ]);
+    await expect(examples(page)).toHaveCount(0);
+  });
+
+  test("a typed question sends with Enter, and the next one sends the earlier turn too (FR-101, FR-102)", async ({
+    page,
+  }) => {
+    let count = 0;
+    const standIn = await standInChat(page, () => ({
+      json: { inScope: true, answer: `Answer ${++count}` },
+    }));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await expect(sendButton(page)).toBeDisabled();
+    await askInChat(page, "Where does my money go?");
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Answer 1"]);
+    await expect(questionField(page)).toHaveValue("");
+    await askInChat(page, "And last month?");
+
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      "Answer 1",
+      "And last month?",
+      "Answer 2",
+    ]);
+    expect(standIn.requests[1]!.turns).toEqual([
+      { question: "Where does my money go?", answer: "Answer 1" },
+    ]);
+  });
+
+  test("while an answer is awaited, says so and sends nothing more (FR-104)", async ({ page }) => {
+    const standIn = await standInChat(page, answer("Done."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    standIn.hold();
+
+    await askInChat(page, "Where does my money go?");
+
+    await expect(chat(page)).toContainText(catalogue.financeChat.thinking);
+    await questionField(page).fill("Another question");
+    await expect(sendButton(page)).toBeDisabled();
+    await questionField(page).press("Enter");
+    standIn.release();
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Done."]);
+    await expect(chat(page)).not.toContainText(catalogue.financeChat.thinking);
+    expect(standIn.requests).toHaveLength(1);
+  });
+
+  test("a question out of scope gets the fixed answer, not the model's text (FR-103)", async ({
+    page,
+  }) => {
+    await standInChat(page, outOfScope);
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await askInChat(page, "What is the capital of France?");
+
+    await expect(conversation(page)).toHaveText([
+      "What is the capital of France?",
+      catalogue.financeChat.outOfScope,
+    ]);
+    await expect(chat(page)).not.toContainText("Paris");
+  });
+
+  test("a failure shows its message and keeps the conversation, with the question in the field (FR-104)", async ({
+    page,
+  }) => {
+    let fail = false;
+    await standInChat(page, () =>
+      fail ? "unreachable" : { json: { inScope: true, answer: "Fine." } },
+    );
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Am I on track?");
+    await expect(conversation(page)).toHaveText(["Am I on track?", "Fine."]);
+    fail = true;
+
+    await askInChat(page, "And next month?");
+
+    await expect(chat(page).getByRole("alert")).toHaveText(messageFor({ code: "ai-unreachable" }));
+    await expect(conversation(page)).toHaveText(["Am I on track?", "Fine."]);
+    await expect(questionField(page)).toHaveValue("And next month?");
+  });
+
+  test("closing and opening the chat keeps the conversation (FR-104)", async ({ page }) => {
+    await standInChat(page, answer("Groceries."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Groceries."]);
+
+    await page.keyboard.press("Escape");
+    await expect(chat(page)).toBeHidden();
+    await chatButton(page).click();
+
+    await expect(conversation(page)).toHaveText(["Where does my money go?", "Groceries."]);
+  });
+
+  test("leaving Insights ends the conversation and cancels a question still awaited (FR-104)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, answer("Late answer."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    standIn.hold();
+    await askInChat(page, "Where does my money go?");
+    await expect.poll(() => standIn.requests.length).toBe(1);
+
+    await page.goto("/#/");
+    standIn.release();
+    await page.waitForTimeout(300);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await page.goto("/#/insights");
+    await chatButton(page).click();
+
+    await expect(conversation(page)).toHaveCount(0);
+    await expect(chat(page)).not.toContainText("Late answer.");
+    await expect(examples(page)).toHaveCount(catalogue.financeChat.examples.length);
   });
 });

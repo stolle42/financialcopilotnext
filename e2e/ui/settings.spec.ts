@@ -34,6 +34,7 @@ test.describe("AI features (FR-095)", () => {
     await page.goto("/#/settings");
     await expect(aiFeaturesSwitch(page)).not.toBeChecked();
     await expect(main(page)).toContainText("Suggest categories");
+    await expect(main(page)).toContainText("finance chat");
     await expect(main(page)).toContainText("OpenAI");
     await expect(main(page)).not.toContainText(/n8n|Anthropic/);
     expect(await storedSettings(page)).not.toHaveProperty("aiFeatures");
@@ -48,6 +49,7 @@ test.describe("AI features (FR-095)", () => {
 
     await expect(sharingWarning(page)).toContainText(catalogue.sharingWarning);
     await expect(sharingWarning(page)).toContainText("OpenAI");
+    await expect(sharingWarning(page)).toContainText("finance chat");
     await expect(sharingWarning(page)).not.toContainText(/n8n|Anthropic/);
     await sharingWarning(page).getByRole("button", { name: "Cancel" }).click();
     await expect(sharingWarning(page)).toBeHidden();
