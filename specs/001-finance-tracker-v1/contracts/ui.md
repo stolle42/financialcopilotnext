@@ -22,7 +22,7 @@ as the current entry, since an import feeds its list ([FR-085](../spec.md#fr-085
 
 | Route | Screen | Sidebar position |
 |---|---|---|
-| `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)) | 1 |
+| `#/` | [Transactions](#transactions), the home screen ([FR-063](../spec.md#fr-063)), also with filters as a query, `#/?category=…` | 1 |
 | `#/import` | [Import](#import) | not listed |
 | `#/import/review` | [Review](#review) of the pending batch | not listed |
 | `#/import/profiles/new`, `#/import/profiles/:id` | [Profile editor](#profile-editor) | not listed |
@@ -61,6 +61,11 @@ Routes use the URL hash so the build works from any static host or local file ([
     From after To shows `date-range-invalid` under the fields, and the list keeps the last range
     that held, as the Insights period does.
   - All filters can apply at once, and **Clear filters** resets them, the dates included.
+  - **From a link** ([FR-110](../spec.md#fr-110), [R-26](../research.md#r-26)):
+    `#/?category=<id>&account=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD`, each part optional, opens the
+    list with those filters set, as a source of the finance chat does. An id the app does not know,
+    or a date that is not valid, is ignored. Changing a filter afterwards leaves the address as it
+    is.
 - **Editing in place** ([FR-081](../spec.md#fr-081)): each cell of a row is a button that edits its
   value right there, one cell at a time. Selecting a cell never opens the form.
   - Date, Description and Amount open a field with the current value, the amount without its sign.
@@ -131,11 +136,13 @@ Routes use the URL hash so the build works from any static host or local file ([
      budgets, the section links to Budgets.
 - Each section has its own empty state ([User Story 3](../spec.md#user-story-3) scenario 6). Charts
   show tooltips but offer no click-through ([FR-053](../spec.md#fr-053)).
-- **Finance chat** ([FR-100](../spec.md#fr-100) – [FR-104](../spec.md#fr-104),
-  [ai.md](ai.md#finance-chat)): a round button with a chat icon, fixed at the bottom right of the
-  screen and named "Ask about your finances". It opens a sheet from the right with that title.
+- **Finance chat** ([FR-100](../spec.md#fr-100) – [FR-110](../spec.md#fr-110),
+  [ai.md](ai.md#finance-chat), [User Story 8](../spec.md#user-story-8)): a round button with a
+  chat icon, fixed at the bottom right of the screen and named "Ask about your finances". It opens
+  a sheet from the right with that title.
   - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
-    features, with a link to [Settings](#settings), and shows neither examples nor a field.
+    features, with a link to [Settings](#settings), and shows neither examples nor a field. A
+    stored conversation still shows.
   - While the conversation is empty, the sheet shows the example questions as buttons: "How can I
     reduce my spending?", "Which of my subscriptions have become more expensive?", "Am I on track
     with my budgets this month?" and "Where did I spend more this month than last month?".
@@ -143,13 +150,27 @@ Routes use the URL hash so the build works from any static host or local file ([
   - The conversation is a log: each question, then its answer as plain text, line breaks kept. A
     question out of scope gets the chat's fixed answer, which names what the chat can help with
     ([FR-103](../spec.md#fr-103)).
+  - While an answer is awaited, its place says "Thinking…" until its first words arrive, and then
+    shows the text as it grows ([FR-107](../spec.md#fr-107)).
+  - **Sources**: under a complete answer, a list headed "Sources" holds a link per source, named
+    as the source is. Each opens [Transactions](#transactions) with the source's filters. A source
+    whose category is gone shows its name as plain text ([FR-110](../spec.md#fr-110)).
+  - A stopped answer ends in the mark "Stopped" and has no sources ([FR-108](../spec.md#fr-108)).
   - Under the log, a field labelled "Your question" and **Send**, which Enter selects too. Send is
-    unavailable while the field is empty. While an answer is awaited, the log ends in
-    "Thinking…", and Send and the examples are unavailable.
+    unavailable while the field is empty. While an answer is awaited or written, **Stop** takes
+    Send's place, the field stays editable, Enter sends nothing, and the examples are unavailable
+    ([FR-108](../spec.md#fr-108)).
   - A failure shows in an alert above the field, with the codes of [ai.md](ai.md#failures). The
-    conversation stays as it was, and the question stays in the field to send again.
-  - Closing the sheet keeps the conversation and a question still waiting for its answer. Leaving
-    Insights ends both ([FR-104](../spec.md#fr-104)).
+    conversation stays as it was before the question, also when part of the answer had shown, and
+    the question is back in the field to send again ([FR-104](../spec.md#fr-104)). A failure to
+    store a finished answer shows `save-failed`, and the conversation stays as it was.
+  - **Clear conversation**, a button in the sheet's header, shows while the conversation holds a
+    turn and is unavailable while an answer is awaited or written. It asks for confirmation, with
+    **Cancel** and **Clear conversation**, saying that the questions and answers will be deleted
+    ([FR-069](../spec.md#fr-069)). Then the sheet shows the example questions again.
+  - The conversation is stored: it stays when the sheet closes, when the user leaves Insights and
+    when the app closes. An answer being written goes on while the sheet is closed or another
+    screen is open ([FR-104](../spec.md#fr-104), [FR-108](../spec.md#fr-108)).
 
 ### Import
 

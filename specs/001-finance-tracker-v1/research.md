@@ -861,12 +861,14 @@ mark, concurrency, zod and the untrusted answer still holds.
       when there is one, is the app's own origin. Anything else gets 403, and a body over 2 MB gets
       413.
     - It forwards the body with only the key and the content type, no other header of the
-      browser's request, and returns OpenAI's status, content type and body. Closing the browser's
-      request cancels OpenAI's.
+      browser's request, and returns OpenAI's status, content type and body, passing the body on
+      as it arrives, so a streamed answer streams ([R-26](#r-26)). Closing the browser's request
+      cancels OpenAI's.
   - `src/ai/openai.ts` is the only code that makes a request. It posts
-    `{ model, store: false, instructions, input, text }` with a strict JSON Schema for the answer,
-    reads the answer's `output_text`, and turns every failure into a code. `src/ai/categoriser.ts`
-    and `src/ai/chat.ts` hold each feature's prompt and answer schema ([R-25](#r-25)).
+    `{ model, store: false, stream: true, instructions, input, text }` with a strict JSON Schema
+    for the answer, reads the answer's text from the streamed events ([R-26](#r-26)), and turns
+    every failure into a code. `src/ai/categoriser.ts` and `src/ai/chat.ts` hold each feature's
+    prompt and answer schema ([R-25](#r-25)).
     `src/ai/path.ts` holds the path and imports nothing, because Vite bundles its config without
     the `@/` alias.
   - The model is `gpt-6.1-sol`, one constant in `src/ai/openai.ts`.
@@ -953,12 +955,10 @@ mark, concurrency, zod and the untrusted answer still holds.
       name, money out negative, in euros, by date and then order of entry.
   - `src/ai/chat.ts` sends the instructions and then the context as JSON, then at most the last 10
     turns as user and assistant messages, then the question. The answer has the strict shape
-    `{ inScope, answer }`. When `inScope` is false, the chat shows its fixed answer instead of the
-    model's text ([FR-103](spec.md#fr-103)).
+    `{ inScope, answer, sources }` ([R-26](#r-26)). When `inScope` is false, the chat shows its
+    fixed answer instead of the model's text ([FR-103](spec.md#fr-103)).
   - `askChat` in `src/store/chat.ts` refuses with `ai-features-off` while AI features are off,
-    takes today from the clock and writes nothing.
-  - The conversation lives in the chat's component on Insights, not in the store or IndexedDB
-    ([FR-104](spec.md#fr-104)).
+    takes today from the clock, and stores the finished turn ([R-26](#r-26)).
 - **Rationale**:
   - **Rows, not detection** (owner, 2026-10-15): subscriptions and price increases need the
     single payments. The model groups similar descriptions better than a rule of ours would, and
@@ -974,11 +974,10 @@ mark, concurrency, zod and the untrusted answer still holds.
     decides; the fixed text makes the refusal the same every time, and testable.
   - **The context first**: every question of a conversation starts with the same instructions and
     data, which lets OpenAI cache that prefix.
-  - **Plain text**: no Markdown renderer, and nothing in an answer can become a link or markup.
-    Descriptions are untrusted, so the prompt says never to follow instructions in them.
+  - **Plain text**: no Markdown renderer, and nothing in an answer's text can become a link or
+    markup. The app builds the source links itself, from ids ([R-26](#r-26)). Descriptions are
+    untrusted, so the prompt says never to follow instructions in them.
   - **10 turns** bound the size of a long conversation.
-  - **Not stored**: a conversation is a way to an answer. Storing it would add an entity, a part
-    of the backup, and data to consent to.
 - **Alternatives considered**:
   - **Totals and a detector of recurring payments of our own**: sends no single payment, but needs
     rules for descriptions that vary from bank to bank, and cannot answer a question about one
@@ -986,3 +985,90 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **Function calling**, letting the model ask for the data it needs: smaller requests, but a
     loop of requests per question and more code.
   - **`previous_response_id`** for the conversation: needs `store: true` at OpenAI.
+
+<a id="r-26"></a>
+### R-26 · Streamed answers, Stop, sources and the stored conversation
+
+- **Decision** (owner, 2026-10-16), for [FR-104](spec.md#fr-104),
+  [FR-107](spec.md#fr-107) – [FR-110](spec.md#fr-110) and [SC-015](spec.md#sc-015):
+  - **Every request streams.** `askOpenAi` posts with `"stream": true` and reads OpenAI's
+    server-sent events ([contracts/ai.md](contracts/ai.md#answer)). It adds up the text of each
+    `response.output_text.delta`, reports the text so far to an optional callback, and returns the
+    whole text on `response.completed`. Category suggestions pass no callback and wait for the
+    whole text. The route passes the events on as they arrive.
+  - **The answer streams as JSON.** The chat's strict schema is `{ inScope, answer, sources }`,
+    and OpenAI writes the keys in the schema's order. `answerSoFar` in `src/ai/chat.ts` reads the
+    partial JSON: `inScope` once it is complete, and the `answer` string as far as it has arrived,
+    with its escapes decoded.
+    - The chat says "Thinking…" until that string is non-empty ([FR-107](spec.md#fr-107)).
+    - When `inScope` reads false, the app stops the request and shows the fixed answer at once.
+    - The sources are read, and checked with zod, once the answer is complete.
+  - **The session in the store.** `src/store/chat.ts` holds in memory the question being
+    answered, its text so far, its `AbortController` and the last failure. The chat's component
+    only shows them.
+    - Leaving Insights unmounts the component and nothing else, so an answer goes on
+      ([FR-108](spec.md#fr-108)).
+    - Stop, and turning AI features off, abort the request and store the turn with the text so
+      far, marked as stopped.
+    - A failure stores nothing, and the chat puts the failed question back in its field
+      ([FR-104](spec.md#fr-104)).
+  - **Sources.** The answer names each source's dates, its category by side and name, and its
+    account by name, as the data sent shows them, since that data holds no ids
+    ([FR-102](spec.md#fr-102)).
+    - Once the answer is complete, `chatSources` in `src/domain/chat.ts` resolves the names by
+      name key ([R-08](#r-08)) to ids. It leaves out a source whose category or account it cannot
+      find, or whose dates are not a valid range with the start first ([FR-110](spec.md#fr-110)).
+    - The stored turn keeps the ids, so a rename does not break a source. A source whose category
+      is gone shows as text.
+  - **The link** is the transaction list's route with its filters as a query:
+    `#/?category=<id>&account=<id>&from=<date>&to=<date>`, each part optional
+    ([contracts/ui.md](contracts/ui.md#transactions)). The router reads the query, and the list
+    starts with those filters. An unknown id or an invalid date in it is ignored.
+  - **The stored conversation** is `state.conversation`, a list of turns
+    ([data-model.md](data-model.md#conversation)).
+    - In IndexedDB it is a second record of the `settings` store, under the key `conversation`,
+      absent while the conversation is empty. In a backup it is the optional key `conversation` of
+      `data` ([contracts/backup-file.md](contracts/backup-file.md#compatibility)).
+    - A finished turn is written like every other change: decided in the domain, written, then
+      applied ([R-06](#r-06)). A failed write shows `save-failed` and keeps the conversation as it
+      was. Clearing the conversation removes the record.
+  - **History sent**: the last 10 turns that have an answer text. A turn out of scope, or stopped
+    before its first words, is left out ([contracts/ai.md](contracts/ai.md#finance-chat)).
+- **Rationale**:
+  - **One transport**: streaming both features keeps one way to read an answer, one failure table
+    and one test helper. Suggestions gain nothing from streaming, and lose nothing either.
+  - **Structured output, streamed**: plain text with markers for the scope and a sources block
+    would depend on the model keeping a format that nothing enforces. The strict schema keeps the
+    fixed answer out of scope reliable and the sources checkable. The price is reading a partial
+    JSON string, a few dozen lines of pure, unit-tested code.
+  - **Stopping early out of scope**: the model's text is not shown anyway
+    ([FR-107](spec.md#fr-107)), so reading on would only cost time and tokens.
+  - **Filters, not lists of transactions** (owner, 2026-10-16): the list's filters exist already
+    and the user knows them, while a month's total rests on dozens of rows that the model would
+    have to cite one by one ([Out of Scope](spec.md#out-of-scope)). A source may hold dates alone,
+    for an answer about all spending in a period.
+  - **A record in the settings store, not a store of its own**: a new store needs schema version 2,
+    and v1.2 cannot open a database of a higher version, so going back would fail at start. That
+    would make v1.3 a MAJOR release (constitution IX).
+    - v1.2 reads only the `settings` key, and clears every store when it restores a backup, so the
+      extra record does no harm.
+    - v1.2 drops the unknown key `conversation` when it loads a v1.3 backup, so the backup format
+      stays version 1.
+  - **The session outside the component**: an answer must outlive the Insights screen, and the
+    store already outlives every screen.
+  - **Responsiveness** ([SC-015](spec.md#sc-015)): building the context of 5,000 transactions and
+    reading the events take milliseconds on the main thread, and the growing answer is one text
+    node, so no worker is needed (constitution II).
+  - **Testing**:
+    - Vitest gives the stubbed `fetch` a `ReadableStream` that the test feeds event by event, to
+      check the text so far, Stop, and a failure partway through an answer.
+    - Playwright's `route.fulfill` sends a whole body at once. The e2e stand-in therefore answers
+      with all its events together, and holds its answer back to show "Thinking…" and Stop before
+      the first words.
+- **Alternatives considered**:
+  - **Streaming only the chat**: two ways to read an answer, and two sets of failure tests.
+  - **The conversation in memory only**: lost when the app closes; the owner chose to store it.
+  - **An object store of its own for the conversation**: tidier storage, but a MAJOR release.
+  - **Sources as exact transactions**: rejected by the owner, as above.
+  - **Links written into the answer's text**, with a Markdown renderer: the model would write the
+    links, and an answer could link anywhere.

@@ -856,10 +856,10 @@ version that it changes states the new behaviour and names the change.
   prove this of every answer; the sources let the user check it ([FR-110](#fr-110)).
 - <a id="fr-110"></a>**FR-110**: An answer that states something from the data MUST end with its
   **sources**: links, each named by what it covers, such as "Groceries, September 2026". Selecting
-  a source MUST open the transaction list with its filters set to the source: an expense or income
-  category, an account, or both, and a range of dates ([FR-016](#fr-016), [FR-083](#fr-083)). The
-  user can change or clear the filters there, and coming back to Insights shows the conversation as
-  it was ([FR-104](#fr-104)).
+  a source MUST open the transaction list with its filters set to the source: a range of dates,
+  and the expense or income category, the account, or both, when the answer rests on them
+  ([FR-016](#fr-016), [FR-083](#fr-083)). The user can change or clear the filters there, and
+  coming back to Insights shows the conversation as it was ([FR-104](#fr-104)).
   - A source whose category or account the user does not have when the answer arrives MUST be left
     out, like anything else in the answer the app cannot use.
   - A source whose category or account is deleted later MUST show its name without a link. A
@@ -889,9 +889,9 @@ version that it changes states the new behaviour and names the change.
   ([FR-093](#fr-093)), whether it is flagged as a duplicate, whether it failed to parse, and whether
   it is included in confirmation.
 - **Conversation**: The finance chat's questions, each with its answer, in the order asked. An
-  answer has its text, whether it was stopped, and its sources. A source has a name, a category, an
-  account or both, and a range of dates. There is one conversation; it is stored and is part of a
-  backup ([FR-104](#fr-104), [FR-110](#fr-110)).
+  answer has its text, whether it was stopped, and its sources. A source has a name, a range of
+  dates, and a category, an account, both or neither. There is one conversation; it is stored and
+  is part of a backup ([FR-104](#fr-104), [FR-110](#fr-110)).
 
 ## Success Criteria *(mandatory)*
 

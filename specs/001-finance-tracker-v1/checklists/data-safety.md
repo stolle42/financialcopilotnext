@@ -27,6 +27,7 @@ only, before `/speckit-tasks`.
 - [x] CHK005 Is protecting stored data and backup files from other people using the same computer (for example with encryption or a passcode) either required or explicitly excluded? [Gap, Spec §Out of Scope]
   - **Review 2026-10-02**: Gap, and the design does not cover it either. "Credential storage" under Never means bank credentials. Encryption and a passcode are neither required nor excluded. **Needs a decision.**
   - **Resolved 2026-10-02**: Out of Scope (excluded for v1).
+  - **Revisited 2026-10-16 (v1.3)**: still excluded. The stored conversation of the finance chat, whose answers talk about the user's money, is stored data and part of a backup like the rest ([FR-104](../spec.md#fr-104)), so the same exclusion covers it.
 
 ## Requirement Clarity
 
@@ -52,6 +53,7 @@ only, before `/speckit-tasks`.
 - [x] CHK010 Does SC-014's list of what a restore reproduces match FR-070's list of what a backup holds? FR-070 includes the manual-entry default account; SC-014 does not mention it. [Consistency, Spec §SC-014, §FR-070]
   - **Review 2026-10-02**: Inconsistent. SC-014 omits the manual-entry default account that FR-070 puts in the backup. Add it to SC-014.
   - **Resolved 2026-10-02**: [SC-014](../spec.md#sc-014).
+  - **Revisited 2026-10-16 (v1.3)**: still consistent. FR-070 and SC-014 both add the finance chat's conversation ([FR-104](../spec.md#fr-104)).
 - [x] CHK011 Does "all current data" in FR-071 mean exactly the items FR-070 puts in a backup, including the pending batch? [Consistency, Spec §FR-070, §FR-071]
   - **Review 2026-10-02**: Consistent. FR-070 says "all data the app holds" and FR-071 says "all current data", the same set. A pending batch is therefore replaced too, including by a backup that has none.
 - [x] CHK012 Are confirmation requirements consistent across all destructive actions: deleting a transaction, category or profile, discarding a batch, restoring a backup, and changing an opening balance? [Consistency, Spec §FR-001, §FR-013, §FR-021, §FR-027, §FR-034, §FR-071]

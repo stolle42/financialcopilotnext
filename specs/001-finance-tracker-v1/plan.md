@@ -25,7 +25,8 @@ It is built as a client-only TypeScript single-page app.
 - **AI features**: category suggestions in review (v1.2) and a finance chat on Insights (v1.3) ask OpenAI
   through a route that the local server adds, which holds the API key from `.env`, and only while
   the user has turned AI features on ([contracts/ai.md](contracts/ai.md), [R-24](research.md#r-24),
-  [R-25](research.md#r-25)).
+  [R-25](research.md#r-25)). Answers stream back through the route, and the chat's conversation is
+  stored with the rest of the data ([R-26](research.md#r-26)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
@@ -70,7 +71,9 @@ our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-17).
 
 **Storage**: IndexedDB in the user's browser profile, through `idb`
-([data-model.md](data-model.md#storage-layout)). Backups are JSON files
+([data-model.md](data-model.md#storage-layout)). The finance chat's conversation is a second
+record in the settings store, so the schema stays at version 1 and v1.2 still opens it
+([R-26](research.md#r-26)). Backups are JSON files
 ([contracts/backup-file.md](contracts/backup-file.md)).
 
 **Testing**: Vitest covers domain unit tests and store integration tests against `fake-indexeddb`,
@@ -92,6 +95,9 @@ one route, which passes the AI features' requests on to OpenAI ([R-24](research.
 - The transaction list's first render within 1 s at 10,000 transactions
   ([R-21](research.md#r-21)). Firefox takes longer, so its fix is listed under Not in v1
   ([Out of Scope](spec.md#out-of-scope)) and the check is skipped until then.
+- The finance chat shows a question with "Thinking…", and Stop ends an answer, each within 1 s with
+  5,000 transactions in the months a question sends ([SC-015](spec.md#sc-015),
+  [R-26](research.md#r-26)).
 
 **Constraints**:
 
@@ -106,7 +112,7 @@ one route, which passes the AI features' requests on to OpenAI ([R-24](research.
   ([FR-061](spec.md#fr-061), [R-20](research.md#r-20)).
 
 **Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
-years of use, with headroom to about 50,000. There are 7 stored entity types and 11 screens
+years of use, with headroom to about 50,000. There are 8 stored entity types and 11 screens
 ([data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md)).
 
 Nothing in this context remains marked NEEDS CLARIFICATION: every open technical question is
@@ -148,6 +154,10 @@ runs, and the browser still reaches only the app's own origin ([R-19](research.m
 replaces v1.2's hosted n8n workflow, with Anthropic behind it ([R-23](research.md#r-23)). The owner
 decided it, and [Complexity Tracking](#complexity-tracking) justifies it.
 
+The chat's streamed answers, Stop, sources and stored conversation, which the owner asked for on
+2026-10-16, need no further deviation: no dependency, process or object store is added, and the
+database keeps schema version 1, so v1.3 stays a MINOR release ([R-26](research.md#r-26)).
+
 ### Interpretations to confirm
 
 None remain. The two that filled gaps in the spec were confirmed on 2026-10-02 and are now
@@ -165,7 +175,7 @@ in [R-22](research.md#r-22).
 specs/001-finance-tracker-v1/
 ├── spec.md              # The feature specification
 ├── plan.md              # This file
-├── research.md          # Phase 0: technical decisions R-01 – R-25
+├── research.md          # Phase 0: technical decisions R-01 – R-26
 ├── data-model.md        # Phase 1: entities, invariants, storage layout, seed data
 ├── quickstart.md        # Phase 1: how to run and validate v1
 ├── contracts/
@@ -206,7 +216,8 @@ src/
 │   ├── categories.ts     # Category rules, effects of deletion
 │   ├── budgets.ts        # Limits and progress
 │   ├── insights.ts       # Aggregates for a period
-│   ├── chat.ts           # The data a finance chat question sends (R-25)
+│   ├── chat.ts           # The data a finance chat question sends, and the conversation's turns
+│   │                     # and sources (R-25, R-26)
 │   ├── invariants.ts     # The state invariants of data-model.md
 │   └── import/           # Profile checks, date parsing, rows, duplicates, vendor groups,
 │                         # review edits, confirmation

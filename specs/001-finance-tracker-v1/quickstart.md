@@ -128,12 +128,21 @@ committed. Tests that need existing data load it through the backup restore
 - **Run**: `e2e/us7-backup.spec.ts`
 - **Covers**: [User Story 7](spec.md#user-story-7) scenarios 1–3
 - **Round trip** ([SC-014](spec.md#sc-014)):
-  1. Fill every entity type, including a pending batch with review progress.
+  1. Fill every entity type, including a pending batch with review progress and, where AI
+     features can be on, a conversation of the finance chat.
   2. Save a backup.
   3. Open a fresh browser context with empty storage and restore the backup there.
   4. Save again.
 - **Expected**: the two files' `data` objects are deep-equal
   ([contracts/backup-file.md](contracts/backup-file.md#exactness-sc-014)).
+
+### US8: Finance chat
+
+- **Run**: `e2e/us8-finance-chat.spec.ts`, with a stand-in answering at `/api/ai` in OpenAI's place
+  ([R-26](research.md#r-26)). On a hosted copy only scenario 1 runs ([FR-106](spec.md#fr-106)).
+- **Covers**: [User Story 8](spec.md#user-story-8) scenarios 1–9
+- **Expected**: a source opens the transaction list with its filters, coming back to Insights shows
+  the conversation, and it survives a reload.
 
 ### Messages
 
@@ -150,6 +159,7 @@ committed. Tests that need existing data load it through the backup restore
 |---|---|---|
 | [SC-009](spec.md#sc-009) | Restore a generated backup with 5,000 transactions in one period, then choose that period | All Insights sections render within 2 s |
 | [SC-010](spec.md#sc-010) | Import a generated 5,000-row CSV | The review is shown within 10 s |
+| [SC-015](spec.md#sc-015) | Restore a generated backup with 5,000 transactions in the last 13 months, turn on AI features, and ask the chat with the stand-in holding its answer; then select Stop | The question and "Thinking…" show within 1 s of sending, and Stop ends the answer within 1 s. Skipped on a hosted copy |
 | List render ([R-21](research.md#r-21)) | Restore a generated backup with 10,000 transactions, then open the app | The transaction list shows within 1 s. Skipped: Firefox takes longer ([R-21](research.md#r-21)), and the fix is listed under Not in v1 ([Out of Scope](spec.md#out-of-scope)) |
 
 ## Manual checks
@@ -216,13 +226,18 @@ not in the build: searching `dist/` for its first characters finds nothing.
 | [SC-001](spec.md#sc-001) file | The same with the SC-001 file of about 300 rows | The answer arrives within 2 minutes |
 | Mark | Change one suggested row, reload, then confirm | The changed row loses its mark, the other marks survive the reload, and the ledger holds the categories |
 | Chat example | With data that holds a subscription whose price rose, open the chat on Insights and select "Which of my subscriptions have become more expensive?" | The answer names that subscription, its old and new amount and the month of the change |
+| Streaming | Ask "How can I reduce my spending?" | "Thinking…" shows until the first words, then the answer grows as it is written |
+| Sources | Select a source under that answer, then return to Insights and open the chat | Transactions opens with the source's category and dates as filters, and the rows add up to what the answer says; the conversation is still there |
+| Stop | Ask "Where did I spend more this month than last month?" and select Stop while the answer is written | The answer ends at once, marked "Stopped", and its text so far stays |
 | Chat follow-up | Ask "And which one costs the most?" | The answer refers to the subscriptions of the earlier answer |
+| Missing data | Ask "Did I spend more on travel than in 2024?" | The answer says that the data does not reach back to 2024, and gives no figure for it |
 | Out of scope | Ask "What is the capital of France?" | The chat's fixed answer, naming what it can help with |
-| Chat kept | Close the chat and open it again; then open Transactions and return to Insights | The conversation is still there after closing; after leaving Insights the chat is empty |
+| Chat kept | Close the chat and open it again; then open Transactions, return to Insights and reload | The conversation is still there each time |
+| Clear | Select Clear conversation, then Cancel; then again, and confirm | Cancel keeps the conversation; confirming empties it and shows the example questions |
 | Offline | Disconnect from the internet, then ask the chat and select Suggest categories | `ai-unreachable` in both, and nothing changes |
 | No key | Empty `OPENAI_API_KEY` in `.env`, restart `npm start`, then ask the chat | `ai-unreachable` |
 | Hosted copy | On the Vercel production domain, open Settings | The AI features switch is off and unavailable, and the line beside it says to run the app locally |
-| Leaving | Select Suggest categories, then leave review before the answer; ask the chat, then leave Insights before the answer | No row changes, and no answer or message appears later |
+| Leaving | Select Suggest categories, then leave review before the answer; ask the chat, then leave Insights before the answer and come back | No row changes, and no message appears later; the chat's answer is there when it is complete |
 
 ## After pushing to main
 

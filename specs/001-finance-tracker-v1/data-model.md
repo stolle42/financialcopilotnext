@@ -145,6 +145,30 @@ A category assignment uses the row's side: expense when `amountCents` ≤ 0, inc
 | `manualEntryAccountId` | Account id | Default account of the manual-entry form ([FR-006](spec.md#fr-006)) |
 | `aiFeatures` | `true`, or absent | Present while the user has AI features on ([FR-095](spec.md#fr-095)); never `false` |
 
+### Conversation
+
+The finance chat's turns, oldest first, held as `state.conversation`
+([FR-104](spec.md#fr-104), [R-26](research.md#r-26)). An empty list means no conversation.
+
+**Turn**
+
+| Field | Type | Notes |
+|---|---|---|
+| `question` | string | Non-empty after trimming |
+| `answer` | string, may be empty | The text shown. Empty when out of scope, and when stopped before its first words |
+| `outOfScope` | `true`, or absent | The chat shows its fixed answer ([FR-103](spec.md#fr-103)) |
+| `stopped` | `true`, or absent | The user stopped the answer, or turned AI features off ([FR-108](spec.md#fr-108)) |
+| `sources` | source list | Empty when out of scope or stopped ([FR-110](spec.md#fr-110)) |
+
+**Source**
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | string | Non-empty; what the source covers, as the AI named it |
+| `from`, `to` | calendar date | `from` on or before `to` |
+| `categoryId` | Category id \| `null` | May name a category deleted since; the source then shows as text |
+| `accountId` | Account id \| `null` | |
+
 ## Derived values
 
 Derived values are computed by domain functions from the state above and never stored.
@@ -167,8 +191,7 @@ Derived values are computed by domain functions from the state above and never s
   are formed over these rows, per side ([FR-026](spec.md#fr-026)).
 - **Budget progress** and **Insights aggregates**: see [R-14](research.md#r-14).
 - **Finance chat context**: the data one question of the finance chat sends, built when it is
-  asked and never stored, nor is the conversation ([FR-102](spec.md#fr-102),
-  [FR-104](spec.md#fr-104), [R-25](research.md#r-25)).
+  asked and never stored ([FR-102](spec.md#fr-102), [R-25](research.md#r-25)).
 
 ## Invariants
 
@@ -196,6 +219,11 @@ fails ([FR-072](spec.md#fr-072)); domain tests assert that no operation can brea
    `null` ([FR-092](spec.md#fr-092)). A transfer assignment references an existing account other
    than the batch account. Every unparsable row carries a known failure code.
 8. `settings.manualEntryAccountId` references an existing account.
+9. Every turn of the conversation has a question that is non-empty after trimming. A turn out of
+   scope has an empty answer, no sources and no `stopped`. A stopped turn has no sources. Any
+   other turn has a non-empty answer. Every source has a non-empty name and valid dates with
+   `from` on or before `to`. A source's category or account need not exist
+   ([FR-110](spec.md#fr-110)).
 
 ## State transitions
 
@@ -238,6 +266,18 @@ when a transaction is created from the manual-entry form. It becomes that transa
 switch in Settings on and agrees to the data-sharing warning, and removed when the user turns it
 off. Nothing else changes it, apart from restoring a backup.
 
+**Conversation** ([FR-104](spec.md#fr-104), [FR-108](spec.md#fr-108)):
+
+```text
+turns ── answer complete, out of scope or stopped ─▶ turns + 1   FR-104, FR-108
+turns ── question fails ───────────────────────────▶ unchanged   FR-104
+turns ── clear, confirmed ─────────────────────────▶ (empty)     FR-069, FR-104
+turns ── restore a backup ─────────────────────────▶ the file's, or (empty)   FR-071
+```
+
+A question waiting for its answer, and the text so far, live only in memory
+([R-26](research.md#r-26)). Deleting a category leaves the turns as they are.
+
 ## Storage layout
 
 One IndexedDB database, `financial-copilot`, schema version 1 ([R-06](research.md#r-06)):
@@ -251,6 +291,7 @@ One IndexedDB database, `financial-copilot`, schema version 1 ([R-06](research.m
 | `profiles` | `id` | Mapping profile |
 | `pendingBatch` | `id` | Pending batch, at most one record |
 | `settings` | fixed key `settings` | Settings, exactly one record |
+| `settings` | fixed key `conversation` | The conversation's turn list; absent while it is empty ([R-26](research.md#r-26)) |
 
 There are no secondary indexes, because the whole state is loaded into memory at start
 ([R-05](research.md#r-05)). The backup file holds the same records ([contracts/backup-file.md](contracts/backup-file.md)).

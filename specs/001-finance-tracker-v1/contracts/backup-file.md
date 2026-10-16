@@ -1,6 +1,7 @@
 # Contract: Backup file, format version 1
 
-**Spec**: [FR-070 – FR-072](../spec.md#fr-070), [SC-014](../spec.md#sc-014) ·
+**Spec**: [FR-070 – FR-072](../spec.md#fr-070), [FR-104](../spec.md#fr-104),
+[SC-014](../spec.md#sc-014) ·
 **Entities**: [data-model.md](../data-model.md)
 
 The backup file is the one artifact of the app that outlives the browser. It is the user's only
@@ -33,6 +34,7 @@ app must still be able to read version 1.
 | `profiles` | Mapping profile list |
 | `pendingBatch` | Pending batch, or `null` |
 | `settings` | Settings object |
+| `conversation` | The finance chat's turn list ([data-model.md](../data-model.md#conversation)); present only while it holds a turn |
 
 Amounts are integer cents and dates are `YYYY-MM-DD` strings, exactly as stored, so a value never
 passes through a locale format on its way into or out of the file.
@@ -82,3 +84,6 @@ Loading a backup and saving again produces a `data` object deep-equal to the ori
   is complete, and earlier versions of the app drop it on loading, so the format stays version 1.
   The same holds for the optional `aiFeatures` key that v1.2 added to the settings
   ([FR-095](../spec.md#fr-095)); a file without it restores AI features off.
+- v1.3 added the optional key `conversation` to `data` ([FR-104](../spec.md#fr-104)). A file
+  without it is complete and restores an empty conversation, and v1.2 drops it on loading, so the
+  format stays version 1 ([R-26](../research.md#r-26)).
