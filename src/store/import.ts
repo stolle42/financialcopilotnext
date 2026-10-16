@@ -19,6 +19,7 @@ import {
 import { applySuggestions, suggestionRequest } from "@/domain/import/suggestions";
 import type { MappingProfile } from "@/domain/types";
 import { decodeFile, tokenise } from "@/files/csv";
+import { aiFeaturesOn } from "./settings";
 import type { Store } from "./store";
 
 // The import actions. Review edits are written at once, so review progress survives closing the
@@ -107,7 +108,7 @@ export interface SuggestOutcome {
 export async function suggestCategories(store: Store, signal: AbortSignal) {
   const state = store.getState();
   // Checked here too, so no screen can send data with AI features off (FR-061, R-24).
-  if (state.settings.aiFeatures !== true) return { code: "ai-features-off" as const };
+  if (!aiFeaturesOn(state)) return { code: "ai-features-off" as const };
   if (!state.pendingBatch) return { code: "suggestions-outdated" as const };
   const request = suggestionRequest(state);
   const sent = { batchId: state.pendingBatch.id, rowNumbers: request.rows.map((r) => r.rowNumber) };

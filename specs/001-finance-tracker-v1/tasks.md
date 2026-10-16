@@ -1301,7 +1301,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   transactions in the last 13 months restored, AI features on and the stand-in holding its
   answer, the question and "Thinking…" show within 1 s of sending, and Stop ends the answer within
   1 s, with no text after it once the stand-in answers. Skipped on a hosted copy.
-- [ ] T109 AI features only on the user's own computer (owner, 2026-10-16): `servedLocally` in a
+- [X] T109 AI features only on the user's own computer (owner, 2026-10-16): `servedLocally` in a
   new `src/ai/local.ts`, true for the host names `localhost`, `127.0.0.1` and `[::1]`;
   `aiFeaturesOn(state)` in `src/store/settings.ts`, which `suggestCategories` and `askChat` check
   in place of the setting alone; the switch in `SettingsScreen.tsx` off and unavailable elsewhere,
@@ -1359,8 +1359,9 @@ its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061)
   T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T101 → T099.
 - **AI through OpenAI, and the finance chat (Phase 13)**: depends on Phase 12, whose suggestions
   it moves to OpenAI; on US3, whose Insights screen holds the chat; and on US7, whose backup keeps
-  the conversation. Order: T102 → T103 → T104 → T106 → T112 → T107 → T114 → T115 → T109 → T108.
-  T105 → T110 → T111 come before T106 at any time, and T113 before T107.
+  the conversation. Order: T102 → T103 → T104 → T109 → T106 → T112 → T107 → T114 → T115 → T108.
+  T105 → T110 → T111 come before T106 at any time, and T113 before T107. T109 comes before the
+  chat's tasks, whose store checks `aiFeaturesOn`.
 
 ### Within Each Task and Story
 

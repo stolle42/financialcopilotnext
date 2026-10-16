@@ -245,6 +245,10 @@ export const sharingWarning =
   "rows still to categorise, your category names and up to 100 earlier descriptions, and no " +
   "amounts, dates or account names.";
 
+/** Beside the AI features switch in a copy not served from the user's computer (FR-106). */
+export const aiFeaturesLocalOnly =
+  "AI features need the app running on your computer. Run it locally to use them.";
+
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
 

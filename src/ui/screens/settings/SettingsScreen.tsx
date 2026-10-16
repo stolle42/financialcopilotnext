@@ -1,22 +1,32 @@
 import { useId, useState } from "react";
 import type { Refusal } from "@/domain/types";
-import { setAiFeatures } from "@/store/settings";
+import { servedLocally } from "@/ai/local";
+import { aiFeaturesOn, setAiFeatures } from "@/store/settings";
 import { useStore, useStoreApi } from "@/store/store";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Label } from "@/ui/components/ui/label";
 import { Switch } from "@/ui/components/ui/switch";
-import { aiFeaturesDescription, messageFor, sharingWarning, type MessageCode } from "@/ui/messages";
+import {
+  aiFeaturesDescription,
+  aiFeaturesLocalOnly,
+  messageFor,
+  sharingWarning,
+  type MessageCode,
+} from "@/ui/messages";
 
 /**
  * Settings (contracts/ui.md, settings): the AI features switch, which warns that data will now be
- * shared before it turns on, and turns off at once (FR-095).
+ * shared before it turns on, and turns off at once (FR-095). Outside the user's own computer it is
+ * off and unavailable, with the reason beside it (FR-106).
  */
 export function SettingsScreen() {
   const store = useStoreApi();
-  const on = useStore((state) => state.settings.aiFeatures === true);
+  const local = servedLocally();
+  const on = useStore(aiFeaturesOn);
   const [warning, setWarning] = useState(false);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const switchId = useId();
+  const localOnlyId = useId();
 
   async function set(next: boolean) {
     setRefusal(await setAiFeatures(store, next));
@@ -38,11 +48,18 @@ export function SettingsScreen() {
           <Switch
             id={switchId}
             checked={on}
+            disabled={!local}
+            aria-describedby={local ? undefined : localOnlyId}
             onCheckedChange={(checked) => (checked ? setWarning(true) : void set(false))}
           />
           <Label htmlFor={switchId} className="text-sm font-normal">
             AI features
           </Label>
+          {!local && (
+            <span id={localOnlyId} className="text-sm text-muted-foreground">
+              {aiFeaturesLocalOnly}
+            </span>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">{aiFeaturesDescription}</p>
       </section>
