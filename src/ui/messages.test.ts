@@ -214,6 +214,16 @@ describe("messages", () => {
     expect(chat.thinking).toBe("Thinking…");
   });
 
+  test("words the finance chat's Stop, its mark, its sources and clearing the conversation (FR-069, FR-104, FR-108, FR-110)", () => {
+    const chat = catalogue.financeChat;
+    expect(chat.stop).toBe("Stop");
+    expect(chat.stopped).toBe("Stopped");
+    expect(chat.sources).toBe("Sources");
+    expect(chat.clear).toBe("Clear conversation");
+    expect(chat.clearWarning).toMatch(/questions and answers/i);
+    expect(chat.clearWarning).toMatch(/deleted/i);
+  });
+
   test("names OpenAI as the one recipient, and neither n8n, Anthropic nor Claude (R-24)", () => {
     const texts = [
       catalogue.sharingWarning,
