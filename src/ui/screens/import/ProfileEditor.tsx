@@ -225,7 +225,7 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
   const amount = draft.amount;
   return (
     <form onSubmit={submit} noValidate className="flex max-w-4xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{profile ? "Edit profile" : "New profile"}</h1>
+      <h1 className="text-3xl font-semibold">{profile ? "Edit profile" : "New profile"}</h1>
       <FieldGroup>
         <LabelledField id={ids.name} label="Name" error={errors.name}>
           <Input

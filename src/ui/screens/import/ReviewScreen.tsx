@@ -94,7 +94,7 @@ function UnparsableDrawer({
           {rows.map((row) => (
             <li key={row.rowNumber} className="flex flex-col gap-1 py-3 text-sm">
               <span className="font-medium">Row {row.rowNumber}</span>
-              <span className="font-mono text-xs break-all text-muted-foreground">
+              <span className="text-xs break-all text-muted-foreground">
                 {row.cells.join(" · ")}
               </span>
               <span className="text-destructive">{messageFor(row.failure)}</span>
@@ -181,7 +181,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Review import</h1>
+      <h1 className="text-3xl font-semibold">Review import</h1>
       <section
         aria-label="Batch"
         className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4"

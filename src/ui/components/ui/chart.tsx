@@ -202,7 +202,7 @@ function ChartTooltipContent({
                         </span>
                       </div>
                       {item.value != null && (
-                        <span className="font-mono font-medium text-foreground tabular-nums">
+                        <span className="font-medium text-foreground tabular-nums">
                           {valueFormatter
                             ? valueFormatter(item.value)
                             : typeof item.value === "number"

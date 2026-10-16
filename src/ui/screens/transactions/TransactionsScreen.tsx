@@ -81,7 +81,7 @@ function Amount({ transaction }: { transaction: Transaction }) {
     );
   }
   return transaction.kind === "income" ? (
-    <span className="text-emerald-700">+{formatAmount(transaction.amountCents)}</span>
+    <span className="text-positive">+{formatAmount(transaction.amountCents)}</span>
   ) : (
     <span>{formatAmount(-transaction.amountCents)}</span>
   );
@@ -266,7 +266,7 @@ export function TransactionsScreen({ filters = {} }: { filters?: ListFilters }) 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Transactions</h1>
+        <h1 className="text-3xl font-semibold">Transactions</h1>
         {/* Import lives here rather than in the sidebar, since an import feeds this list. */}
         <a href="#/import" className={buttonVariants({ variant: "outline" })}>
           Import CSV

@@ -50,7 +50,10 @@ export function CategoryBreakdown({
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-lg border p-6">
-      <h2 id={headingId} className="flex items-baseline justify-between gap-4 text-lg font-medium">
+      <h2
+        id={headingId}
+        className="flex items-baseline justify-between gap-4 text-xl font-semibold"
+      >
         {title}
         {breakdown.entries.length > 0 && (
           <span className="tabular-nums">{formatAmount(breakdown.totalCents)}</span>
@@ -86,7 +89,7 @@ export function CategoryBreakdown({
                 dataKey="amountCents"
                 nameKey="name"
                 innerRadius="60%"
-                stroke="var(--background)"
+                stroke="var(--card)"
                 strokeWidth={2}
                 isAnimationActive={false}
               />

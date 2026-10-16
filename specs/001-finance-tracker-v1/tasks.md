@@ -1405,13 +1405,14 @@ of their own, before any code of the phase.
 **Independent Test**: `e2e/ui/design.spec.ts`, and the manual check of the look in
 [quickstart.md](quickstart.md#manual-checks).
 
-- [ ] T119 Palette and type: the tokens of [ui.md](contracts/ui.md#look) in `src/ui/index.css`,
+- [X] T119 Palette and type: the tokens of [ui.md](contracts/ui.md#look) in `src/ui/index.css`,
   with `--positive` for positive amounts in place of `text-emerald-700` in `TransactionsScreen.tsx`,
   and the gaps between the donut's slices in the card colour in `CategoryBreakdown.tsx`; Figtree and
   Fraunces, with its optical-size axis, from `@fontsource-variable/figtree` and
   `@fontsource-variable/fraunces`, imported in `src/ui/index.css` as `--font-sans` and
   `--font-heading`; every `h1` and `h2` in `--font-heading` at the sizes of ui.md, and the app's
-  name in `App.tsx` and `FailureScreen.tsx` too ([FR-112](spec.md#fr-112),
+  name in `App.tsx` and `FailureScreen.tsx` too; and no text left in a monospace face, in the
+  chart's tooltips or in review's unparsable rows ([FR-112](spec.md#fr-112),
   [FR-113](spec.md#fr-113), [FR-116](spec.md#fr-116)). Test first in `e2e/ui/design.spec.ts`:
   - the page shows the canvas colour, with text in ink;
   - text is set in Figtree, and in Fraunces at the sizes of ui.md: on every screen its heading and

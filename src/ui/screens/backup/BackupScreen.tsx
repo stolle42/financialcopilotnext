@@ -81,7 +81,7 @@ export function BackupScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Backup</h1>
+      <h1 className="text-3xl font-semibold">Backup</h1>
       {persisted === false && (
         <p className="rounded-lg border p-4 text-sm">
           Your browser may clear this app&apos;s data when disk space runs low, because it did not
@@ -94,7 +94,7 @@ export function BackupScreen() {
         </p>
       )}
       <section aria-labelledby="save-backup" className="flex flex-col items-start gap-3">
-        <h2 id="save-backup" className="text-lg font-medium">
+        <h2 id="save-backup" className="text-xl font-semibold">
           Save a backup
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -103,7 +103,7 @@ export function BackupScreen() {
         <Button onClick={save}>Save backup</Button>
       </section>
       <section aria-labelledby="restore-backup" className="flex flex-col items-start gap-3">
-        <h2 id="restore-backup" className="text-lg font-medium">
+        <h2 id="restore-backup" className="text-xl font-semibold">
           Restore from a backup
         </h2>
         <p className="text-sm text-muted-foreground">

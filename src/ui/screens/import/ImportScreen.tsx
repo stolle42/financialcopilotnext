@@ -53,7 +53,7 @@ function PendingBatchCard({ batch }: { batch: PendingBatch }) {
       )}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="font-medium">An import is waiting for review</h2>
+          <h2 className="text-xl font-semibold">An import is waiting for review</h2>
           <p className="text-sm text-muted-foreground">
             {batch.fileName} into {account?.name} · {countsText(batch)}
           </p>
@@ -295,7 +295,7 @@ function ProfileList({ batchPending }: { batchPending: boolean }) {
 
   return (
     <section aria-label="Mapping profiles" className="flex max-w-2xl flex-col gap-3">
-      <h2 className="text-lg font-semibold">Mapping profiles</h2>
+      <h2 className="text-xl font-semibold">Mapping profiles</h2>
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
           {messageFor(refusal)}
@@ -348,7 +348,7 @@ export function ImportScreen() {
   const batch = useStore((state) => state.pendingBatch);
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Import</h1>
+      <h1 className="text-3xl font-semibold">Import</h1>
       {batch && <PendingBatchCard batch={batch} />}
       <ImportForm batchPending={batch !== null} />
       <ProfileList batchPending={batch !== null} />

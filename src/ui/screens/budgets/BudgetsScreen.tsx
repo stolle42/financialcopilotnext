@@ -98,7 +98,7 @@ export function BudgetsScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Budgets</h1>
+      <h1 className="text-3xl font-semibold">Budgets</h1>
       <p className="text-muted-foreground">
         A limit applies to every month. Each month starts at zero, and what is left over does not
         carry into the next.

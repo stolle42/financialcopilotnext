@@ -107,7 +107,7 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
               <div className="flex min-h-screen flex-col">
                 <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-semibold">Financial Copilot</span>
+                    <span className="font-heading text-xl font-semibold">Financial Copilot</span>
                     <span className="text-xs text-muted-foreground">Version {appVersion}</span>
                   </div>
                   {/* The primary action, reachable from every screen (FR-066). */}
