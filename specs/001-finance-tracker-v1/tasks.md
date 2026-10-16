@@ -1201,7 +1201,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `src/ui/messages.test.ts`, `backup-damaged` names the conversation in plain words;
   - in `e2e/us7-backup.spec.ts`, where AI features can be on, the round trip includes a
     conversation ([SC-014](spec.md#sc-014)).
-- [ ] T106 [US8] Asking the chat: a new `src/ai/chat.ts` with
+- [X] T106 [US8] Asking the chat: a new `src/ai/chat.ts` with
   `askFinanceChat(context, turns, question, signal, onAnswer)`. It sends the instructions and
   context of [ai.md](contracts/ai.md#finance-chat), the history it describes and the question,
   through `askOpenAi`; reads the answer as it arrives with `answerSoFar`, and reports the
