@@ -1293,7 +1293,7 @@ this phase. The test commits of T102 – T107, written before that last request,
     features, and the warning says that the chat sends amounts, dates and account balances while
     suggestions do not.
 - [X] T114 [US8] The journey `e2e/us8-finance-chat.spec.ts`: [User Story 8](spec.md#user-story-8)
-  scenarios 1–9, as [quickstart.md](quickstart.md#us8-finance-chat) describes them, with the
+  scenarios 1–11, as [quickstart.md](quickstart.md#us8-finance-chat) describes them, with the
   stand-in of `e2e/support/ai.ts`. On a hosted copy only scenario 1 runs
   ([FR-106](spec.md#fr-106)). It passes once T102 – T113 are done.
 - [X] T115 [US8] [SC-015](spec.md#sc-015) in `e2e/performance.spec.ts`, as
@@ -1333,6 +1333,51 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `e2e/us8-finance-chat.spec.ts`, scenarios 1 and 7 as [User Story 8](spec.md#user-story-8)
     now words them;
   - in `src/ui/messages.test.ts`, the Settings line names the finance chat without Insights.
+- [ ] T117 [US8] Suggested questions (owner, 2026-10-16): `followUps` in the strict schema of
+  `src/ai/chat.ts`, after `sources`, of which `askFinanceChat` gives the first three distinct ones
+  that are not empty, trimmed; an answer without it is `ai-answer-invalid`. `ChatTurn.followUps`
+  in `src/domain/types.ts`, with invariant 9 in `src/domain/invariants.ts` and the turn's schema
+  in `src/files/backup.ts`; `askChat` in `src/store/chat.ts` stores them with a complete answer.
+  In `FinanceChat.tsx`, the group "Suggested questions" under the log holds the examples while the
+  conversation is empty or its latest turn is out of scope, and otherwise the latest turn's
+  follow-ups, and is absent while an answer is awaited or written ([FR-101](spec.md#fr-101),
+  [FR-111](spec.md#fr-111), [ai.md](contracts/ai.md#finance-chat),
+  [data-model.md](data-model.md#conversation), [ui.md](contracts/ui.md#finance-chat)). Test
+  first:
+  - in `src/ai/chat.test.ts`: the schema's keys in the order `inScope`, `answer`, `sources`,
+    `followUps`, all required, with `followUps` an array of strings; the rule asking for 1 to 3;
+    the follow-ups given trimmed, distinct, without empty ones and at most three; an answer
+    without them `ai-answer-invalid`;
+  - in `src/domain/invariants.test.ts`: follow-ups on a turn out of scope or stopped, none, more
+    than three, an empty one or a repeated one break invariant 9;
+  - in `src/files/backup.test.ts`: a turn's follow-ups survive a backup, and follow-ups that are
+    not strings are refused as a damaged turn;
+  - in `src/store/chat.test.ts`: a complete answer is stored with its follow-ups, and one that
+    suggests none without the key;
+  - in `e2e/ui/insights.spec.ts`, with the stand-in of `e2e/support/ai.ts` answering with
+    follow-ups: they show under the latest answer in "Suggested questions", one sends at once,
+    they stay after a reload, and none show while an answer is awaited or after Stop; after a
+    question out of scope the examples show again;
+  - in `src/ui/messages.test.ts`, the group's name;
+  - in `e2e/us8-finance-chat.spec.ts`, scenarios 5 and 10.
+- [ ] T118 [US8] The chat's wider scope (owner, 2026-10-16): the rules of `src/ai/chat.ts` answer
+  questions about the user's finances, general questions about money and finance, and questions
+  about how the app works, from the guide of a new `src/ai/appGuide.ts` sent after the line
+  `App guide:` and before the line `Data:`; a request to change something gets that the chat
+  cannot and how to do it in the app; general knowledge is marked as such; and
+  `financeChat.outOfScope` in `src/ui/messages.ts` names all three ([FR-102](spec.md#fr-102),
+  [FR-103](spec.md#fr-103), [FR-109](spec.md#fr-109), [ai.md](contracts/ai.md#finance-chat),
+  [R-25](research.md#r-25)). Test first:
+  - in `src/ai/appGuide.test.ts`: the guide names every screen of the sidebar, Import, review and
+    the profile editor, and the main actions as the app labels them, and holds no line `Data:`;
+  - in `src/ai/chat.test.ts`: the instructions hold the rules, then the guide after the line
+    `App guide:`, then the data; the rules put the three kinds of question in scope and any
+    other out of scope, answer a request to change something with that the chat cannot and how
+    to do it, mark general knowledge as general, say about the app only what the guide says, and
+    give no sources for an answer that rests on no data;
+  - in `src/ui/messages.test.ts`, the fixed answer names the user's finances, finance in general
+    and the app;
+  - in `e2e/us8-finance-chat.spec.ts`, scenario 11.
 - [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
   describes, turn AI features off and on once to agree to the new warning, check that
   `git status` does not list `.env` and that `dist/` holds no part of the key, and walk the manual
@@ -1375,7 +1420,7 @@ its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061)
 - **AI through OpenAI, and the finance chat (Phase 13)**: depends on Phase 12, whose suggestions
   it moves to OpenAI; on US3, whose monthly totals the chat sends; and on US7, whose backup keeps
   the conversation. Order: T102 → T103 → T104 → T109 → T106 → T112 → T107 → T114 → T115 → T116 →
-  T108.
+  T117 → T118 → T108.
   T105 → T110 → T111 come before T106 at any time, and T113 before T107. T109 comes before the
   chat's tasks, whose store checks `aiFeaturesOn`.
 

@@ -159,6 +159,7 @@ The finance chat's turns, oldest first, held as `state.conversation`
 | `outOfScope` | `true`, or absent | The chat shows its fixed answer ([FR-103](spec.md#fr-103)) |
 | `stopped` | `true`, or absent | The user stopped the answer, or turned AI features off ([FR-108](spec.md#fr-108)) |
 | `sources` | source list | Empty when out of scope or stopped ([FR-110](spec.md#fr-110)) |
+| `followUps` | list of 1–3 strings, or absent | The follow-up questions the AI suggested with a complete answer, each non-empty after trimming, all distinct. Absent when out of scope, stopped, or none was suggested ([FR-111](spec.md#fr-111)) |
 
 **Source**
 
@@ -221,7 +222,9 @@ fails ([FR-072](spec.md#fr-072)); domain tests assert that no operation can brea
 8. `settings.manualEntryAccountId` references an existing account.
 9. Every turn of the conversation has a question that is non-empty after trimming. A turn out of
    scope has an empty answer, no sources and no `stopped`. A stopped turn has no sources. Any
-   other turn has a non-empty answer. Every source has a non-empty name and valid dates with
+   other turn has a non-empty answer. A turn's follow-ups, when present, are one to three distinct
+   questions, each non-empty after trimming, on a turn neither out of scope nor stopped. Every
+   source has a non-empty name and valid dates with
    `from` on or before `to`. A source's category or account need not exist
    ([FR-110](spec.md#fr-110)).
 

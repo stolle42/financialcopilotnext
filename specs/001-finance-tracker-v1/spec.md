@@ -326,9 +326,11 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 ### User Story 8 - Ask about my own finances (Priority: P8)
 
 The user opens the finance chat from any screen and asks about their own money, such as how to
-reduce spending or which subscriptions have become more expensive. The answer appears as it is
-written, rests only on the user's data, says plainly what that data cannot tell, and ends with
-links to the transactions it rests on, so the user can check it. Added in v1.3.
+reduce spending or which subscriptions have become more expensive, about money and finance in
+general, or about how the app works. An answer about their money appears as it is written, rests
+only on the user's data, says plainly what that data cannot tell, and ends with links to the
+transactions it rests on, so the user can check it. After each answer, the chat suggests what to
+ask next. Added in v1.3.
 
 **Why this priority**: It reads the data of every other story and sends it to OpenAI, so it comes
 last, and only for a user who turned AI features on ([FR-095](#fr-095)).
@@ -351,8 +353,9 @@ was.
 4. **Given** an answer is being written, **Then** the user can scroll, close and open the chat, and
    type their next question; **When** they select Stop, **Then** the answer ends at once, and its
    text so far stays, marked as stopped ([FR-108](#fr-108)).
-5. **Given** a question that does not need the user's data, such as general financial advice,
-   **Then** the chat gives its fixed answer, which says what it can help with ([FR-103](#fr-103)).
+5. **Given** a question about neither finance nor the app, such as general knowledge, **Then**
+   the chat gives its fixed answer, which says what it can help with, and offers the example
+   questions again ([FR-101](#fr-101), [FR-103](#fr-103)).
 6. **Given** a question the data answers only in part, **Then** the answer says explicitly what is
    missing and states no figure that the data does not hold ([FR-109](#fr-109)).
 7. **Given** an answer about the user's data, **Then** it ends with its sources; **When** the user
@@ -364,6 +367,13 @@ was.
    example questions again ([FR-104](#fr-104)).
 9. **Given** a question that fails, **Then** the chat says why and what the user can do, keeps the
    conversation as it was, and puts the question back in the field ([FR-104](#fr-104)).
+10. **Given** a complete answer, **Then** the chat offers one to three follow-up questions under
+    it, as it offers the example questions; **When** the user selects one, **Then** it is sent at
+    once ([FR-111](#fr-111)).
+11. **Given** a question about how the app works, a general question about finance, or a request
+    to change something, such as a budget, **Then** the chat answers it; to a request to change
+    something, it says that it cannot change anything and explains how the user can do it in the
+    app ([FR-103](#fr-103), [FR-109](#fr-109)).
 
 ---
 
@@ -414,6 +424,10 @@ was.
   ([FR-108](#fr-108)).
 - The app is closed while an answer is being written: neither the question nor the text so far is
   kept ([FR-104](#fr-104)).
+- The user asks the chat to change something, such as to delete a transaction: nothing changes,
+  and the answer says that the chat cannot and how to do it in the app ([FR-103](#fr-103)).
+- The AI suggests no follow-up questions, or more than three: the chat shows none, or the first
+  three ([FR-111](#fr-111)).
 
 ## Requirements *(mandatory)*
 
@@ -793,10 +807,11 @@ version that it changes states the new behaviour and names the change.
   and closing the chat send nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say that it needs AI
   features, which Settings turns on, and MUST offer nothing to send; a stored conversation still
   shows ([FR-104](#fr-104)).
-- <a id="fr-101"></a>**FR-101**: While its conversation is empty, the chat MUST offer example
-  questions, among them how to reduce spending and which subscriptions have become more expensive.
-  Selecting one MUST send it at once, as if the user had typed it. The user MUST also be able to
-  type a question and send it. Only sending a question sends a request ([FR-061](#fr-061)).
+- <a id="fr-101"></a>**FR-101**: While its conversation is empty, and after a question out of
+  scope ([FR-103](#fr-103)), the chat MUST offer example questions, among them how to reduce
+  spending and which subscriptions have become more expensive. Selecting one MUST send it at once,
+  as if the user had typed it. The user MUST also be able to type a question and send it. Only
+  sending a question sends a request ([FR-061](#fr-061)).
 - <a id="fr-102"></a>**FR-102**: A question MUST send only:
   - the question, and the conversation's earlier questions with their answers, at most the last
     10;
@@ -808,15 +823,26 @@ version that it changes states the new behaviour and names the change.
   - each account's name, type and balance.
 
   It MUST NOT hold transfers, ids, colours, mapping profiles, the pending import or the settings.
-  It goes through the server that serves the app to OpenAI ([FR-061](#fr-061)). The warning shown
-  when the user turns AI features on says so ([FR-095](#fr-095)).
-- <a id="fr-103"></a>**FR-103**: The chat MUST answer only questions about the user's own finances
-  that need this data, such as where the money goes, how spending changes, whether budgets hold,
-  which payments recur and whether their price rose, and where the user could save. Any other
-  question, including general financial advice that does not depend on the user's data, MUST get
-  one fixed answer that says what the chat can help with. Answers MUST show as plain text in the
-  conversation, after their question, with their sources ([FR-110](#fr-110)). An answer never
-  changes the user's data: it is advice, and acting on it stays the user's step.
+  With it go the chat's rules and a guide to the app, which hold no user data
+  ([FR-103](#fr-103)). It goes through the server that serves the app to OpenAI
+  ([FR-061](#fr-061)). The warning shown when the user turns AI features on says so
+  ([FR-095](#fr-095)).
+- <a id="fr-103"></a>**FR-103**: The chat MUST answer:
+  - questions about the user's own finances, such as where the money goes, how spending changes,
+    whether budgets hold, which payments recur and whether their price rose, and where the user
+    could save;
+  - general questions about money and finance, such as what an index fund is or how to build an
+    emergency fund;
+  - questions about how the app works, such as how to import a bank file or set a budget, from the
+    guide to the app that the question sends ([FR-102](#fr-102)).
+
+  A request to change something, such as a transaction, a category, a budget or the app itself,
+  MUST get an answer that says the chat cannot change anything and explains how the user can do it
+  in the app. Any other question, such as general knowledge outside finance or a request to write
+  or code something, MUST get one fixed answer that says what the chat can help with. Answers MUST
+  show as plain text in the conversation, after their question, with their sources
+  ([FR-110](#fr-110)). An answer never changes the user's data: it is advice, and acting on it
+  stays the user's step.
 - <a id="fr-104"></a>**FR-104**: There is one conversation, and it MUST be stored: it stays when
   the chat is closed, when the user opens another screen and when the app is closed, and it is
   part of a backup ([FR-070](#fr-070)). A backup without one restores an empty conversation.
@@ -852,13 +878,16 @@ version that it changes states the new behaviour and names the change.
     It counts as that question's answer when later questions send the conversation
     ([FR-102](#fr-102)).
   - Turning AI features off stops an answer in the same way ([FR-095](#fr-095)).
-- <a id="fr-109"></a>**FR-109**: An answer MUST rest only on the data its question sent
-  ([FR-102](#fr-102)). Every amount, date, payment, category and account it names MUST come from
-  that data, and it MUST NOT estimate or fill in anything the data does not hold. When the data
-  answers a question only in part, such as a comparison with a time before the months sent, the
-  answer MUST answer the rest and say explicitly what is missing and why. When the data holds
-  nothing that answers it, the answer MUST say only that, and name what is missing. The app cannot
-  prove this of every answer; the sources let the user check it ([FR-110](#fr-110)).
+- <a id="fr-109"></a>**FR-109**: What an answer says about the user's finances MUST rest only on
+  the data its question sent ([FR-102](#fr-102)). Every amount, date, payment, category and account
+  it names MUST come from that data, and it MUST NOT estimate or fill in anything the data does not
+  hold. When the data answers a question only in part, such as a comparison with a time before the
+  months sent, the answer MUST answer the rest and say explicitly what is missing and why. When the
+  data holds nothing that answers it, the answer MUST say only that, and name what is missing.
+  General knowledge about finance MUST be marked as general, never given as a fact about the
+  user's finances. What an answer says about the app MUST come from the guide to the app, and
+  where the guide does not say, the answer MUST say so. The app cannot prove this of every answer;
+  the sources let the user check what rests on their data ([FR-110](#fr-110)).
 - <a id="fr-110"></a>**FR-110**: An answer that states something from the data MUST end with its
   **sources**: links, each named by what it covers, such as "Groceries, September 2026". Selecting
   a source MUST open the transaction list with its filters set to the source: a range of dates,
@@ -869,6 +898,14 @@ version that it changes states the new behaviour and names the change.
     out, like anything else in the answer the app cannot use.
   - A source whose category or account is deleted later MUST show its name without a link. A
     source keeps working when its category or account is renamed.
+- <a id="fr-111"></a>**FR-111**: With every answer it completes in scope, the chat MUST suggest one
+  to three follow-up questions that the user could ask next and that it can answer, and MUST offer
+  them under that answer as it offers the example questions ([FR-101](#fr-101)): selecting one
+  sends it at once. Only the latest answer's follow-ups show, and none while a question waits for
+  its answer or receives it. A stopped answer has none ([FR-108](#fr-108)). Follow-ups are stored
+  with their answer ([FR-104](#fr-104)) and are not sent with later questions
+  ([FR-102](#fr-102)). Of what the AI suggests, the chat keeps at most the first three distinct
+  questions that are not empty.
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -894,7 +931,8 @@ version that it changes states the new behaviour and names the change.
   ([FR-093](#fr-093)), whether it is flagged as a duplicate, whether it failed to parse, and whether
   it is included in confirmation.
 - **Conversation**: The finance chat's questions, each with its answer, in the order asked. An
-  answer has its text, whether it was stopped, and its sources. A source has a name, a range of
+  answer has its text, whether it was stopped, its sources and its follow-up questions. A source
+  has a name, a range of
   dates, and a category, an account, both or neither. There is one conversation; it is stored and
   is part of a backup ([FR-104](#fr-104), [FR-110](#fr-110)).
 

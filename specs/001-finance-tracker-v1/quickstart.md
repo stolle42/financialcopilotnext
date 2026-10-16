@@ -140,7 +140,7 @@ committed. Tests that need existing data load it through the backup restore
 
 - **Run**: `e2e/us8-finance-chat.spec.ts`, with a stand-in answering at `/api/ai` in OpenAI's place
   ([R-26](research.md#r-26)). On a hosted copy only scenario 1 runs ([FR-106](spec.md#fr-106)).
-- **Covers**: [User Story 8](spec.md#user-story-8) scenarios 1–9
+- **Covers**: [User Story 8](spec.md#user-story-8) scenarios 1–11
 - **Expected**: a source closes the chat and opens the transaction list with its filters, the chat
   opened again there shows the conversation, and it survives a reload.
 
@@ -232,7 +232,11 @@ not in the build: searching `dist/` for its first characters finds nothing.
 | Stop | Ask "Where did I spend more this month than last month?" and select Stop while the answer is written | The answer ends at once, marked "Stopped", and its text so far stays |
 | Chat follow-up | Ask "And which one costs the most?" | The answer refers to the subscriptions of the earlier answer |
 | Missing data | Ask "Did I spend more on travel than in 2024?" | The answer says that the data does not reach back to 2024, and gives no figure for it |
-| Out of scope | Ask "What is the capital of France?" | The chat's fixed answer, naming what it can help with |
+| Out of scope | Ask "What is the capital of France?" | The chat's fixed answer, naming what it can help with, then the example questions |
+| Follow-ups | Look under any complete answer, and select one of its follow-up questions | One to three follow-up questions show under the latest answer only; the one selected is sent at once |
+| App question | Ask "How do I import a bank file?" | Steps that match the Import screen, with no sources |
+| Change request | Ask "Set my groceries budget to €300." | The chat says that it cannot change anything and explains how to set the limit on Budgets; no budget changes |
+| General finance | Ask "What is an emergency fund?" | An explanation marked as general, with no figure that the data does not hold |
 | Chat kept | Close the chat and open it again; then open Budgets, open the chat there, and reload | The conversation is still there each time |
 | Clear | Select Clear conversation, then Cancel; then again, and confirm | Cancel keeps the conversation; confirming empties it and shows the example questions |
 | Offline | Disconnect from the internet, then ask the chat and select Suggest categories | `ai-unreachable` in both, and nothing changes |

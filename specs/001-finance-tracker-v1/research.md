@@ -953,9 +953,9 @@ mark, concurrency, zod and the untrusted answer still holds.
       `accountBalance`;
     - every expense and income of the period is a row of date, description, amount and category
       name, money out negative, in euros, by date and then order of entry.
-  - `src/ai/chat.ts` sends the instructions and then the context as JSON, then at most the last 10
-    turns as user and assistant messages, then the question. The answer has the strict shape
-    `{ inScope, answer, sources }` ([R-26](#r-26)). When `inScope` is false, the chat shows its
+  - `src/ai/chat.ts` sends the instructions, the guide to the app and then the context as JSON,
+    then at most the last 10 turns as user and assistant messages, then the question. The answer
+    has the strict shape `{ inScope, answer, sources, followUps }` ([R-26](#r-26)). When `inScope` is false, the chat shows its
     fixed answer instead of the model's text ([FR-103](spec.md#fr-103)).
   - `askChat` in `src/store/chat.ts` refuses with `ai-features-off` while AI features are off,
     takes today from the clock, and stores the finished turn ([R-26](#r-26)).
@@ -972,6 +972,13 @@ mark, concurrency, zod and the untrusted answer still holds.
     as much.
   - **The fixed answer out of scope**: only a model can read what a question needs, so the model
     decides; the fixed text makes the refusal the same every time, and testable.
+  - **A guide to the app** (owner, 2026-10-16): the chat answers how the app works, and how to make
+    a change it cannot make itself, from a guide written for users and kept in the code beside
+    the rules, rather than from contracts written for developers. A test keeps it naming every
+    screen and the main actions as the app labels them. It is the same for every question, so it
+    is part of the cached prefix.
+  - **Follow-ups in the answer** (owner, 2026-10-16): the model suggests them in the same request,
+    after the sources, so they cost no second request and do not delay the answer's text.
   - **The context first**: every question of a conversation starts with the same instructions and
     data, which lets OpenAI cache that prefix.
   - **Plain text**: no Markdown renderer, and nothing in an answer's text can become a link or

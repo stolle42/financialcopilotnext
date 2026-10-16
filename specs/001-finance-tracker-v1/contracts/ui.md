@@ -117,12 +117,16 @@ Routes use the URL hash so the build works from any static host or local file ([
 - Opening another screen closes the sheet, so that screen shows: by following a link in the
   sheet, a source or the link to Settings, or by going back in the browser's history.
 - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
-  features, with a link to [Settings](#settings), and shows neither examples nor a field. A
-  stored conversation still shows.
-- While the conversation is empty, the sheet shows the example questions as buttons: "How can I
-  reduce my spending?", "Which of my subscriptions have become more expensive?", "Am I on track
-  with my budgets this month?" and "Where did I spend more this month than last month?".
-  Selecting one sends it at once.
+  features, with a link to [Settings](#settings), and shows neither suggested questions nor a
+  field. A stored conversation still shows.
+- **Suggested questions**: under the log, a group of buttons named "Suggested questions"
+  ([FR-101](../spec.md#fr-101), [FR-111](../spec.md#fr-111)). Selecting one sends it at once.
+  - While the conversation is empty, and while its latest question is out of scope, the group
+    holds the example questions: "How can I reduce my spending?", "Which of my subscriptions have
+    become more expensive?", "Am I on track with my budgets this month?" and "Where did I spend
+    more this month than last month?".
+  - After a complete answer, it holds that answer's follow-up questions, if it has any.
+  - There is none while an answer is awaited or written, and after a stopped answer.
 - The conversation is a log: each question, then its answer as plain text, line breaks kept. A
   question out of scope gets the chat's fixed answer, which names what the chat can help with
   ([FR-103](../spec.md#fr-103)).
@@ -134,7 +138,7 @@ Routes use the URL hash so the build works from any static host or local file ([
 - A stopped answer ends in the mark "Stopped" and has no sources ([FR-108](../spec.md#fr-108)).
 - Under the log, a field labelled "Your question" and **Send**, which Enter selects too. Send is
   unavailable while the field is empty. While an answer is awaited or written, **Stop** takes
-  Send's place, the field stays editable, Enter sends nothing, and the examples are unavailable
+  Send's place, the field stays editable, Enter sends nothing, and no suggested questions show
   ([FR-108](../spec.md#fr-108)).
 - A failure shows in an alert above the field, with the codes of [ai.md](ai.md#failures). The
   conversation stays as it was before the question, also when part of the answer had shown, and
