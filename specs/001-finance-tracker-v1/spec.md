@@ -788,9 +788,9 @@ version that it changes states the new behaviour and names the change.
   fixed at the bottom right of the window, which shows a chat icon and its name, "Ask about your
   finances", in the colour of the primary action, so it stands out wherever the user is. The
   button MUST NOT keep any of a screen's content hidden: scrolled to its end, a screen's content
-  ends above it. The button opens the chat beside the screen; following a link in the chat, such
-  as a source, closes it, so the screen the link opens shows. Opening and closing the chat send
-  nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say that it needs AI
+  ends above it. The button opens the chat beside the screen. Opening another screen, also by
+  following a link in the chat such as a source, closes the chat, so that screen shows. Opening
+  and closing the chat send nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say that it needs AI
   features, which Settings turns on, and MUST offer nothing to send; a stored conversation still
   shows ([FR-104](#fr-104)).
 - <a id="fr-101"></a>**FR-101**: While its conversation is empty, the chat MUST offer example

@@ -1321,14 +1321,14 @@ this phase. The test commits of T102 – T107, written before that last request,
 - [ ] T116 [US8] The chat on every screen (owner, 2026-10-16): `FinanceChat.tsx` moves from
   `src/ui/screens/insights/` to a new `src/ui/screens/chat/` and renders in the shell of
   `src/ui/app/App.tsx` in place of `InsightsScreen.tsx`, outside `main`, which ends in space for
-  its button. The button shows its icon and its name as text, in the primary colour; following a
-  link in the chat closes it; and `aiFeaturesDescription` in `src/ui/messages.ts` names the chat
-  without Insights ([FR-100](spec.md#fr-100), [ui.md](contracts/ui.md#finance-chat)). Test first:
+  its button. The button shows its icon and its name as text, in the primary colour; opening
+  another screen, also from a link in the chat, closes it; and `aiFeaturesDescription` in
+  `src/ui/messages.ts` names the chat without Insights ([FR-100](spec.md#fr-100), [ui.md](contracts/ui.md#finance-chat)). Test first:
   - in `e2e/ui/shell.spec.ts`: Transactions, Import, the profile editor and every other screen of
     the sidebar show the button, with its name as text, in the colour of Add transaction; and on
     a list long enough to scroll, scrolled to its end, the last row ends above the button;
-  - in `e2e/ui/insights.spec.ts`: the chat on Transactions shows the conversation asked on
-    Insights; following Settings or a source closes the chat, and the screen the link opens
+  - in `e2e/ui/insights.spec.ts`: the chat on Budgets shows the conversation asked on Insights;
+    following Settings or a source, or going back, closes the chat, and the screen it opens
     shows; `chatButton` of `e2e/support/ai.ts` finds the button outside `main` too;
   - in `e2e/us8-finance-chat.spec.ts`, scenarios 1 and 7 as [User Story 8](spec.md#user-story-8)
     now words them;

@@ -114,8 +114,8 @@ Routes use the URL hash so the build works from any static host or local file ([
   about your finances", as text. The main area ends in space taller than the button, so a screen
   scrolled to its end shows its last content above it. The button opens a sheet from the right
   with that title.
-- Following a link in the sheet, a source or the link to Settings, closes the sheet, so the screen
-  the link opens shows.
+- Opening another screen closes the sheet, so that screen shows: by following a link in the
+  sheet, a source or the link to Settings, or by going back in the browser's history.
 - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
   features, with a link to [Settings](#settings), and shows neither examples nor a field. A
   stored conversation still shows.
