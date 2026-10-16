@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { applyChanges, isRefusal } from "./changes";
-import type { Account, Category, PendingBatch, State } from "./types";
+import type { Account, Category, ChatTurn, PendingBatch, State } from "./types";
 
 const cash: Account = { id: "cash", name: "Cash", type: "cash", openingBalanceCents: 0 };
 const groceries: Category = {
@@ -16,6 +16,20 @@ const batch: PendingBatch = {
   fileName: "bank.csv",
   createdAt: "2026-09-03T10:00:00.000Z",
   rows: [],
+};
+
+const turn: ChatTurn = {
+  question: "Groceries?",
+  answer: "€40.00.",
+  sources: [
+    {
+      name: "Groceries",
+      from: "2026-09-01",
+      to: "2026-09-30",
+      categoryId: "groceries",
+      accountId: null,
+    },
+  ],
 };
 
 function deepFreeze<T>(value: T): T {
@@ -35,6 +49,7 @@ function makeState(): State {
     profiles: [],
     pendingBatch: null,
     settings: { manualEntryAccountId: "cash" },
+    conversation: [turn],
   });
 }
 
@@ -73,12 +88,28 @@ describe("applyChanges", () => {
     expect(next.settings).toEqual({ manualEntryAccountId: "x" });
   });
 
+  test("replaces the whole conversation, and empties it with an empty list (R-26)", () => {
+    const next: ChatTurn = { question: "And eating out?", answer: "Nothing.", sources: [] };
+
+    expect(applyChanges(makeState(), { conversation: { put: [turn, next] } }).conversation).toEqual(
+      [turn, next],
+    );
+    expect(applyChanges(makeState(), { conversation: { put: [] } }).conversation).toEqual([]);
+  });
+
+  test("deleting a category leaves the conversation as it is (FR-110)", () => {
+    const state = makeState();
+    const next = applyChanges(state, { categories: { delete: ["groceries"] } });
+    expect(next.conversation).toBe(state.conversation);
+  });
+
   test("leaves its input untouched, and keeps every store it does not change", () => {
     const state = makeState();
     const next = applyChanges(state, { accounts: { put: [{ ...cash, name: "Wallet" }] } });
     expect(state.accounts).toEqual([cash]);
     expect(next.categories).toBe(state.categories);
     expect(next.settings).toBe(state.settings);
+    expect(next.conversation).toBe(state.conversation);
   });
 });
 

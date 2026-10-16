@@ -1,9 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { chatContext } from "./chat";
+import { addTurn, chatContext, chatSources, clearConversation, type NamedSource } from "./chat";
+import { deleteCategory } from "./categories";
 import { insights } from "./insights";
 import { seedState } from "./seed";
-import { applyValid, everyEntityState, idCounter } from "./testing";
-import type { Account, Side, State, Transaction } from "./types";
+import { applyValid, changesOf, everyEntityState, idCounter } from "./testing";
+import type { Account, ChatTurn, Side, State, Transaction } from "./types";
 
 // FR-102, R-25; contracts/ai.md, finance chat: the data one question of the finance chat sends.
 
@@ -203,7 +204,7 @@ describe("chatContext: accounts and budgets (FR-102)", () => {
 });
 
 describe("chatContext: data minimisation (FR-102)", () => {
-  test("holds no id, colour, mapping profile, pending import or setting", () => {
+  test("holds no id, colour, mapping profile, pending import, setting or turn of the conversation", () => {
     const state = everyEntityState();
 
     const text = JSON.stringify(chatContext(state, "2026-09-03"));
@@ -228,6 +229,8 @@ describe("chatContext: data minimisation (FR-102)", () => {
       "manualEntryAccountId",
       "seq",
       "Cents",
+      "How much did I spend on groceries in August?",
+      "Groceries, August 2026",
     ]) {
       expect(text).not.toContain(leak);
     }
@@ -238,5 +241,151 @@ describe("chatContext: data minimisation (FR-102)", () => {
     expect(JSON.stringify(chatContext(state, "2026-09-03"))).toBe(
       JSON.stringify(chatContext(state, "2026-09-03")),
     );
+  });
+});
+
+describe("chatSources: the sources of an answer, with ids (FR-110, R-26)", () => {
+  const state = ledger([]);
+  const groceries = categoryId(state, "expense", "Groceries");
+  const named = (source: Partial<NamedSource> = {}): NamedSource => ({
+    name: "Groceries, September 2026",
+    from: "2026-09-01",
+    to: "2026-09-30",
+    category: { side: "expense", name: "Groceries" },
+    account: null,
+    ...source,
+  });
+
+  test("turns a category, named by side and name, and an account, named by name, into their ids", () => {
+    expect(chatSources(state, [named({ account: "Giro" })])).toStrictEqual([
+      {
+        name: "Groceries, September 2026",
+        from: "2026-09-01",
+        to: "2026-09-30",
+        categoryId: groceries,
+        accountId: "giro",
+      },
+    ]);
+  });
+
+  test("compares names by name key, ignoring case and surrounding spaces (FR-032)", () => {
+    const [source] = chatSources(state, [
+      named({ category: { side: "expense", name: " groceries " }, account: "GIRO" }),
+    ]);
+    expect(source).toMatchObject({ categoryId: groceries, accountId: "giro" });
+  });
+
+  test("tells a category from the one of the same name on the other side", () => {
+    const [source] = chatSources(state, [
+      named({ category: { side: "income", name: "Uncategorised" } }),
+    ]);
+    expect(source!.categoryId).toBe(categoryId(state, "income", "Uncategorised"));
+    expect(source!.categoryId).not.toBe(categoryId(state, "expense", "Uncategorised"));
+  });
+
+  test("keeps a source of dates alone, without category or account, and a one-day range", () => {
+    expect(
+      chatSources(state, [
+        named({ name: "Everything in September 2026", category: null }),
+        named({ name: "1 September 2026", from: "2026-09-01", to: "2026-09-01" }),
+      ]),
+    ).toMatchObject([
+      { name: "Everything in September 2026", categoryId: null, accountId: null },
+      { name: "1 September 2026", categoryId: groceries },
+    ]);
+  });
+
+  test.each<[string, Partial<NamedSource>]>([
+    ["whose category is of the other side", { category: { side: "income", name: "Groceries" } }],
+    ["whose category does not exist", { category: { side: "expense", name: "Pets" } }],
+    ["whose account does not exist", { account: "Savings" }],
+    ["without a name", { name: "  " }],
+    ["whose start does not exist", { from: "2026-02-30" }],
+    ["whose end is not a date", { to: "September" }],
+    ["that ends before it starts", { from: "2026-09-30", to: "2026-09-01" }],
+  ])("leaves out a source %s", (_, source) => {
+    expect(chatSources(state, [named(source)])).toEqual([]);
+  });
+
+  test("keeps the sources it can use, in the answer's order", () => {
+    const sources = chatSources(state, [
+      named({ name: "First" }),
+      named({ name: "Unknown", account: "Savings" }),
+      named({ name: "Second", category: null, account: "Cash" }),
+    ]);
+    expect(sources.map((source) => source.name)).toEqual(["First", "Second"]);
+    expect(sources[1]!.accountId).toBe(state.accounts.find((a) => a.name === "Cash")!.id);
+  });
+});
+
+describe("the conversation's changes (FR-104, data-model.md)", () => {
+  const turn = (question: string): ChatTurn => ({
+    question,
+    answer: `An answer to ${question}`,
+    sources: [],
+  });
+
+  test("a new app has no conversation", () => {
+    expect(seedState(idCounter()).conversation).toEqual([]);
+  });
+
+  test("addTurn appends a turn at the end of the conversation", () => {
+    const first = applyValid(seedState(idCounter()), addTurn(seedState(idCounter()), turn("One")));
+    const second = applyValid(first, addTurn(first, turn("Two")));
+
+    expect(second.conversation.map((t) => t.question)).toEqual(["One", "Two"]);
+    expect(addTurn(first, turn("Two"))).toEqual({
+      conversation: { put: [turn("One"), turn("Two")] },
+    });
+  });
+
+  test("addTurn keeps a turn out of scope, and a stopped one, as they are", () => {
+    const outOfScope: ChatTurn = {
+      question: "Weather?",
+      answer: "",
+      outOfScope: true,
+      sources: [],
+    };
+    const stopped: ChatTurn = {
+      question: "Savings?",
+      answer: "You could",
+      stopped: true,
+      sources: [],
+    };
+    const seeded = seedState(idCounter());
+    const first = applyValid(seeded, addTurn(seeded, outOfScope));
+
+    expect(applyValid(first, addTurn(first, stopped)).conversation).toEqual([outOfScope, stopped]);
+  });
+
+  test("clearConversation empties it", () => {
+    const seeded = seedState(idCounter());
+    const talked = applyValid(seeded, addTurn(seeded, turn("One")));
+
+    expect(clearConversation(talked)).toEqual({ conversation: { put: [] } });
+    expect(applyValid(talked, clearConversation(talked)).conversation).toEqual([]);
+  });
+
+  test("deleting a category leaves the turns whose sources name it as they are (FR-110)", () => {
+    const state = ledger([]);
+    const groceries = categoryId(state, "expense", "Groceries");
+    const cited: ChatTurn = {
+      ...turn("Groceries?"),
+      sources: [
+        {
+          name: "Groceries",
+          from: "2026-09-01",
+          to: "2026-09-30",
+          categoryId: groceries,
+          accountId: null,
+        },
+      ],
+    };
+    const talked = applyValid(state, addTurn(state, cited));
+
+    const changes = changesOf(deleteCategory(talked, groceries));
+
+    expect(changes.conversation).toBeUndefined();
+    expect(applyValid(talked, changes).conversation).toEqual([cited]);
   });
 });
