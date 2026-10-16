@@ -1173,10 +1173,10 @@ after v1.2. The spec, contracts and research change first, in the commit that ad
     features, and the warning says that the chat sends amounts, dates and account balances while
     suggestions do not.
 - [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
-  describes, check that `git status` does not list `.env` and that `dist/` holds no part of the
-  key, and walk the manual checks there, including the SC-001 file and the chat. Its commit sets
-  the version to `1.3.0`, and the tag `v1.3` goes on the phase's squash commit on `main`
-  (constitution IX).
+  describes, turn AI features off and on once to agree to the new warning, check that
+  `git status` does not list `.env` and that `dist/` holds no part of the key, and walk the manual
+  checks there, including the SC-001 file and the chat. Its commit sets the version to `1.3.0`, and
+  the tag `v1.3` goes on the phase's squash commit on `main` (constitution IX).
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.3 (constitution IX),
 MINOR because v1.2 reads v1.3 storage and backups, as the chat stores nothing, and no feature

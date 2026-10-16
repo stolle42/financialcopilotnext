@@ -183,6 +183,9 @@ without them. A hosted copy has no such route, so there they say that the AI can
 2. Copy `.env.example` to `.env` in the project folder and put the key after `OPENAI_API_KEY=`.
    Git ignores `.env`: `git status` must not list it.
 3. Restart `npm start` or `npm run dev`. The server reads the key when it starts.
+4. After updating from v1.2 with AI features on, turn them off and on once in Settings, and read
+   the warning: v1.3 sends to OpenAI, and the chat sends amounts and dates
+   ([FR-095](spec.md#fr-095)).
 
 **Smoke test**, with `npm start` running:
 

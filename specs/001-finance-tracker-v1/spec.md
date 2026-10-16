@@ -713,6 +713,9 @@ it changes states the new behaviour and names the change.
     AI features are on; Settings shows whether they are.
   - The setting MUST survive closing the app and MUST be part of a backup ([FR-070](#fr-070)); a
     backup without it restores AI features off.
+  - A setting turned on in v1.2, under v1.2's warning, stays on after the update to v1.3. The
+    owner, the app's one user, agrees to v1.3's warning by turning AI features off and on once
+    ([quickstart.md](quickstart.md#ai-features)).
 
 **Finance chat, through OpenAI (v1.3)**
 

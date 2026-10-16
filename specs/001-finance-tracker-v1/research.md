@@ -908,6 +908,12 @@ mark, concurrency, zod and the untrusted answer still holds.
     keeps the answer out of the responses OpenAI stores for continuing them.
   - **Cost**: the owner gives the OpenAI project a monthly budget, or prepaid credit without
     automatic recharge ([quickstart.md](quickstart.md#ai-features)).
+  - **Consent from v1.2 carries over** (owner, 2026-10-16): v1.2 stored AI features on under a
+    warning that named n8n and Anthropic and kept amounts and dates on the computer. The owner is
+    the app's one user and decided the change, so v1.3 keeps the setting, and the quickstart has
+    the owner turn AI features off and on once to agree to the new warning
+    ([FR-095](spec.md#fr-095)). Storing the switch under a new key would have asked again, at the
+    cost of a rename in the settings and the backup.
   - **Tests need no key**: Vitest stubs `fetch`, and tests the plugin against a local server with
     OpenAI stubbed. Playwright answers at `/api/ai` in OpenAI's place, and the guard fails a
     request there that no test answers, since a running preview may hold a key.
