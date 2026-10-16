@@ -907,6 +907,39 @@ version that it changes states the new behaviour and names the change.
   ([FR-102](#fr-102)). Of what the AI suggests, the chat keeps at most the first three distinct
   questions that are not empty.
 
+**Design (v1.4)**
+
+A change the owner asked for after v1.3, released as v1.4. It changes how the app looks and nothing
+that it does: every screen keeps its layout, controls, labels, messages and flows. The look follows
+the owner's reference design, Totem, published at `financialcopilot4you.lovable.app`, and
+[ui.md](contracts/ui.md#look) states it. Where the reference's colours would leave text hard to
+read, the app uses darker shades of them ([FR-116](#fr-116)).
+
+- <a id="fr-112"></a>**FR-112**: The app MUST use one soft, cool palette: screens on a light
+  blue-grey canvas, their content on near-white cards, text in a dark blue-grey ink with secondary
+  text in a lighter ink, and a periwinkle blue for the primary action, for pressed and switched-on
+  controls, and for focus. Danger and positive amounts keep colours of their own in the same soft
+  range. Category colours stay the ones the user chose ([FR-032](#fr-032)).
+- <a id="fr-113"></a>**FR-113**: Headings, the app's name and the titles of dialogs and panels MUST
+  be set in Fraunces, a serif display face, and all other text in Figtree, a sans-serif. Both fonts
+  MUST ship with the app, so that no font comes from a third party ([FR-061](#fr-061)), and text
+  MUST show at once in a system font while they load.
+- <a id="fr-114"></a>**FR-114**: Every screen's lists, tables, forms and content sections MUST sit
+  on cards on the canvas: in the card colour, with large rounded corners, a faint outline and a
+  soft shadow. A screen's heading and its toolbars, such as the filters and the period, stay on the
+  canvas. The sidebar MUST be such a card, with each entry a rounded pill and the current entry on
+  the canvas colour. Dialogs, panels, menus, notifications and chart tooltips MUST look like cards too. The
+  header MUST sit on the canvas without a dividing line.
+- <a id="fr-115"></a>**FR-115**: Buttons, fields, toggles and tabs MUST have rounded corners, and
+  fields MUST be filled in the card colour. The primary action MUST be filled in the primary colour
+  and raised by a shadow in that colour. A pressed toggle MUST be filled in the primary colour.
+  Tabs MUST form a segmented control whose current tab shows on the canvas colour. Budget bars MUST
+  be thick and fully rounded.
+- <a id="fr-116"></a>**FR-116**: Text MUST contrast with its background by at least 4.5:1, the
+  level that WCAG 2.2 sets for normal text (success criterion 1.4.3), on the canvas, on cards and on
+  the primary colour. This keeps the softer palette readable at default zoom
+  ([FR-064](#fr-064)).
+
 <a id="key-entities"></a>
 ### Key Entities
 

@@ -1393,6 +1393,67 @@ its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061)
 
 ---
 
+## Phase 14: Design
+
+**Purpose**: the look of the owner's reference design on every screen, with nothing that the app
+does changed ([FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116),
+[ui.md](contracts/ui.md#look), [R-27](research.md#r-27)). The owner asked for it on 2026-10-16,
+after v1.3: its palette, fonts, shadows, corners and spacing, not its layout. The spec, contract
+and research change first, in the commit that adds this phase. Each task's tests follow in a commit
+of their own, before any code of the phase.
+
+**Independent Test**: `e2e/ui/design.spec.ts`, and the manual check of the look in
+[quickstart.md](quickstart.md#manual-checks).
+
+- [ ] T119 Palette and type: the tokens of [ui.md](contracts/ui.md#look) in `src/ui/index.css`,
+  with `--positive` for positive amounts in place of `text-emerald-700` in `TransactionsScreen.tsx`,
+  and the gaps between the donut's slices in the card colour in `CategoryBreakdown.tsx`; Figtree and
+  Fraunces, with its optical-size axis, from `@fontsource-variable/figtree` and
+  `@fontsource-variable/fraunces`, imported in `src/ui/index.css` as `--font-sans` and
+  `--font-heading`; every `h1` and `h2` in `--font-heading` at the sizes of ui.md, and the app's
+  name in `App.tsx` and `FailureScreen.tsx` too ([FR-112](spec.md#fr-112),
+  [FR-113](spec.md#fr-113), [FR-116](spec.md#fr-116)). Test first in `e2e/ui/design.spec.ts`:
+  - the page shows the canvas colour, with text in ink;
+  - text is set in Figtree, and in Fraunces at the sizes of ui.md: on every screen its heading and
+    its sections' headings, the app's name, and the titles of the transaction form and the chat's
+    panel;
+  - both fonts load from the app's own origin, and swap in once loaded;
+  - body text, secondary text, the primary action's label, danger text and a positive amount
+    contrast with their backgrounds by at least 4.5:1.
+- [ ] T120 Cards: a `surface` utility in `src/ui/index.css` for the card of ui.md, on every list,
+  table, form and content section of the screens in `src/ui/screens/` and of `FailureScreen.tsx`,
+  but not on their toolbars; in `App.tsx`, the header without its line and the sidebar as a card of
+  pills; and the look of ui.md for dialogs, confirmations, sheets, menus, toasts and chart tooltips
+  in `src/ui/components/ui/` ([FR-114](spec.md#fr-114)). Test first in `e2e/ui/design.spec.ts`:
+  - on each screen of the sidebar, on Import, in the profile editor and in review, the content
+    sits on cards: in the card colour, with 22px corners and a shadow;
+  - the sidebar is a card, whose current entry shows the canvas colour and whose other entries
+    show none;
+  - the header has no line below it;
+  - the transaction form, a select's options, a confirmation, the chat's panel and a notification
+    are in the card colour, rounded and raised by a shadow.
+- [ ] T121 Controls: `button.tsx`, `input.tsx`, `select.tsx`, `toggle.tsx`, `tabs.tsx`,
+  `switch.tsx` and `progress.tsx` in `src/ui/components/ui/` as ui.md describes them, and the
+  budget bars of `BudgetSection.tsx` at its height ([FR-115](spec.md#fr-115)). Test first in
+  `e2e/ui/design.spec.ts`:
+  - Add transaction is filled in the primary colour, with 14px corners, and raised by a shadow;
+    Import CSV, an outline button, is filled in the card colour;
+  - a date field and a select have 14px corners and are filled in the card colour;
+  - the pressed period preset on Insights is filled in the primary colour;
+  - the side tabs on Categories form a segmented control, whose current tab shows the canvas
+    colour and whose other tab's label keeps 4.5:1 ([FR-116](spec.md#fr-116));
+  - a budget bar on Insights is 12px tall and fully rounded.
+- [ ] T122 (Project owner, manual) Walk the manual check of the look in
+  [quickstart.md](quickstart.md#manual-checks), on `localhost` and on the hosted copy. Its commit
+  sets the version to `1.4.0`, after T108's `1.3.0`, and the tag `v1.4` goes on the phase's squash
+  commit on `main` (constitution IX).
+
+**Checkpoint**: every task of the phase is done. The phase is a release, v1.4 (constitution IX),
+MINOR because it removes no feature and leaves storage and backups as they were. Push and run the
+post-push check.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -1423,6 +1484,8 @@ its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061)
   T117 → T118 → T108.
   T105 → T110 → T111 come before T106 at any time, and T113 before T107. T109 comes before the
   chat's tasks, whose store checks `aiFeaturesOn`.
+- **Design (Phase 14)**: depends on every screen, whose look it changes, and follows Phase 13,
+  whose version it raises. Order: T119 → T120 → T121 → T122.
 
 ### Within Each Task and Story
 

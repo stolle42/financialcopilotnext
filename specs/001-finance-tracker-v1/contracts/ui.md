@@ -1,6 +1,7 @@
 # Contract: User interface
 
-**Spec**: [User scenarios](../spec.md#user-scenarios), [FR-063 – FR-068](../spec.md#fr-063) ·
+**Spec**: [User scenarios](../spec.md#user-scenarios), [FR-063 – FR-068](../spec.md#fr-063),
+[FR-112 – FR-116](../spec.md#fr-112) ·
 **Constitution**: Principle VIII
 
 This contract covers the interface the app exposes to its user: screens, navigation, where each
@@ -350,6 +351,58 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 | Form error | Shown above the submit button ([FR-068](../spec.md#fr-068)) |
 | Other refusal | An alert at the top of the region where the action was taken, with a next-step action when there is one ([FR-067](../spec.md#fr-067)) |
 | Empty state | One sentence and one primary action |
+
+<a id="look"></a>
+## Look
+
+Since v1.4, every screen wears the look of the owner's reference design
+([FR-112](../spec.md#fr-112) – [FR-116](../spec.md#fr-116), [R-27](../research.md#r-27)). The
+tokens live in `src/ui/index.css`. Layout, controls and labels are those of the sections above.
+
+**Palette**
+
+| Colour | Value | Where |
+|---|---|---|
+| Canvas | `#eef1f7` | Behind the cards; the current sidebar entry and tab; hover and focus tints |
+| Card | `#f9fafc` | Cards, the sidebar, dialogs, panels, menus, notifications, tooltips and fields; text on the primary colour |
+| Ink | `#2b3346` | Text |
+| Secondary ink | `#646c82` | Secondary text, such as dates, hints and the version |
+| Primary | `#5a70ad` | The primary action, the chat's button, pressed toggles, switches that are on, budget bars within their limit, the spending line and the focus ring |
+| Danger | `#a65360` | Danger text, danger buttons and budget bars over their limit |
+| Positive | `#45765d` | Positive amounts |
+| Outline | Ink at 8% | Card outlines, dividers and field borders |
+| Off | Ink at 20% | A switch that is off |
+
+**Type**
+
+| Text | Face | Weight | Size |
+|---|---|---|---|
+| A screen's heading (`h1`) | Fraunces | 600 | 30px |
+| A section's heading (`h2`), a dialog's or panel's title, the app's name | Fraunces | 600 | 20px |
+| Everything else | Figtree | 400 to 700 | As before v1.4 |
+
+**Surfaces**
+
+| Surface | Look |
+|---|---|
+| Card | Card colour, 22px corners, the outline, and a soft shadow, `0 18px 36px -24px` ink at 50%. A section's card has 24px padding; a list's rows keep their own |
+| Sidebar | A card with 8px padding. Each entry is a pill with 14px corners, in secondary ink and in ink on hover; the current entry is in ink on the canvas |
+| Header | On the canvas, with no line below it |
+| Dialog and confirmation | A card with a deeper shadow, `0 24px 48px -16px` ink at 40%. The actions sit at its foot without a band |
+| Panel | Card colour, with the outline along its open edge and the deeper shadow |
+| Menu, notification, chart tooltip | Card colour, the outline and a shadow, with 14px corners, or 18px for a notification |
+
+**Controls**
+
+| Control | Look |
+|---|---|
+| Button | 14px corners. Primary: filled in the primary colour, semibold, raised by `0 10px 20px -8px` primary at 70%. Outline: filled in the card colour, with the outline. Ghost: the canvas on hover |
+| Field and select | 14px corners, filled in the card colour, with the outline and the primary focus ring |
+| Toggle | 14px corners. Pressed: filled in the primary colour, with text in the card colour |
+| Tabs | A segmented control: a card-coloured track with the outline and 14px corners, whose current tab shows on the canvas |
+| Switch | The primary colour when on, the off colour when off |
+| Budget bar | 12px tall and fully rounded, on a canvas track |
+| The chat's button | The primary button's look, as a pill, where it was before ([finance chat](#finance-chat)) |
 
 ## Message catalogue
 
