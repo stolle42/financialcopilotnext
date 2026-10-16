@@ -44,7 +44,10 @@ export type InvariantCode =
   | "pending-row-suggestion-invalid"
   | "pending-row-transfer-invalid"
   | "pending-row-failure-unknown"
-  | "settings-account-missing";
+  | "settings-account-missing"
+  | "conversation-question-missing"
+  | "conversation-turn-invalid"
+  | "conversation-source-invalid";
 
 export type InvariantViolation = Refusal<InvariantCode>;
 
@@ -269,6 +272,30 @@ const settings: Check = (state) => {
     : violation("settings-account-missing", { accountId });
 };
 
+// 9. Every turn of the conversation has a question, and an answer that fits its marks; every
+// source has a name and valid dates. A source's category or account need not exist (FR-110).
+const conversation: Check = (state) => {
+  for (const [index, turn] of state.conversation.entries()) {
+    const details = { turn: index + 1 };
+    if (turn.question.trim() === "") return violation("conversation-question-missing", details);
+    const fits = turn.outOfScope
+      ? turn.answer === "" && turn.sources.length === 0 && !turn.stopped
+      : turn.stopped
+        ? turn.sources.length === 0
+        : turn.answer.trim() !== "";
+    if (!fits) return violation("conversation-turn-invalid", details);
+    const sourceBroken = turn.sources.some(
+      (source) =>
+        source.name.trim() === "" ||
+        !isCalendarDate(source.from) ||
+        !isCalendarDate(source.to) ||
+        source.from > source.to,
+    );
+    if (sourceBroken) return violation("conversation-source-invalid", details);
+  }
+  return null;
+};
+
 const checks: readonly Check[] = [
   uniqueIds,
   accountNames,
@@ -278,6 +305,7 @@ const checks: readonly Check[] = [
   profiles,
   pendingBatch,
   settings,
+  conversation,
 ];
 
 /**

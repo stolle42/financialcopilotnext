@@ -1161,7 +1161,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   transactions outside the period are left out; rows are by date, then order of entry, with money
   out negative, in euros, such as `-12.34`; accounts carry their balance, and budgets this month's
   spending; and no id, colour, profile, pending import or setting appears.
-- [ ] T110 [US8] The conversation in the domain: `ChatTurn` and `ChatSource` in
+- [X] T110 [US8] The conversation in the domain: `ChatTurn` and `ChatSource` in
   `src/domain/types.ts`, as [data-model.md](data-model.md#conversation) describes them, and
   `conversation: readonly ChatTurn[]` in `State`, empty in the seed; `conversation?: { put:
   readonly ChatTurn[] }` in `Changes`, which replaces the whole list; in `src/domain/chat.ts`,

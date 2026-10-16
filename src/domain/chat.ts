@@ -1,10 +1,13 @@
 import { accountBalance, sortAccounts } from "./accounts";
 import { budgetProgress } from "./budgets";
-import { monthOf, monthPeriod, monthsInPeriod, startOfMonthsBefore } from "./dates";
+import type { Changes } from "./changes";
+import { isCalendarDate, monthOf, monthPeriod, monthsInPeriod, startOfMonthsBefore } from "./dates";
 import { insights, type Breakdown } from "./insights";
-import type { AccountType, State } from "./types";
+import { nameKey } from "./names";
+import type { AccountType, ChatSource, ChatTurn, Side, State } from "./types";
 
-// The finance chat's data: what one question sends (FR-102, R-25; contracts/ai.md, finance chat).
+// The finance chat's data: what one question sends (FR-102, R-25; contracts/ai.md, finance chat),
+// and the conversation's turns and their sources (FR-104, FR-110, R-26).
 
 /** A month's total of one side, and the amount of each category that has one, in euros. */
 export interface ChatTotals {
@@ -90,4 +93,50 @@ export function chatContext(state: State, today: string): ChatContext {
     months,
     transactions: { columns: ["date", "description", "amount", "category"], rows },
   };
+}
+
+/** A source as an answer names it, by the names the data sent holds (contracts/ai.md). */
+export interface NamedSource {
+  name: string;
+  from: string;
+  to: string;
+  category: { side: Side; name: string } | null;
+  account: string | null;
+}
+
+/**
+ * The sources an answer names, with the ids of their category and account, found by name key.
+ * A source whose category or account the user does not have, or without a name or valid dates,
+ * is left out, like anything else in an answer the app cannot use (FR-110).
+ */
+export function chatSources(state: State, named: readonly NamedSource[]): ChatSource[] {
+  const sources: ChatSource[] = [];
+  for (const source of named) {
+    if (source.name.trim() === "") continue;
+    if (!isCalendarDate(source.from) || !isCalendarDate(source.to) || source.from > source.to) {
+      continue;
+    }
+    const { category, account } = source;
+    const categoryId = category
+      ? state.categories.find(
+          (c) => c.side === category.side && nameKey(c.name) === nameKey(category.name),
+        )?.id
+      : null;
+    const accountId = account
+      ? state.accounts.find((a) => nameKey(a.name) === nameKey(account))?.id
+      : null;
+    if (categoryId === undefined || accountId === undefined) continue;
+    sources.push({ name: source.name, from: source.from, to: source.to, categoryId, accountId });
+  }
+  return sources;
+}
+
+/** Adds `turn` at the end of the conversation (FR-104). */
+export function addTurn(state: State, turn: ChatTurn): Changes {
+  return { conversation: { put: [...state.conversation, turn] } };
+}
+
+/** Empties the conversation, which changes nothing when it is empty already (FR-104). */
+export function clearConversation(state: State): Changes {
+  return state.conversation.length > 0 ? { conversation: { put: [] } } : {};
 }
