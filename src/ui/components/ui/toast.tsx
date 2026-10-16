@@ -79,7 +79,8 @@ function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
   return (
     <ToastPrimitive.Title
       data-slot="toast-title"
-      className={cn("text-sm font-medium", className)}
+      // Base UI renders the title as a heading, yet a notification is text, not a heading (FR-113).
+      className={cn("font-sans text-sm font-medium", className)}
       {...props}
     />
   );

@@ -1411,13 +1411,14 @@ of their own, before any code of the phase.
   Fraunces, with its optical-size axis, from `@fontsource-variable/figtree` and
   `@fontsource-variable/fraunces`, imported in `src/ui/index.css` as `--font-sans` and
   `--font-heading`; every `h1` and `h2` in `--font-heading` at the sizes of ui.md, and the app's
-  name in `App.tsx` and `FailureScreen.tsx` too; and no text left in a monospace face, in the
-  chart's tooltips or in review's unparsable rows ([FR-112](spec.md#fr-112),
+  name in `App.tsx` and `FailureScreen.tsx` too, but a notification's title, which Base UI renders
+  as a heading, in Figtree in `toast.tsx`; and no text left in a monospace face, in the chart's
+  tooltips or in review's unparsable rows ([FR-112](spec.md#fr-112),
   [FR-113](spec.md#fr-113), [FR-116](spec.md#fr-116)). Test first in `e2e/ui/design.spec.ts`:
   - the page shows the canvas colour, with text in ink;
   - text is set in Figtree, and in Fraunces at the sizes of ui.md: on every screen its heading and
     its sections' headings, the app's name, and the titles of the transaction form and the chat's
-    panel;
+    panel; a notification's title stays in Figtree;
   - both fonts load from the app's own origin, and swap in once loaded;
   - body text, secondary text, the primary action's label, danger text and a positive amount
     contrast with their backgrounds by at least 4.5:1.
