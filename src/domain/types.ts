@@ -182,6 +182,11 @@ export interface ChatTurn {
   stopped?: true;
   /** Empty when out of scope or stopped. */
   sources: readonly ChatSource[];
+  /**
+   * The follow-up questions the AI suggested with a complete answer (FR-111): one to three
+   * distinct ones. Absent when out of scope, stopped, or none was suggested.
+   */
+  followUps?: readonly string[];
 }
 
 /** The seven stores of the storage layout, held in memory (R-05), and the conversation (R-26). */

@@ -259,7 +259,7 @@ export const sharingWarning =
 export const aiFeaturesLocalOnly =
   "AI features need the app running on your computer. Run it locally to use them.";
 
-/** The finance chat's wording (contracts/ui.md, finance chat; FR-100 – FR-110). */
+/** The finance chat's wording (contracts/ui.md, finance chat; FR-100 – FR-111). */
 export const financeChat = {
   title: "Ask about your finances",
   examples: [
@@ -273,6 +273,8 @@ export const financeChat = {
     "I can only answer questions about your own finances that your data in this app can answer, " +
     "such as where your money goes, how your spending changes, whether your budgets hold, which " +
     "subscriptions became more expensive, and where you could save.",
+  /** The group of the example questions, or of the latest answer's follow-ups (FR-101, FR-111). */
+  suggestions: "Suggested questions",
   needsAiFeatures: "The chat needs AI features, which you turn on in Settings.",
   thinking: "Thinking…",
   stop: "Stop",

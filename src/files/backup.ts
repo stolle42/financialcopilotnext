@@ -162,6 +162,7 @@ const turnSchema = z.object({
   outOfScope: z.literal(true).optional(),
   stopped: z.literal(true).optional(),
   sources: z.array(sourceSchema),
+  followUps: z.array(z.string()).optional(),
 });
 
 const dataSchema: z.ZodType<State> = z.object({

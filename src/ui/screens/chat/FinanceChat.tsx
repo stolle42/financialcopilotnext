@@ -70,6 +70,17 @@ function Answer({ turn }: { turn: ChatTurn }) {
 const question = "self-end rounded-lg bg-muted px-3 py-2";
 
 /**
+ * The suggested questions while no answer is awaited: the examples while the conversation is empty
+ * or its latest question was out of scope, and otherwise the latest answer's follow-ups, none
+ * after a stopped answer (FR-101, FR-111).
+ */
+function suggestedQuestions(conversation: readonly ChatTurn[]): readonly string[] {
+  const latest = conversation.at(-1);
+  if (!latest || latest.outOfScope) return financeChat.examples;
+  return latest.stopped ? [] : (latest.followUps ?? []);
+}
+
+/**
  * The finance chat (contracts/ui.md, finance chat; FR-100 – FR-110): a button fixed at the bottom
  * right of every screen, which opens the chat beside the screen. The app shell renders it once, so
  * it outlasts every screen; the conversation is stored, and the question being answered lives in
@@ -87,6 +98,7 @@ export function FinanceChat() {
   const [clearing, setClearing] = useState(false);
   const [clearFailed, setClearFailed] = useState(false);
   const fieldId = useId();
+  const suggestionsId = useId();
   const log = useRef<HTMLDivElement>(null);
   const asking = session.asking !== null;
 
@@ -122,6 +134,7 @@ export function FinanceChat() {
   }
 
   const showsLog = conversation.length > 0 || asking;
+  const suggested = asking ? [] : suggestedQuestions(conversation);
 
   return (
     <>
@@ -185,18 +198,23 @@ export function FinanceChat() {
                 </a>
               </p>
             )}
-            {on && !showsLog && (
-              <div className="flex flex-col items-start gap-2">
-                {financeChat.examples.map((example) => (
-                  <Button
-                    key={example}
-                    variant="outline"
-                    className="h-auto text-left whitespace-normal"
-                    onClick={() => void send(example)}
-                  >
-                    {example}
-                  </Button>
-                ))}
+            {on && suggested.length > 0 && (
+              <div role="group" aria-labelledby={suggestionsId} className="flex flex-col gap-2">
+                <p id={suggestionsId} className="text-xs text-muted-foreground">
+                  {financeChat.suggestions}
+                </p>
+                <div className="flex flex-col items-start gap-2">
+                  {suggested.map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      variant="outline"
+                      className="h-auto text-left whitespace-normal"
+                      onClick={() => void send(suggestion)}
+                    >
+                      {suggestion}
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

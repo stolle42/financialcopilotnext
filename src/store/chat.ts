@@ -99,7 +99,9 @@ async function answer(
     turn = { question, answer: "", outOfScope: true, sources: [] };
   } else {
     const sources = chatSources(store.getState(), answered.sources);
-    turn = { question, answer: answered.answer, sources };
+    // A turn without follow-ups has no key for them (data-model.md, conversation).
+    const followUps = answered.followUps.length > 0 ? { followUps: answered.followUps } : {};
+    turn = { question, answer: answered.answer, sources, ...followUps };
   }
 
   const refused = await store.run<never>((current) => addTurn(current, turn));

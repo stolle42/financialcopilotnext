@@ -1333,7 +1333,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `e2e/us8-finance-chat.spec.ts`, scenarios 1 and 7 as [User Story 8](spec.md#user-story-8)
     now words them;
   - in `src/ui/messages.test.ts`, the Settings line names the finance chat without Insights.
-- [ ] T117 [US8] Suggested questions (owner, 2026-10-16): `followUps` in the strict schema of
+- [X] T117 [US8] Suggested questions (owner, 2026-10-16): `followUps` in the strict schema of
   `src/ai/chat.ts`, after `sources`, of which `askFinanceChat` gives the first three distinct ones
   that are not empty, trimmed; an answer without it is `ai-answer-invalid`. `ChatTurn.followUps`
   in `src/domain/types.ts`, with invariant 9 in `src/domain/invariants.ts` and the turn's schema

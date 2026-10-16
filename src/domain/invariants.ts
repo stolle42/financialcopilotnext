@@ -6,6 +6,7 @@ import {
   ENCODINGS,
   ROW_FAILURE_CODES,
   type Category,
+  type ChatTurn,
   type MappingProfile,
   type PendingRow,
   type Refusal,
@@ -272,8 +273,24 @@ const settings: Check = (state) => {
     : violation("settings-account-missing", { accountId });
 };
 
-// 9. Every turn of the conversation has a question, and an answer that fits its marks; every
-// source has a name and valid dates. A source's category or account need not exist (FR-110).
+/** Whether the turn's follow-ups, if it has any, fit its marks and are one to three questions. */
+function followUpsFit(turn: ChatTurn): boolean {
+  const { followUps } = turn;
+  if (followUps === undefined) return true;
+  return (
+    !turn.outOfScope &&
+    !turn.stopped &&
+    followUps.length >= 1 &&
+    followUps.length <= 3 &&
+    followUps.every((followUp) => followUp.trim() !== "") &&
+    firstRepeat(followUps) === undefined
+  );
+}
+
+// 9. Every turn of the conversation has a question, and an answer that fits its marks; its
+// follow-ups, when present, are one to three distinct questions on a turn neither out of scope nor
+// stopped; every source has a name and valid dates. A source's category or account need not exist
+// (FR-110, FR-111).
 const conversation: Check = (state) => {
   for (const [index, turn] of state.conversation.entries()) {
     const details = { turn: index + 1 };
@@ -283,7 +300,7 @@ const conversation: Check = (state) => {
       : turn.stopped
         ? turn.sources.length === 0
         : turn.answer.trim() !== "";
-    if (!fits) return violation("conversation-turn-invalid", details);
+    if (!fits || !followUpsFit(turn)) return violation("conversation-turn-invalid", details);
     const sourceBroken = turn.sources.some(
       (source) =>
         source.name.trim() === "" ||
