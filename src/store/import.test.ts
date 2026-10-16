@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { openAiError, responseWith, type PostedRequest } from "@/ai/testing";
+import { openAiError, responseWith, streamed, type PostedRequest } from "@/ai/testing";
 import type { ProfileDraft } from "@/domain/import/profiles";
 import { suggestionRequest } from "@/domain/import/suggestions";
 import type { MappingProfile, ParsedRow, State } from "@/domain/types";
@@ -261,7 +261,7 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     });
 
   /** OpenAI's answer whose message holds `suggestions` (contracts/ai.md, answer). */
-  const suggesting = (suggestions: unknown) => json(responseWith(suggestions));
+  const suggesting = (suggestions: unknown) => streamed(responseWith(suggestions));
 
   /** A fetch that answers only when the test says so, as the AI thinking. */
   function heldAnswer() {

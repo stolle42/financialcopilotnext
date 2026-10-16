@@ -1,6 +1,11 @@
 import type { Page, Route } from "@playwright/test";
 import { AI_PATH } from "../../src/ai/path";
-import { chatContextOf, responseWith, type PostedRequest } from "../../src/ai/testing";
+import {
+  EVENT_STREAM,
+  chatContextOf,
+  responseWith,
+  type PostedRequest,
+} from "../../src/ai/testing";
 import type { SuggestionRequest } from "../../src/domain/import/suggestions";
 import { expect } from "./test";
 
@@ -10,9 +15,9 @@ import { expect } from "./test";
 // fails a test on any request no stand-in answers (FR-061).
 
 /**
- * What a stand-in does with one request: give `json` as the feature's answer inside OpenAI's
- * completed answer; send `json` as it is with another `status`, such as OpenAI's error JSON; or
- * refuse the connection.
+ * What a stand-in does with one request: give `json` as the feature's answer, as the text of
+ * OpenAI's streamed answer, all its events at once (R-26); send `json` as it is with another
+ * `status`, such as OpenAI's error JSON; or refuse the connection.
  */
 export type Reply<Request> = (
   request: Request,
@@ -69,11 +74,11 @@ async function standIn<Request>(
         if (answer === "unreachable") await route.abort("connectionrefused");
         else {
           const status = answer.status ?? 200;
-          await route.fulfill({
-            status,
-            contentType: "application/json",
-            body: JSON.stringify(status === 200 ? responseWith(answer.json) : answer.json),
-          });
+          await route.fulfill(
+            status === 200
+              ? { status, contentType: EVENT_STREAM, body: responseWith(answer.json) }
+              : { status, contentType: "application/json", body: JSON.stringify(answer.json) },
+          );
         }
       } catch {
         // The request is gone.

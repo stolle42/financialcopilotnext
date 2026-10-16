@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { SuggestionRequest } from "@/domain/import/suggestions";
 import { askCategoriser } from "./categoriser";
-import { responseWith, type PostedRequest } from "./testing";
+import { responseWith, streamed, type PostedRequest } from "./testing";
 
 // contracts/ai.md, category suggestions; FR-090 – FR-094, R-23, R-24.
 
@@ -24,16 +24,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-
 const ask = (signal = new AbortController().signal) => askCategoriser(request, signal);
 
 async function posted(): Promise<PostedRequest> {
-  fetchMock.mockResolvedValue(json(responseWith({ suggestions: [] })));
+  fetchMock.mockResolvedValue(streamed(responseWith({ suggestions: [] })));
   await ask();
   return JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as PostedRequest;
 }
@@ -90,7 +84,7 @@ describe("askCategoriser: the request (contracts/ai.md, category suggestions)", 
 describe("askCategoriser: the answer", () => {
   test("gives the suggestions of a valid answer, without other keys", async () => {
     fetchMock.mockResolvedValue(
-      json(
+      streamed(
         responseWith({
           suggestions: [
             { rowNumber: 2, category: "Groceries", reason: "a supermarket" },
@@ -107,7 +101,7 @@ describe("askCategoriser: the answer", () => {
   });
 
   test("gives an empty list when the AI suggests nothing", async () => {
-    fetchMock.mockResolvedValue(json(responseWith({ suggestions: [] })));
+    fetchMock.mockResolvedValue(streamed(responseWith({ suggestions: [] })));
     expect(await ask()).toEqual([]);
   });
 
@@ -117,7 +111,7 @@ describe("askCategoriser: the answer", () => {
     ["suggestions that are not a list", { suggestions: { rowNumber: 2 } }],
     ["no suggestions", { message: "Workflow was started" }],
   ])("gives ai-answer-invalid for %s", async (_, answer) => {
-    fetchMock.mockResolvedValue(json(responseWith(answer)));
+    fetchMock.mockResolvedValue(streamed(responseWith(answer)));
     expect(await ask()).toEqual({ code: "ai-answer-invalid" });
   });
 
