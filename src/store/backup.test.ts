@@ -99,6 +99,16 @@ describe("prepareRestore (loading steps 1–4)", () => {
       details: { rule: "transaction-account-missing" },
     });
   });
+
+  test("refuses a conversation that breaks invariant 9 as damaged, naming the rule and the turn (step 4)", () => {
+    const json = JSON.parse(fixtureFile()) as { data: { conversation: { answer: string }[] } };
+    json.data.conversation[0]!.answer = "";
+
+    expect(prepareRestore(JSON.stringify(json))).toEqual({
+      code: "backup-damaged",
+      details: { rule: "conversation-turn-invalid", turn: 1 },
+    });
+  });
 });
 
 describe("restore (FR-071, FR-072)", () => {

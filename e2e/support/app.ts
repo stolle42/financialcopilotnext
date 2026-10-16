@@ -75,6 +75,30 @@ export function storedRecords<Item>(page: Page, store: string): Promise<Item[]> 
   );
 }
 
+/** The record under `key` of one store of the app's database, or undefined without one. */
+export function storedRecord<Item>(
+  page: Page,
+  store: string,
+  key: string,
+): Promise<Item | undefined> {
+  return page.evaluate(
+    ([storeName, recordKey]) =>
+      new Promise<Item | undefined>((resolve, reject) => {
+        const open = indexedDB.open("financial-copilot");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const request = open.result.transaction(storeName).objectStore(storeName).get(recordKey);
+          request.onsuccess = () => {
+            open.result.close();
+            resolve(request.result as Item | undefined);
+          };
+          request.onerror = () => reject(request.error);
+        };
+      }),
+    [store, key] as const,
+  );
+}
+
 export function storedTransactions(page: Page): Promise<Transaction[]> {
   return storedRecords<Transaction>(page, "transactions");
 }

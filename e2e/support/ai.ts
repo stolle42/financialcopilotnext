@@ -23,6 +23,15 @@ export type Reply<Request> = (
   request: Request,
 ) => { status?: number; json: unknown } | "unreachable";
 
+/** A source as an answer names it (contracts/ai.md, finance chat; FR-110). */
+export interface SourceNamed {
+  name: string;
+  from: string;
+  to: string;
+  category: { side: "expense" | "income"; name: string } | null;
+  account: string | null;
+}
+
 /** One question of the finance chat, as the app sent it (contracts/ai.md, finance chat). */
 export interface ChatQuestion {
   question: string;
@@ -127,14 +136,14 @@ export async function standInCategoriser(page: Page, reply: SuggestionReply = su
   return { ...answering, bodies: answering.requests };
 }
 
-/** Answers the question in scope with `text` (contracts/ai.md, finance chat). */
+/** Answers the question in scope with `text` and `sources` (contracts/ai.md, finance chat). */
 export const answer =
-  (text: string): Reply<ChatQuestion> =>
-  () => ({ json: { inScope: true, answer: text } });
+  (text: string, sources: SourceNamed[] = []): Reply<ChatQuestion> =>
+  () => ({ json: { inScope: true, answer: text, sources } });
 
 /** Answers as for a question out of scope; the chat shows its fixed answer instead. */
 export const outOfScope: Reply<ChatQuestion> = () => ({
-  json: { inScope: false, answer: "The capital of France is Paris." },
+  json: { inScope: false, answer: "The capital of France is Paris.", sources: [] },
 });
 
 /** Answers the finance chat in OpenAI's place with `reply`, recording each question. */

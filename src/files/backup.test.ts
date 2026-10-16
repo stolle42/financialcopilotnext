@@ -81,12 +81,23 @@ describe("serializeBackup (FR-070)", () => {
       "accounts",
       "budgets",
       "categories",
+      "conversation",
       "pendingBatch",
       "profiles",
       "settings",
       "transactions",
     ]);
     expect(byKey(json.data)).toEqual(byKey(state));
+  });
+
+  test("writes the conversation's turns in order, and leaves the key out while it is empty (R-26)", () => {
+    const state = everyEntityState();
+    expect(fileJson().data.conversation).toEqual(state.conversation);
+
+    const empty = JSON.parse(serializeBackup({ ...state, conversation: [] }, EXPORTED_AT)) as {
+      data: Json;
+    };
+    expect(empty.data).not.toHaveProperty("conversation");
   });
 
   test("lists the records in one order whatever their order in memory, so a round trip is exact", () => {
@@ -159,6 +170,30 @@ describe("parseBackup: a round trip (SC-014)", () => {
 
     expect(loaded).not.toHaveProperty("code");
     expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro" });
+  });
+
+  test("keeps the conversation, every kind of turn and source alike (FR-104)", () => {
+    const state = everyEntityState();
+    const loaded = parseBackup(serializeBackup(state, EXPORTED_AT)) as State;
+    expect(loaded.conversation).toStrictEqual(state.conversation);
+  });
+
+  test("loads a file without a conversation, as earlier versions saved it, with an empty one", () => {
+    const json = fileJson();
+    delete json.data.conversation;
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.conversation).toEqual([]);
+  });
+
+  test("saves a loaded file without a conversation as the same file", () => {
+    const json = fileJson();
+    delete json.data.conversation;
+    const text = JSON.stringify(json);
+
+    expect(JSON.parse(serializeBackup(parseBackup(text) as State, EXPORTED_AT))).toEqual(json);
   });
 
   test("saves the loaded state as the same file", () => {
@@ -294,6 +329,32 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     expect(parsed(json)).toMatchObject({
       code: "backup-damaged",
       details: { record: "pendingRow", field: "assignment" },
+    });
+  });
+
+  test.each<[string, string, (turns: Json[]) => void]>([
+    ["turn", "question", (turns) => delete turns[0]!.question],
+    ["turn", "answer", (turns) => (turns[0]!.answer = 42)],
+    ["turn", "stopped", (turns) => (turns[1]!.stopped = false)],
+    ["turn", "outOfScope", (turns) => (turns[3]!.outOfScope = "yes")],
+    ["turn", "sources", (turns) => delete turns[0]!.sources],
+    ["source", "from", (turns) => delete (turns[0]!.sources as Json[])[0]!.from],
+    ["source", "categoryId", (turns) => ((turns[0]!.sources as Json[])[0]!.categoryId = 7)],
+  ])(
+    "names the conversation's %s field %s when it is missing or of the wrong type (FR-104)",
+    (record, field, damage) => {
+      const json = fileJson();
+      damage(json.data.conversation as Json[]);
+      expect(parsed(json)).toMatchObject({ code: "backup-damaged", details: { record, field } });
+    },
+  );
+
+  test("names a conversation that is not a list of turns", () => {
+    const json = fileJson();
+    json.data.conversation = { question: "Groceries?" };
+    expect(parsed(json)).toMatchObject({
+      code: "backup-damaged",
+      details: { record: "data", field: "conversation" },
     });
   });
 

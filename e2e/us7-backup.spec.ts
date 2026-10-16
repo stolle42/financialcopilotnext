@@ -11,8 +11,13 @@ import {
 } from "./support/app";
 import { byKey, chooseBackupFile, restoreBackup, saveBackup, storedData } from "./support/backup";
 import {
+  answer,
+  askInChat,
+  conversation,
   onHostedCopy,
+  openChat,
   standInCategoriser,
+  standInChat,
   suggestCategories,
   turnOnAiFeatures,
 } from "./support/ai";
@@ -20,8 +25,8 @@ import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, setToday, test } from "./support/test";
 
 // The journey of User Story 7, scenarios 1–3, and the round trip of SC-014 (quickstart.md, US7).
-// It fills every entity type through the UI, including a pending batch with review progress and a
-// category the AI suggested, saves a backup, and restores it over changed data. Then it restores the
+// It fills every entity type through the UI, including a pending batch with review progress, a
+// category the AI suggested and a conversation of the finance chat, saves a backup, and restores it over changed data. Then it restores the
 // file into a fresh browser context with empty storage, saves again there, and compares the two
 // files' `data`.
 
@@ -125,6 +130,22 @@ test("saves everything to one file and restores exactly that, also into a fresh 
     await expect(
       page.getByRole("region", { name: "Suggestions" }).getByRole("status"),
     ).toContainText("The AI suggested a category for 1 of");
+    // A conversation of the finance chat, with a source (FR-104, FR-110).
+    await standInChat(
+      page,
+      answer("Mostly groceries.", [
+        {
+          name: "Groceries, September 2026",
+          from: "2026-09-01",
+          to: "2026-09-30",
+          category: { side: "expense", name: "Groceries" },
+          account: "Giro",
+        },
+      ]),
+    );
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    await expect(conversation(page)).toHaveCount(2);
   }
 
   const filled = await storedData(page);
@@ -141,6 +162,12 @@ test("saves everything to one file and restores exactly that, also into a fresh 
     ),
   ).toBe(local);
   expect(filled.settings.aiFeatures === true).toBe(local);
+  expect(filled.conversation?.length ?? 0).toBe(local ? 1 : 0);
+  if (local) {
+    expect(filled.conversation![0]!.sources).toEqual([
+      expect.objectContaining({ name: "Groceries, September 2026", accountId: giro.id }),
+    ]);
+  }
 
   // 1. Saving gives one file with every record, and changes nothing in the app.
   const backup = await saveBackup(page);

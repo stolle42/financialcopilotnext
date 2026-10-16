@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import type { Settings } from "../../src/domain/types";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
-import { storedRecords } from "../support/app";
+import { storedRecord } from "../support/app";
 import {
   aiFeaturesSwitch,
   chat,
@@ -19,7 +19,7 @@ import { expect, test } from "../support/test";
 // any request outside the app's origin, so turning AI features on is proven to send nothing.
 
 const main = (page: Page) => page.getByRole("main");
-const storedSettings = async (page: Page) => (await storedRecords<Settings>(page, "settings"))[0];
+const storedSettings = (page: Page) => storedRecord<Settings>(page, "settings", "settings");
 
 test("is the last entry in the sidebar (FR-084)", async ({ page }) => {
   await page.goto("/");

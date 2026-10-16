@@ -143,6 +143,37 @@ describe("messages", () => {
     expect(message).not.toContain("pending-row-suggestion-invalid");
   });
 
+  test.each([
+    "conversation-question-missing",
+    "conversation-turn-invalid",
+    "conversation-source-invalid",
+  ])(
+    "words a backup whose finance chat conversation breaks the rule %s, without its code (FR-104)",
+    (rule) => {
+      const message = messageFor({ code: "backup-damaged", details: { rule, turn: 2 } });
+      expect(message).toMatch(/conversation/i);
+      expect(message).toMatch(/unchanged/i);
+      expect(message).not.toContain(rule);
+    },
+  );
+
+  test.each([
+    ["turn", "question"],
+    ["source", "from"],
+  ])("words a damaged %s of the finance chat's conversation (FR-104)", (record, field) => {
+    const message = messageFor({ code: "backup-damaged", details: { record, field } });
+    expect(message).toMatch(/conversation/i);
+    expect(message).not.toMatch(/a record/);
+  });
+
+  test("words a backup whose conversation is missing or not a list", () => {
+    const message = messageFor({
+      code: "backup-damaged",
+      details: { record: "data", field: "conversation" },
+    });
+    expect(message).toMatch(/conversation/i);
+  });
+
   test("warns, when AI features are turned on, what now leaves the app and to whom (FR-095, FR-091)", () => {
     expect(catalogue.sharingWarning).toMatch(/Suggest categories/);
     expect(catalogue.sharingWarning).toMatch(/payee/i);

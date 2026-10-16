@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { applyChanges, type Changes } from "@/domain/changes";
 import { checkInvariants } from "@/domain/invariants";
 import { everyEntityState } from "@/domain/testing";
-import type { Category, PendingBatch, State } from "@/domain/types";
+import type { Category, ChatTurn, PendingBatch, State } from "@/domain/types";
 import { loadState, openDatabase, replaceAll, writeChanges } from "./db";
 
 beforeEach(() => {
@@ -144,6 +144,101 @@ describe("writeChanges", () => {
   });
 });
 
+describe("the conversation in storage (FR-104, R-26)", () => {
+  const turns: ChatTurn[] = [
+    {
+      question: "How much did I spend on groceries?",
+      answer: "€40.00 in September 2026.",
+      sources: [
+        {
+          name: "Groceries, September 2026",
+          from: "2026-09-01",
+          to: "2026-09-30",
+          categoryId: "groceries",
+          accountId: null,
+        },
+      ],
+    },
+    { question: "And on eating out?", answer: "You spent", stopped: true, sources: [] },
+  ];
+
+  /** The keys the settings store holds: `settings`, and `conversation` while it holds a turn. */
+  const settingsKeys = async (db: Awaited<ReturnType<typeof openDatabase>>) =>
+    (await db.getAllKeys("settings")).map(String).sort();
+
+  test("a database without a conversation loads an empty one", async () => {
+    const db = await openDatabase();
+
+    expect((await loadState(db)).conversation).toEqual([]);
+    expect(await settingsKeys(db)).toEqual(["settings"]);
+  });
+
+  test("stores the conversation as a second record of the settings store, and loads it again", async () => {
+    const db = await openDatabase();
+
+    await writeChanges(db, { conversation: { put: turns } });
+
+    expect(await settingsKeys(db)).toEqual(["conversation", "settings"]);
+    expect(await db.get("settings", "conversation" as never)).toEqual(turns);
+    db.close();
+    expect((await loadState(await openDatabase())).conversation).toEqual(turns);
+  });
+
+  test("writes the conversation in the same transaction as the other changes", async () => {
+    const db = await openDatabase();
+    const before = await loadState(db);
+    const changes: Changes = {
+      settings: { put: { ...before.settings, aiFeatures: true } },
+      conversation: { put: turns },
+    };
+
+    await writeChanges(db, changes);
+
+    expect(await loadState(db)).toEqual(applyChanges(before, changes));
+  });
+
+  test("removes the record when the conversation is emptied", async () => {
+    const db = await openDatabase();
+    await writeChanges(db, { conversation: { put: turns } });
+
+    await writeChanges(db, { conversation: { put: [] } });
+
+    expect(await settingsKeys(db)).toEqual(["settings"]);
+    expect((await loadState(db)).conversation).toEqual([]);
+  });
+
+  test("keeps the database at schema version 1 with its seven stores, so v1.2 still opens it (R-26)", async () => {
+    const db = await openDatabase();
+    await writeChanges(db, { conversation: { put: turns } });
+
+    expect(db.version).toBe(1);
+    expect([...db.objectStoreNames].sort()).toEqual([
+      "accounts",
+      "budgets",
+      "categories",
+      "pendingBatch",
+      "profiles",
+      "settings",
+      "transactions",
+    ]);
+  });
+
+  test("leaves the conversation as it was when the write fails", async () => {
+    const db = await openDatabase();
+    await writeChanges(db, { conversation: { put: turns.slice(0, 1) } });
+    const before = await loadState(db);
+    const withoutId = { side: "expense", name: "Broken", color: "#000000", role: null };
+
+    const write = writeChanges(db, {
+      categories: { put: [withoutId as unknown as Category] },
+      conversation: { put: turns },
+    });
+
+    await expect(write).rejects.toMatchObject({ name: "DataError" });
+    expect(await loadState(db)).toEqual(before);
+  });
+});
+
 describe("writeChanges with requireNoPendingBatch (FR-022)", () => {
   function batchOn(state: State, id: string): PendingBatch {
     return {
@@ -256,6 +351,19 @@ describe("replaceAll (backup-file.md, loading step 4)", () => {
     await replaceAll(db, state);
 
     expect(byKey(await loadState(db))).toEqual(byKey(state));
+  });
+
+  test("writes the conversation, and removes its record when the state has none (R-26)", async () => {
+    const { db } = await withOldData();
+    const state = everyEntityState();
+    expect(state.conversation.length).toBeGreaterThan(0);
+
+    await replaceAll(db, state);
+    expect((await loadState(db)).conversation).toEqual(state.conversation);
+
+    await replaceAll(db, { ...state, conversation: [] });
+    expect((await loadState(db)).conversation).toEqual([]);
+    expect((await db.getAllKeys("settings")).map(String)).toEqual(["settings"]);
   });
 
   test("clears the pending batch when the state has none", async () => {
