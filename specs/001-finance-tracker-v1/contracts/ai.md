@@ -1,7 +1,7 @@
 # Contract: AI features through the local route to OpenAI
 
 **Spec**: [FR-061](../spec.md#fr-061), [FR-090 – FR-095](../spec.md#fr-090),
-[FR-100 – FR-105](../spec.md#fr-100) · **Decisions**: [R-24](../research.md#r-24),
+[FR-100 – FR-106](../spec.md#fr-100) · **Decisions**: [R-24](../research.md#r-24),
 [R-25](../research.md#r-25)
 
 This contract fixes the interface between the app, the route that the local server adds, and
@@ -23,8 +23,9 @@ the environment, when the server starts ([R-24](../research.md#r-24)):
 | A body over 2 MB | 413, empty. Nothing is sent |
 | Any other | The body goes unchanged to `https://api.openai.com/v1/responses`, with `Authorization: Bearer <key>` and `Content-Type: application/json` and no other header of the browser's request. OpenAI's status, `Content-Type` and body come back unchanged, or a 502 when OpenAI cannot be reached. Closing the browser's request cancels OpenAI's |
 
-A hosted copy, such as the one on Vercel, serves files only and has no route
-([FR-061](../spec.md#fr-061)).
+A hosted copy, such as the one on Vercel, serves files only and has no route. The app sends it
+nothing: outside the user's own computer, AI features cannot be turned on
+([FR-061](../spec.md#fr-061), [FR-106](../spec.md#fr-106)).
 
 ## Request
 
@@ -204,7 +205,7 @@ the conversation, unchanged and becomes a code of the
 | What happens | Code |
 |---|---|
 | The request cannot be sent or gets no response | `ai-unreachable` |
-| A status outside 200–299 whose body is not OpenAI's error JSON: no route (404), the route's 403 or 413, a 405 from a hosted copy, or the route's 502 when OpenAI cannot be reached | `ai-unreachable` |
+| A status outside 200–299 whose body is not OpenAI's error JSON: no route (404), the route's 403 or 413, the route's 502 when OpenAI cannot be reached, or any other server's error page | `ai-unreachable` |
 | A status outside 200–299 with OpenAI's error JSON, `{ "error": { "message": … } }`: a rejected key, no credit left, an unknown model or too many requests | `ai-failed` |
 | No answer within 4 minutes | `ai-timeout` |
 | A 2xx answer whose body is not JSON, whose `status` is not `completed`, which holds a refusal or no `output_text`, or whose text is not JSON of the feature's schema | `ai-answer-invalid` |

@@ -288,6 +288,10 @@ Routes use the URL hash so the build works from any static host or local file ([
     - **Cancel** (or Escape) closes it; the switch stays off and nothing is saved.
     - **Turn on** saves the setting and turns the switch on. Nothing is sent.
   - Turning the switch off saves at once, without a dialog.
+  - Outside the user's own computer, as in the hosted copy, the switch is off and unavailable,
+    whatever is stored, and a line beside it says that AI features need the app run locally
+    ([FR-106](../spec.md#fr-106)). Review and the finance chat then show what they show with AI
+    features off.
   - The switch saves at once, so the choice survives closing the app. No other screen shows a
     notice while AI features are on.
 - Later settings join this screen as sections of their own.

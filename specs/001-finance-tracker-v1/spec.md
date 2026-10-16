@@ -551,9 +551,9 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
   (`localhost`) is not a network connection. Real data lives only in the app as run locally. A copy
   hosted on the web, such as the one the project's post-push check deploys, needs a network
   connection to open, so it serves only checks and demonstrations
-  ([Out of Scope](#out-of-scope)). It cannot pass requests on to OpenAI, so there the AI features
-  say that the AI cannot be reached. Changed in v1.2: [FR-090](#fr-090), [FR-095](#fr-095).
-  Changed in v1.3: [FR-100](#fr-100), [FR-105](#fr-105).
+  ([Out of Scope](#out-of-scope)). It cannot pass requests on to OpenAI, so there AI features
+  cannot be turned on ([FR-106](#fr-106)). Changed in v1.2: [FR-090](#fr-090), [FR-095](#fr-095).
+  Changed in v1.3: [FR-100](#fr-100), [FR-105](#fr-105), [FR-106](#fr-106).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -693,8 +693,8 @@ it changes states the new behaviour and names the change.
 - <a id="fr-094"></a>**FR-094**: After an answer, review MUST say how many of the rows sent got a
   suggestion. Review MUST say which of these happened and what the user can do, and MUST leave
   every row as it was ([FR-067](#fr-067)), when:
-  - the AI cannot be reached: the app is not served by its own local server with an OpenAI key, as
-    in a hosted copy, or OpenAI cannot be reached;
+  - the AI cannot be reached: the server that serves the app holds no OpenAI key, or OpenAI cannot
+    be reached;
   - no answer arrives within 4 minutes;
   - OpenAI reports a failure, such as a rejected key or no credit left;
   - the answer is not in the expected form.
@@ -703,7 +703,9 @@ it changes states the new behaviour and names the change.
 - <a id="fr-095"></a>**FR-095**: A **Settings** screen MUST offer an **AI features** switch, off
   until the user turns it on. The one switch covers every feature that sends data off the
   computer; in v1.3 these are Suggest categories and the finance chat ([FR-090](#fr-090),
-  [FR-100](#fr-100)). Changed in v1.3: [FR-100](#fr-100), [FR-102](#fr-102).
+  [FR-100](#fr-100)). Outside the user's own computer the switch is unavailable
+  ([FR-106](#fr-106)). Changed in v1.3: [FR-100](#fr-100), [FR-102](#fr-102),
+  [FR-106](#fr-106).
   - Turning it on MUST first show a warning that data will now be shared: what each AI feature
     sends and to whom ([FR-091](#fr-091), [FR-102](#fr-102)). AI features MUST turn on only when
     the user agrees; cancelling leaves them off and changes nothing. Turning them on sends nothing
@@ -760,9 +762,14 @@ and names the change.
   user can do, and MUST keep the conversation as it was.
 - <a id="fr-105"></a>**FR-105**: Both AI features MUST ask OpenAI through the server that serves
   the app on the user's own computer, which holds the owner's OpenAI API key. The key MUST NOT
-  reach the app's code, its storage or a backup. A copy hosted on the web has no such server, so
-  there the AI features MUST say that the AI cannot be reached ([FR-061](#fr-061),
-  [FR-094](#fr-094)). This replaces v1.2's n8n workflow and Claude.
+  reach the app's code, its storage or a backup. A copy hosted on the web has no such server
+  ([FR-061](#fr-061), [FR-106](#fr-106)). This replaces v1.2's n8n workflow and Claude.
+- <a id="fr-106"></a>**FR-106**: A copy of the app not served from the user's own computer, such as
+  the hosted copy, MUST NOT let AI features be turned on. There, Settings MUST show the AI features
+  switch off and unavailable, also when a restored backup holds them on, and MUST say beside it
+  that AI features need the app run locally. Review and the finance chat MUST then behave as with
+  AI features off, and such a copy MUST send nothing for an AI feature, not even to the server
+  that serves it ([FR-061](#fr-061), [FR-095](#fr-095)).
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -882,7 +889,7 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   because a local model needs a large download and answers worse ([R-24](research.md#r-24)).
 - AI features in a hosted copy. It has no server of its own to hold the key, and a public address
   that passes requests on to OpenAI would let anyone spend the owner's credit
-  ([R-24](research.md#r-24)).
+  ([R-24](research.md#r-24)). There, the switch is unavailable ([FR-106](#fr-106)).
 - For category suggestions ([FR-090](#fr-090)): choosing in the app which model or AI provider
   answers; suggesting transfers, suggesting for rows that already hold a
   category, or suggesting without being asked, for example during import; stopping a request other

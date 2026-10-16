@@ -60,7 +60,7 @@ only, before `/speckit-tasks`.
 - [x] CHK013 Is FR-061's ban on sending usage information to any external party consistent with a hosted copy, whose host sees every request for the app's files? [Consistency, Spec §FR-061]
   - **Review 2026-10-02**: Consistent since the 2026-10-01 clarification. FR-061 confines a hosted copy to checks and demonstrations, and Out of Scope excludes it for real data. The host sees requests for the app's files, never ledger data ([R-20](../research.md#r-20)).
   - **Revisited 2026-10-12 (v1.2)**: still consistent. With AI features on, a hosted copy can send suggestions too, but it holds demonstration data only ([R-23](../research.md#r-23)), and its host still sees no ledger data.
-  - **Revisited 2026-10-16 (v1.3)**: consistent, and simpler. A hosted copy has no route to OpenAI, so its AI features cannot send anything ([FR-061](../spec.md#fr-061), [R-24](../research.md#r-24)); its host still sees no ledger data.
+  - **Revisited 2026-10-16 (v1.3)**: consistent, and simpler. A hosted copy has no route to OpenAI, and AI features cannot be turned on there, so it sends nothing for them ([FR-061](../spec.md#fr-061), [FR-106](../spec.md#fr-106), [R-24](../research.md#r-24)); its host still sees no ledger data.
 
 ## Scenario & Edge Case Coverage
 

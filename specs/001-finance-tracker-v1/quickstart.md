@@ -173,7 +173,8 @@ noted. Use `npm start` with a fresh browser profile.
 ([FR-100](spec.md#fr-100)) ask OpenAI through the route `/api/ai` that the local server adds
 ([R-24](research.md#r-24), [contracts/ai.md](contracts/ai.md#route)). They need an OpenAI key in
 `.env` and AI features turned on in Settings ([FR-095](spec.md#fr-095)). Everything else works
-without them. A hosted copy has no such route, so there they say that the AI cannot be reached.
+without them. A hosted copy has no such route, so there AI features cannot be turned on
+([FR-106](spec.md#fr-106)).
 
 **Once**:
 
@@ -220,6 +221,7 @@ not in the build: searching `dist/` for its first characters finds nothing.
 | Chat kept | Close the chat and open it again; then open Transactions and return to Insights | The conversation is still there after closing; after leaving Insights the chat is empty |
 | Offline | Disconnect from the internet, then ask the chat and select Suggest categories | `ai-unreachable` in both, and nothing changes |
 | No key | Empty `OPENAI_API_KEY` in `.env`, restart `npm start`, then ask the chat | `ai-unreachable` |
+| Hosted copy | On the Vercel production domain, open Settings | The AI features switch is off and unavailable, and the line beside it says to run the app locally |
 | Leaving | Select Suggest categories, then leave review before the answer; ask the chat, then leave Insights before the answer | No row changes, and no answer or message appears later |
 
 ## After pushing to main

@@ -901,9 +901,19 @@ mark, concurrency, zod and the untrusted answer still holds.
     OpenAI cannot be reached, and means that the AI cannot be reached.
   - **Timeout**: 4 minutes, as in [R-23](#r-23), below Firefox's own 300 seconds. The route adds
     no timeout of its own.
-  - **No AI features in the hosted copy**: Vercel serves files only, so `/api/ai` answers there
-    with an error page, and the features say that the AI cannot be reached. The hosted copy is for
-    checks and demonstrations ([FR-061](spec.md#fr-061)).
+  - **No AI features in the hosted copy** (owner, 2026-10-16, [FR-106](spec.md#fr-106)): Vercel
+    serves files only, so it has no route, and the hosted copy is for checks and demonstrations
+    ([FR-061](spec.md#fr-061)).
+    - The app tells where it runs by the page's host name: only `localhost`, `127.0.0.1` and
+      `[::1]` are the user's own computer ([R-20](#r-20)). `servedLocally` in `src/ai/local.ts`
+      decides it, and `aiFeaturesOn` in `src/store/settings.ts` combines it with the setting.
+    - Elsewhere the Settings switch is off and unavailable, even after restoring a backup with AI
+      features on, and the store refuses with `ai-features-off`. No request carries data then,
+      not even one to the hosted copy's own server, which a request to a missing route would.
+    - A build flag from Vercel's environment would mark only Vercel's builds, and a request asking
+      whether the route exists would be a request on every visit to Settings.
+    - The `deployed` job skips the specs that turn AI features on, and checks the unavailable
+      switch instead ([R-18](#r-18)).
   - **Data at OpenAI**: OpenAI's API data policy applies to what a request holds. `store: false`
     keeps the answer out of the responses OpenAI stores for continuing them.
   - **Cost**: the owner gives the OpenAI project a monthly budget, or prepaid credit without

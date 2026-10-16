@@ -1066,11 +1066,12 @@ Push and run the post-push check.
 
 **Purpose**: both AI features ask OpenAI through a route that the local server adds, with the key in
 `.env`, in place of the hosted n8n workflow; and Insights gains a finance chat about the user's own
-data, available only while AI features are on ([FR-061](spec.md#fr-061),
-[FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [FR-100](spec.md#fr-100) –
-[FR-104](spec.md#fr-104), [R-24](research.md#r-24), [R-25](research.md#r-25),
-[ai.md](contracts/ai.md), [FR-105](spec.md#fr-105)). The owner asked for both on 2026-10-15,
-after v1.2. The spec, contracts and research change first, in the commit that adds this phase.
+data, available only while AI features are on, which only the app run locally allows
+([FR-061](spec.md#fr-061), [FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095),
+[FR-100](spec.md#fr-100) – [FR-106](spec.md#fr-106), [R-24](research.md#r-24),
+[R-25](research.md#r-25), [ai.md](contracts/ai.md)). The owner asked for both on 2026-10-15,
+after v1.2, and on 2026-10-16 that a hosted copy keep AI features off (T109). The spec, contracts
+and research change first, in the commits that add this phase.
 
 - [ ] T102 The local route in a new `server/aiRoute.ts`: a Vite plugin, applied when serving, that
   reads `OPENAI_API_KEY` with `loadEnv(mode, envDir, "OPENAI_")` and, with a key, answers
@@ -1172,6 +1173,23 @@ after v1.2. The spec, contracts and research change first, in the commit that ad
   - in `src/ui/messages.test.ts` and `e2e/ui/settings.spec.ts`, the Settings line names both
     features, and the warning says that the chat sends amounts, dates and account balances while
     suggestions do not.
+- [ ] T109 AI features only on the user's own computer (owner, 2026-10-16): `servedLocally` in a
+  new `src/ai/local.ts`, true for the host names `localhost`, `127.0.0.1` and `[::1]`;
+  `aiFeaturesOn(state)` in `src/store/settings.ts`, which `suggestCategories` and `askChat` check
+  in place of the setting alone; the switch in `SettingsScreen.tsx` off and unavailable elsewhere,
+  with `aiFeaturesLocalOnly` beside it; and `SuggestCategories.tsx` and `FinanceChat.tsx` reading
+  `aiFeaturesOn` ([FR-106](spec.md#fr-106), [ui.md](contracts/ui.md#settings),
+  [R-24](research.md#r-24)). Test first:
+  - in `src/ai/local.test.ts`, which host names are the user's own computer, and that a page
+    without a location, as in Node, is not;
+  - in `src/store/settings.test.ts`, `aiFeaturesOn` only with the setting on and a local host; in
+    `src/store/import.test.ts` and `src/store/chat.test.ts`, which now stub a local host, a
+    hosted page with AI features on gives `ai-features-off` and sends nothing;
+  - in `src/ui/messages.test.ts`, `aiFeaturesLocalOnly` says to run the app locally;
+  - in `e2e/ui/settings.spec.ts`: locally, the switch is available and the line absent; on the
+    hosted copy, which the `deployed` job tests, the switch is off and unavailable with the line
+    beside it, also with AI features stored on, and review's button is unavailable; and the specs
+    that turn AI features on skip there.
 - [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
   describes, turn AI features off and on once to agree to the new warning, check that
   `git status` does not list `.env` and that `dist/` holds no part of the key, and walk the manual
@@ -1212,7 +1230,7 @@ check.
   T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T101 → T099.
 - **AI through OpenAI, and the finance chat (Phase 13)**: depends on Phase 12, whose suggestions
   it moves to OpenAI, and on US3, whose Insights screen holds the chat. Order: T102 → T103 → T104
-  → T106 → T107 → T108, with T105 at any time before T106.
+  → T106 → T107 → T109 → T108, with T105 at any time before T106.
 
 ### Within Each Task and Story
 
