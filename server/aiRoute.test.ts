@@ -1,5 +1,11 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { createServer, request, type IncomingHttpHeaders, type Server } from "node:http";
+import {
+  createServer,
+  request,
+  type IncomingHttpHeaders,
+  type IncomingMessage,
+  type Server,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -141,6 +147,46 @@ describe("forwardToOpenAi: what the route passes on (contracts/ai.md, route)", (
     expect(answer.status).toBe(status);
     expect(answer.headers["content-type"]).toBe("application/json");
     expect(JSON.parse(answer.body)).toEqual(body);
+  });
+
+  test("passes OpenAI's events on as they arrive, the first before OpenAI sends its last (R-26)", async () => {
+    let upstream!: ReadableStreamDefaultController<Uint8Array>;
+    const events = new ReadableStream<Uint8Array>({
+      start(controller) {
+        upstream = controller;
+      },
+    });
+    openAi.mockResolvedValue(
+      new Response(events, { headers: { "Content-Type": "text/event-stream" } }),
+    );
+    const port = await serve(forwardToOpenAi("sk-test", openAi));
+    const first = "event: response.created\ndata: {}\n\n";
+    const last = "event: response.completed\ndata: {}\n\n";
+
+    const received: string[] = [];
+    const answer = await new Promise<IncomingMessage>((resolve, reject) => {
+      const sent = request({ host: "127.0.0.1", port, path: AI_PATH, method: "POST" }, (res) => {
+        res.on("data", (chunk: Buffer) => {
+          received.push(chunk.toString("utf8"));
+          resolve(res);
+        });
+      });
+      sent.on("error", reject);
+      sent.end(question);
+      void vi
+        .waitFor(() => expect(openAi).toHaveBeenCalledTimes(1))
+        .then(() => upstream.enqueue(new TextEncoder().encode(first)));
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(answer.headers["content-type"]).toBe("text/event-stream");
+    expect(received.join("")).toBe(first);
+
+    const ended = new Promise((resolve) => answer.on("end", resolve));
+    upstream.enqueue(new TextEncoder().encode(last));
+    upstream.close();
+    await ended;
+    expect(received.join("")).toBe(first + last);
   });
 
   test("gives 502 when OpenAI cannot be reached", async () => {
