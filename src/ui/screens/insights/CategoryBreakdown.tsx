@@ -49,7 +49,7 @@ export function CategoryBreakdown({
   const unknown = breakdown.entries.find((entry) => entry.unknown);
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-lg border p-6">
+    <section aria-labelledby={headingId} className="surface flex flex-col gap-4 p-6">
       <h2
         id={headingId}
         className="flex items-baseline justify-between gap-4 text-xl font-semibold"

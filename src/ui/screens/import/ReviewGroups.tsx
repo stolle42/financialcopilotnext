@@ -72,7 +72,7 @@ function GroupCard({
   const name = `${group.counterparty}, ${sideLabel[group.side]}`;
   const shared = sharedAssignment(group.rows);
   return (
-    <div role="group" aria-label={name} className="rounded-lg border">
+    <div role="group" aria-label={name} className="surface">
       <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -150,7 +150,7 @@ export function ReviewGroups({
         />
       ))}
       {view.plainRows.length > 0 && (
-        <ul aria-label="Plain rows" className="flex flex-col divide-y rounded-lg border">
+        <ul aria-label="Plain rows" className="surface flex flex-col divide-y">
           {view.plainRows.map((row) => (
             <ReviewRow
               key={row.rowNumber}

@@ -54,6 +54,15 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* The shadows of contracts/ui.md, look, in ink: a card's, and a dialog's or panel's. */
+  --shadow-card: 0 18px 36px -24px rgb(43 51 70 / 0.5);
+  --shadow-dialog: 0 24px 48px -16px rgb(43 51 70 / 0.4);
+}
+
+/* The card of contracts/ui.md, look (FR-114). A utility, since more than twenty elements wear it
+   (R-27). */
+@utility surface {
+  @apply rounded-3xl bg-card text-card-foreground shadow-card ring-1 ring-border;
 }
 
 /* The palette of contracts/ui.md, look (FR-112): the reference design's, with the primary, the

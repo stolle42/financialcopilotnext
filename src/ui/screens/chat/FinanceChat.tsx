@@ -67,7 +67,7 @@ function Answer({ turn }: { turn: ChatTurn }) {
   );
 }
 
-const question = "self-end rounded-lg bg-muted px-3 py-2";
+const question = "self-end rounded-2xl bg-muted px-3 py-2";
 
 /**
  * The suggested questions while no answer is awaited: the examples while the conversation is empty

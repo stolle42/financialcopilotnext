@@ -184,7 +184,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
       <h1 className="text-3xl font-semibold">Review import</h1>
       <section
         aria-label="Batch"
-        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4"
+        className="surface flex flex-wrap items-center justify-between gap-4 p-6"
       >
         <div className="flex flex-col gap-1">
           <span className="font-medium">{batch.fileName}</span>
@@ -234,7 +234,7 @@ export function ReviewScreen() {
   const batch = useStore((state) => state.pendingBatch);
   if (!batch) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-lg border p-6">
+      <div className="surface flex flex-col items-start gap-3 p-6">
         <p>No import is waiting for review. Import a bank file to start one.</p>
         <Button onClick={() => navigate("/import")}>Go to Import</Button>
       </div>

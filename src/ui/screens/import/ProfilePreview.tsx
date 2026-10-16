@@ -69,7 +69,7 @@ export function ProfilePreview({ draft, sample }: { draft: ProfileDraft; sample:
   }
 
   return (
-    <section aria-label="Preview" className="flex flex-col gap-2 rounded-lg border p-4">
+    <section aria-label="Preview" className="surface flex flex-col gap-2 p-6">
       <h2 className="text-xl font-semibold">Preview</h2>
       {content}
     </section>

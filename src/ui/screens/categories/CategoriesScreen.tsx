@@ -99,7 +99,7 @@ function CategoryList({ side }: { side: Side }) {
           {messageFor(alert)}
         </p>
       )}
-      <ul className="flex flex-col divide-y rounded-lg border">
+      <ul className="surface flex flex-col divide-y">
         {listed.map((category) => (
           <li key={category.id} className="flex flex-col gap-3 px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-4">

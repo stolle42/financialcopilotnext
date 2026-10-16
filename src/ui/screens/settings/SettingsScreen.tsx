@@ -40,7 +40,10 @@ export function SettingsScreen() {
           {messageFor(refusal)}
         </p>
       )}
-      <section aria-labelledby="ai-features" className="flex flex-col items-start gap-3">
+      <section
+        aria-labelledby="ai-features"
+        className="surface flex flex-col items-start gap-3 p-6"
+      >
         <h2 id="ai-features" className="text-xl font-semibold">
           AI features
         </h2>

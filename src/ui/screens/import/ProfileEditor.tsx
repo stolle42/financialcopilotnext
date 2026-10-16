@@ -226,7 +226,7 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
   return (
     <form onSubmit={submit} noValidate className="flex max-w-4xl flex-col gap-6">
       <h1 className="text-3xl font-semibold">{profile ? "Edit profile" : "New profile"}</h1>
-      <FieldGroup>
+      <FieldGroup className="surface p-6">
         <LabelledField id={ids.name} label="Name" error={errors.name}>
           <Input
             id={ids.name}
@@ -433,7 +433,7 @@ export function ProfileEditor({ profileId }: { profileId: string | null }) {
   );
   if (profileId !== null && !profile) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-lg border p-6">
+      <div className="surface flex flex-col items-start gap-3 p-6">
         <p>This profile does not exist. It may have been deleted.</p>
         <Button onClick={() => navigate("/import")}>Back to Import</Button>
       </div>

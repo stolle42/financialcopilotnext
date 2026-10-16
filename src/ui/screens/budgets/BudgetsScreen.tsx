@@ -103,7 +103,7 @@ export function BudgetsScreen() {
         A limit applies to every month. Each month starts at zero, and what is left over does not
         carry into the next.
       </p>
-      <ul className="flex flex-col divide-y rounded-lg border">
+      <ul className="surface flex flex-col divide-y">
         {budgetable.map((category) => (
           <BudgetRow key={category.id} category={category} limitCents={limits.get(category.id)} />
         ))}

@@ -1421,7 +1421,7 @@ of their own, before any code of the phase.
   - both fonts load from the app's own origin, and swap in once loaded;
   - body text, secondary text, the primary action's label, danger text and a positive amount
     contrast with their backgrounds by at least 4.5:1.
-- [ ] T120 Cards: a `surface` utility in `src/ui/index.css` for the card of ui.md, on every list,
+- [X] T120 Cards: a `surface` utility in `src/ui/index.css` for the card of ui.md, on every list,
   table, form and content section of the screens in `src/ui/screens/` and of `FailureScreen.tsx`,
   but not on their toolbars; in `App.tsx`, the header without its line and the sidebar as a card of
   pills; and the look of ui.md for dialogs, confirmations, sheets, menus, toasts and chart tooltips
