@@ -244,17 +244,43 @@ const transactions = (count: number) => `${count} transaction${count === 1 ? "" 
 
 /** What AI features do and where their data goes, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
-  "Suggest categories in review. AI features send data to OpenAI.";
+  "Suggest categories in review, and the finance chat on Insights. AI features send data to OpenAI.";
 
 /** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
 export const sharingWarning =
   "Data will now be shared with OpenAI. Suggest categories sends the payee and purpose of the " +
   "rows still to categorise, your category names and up to 100 earlier descriptions, and no " +
-  "amounts, dates or account names.";
+  "amounts, dates or account names. The finance chat sends each question with the conversation, " +
+  "the expenses and incomes of this month and the 12 months before it with their dates, " +
+  "descriptions, amounts and categories, their monthly totals, this month's budgets, and each " +
+  "account's name, type and balance.";
 
 /** Beside the AI features switch in a copy not served from the user's computer (FR-106). */
 export const aiFeaturesLocalOnly =
   "AI features need the app running on your computer. Run it locally to use them.";
+
+/** The finance chat's wording on Insights (contracts/ui.md, insights; FR-100 – FR-110). */
+export const financeChat = {
+  title: "Ask about your finances",
+  examples: [
+    "How can I reduce my spending?",
+    "Which of my subscriptions have become more expensive?",
+    "Am I on track with my budgets this month?",
+    "Where did I spend more this month than last month?",
+  ],
+  /** The fixed answer to a question out of scope (FR-103). */
+  outOfScope:
+    "I can only answer questions about your own finances that your data in this app can answer, " +
+    "such as where your money goes, how your spending changes, whether your budgets hold, which " +
+    "subscriptions became more expensive, and where you could save.",
+  needsAiFeatures: "The chat needs AI features, which you turn on in Settings.",
+  thinking: "Thinking…",
+  stop: "Stop",
+  stopped: "Stopped",
+  sources: "Sources",
+  clear: "Clear conversation",
+  clearWarning: "The conversation's questions and answers will be deleted.",
+};
 
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";

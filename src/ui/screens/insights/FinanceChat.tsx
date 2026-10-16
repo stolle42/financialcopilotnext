@@ -1,0 +1,228 @@
+import { MessageCircle } from "lucide-react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import type { ChatSource, ChatTurn } from "@/domain/types";
+import {
+  askChat,
+  chatSession,
+  clearConversation,
+  stopChat,
+  subscribeChat,
+  type ChatSession,
+} from "@/store/chat";
+import { aiFeaturesOn } from "@/store/settings";
+import { useStore, useStoreApi } from "@/store/store";
+import { transactionsPath } from "@/ui/app/router";
+import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
+import { Button } from "@/ui/components/ui/button";
+import { Input } from "@/ui/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/ui/components/ui/sheet";
+import { financeChat, messageFor } from "@/ui/messages";
+
+/** The chat's session from the store, kept up to date (R-26). */
+function useChatSession(): ChatSession {
+  const store = useStoreApi();
+  return useSyncExternalStore(
+    (listener) => subscribeChat(store, listener),
+    () => chatSession(store),
+  );
+}
+
+/** A source as a link to the transaction list with its filters, or its name once it cannot be. */
+function Source({ source }: { source: ChatSource }) {
+  const usable = useStore(
+    (state) =>
+      (source.categoryId === null || state.categories.some((c) => c.id === source.categoryId)) &&
+      (source.accountId === null || state.accounts.some((a) => a.id === source.accountId)),
+  );
+  if (!usable) return <span className="text-muted-foreground">{source.name}</span>;
+  const path = transactionsPath({
+    category: source.categoryId ?? undefined,
+    account: source.accountId ?? undefined,
+    from: source.from,
+    to: source.to,
+  });
+  return (
+    <a href={`#${path}`} className="font-medium underline">
+      {source.name}
+    </a>
+  );
+}
+
+/** An answer of the conversation: its text, its mark when stopped, and its sources (FR-110). */
+function Answer({ turn }: { turn: ChatTurn }) {
+  if (turn.outOfScope) return <li className="whitespace-pre-wrap">{financeChat.outOfScope}</li>;
+  return (
+    <li className="flex flex-col gap-2">
+      {turn.answer && <p className="whitespace-pre-wrap">{turn.answer}</p>}
+      {turn.stopped && <p className="text-xs text-muted-foreground">{financeChat.stopped}</p>}
+      {turn.sources.length > 0 && (
+        <nav aria-label={financeChat.sources} className="flex flex-col items-start gap-1 text-xs">
+          <p className="text-muted-foreground">{financeChat.sources}</p>
+          {turn.sources.map((source, index) => (
+            <Source key={index} source={source} />
+          ))}
+        </nav>
+      )}
+    </li>
+  );
+}
+
+const question = "self-end rounded-lg bg-muted px-3 py-2";
+
+/**
+ * The finance chat on Insights (contracts/ui.md, insights; FR-100 – FR-110): a button that opens
+ * the chat beside the screen. The conversation is stored, and the question being answered lives in
+ * the store, so both outlast this screen (FR-104, FR-108).
+ */
+export function FinanceChat() {
+  const store = useStoreApi();
+  const on = useStore(aiFeaturesOn);
+  const conversation = useStore((state) => state.conversation);
+  const session = useChatSession();
+  const [open, setOpen] = useState(false);
+  // A question that failed goes back into the field, also after the user left Insights (FR-104).
+  const [draft, setDraft] = useState(() => session.failure?.question ?? "");
+  const [clearing, setClearing] = useState(false);
+  const [clearFailed, setClearFailed] = useState(false);
+  const fieldId = useId();
+  const log = useRef<HTMLDivElement>(null);
+  const asking = session.asking !== null;
+
+  // The newest line stays in view while the answer grows.
+  useEffect(() => {
+    log.current?.scrollTo({ top: log.current.scrollHeight });
+  }, [conversation, session.asking, open]);
+
+  async function send(text: string) {
+    if (asking || text.trim() === "") return;
+    setDraft("");
+    const refusal = await askChat(store, text);
+    // The question goes back into the field, unless the user has typed the next one meanwhile.
+    if (refusal) setDraft((current) => (current === "" ? text : current));
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    void send(draft);
+  }
+
+  async function clear() {
+    setClearing(false);
+    setClearFailed((await clearConversation(store)) !== null);
+  }
+
+  const showsLog = conversation.length > 0 || asking;
+
+  return (
+    <>
+      <Button
+        size="icon-lg"
+        className="fixed right-6 bottom-6 z-40 rounded-full shadow-lg"
+        aria-label={financeChat.title}
+        onClick={() => setOpen(true)}
+      >
+        <MessageCircle aria-hidden />
+      </Button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader className="flex-row items-center justify-between gap-2 pr-12">
+            <SheetTitle>{financeChat.title}</SheetTitle>
+            {conversation.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={asking}
+                onClick={() => setClearing(true)}
+              >
+                {financeChat.clear}
+              </Button>
+            )}
+          </SheetHeader>
+          <div ref={log} className="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
+            {showsLog && (
+              <div role="log" aria-label="Conversation">
+                <ol className="flex flex-col gap-3">
+                  {conversation.map((turn, index) => [
+                    <li key={`q${index}`} className={question}>
+                      {turn.question}
+                    </li>,
+                    <Answer key={`a${index}`} turn={turn} />,
+                  ])}
+                  {session.asking && [
+                    <li key="asking" className={question}>
+                      {session.asking.question}
+                    </li>,
+                    <li key="answering" className="whitespace-pre-wrap">
+                      {session.asking.answer || (
+                        <span className="text-muted-foreground">{financeChat.thinking}</span>
+                      )}
+                    </li>,
+                  ]}
+                </ol>
+              </div>
+            )}
+            {!on && (
+              <p className="text-muted-foreground">
+                {financeChat.needsAiFeatures}{" "}
+                <a href="#/settings" className="font-medium text-foreground underline">
+                  Open Settings
+                </a>
+              </p>
+            )}
+            {on && !showsLog && (
+              <div className="flex flex-col items-start gap-2">
+                {financeChat.examples.map((example) => (
+                  <Button
+                    key={example}
+                    variant="outline"
+                    className="h-auto text-left whitespace-normal"
+                    onClick={() => void send(example)}
+                  >
+                    {example}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+          {on && (
+            <form onSubmit={submit} className="flex flex-col gap-2 border-t p-4">
+              {(session.failure || clearFailed) && (
+                <p role="alert" className="text-sm text-destructive">
+                  {messageFor({ code: session.failure?.code ?? "save-failed" })}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <label htmlFor={fieldId} className="sr-only">
+                  Your question
+                </label>
+                <Input
+                  id={fieldId}
+                  value={draft}
+                  autoComplete="off"
+                  onChange={(event) => setDraft(event.target.value)}
+                />
+                {asking ? (
+                  <Button type="button" variant="outline" onClick={() => void stopChat(store)}>
+                    {financeChat.stop}
+                  </Button>
+                ) : (
+                  <Button type="submit" disabled={draft.trim() === ""}>
+                    Send
+                  </Button>
+                )}
+              </div>
+            </form>
+          )}
+        </SheetContent>
+      </Sheet>
+      <ConfirmDialog
+        open={clearing}
+        title="Clear the conversation?"
+        description={financeChat.clearWarning}
+        confirmLabel={financeChat.clear}
+        onConfirm={() => void clear()}
+        onCancel={() => setClearing(false)}
+      />
+    </>
+  );
+}

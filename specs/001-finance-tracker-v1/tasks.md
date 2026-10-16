@@ -1261,7 +1261,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `e2e/ui/transactions.spec.ts`: an address with a category and dates opens the list with
     those filters set and only the matching rows; an unknown id and an invalid date are ignored;
     and Clear filters clears them.
-- [ ] T107 [US8] The finance chat on Insights: a new `src/ui/screens/insights/FinanceChat.tsx` in
+- [X] T107 [US8] The finance chat on Insights: a new `src/ui/screens/insights/FinanceChat.tsx` in
   `InsightsScreen.tsx`, as [ui.md](contracts/ui.md#insights) describes it. It shows the stored
   conversation and the session of `src/store/chat.ts` (T112). Its wording goes in
   `src/ui/messages.ts`: the fixed answer out of scope, "Thinking…", "Stopped", "Sources", Stop,

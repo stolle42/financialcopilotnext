@@ -6,10 +6,14 @@ import { todayLocal } from "@/store/clock";
 import { useStore } from "@/store/store";
 import { BudgetSection } from "./BudgetSection";
 import { CategoryBreakdown } from "./CategoryBreakdown";
+import { FinanceChat } from "./FinanceChat";
 import { PeriodPicker } from "./PeriodPicker";
 import { SpendingChart } from "./SpendingChart";
 
-/** Spending over time for a chosen period, defaulting to this month (FR-050, FR-051). */
+/**
+ * Spending over time for a chosen period, defaulting to this month, and the finance chat
+ * (FR-050, FR-051, FR-100).
+ */
 export function InsightsScreen() {
   const state = useStore((current) => current);
   const [period, setPeriod] = useState(() => periodPreset("this-month", todayLocal()));
@@ -44,6 +48,7 @@ export function InsightsScreen() {
         />
       </div>
       <BudgetSection month={month} progress={progress} />
+      <FinanceChat />
     </div>
   );
 }
