@@ -147,6 +147,14 @@ test.describe("palette and type (FR-112, FR-113, FR-116)", () => {
     expect(await style(chatTitle, "font-size")).toBe("20px");
   });
 
+  test("keeps a notification's title in Figtree, though it is a heading", async ({ page }) => {
+    await page.goto("/");
+    await reconcileAccount(page, "Cash", "10.00");
+    const title = page.locator('[data-slot="toast-title"]');
+    await expect(title).toBeVisible();
+    expect(await face(title)).toMatch(/^Figtree\b/);
+  });
+
   test("bundles both fonts, which load from the app's own origin and swap in once loaded", async ({
     page,
     baseURL,
