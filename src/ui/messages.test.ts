@@ -196,6 +196,11 @@ describe("messages", () => {
     expect(catalogue.aiFeaturesDescription).toMatch(/finance chat/);
   });
 
+  test("names the finance chat in the Settings line without a screen, since every screen offers it (FR-100)", () => {
+    expect(catalogue.aiFeaturesDescription).toMatch(/finance chat/);
+    expect(catalogue.aiFeaturesDescription).not.toMatch(/Insights/);
+  });
+
   test("words the finance chat: its name, examples, the fixed answer out of scope, and AI features needed (FR-100 – FR-103)", () => {
     const chat = catalogue.financeChat;
     expect(chat.title).toBe("Ask about your finances");

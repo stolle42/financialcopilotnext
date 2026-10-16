@@ -69,11 +69,15 @@ test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-20");
 });
 
-test("scenario 1: with AI features off, the chat says it needs them and offers nothing to send (FR-100)", async ({
+test("scenario 1: every screen shows the chat's button, and with AI features off the chat says it needs them and offers nothing to send (FR-100)", async ({
   page,
 }) => {
   const standIn = await standInChat(page);
-  await openChat(page);
+  await page.goto("/#/budgets");
+  await expect(chatButton(page)).toHaveText(catalogue.financeChat.title);
+  await page.goto("/");
+  await expect(chatButton(page)).toHaveText(catalogue.financeChat.title);
+  await chatButton(page).click();
 
   await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
   await expect(questionField(page)).toHaveCount(0);
@@ -116,13 +120,13 @@ test("scenarios 2–9: ask, follow a source, stop, and keep the conversation (FR
   await expect(conversation(page).nth(1)).toContainText(priceRise);
   expect(standIn.requests[0]!.question).toBe(subscriptions);
 
-  // 7. The answer ends with its sources; one opens the transaction list filtered as it says, and
-  //    the conversation is there on return (FR-110).
+  // 7. The answer ends with its sources; one closes the chat and shows the transaction list
+  //    filtered as it says, and the chat opened again there holds the conversation (FR-110).
   await sources(page).getByRole("link", { name: "Leisure, August – September 2026" }).click();
+  await expect(chat(page)).toBeHidden();
   const listed = page.getByRole("list", { name: "Transactions" }).getByRole("listitem");
   await expect(listed).toHaveCount(2);
   await expect(listed.filter({ hasText: "Spotify Premium" })).toHaveCount(2);
-  await page.goto("/#/insights");
   await chatButton(page).click();
   await expect(conversation(page)).toHaveCount(2);
 

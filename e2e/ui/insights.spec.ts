@@ -656,6 +656,45 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
     await expect(questionField(page)).toHaveCount(0);
   });
 
+  test("the chat opens on every screen, with the conversation asked on another (FR-100, FR-104)", async ({
+    page,
+  }) => {
+    await standInChat(page, answer("Groceries."));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+    const kept = ["Where does my money go?", "Groceries."];
+    await expect(conversation(page)).toHaveText(kept);
+
+    await page.goto("/#/budgets");
+    await expect(chat(page)).toBeHidden();
+    await chatButton(page).click();
+
+    await expect(conversation(page)).toHaveText(kept);
+    await expect(questionField(page)).toBeEditable();
+  });
+
+  test("opening another screen closes the chat, by its link to Settings or by going back (FR-100)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await chatButton(page).click();
+    await expect(chat(page)).toBeVisible();
+
+    await chat(page).getByRole("link", { name: "Settings" }).click();
+
+    await expect(page).toHaveURL(/#\/settings$/);
+    await expect(chat(page)).toBeHidden();
+    await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+
+    await chatButton(page).click();
+    await expect(chat(page)).toBeVisible();
+    await page.goBack();
+
+    await expect(chat(page)).toBeHidden();
+    await expect(main(page).getByRole("heading", { name: "Transactions", level: 1 })).toBeVisible();
+  });
+
   test("an example question sends at once, with today's data, and its answer follows it as plain text (FR-101 – FR-103)", async ({
     page,
   }) => {
@@ -724,7 +763,7 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
     );
   });
 
-  test("a source opens Transactions with its filters, and returning to Insights shows the conversation (FR-104, FR-110)", async ({
+  test("a source closes the chat and opens Transactions with its filters, where the chat shows the conversation (FR-100, FR-104, FR-110)", async ({
     page,
   }) => {
     await standInChat(
@@ -746,6 +785,7 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
 
     await sources(page).getByRole("link", { name: "Groceries, September 2026" }).click();
 
+    await expect(chat(page)).toBeHidden();
     const groceries = (await storedRecords<Category>(page, "categories")).find(
       (c) => c.side === "expense" && c.name === "Groceries",
     )!;
@@ -759,7 +799,6 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
       page.getByRole("region", { name: "Filters" }).getByLabel("From", { exact: true }),
     ).toHaveValue("2026-09-01");
 
-    await page.goto("/#/insights");
     await chatButton(page).click();
     await expect(conversation(page)).toHaveText([
       "How much did I spend on groceries?",

@@ -200,9 +200,9 @@ export async function suggestCategories(page: Page) {
   await suggestButton(page).click();
 }
 
-/** The button on Insights that opens the finance chat (contracts/ui.md, insights; FR-100). */
+/** The button on every screen that opens the finance chat (contracts/ui.md, finance chat; FR-100). */
 export const chatButton = (page: Page) =>
-  page.getByRole("main").getByRole("button", { name: "Ask about your finances" });
+  page.getByRole("button", { name: "Ask about your finances" });
 
 /** The finance chat's sheet. */
 export const chat = (page: Page) => page.getByRole("dialog", { name: "Ask about your finances" });
