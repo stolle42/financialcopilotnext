@@ -12,6 +12,8 @@ import { backupText, chooseBackupFile, storedData } from "./support/backup";
 import {
   askInChat,
   chat,
+  LOCAL_ONLY,
+  onHostedCopy,
   openChat,
   standInCategoriser,
   standInChat,
@@ -169,7 +171,11 @@ test.describe("an alert at the top of the region, with its next step", () => {
   });
 });
 
-test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", async ({ page }) => {
+test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", async ({
+  page,
+  baseURL,
+}) => {
+  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   await standInCategoriser(page, () => "unreachable");
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
@@ -182,7 +188,9 @@ test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", as
 
 test("ai-unreachable: the AI could not be asked, in the finance chat's alert (FR-104)", async ({
   page,
+  baseURL,
 }) => {
+  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   await standInChat(page, () => "unreachable");
   await turnOnAiFeatures(page);
   await openChat(page);

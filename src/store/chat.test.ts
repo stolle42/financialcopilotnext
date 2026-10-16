@@ -16,6 +16,8 @@ beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
+  // The app as run locally, where AI features can be on (FR-106).
+  vi.stubGlobal("location", { hostname: "localhost" });
   // Only the clock is fake, so IndexedDB's own timers still run.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-16T12:00:00"));
@@ -67,6 +69,17 @@ describe("askChat (FR-100 – FR-104)", () => {
     expect(await ask(store)).toEqual({ code: "ai-features-off" });
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("on a copy not served from the user's computer, gives ai-features-off and sends nothing, even with AI features on (FR-106)", async () => {
+    const { store } = await setUp();
+    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    const before = store.getState();
+
+    expect(await ask(store)).toEqual({ code: "ai-features-off" });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(store.getState()).toBe(before);
   });
 
   test("sends the question, the earlier turns, and the context of today's data (FR-102)", async () => {

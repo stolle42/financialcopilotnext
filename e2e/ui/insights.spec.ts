@@ -18,6 +18,8 @@ import {
   chat,
   chatButton,
   conversation,
+  LOCAL_ONLY,
+  onHostedCopy,
   openChat,
   outOfScope,
   questionField,
@@ -577,6 +579,7 @@ test.describe("the budgets (FR-041, FR-042, SC-011)", () => {
 });
 
 test.describe("the finance chat (FR-100 – FR-104)", () => {
+  test.skip(({ baseURL }) => onHostedCopy(baseURL), LOCAL_ONLY);
   const examples = (page: Page) =>
     chat(page).getByRole("button", {
       name: new RegExp(`^(${catalogue.financeChat.examples.map(escape).join("|")})$`),

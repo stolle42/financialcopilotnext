@@ -214,6 +214,11 @@ describe("messages", () => {
     );
   });
 
+  test("says beside an unavailable switch that AI features need the app run locally (FR-106)", () => {
+    expect(catalogue.aiFeaturesLocalOnly).toMatch(/AI features/);
+    expect(catalogue.aiFeaturesLocalOnly).toMatch(/locally/);
+  });
+
   test("says that suggestions need AI features, and where to turn them on (FR-090)", () => {
     expect(catalogue.aiFeaturesNeeded).toMatch(/AI features/);
     expect(catalogue.aiFeaturesNeeded).toMatch(/Settings/);

@@ -1,5 +1,13 @@
 import { messageFor } from "../src/ui/messages";
-import { chat, openChat, suggestButton, suggestCategories, turnOnAiFeatures } from "./support/ai";
+import {
+  chat,
+  LOCAL_ONLY,
+  onHostedCopy,
+  openChat,
+  suggestButton,
+  suggestCategories,
+  turnOnAiFeatures,
+} from "./support/ai";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, test } from "./support/test";
 
@@ -22,7 +30,9 @@ test("opening the app makes no request to another origin", async ({ page }) => {
 
 test("turning AI features on and reviewing an import send nothing until Suggest categories (FR-090, FR-095)", async ({
   page,
+  baseURL,
 }) => {
+  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   await turnOnAiFeatures(page);
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
@@ -32,7 +42,9 @@ test("turning AI features on and reviewing an import send nothing until Suggest 
 
 test("turning AI features on and opening Insights and the finance chat send nothing before a question (FR-100, FR-101)", async ({
   page,
+  baseURL,
 }) => {
+  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   await turnOnAiFeatures(page);
   await openChat(page);
   await expect(chat(page).getByRole("textbox", { name: "Your question" })).toBeEnabled();
@@ -44,6 +56,7 @@ test("the guard catches Suggest categories when no test answers in OpenAI's plac
   browser,
   baseURL,
 }) => {
+  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   const context = await browser.newContext({ baseURL });
   const page = await context.newPage();
   const check = await guardNetwork(context, page, baseURL);

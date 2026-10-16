@@ -213,3 +213,14 @@ export async function askInChat(page: Page, question: string) {
   await questionField(page).fill(question);
   await questionField(page).press("Enter");
 }
+
+/**
+ * True when the specs run against a copy not served from the user's own computer, such as the
+ * Vercel one in the `deployed` job, where AI features cannot be turned on (FR-106). The specs keep
+ * their own list of local host names, apart from the app's.
+ */
+export const onHostedCopy = (baseURL: string | undefined) =>
+  !["localhost", "127.0.0.1", "[::1]"].includes(new URL(baseURL ?? "http://localhost").hostname);
+
+/** Why a spec that turns AI features on skips on a hosted copy. */
+export const LOCAL_ONLY = "AI features cannot be turned on in a hosted copy (FR-106)";

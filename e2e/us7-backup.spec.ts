@@ -10,7 +10,12 @@ import {
   storedRecords,
 } from "./support/app";
 import { byKey, chooseBackupFile, restoreBackup, saveBackup, storedData } from "./support/backup";
-import { standInCategoriser, suggestCategories, turnOnAiFeatures } from "./support/ai";
+import {
+  onHostedCopy,
+  standInCategoriser,
+  suggestCategories,
+  turnOnAiFeatures,
+} from "./support/ai";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, setToday, test } from "./support/test";
 
@@ -108,15 +113,19 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await duplicates.getByRole("switch").first().click();
   await expect(duplicates.getByRole("switch").first()).toBeChecked();
   await page.keyboard.press("Escape");
-  // A category the AI suggested, with AI features on (FR-093, FR-095).
-  await standInCategoriser(page, () => ({
-    json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
-  }));
-  await turnOnAiFeatures(page);
-  await suggestCategories(page);
-  await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toContainText(
-    "The AI suggested a category for 1 of",
-  );
+  // A category the AI suggested, with AI features on (FR-093, FR-095), where they can be on: not in
+  // a hosted copy (FR-106).
+  const local = !onHostedCopy(baseURL);
+  if (local) {
+    await standInCategoriser(page, () => ({
+      json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
+    }));
+    await turnOnAiFeatures(page);
+    await suggestCategories(page);
+    await expect(
+      page.getByRole("region", { name: "Suggestions" }).getByRole("status"),
+    ).toContainText("The AI suggested a category for 1 of");
+  }
 
   const filled = await storedData(page);
   const giro = (await storedRecords<Account>(page, "accounts")).find((a) => a.name === "Giro")!;
@@ -130,8 +139,8 @@ test("saves everything to one file and restores exactly that, also into a fresh 
     filled.pendingBatch?.rows.some(
       (r) => r.status === "parsed" && r.assignment.type === "category" && r.assignment.suggested,
     ),
-  ).toBe(true);
-  expect(filled.settings.aiFeatures).toBe(true);
+  ).toBe(local);
+  expect(filled.settings.aiFeatures === true).toBe(local);
 
   // 1. Saving gives one file with every record, and changes nothing in the app.
   const backup = await saveBackup(page);
