@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { CATEGORISER_URL } from "./src/categoriser/endpoint";
+import { aiRoute } from "./server/aiRoute.ts";
 
 // Names the commit in the built page, so CI's `deployed` job can wait until the production domain
 // serves the commit it was triggered for (R-18). Vercel provides the id to its builds.
@@ -23,15 +23,15 @@ function appCommit(): Plugin {
 
 // Limits scripts, styles, images, fonts and connections to the app's own origin, with no exception
 // for inline styles (R-19). Only the production build carries it, because the dev server's hot
-// reload needs inline scripts and a WebSocket. The one other connection is the n8n workflow behind
-// category suggestions, which the app reaches only while data sharing is on (R-23).
+// reload needs inline scripts and a WebSocket. The AI features reach OpenAI through a route on the
+// app's own origin, so they need no exception either (R-24).
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self'",
   "font-src 'self'",
-  `connect-src 'self' ${new URL(CATEGORISER_URL).origin}`,
+  "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -55,7 +55,7 @@ function contentSecurityPolicyTag(): Plugin {
 export default defineConfig({
   // Relative asset URLs let the build load from any path or from local files (R-20).
   base: "./",
-  plugins: [react(), tailwindcss(), appCommit(), contentSecurityPolicyTag()],
+  plugins: [react(), tailwindcss(), appCommit(), contentSecurityPolicyTag(), aiRoute()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

@@ -1079,7 +1079,7 @@ this phase. The test commits of T102 – T107, written before that last request,
 **Independent Test**: User Story 8's, automated as `e2e/us8-finance-chat.spec.ts`
 ([quickstart.md](quickstart.md#us8-finance-chat)).
 
-- [ ] T102 The local route in a new `server/aiRoute.ts`: a Vite plugin, applied when serving, that
+- [X] T102 The local route in a new `server/aiRoute.ts`: a Vite plugin, applied when serving, that
   reads `OPENAI_API_KEY` with `loadEnv(mode, envDir, "OPENAI_")` and, with a key, answers
   `POST /api/ai` in the dev and preview servers as [ai.md](contracts/ai.md#route) says; without a
   key, or with an empty one, it adds no route. The path lives in a new `src/ai/path.ts`, which
