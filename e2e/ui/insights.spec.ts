@@ -26,12 +26,14 @@ import {
   outOfScope,
   questionField,
   standInChat,
+  suggestions,
   turnOnAiFeatures,
   type SourceNamed,
 } from "../support/ai";
 import { euros, expect, setToday, test } from "../support/test";
 
-// contracts/ui.md, insights; FR-050 – FR-053, FR-100 – FR-110; R-14, R-19, R-25, R-26.
+// contracts/ui.md, insights and finance chat; FR-050 – FR-053, FR-100 – FR-111; R-14, R-19, R-25,
+// R-26.
 
 test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-03");
@@ -581,7 +583,7 @@ test.describe("the budgets (FR-041, FR-042, SC-011)", () => {
   });
 });
 
-test.describe("the finance chat (FR-100 – FR-110)", () => {
+test.describe("the finance chat (FR-100 – FR-111)", () => {
   test.skip(({ baseURL }) => onHostedCopy(baseURL), LOCAL_ONLY);
   const examples = (page: Page) =>
     chat(page).getByRole("button", {
@@ -844,7 +846,7 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
   }) => {
     let count = 0;
     const standIn = await standInChat(page, () => ({
-      json: { inScope: true, answer: `Answer ${++count}`, sources: [] },
+      json: { inScope: true, answer: `Answer ${++count}`, sources: [], followUps: [] },
     }));
     await turnOnAiFeatures(page);
     await openChat(page);
@@ -935,7 +937,7 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
     ]);
   });
 
-  test("a question out of scope gets the fixed answer, not the model's text, and no sources (FR-103)", async ({
+  test("a question out of scope gets the fixed answer, not the model's text, no sources, and the example questions again (FR-101, FR-103)", async ({
     page,
   }) => {
     await standInChat(page, outOfScope);
@@ -950,6 +952,64 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
     ]);
     await expect(chat(page)).not.toContainText("Paris");
     await expect(sources(page)).toHaveCount(0);
+    await expect(suggestions(page).getByRole("button")).toHaveText([
+      ...catalogue.financeChat.examples,
+    ]);
+    await expect(chat(page)).not.toContainText("And of Spain?");
+  });
+
+  test("an answer's follow-up questions show under it as suggestions, also after a reload, and one sends at once without them (FR-111)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, (request) =>
+      request.question === "Where does my money go?"
+        ? answer("Groceries.", [], ["And last month?", "Where could I save?"])(request)
+        : answer("On eating out.")(request),
+    );
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    await askInChat(page, "Where does my money go?");
+
+    const followUps = ["And last month?", "Where could I save?"];
+    await expect(suggestions(page).getByRole("button")).toHaveText(followUps);
+    await expect(examples(page)).toHaveCount(0);
+    await page.reload();
+    await chatButton(page).click();
+    await expect(suggestions(page).getByRole("button")).toHaveText(followUps);
+
+    standIn.hold();
+    await suggestions(page).getByRole("button", { name: "Where could I save?" }).click();
+
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      "Groceries.",
+      "Where could I save?",
+      catalogue.financeChat.thinking,
+    ]);
+    await expect(suggestions(page)).toHaveCount(0);
+    await expect.poll(() => standIn.requests.length).toBe(2);
+    expect(standIn.requests[1]!.question).toBe("Where could I save?");
+    expect(JSON.stringify(standIn.requests[1]!.request.input)).not.toContain("And last month?");
+    standIn.release();
+    await expect(conversation(page).nth(3)).toHaveText("On eating out.");
+    await expect(suggestions(page)).toHaveCount(0);
+  });
+
+  test("offers no suggestions while an answer is awaited, nor after it is stopped (FR-108, FR-111)", async ({
+    page,
+  }) => {
+    const standIn = await standInChat(page, answer("Groceries.", [], ["And last month?"]));
+    await turnOnAiFeatures(page);
+    await openChat(page);
+    standIn.hold();
+    await askInChat(page, "Where does my money go?");
+    await expect(suggestions(page)).toHaveCount(0);
+
+    await stopButton(page).click();
+    await expect(conversation(page).nth(1)).toHaveText(catalogue.financeChat.stopped);
+    standIn.release();
+
+    await expect(suggestions(page)).toHaveCount(0);
   });
 
   test("a failure shows its message and keeps the conversation, with the question in the field (FR-104)", async ({
@@ -957,7 +1017,9 @@ test.describe("the finance chat (FR-100 – FR-110)", () => {
   }) => {
     let fail = false;
     await standInChat(page, () =>
-      fail ? "unreachable" : { json: { inScope: true, answer: "Fine.", sources: [] } },
+      fail
+        ? "unreachable"
+        : { json: { inScope: true, answer: "Fine.", sources: [], followUps: [] } },
     );
     await turnOnAiFeatures(page);
     await openChat(page);

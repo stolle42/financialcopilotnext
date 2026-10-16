@@ -201,7 +201,7 @@ describe("messages", () => {
     expect(catalogue.aiFeaturesDescription).not.toMatch(/Insights/);
   });
 
-  test("words the finance chat: its name, examples, the fixed answer out of scope, and AI features needed (FR-100 – FR-103)", () => {
+  test("words the finance chat: its name, examples, the fixed answer out of scope, its suggested questions, and AI features needed (FR-100 – FR-103, FR-111)", () => {
     const chat = catalogue.financeChat;
     expect(chat.title).toBe("Ask about your finances");
     expect(chat.examples).toEqual(
@@ -210,10 +210,10 @@ describe("messages", () => {
         "Which of my subscriptions have become more expensive?",
       ]),
     );
-    expect(chat.outOfScope).toMatch(/only/i);
-    for (const topic of [/spending/, /budgets/, /subscriptions/]) {
+    for (const topic of [/your own finances/, /money and finance/, /how this app works/]) {
       expect(chat.outOfScope).toMatch(topic);
     }
+    expect(chat.suggestions).toBe("Suggested questions");
     expect(chat.needsAiFeatures).toMatch(/AI features/);
     expect(chat.needsAiFeatures).toMatch(/Settings/);
     expect(chat.thinking).toBe("Thinking…");

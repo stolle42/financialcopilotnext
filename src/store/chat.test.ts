@@ -65,8 +65,8 @@ async function setUp(aiFeatures = true) {
 
 const question = "Which of my subscriptions have become more expensive?";
 
-const answered = (answer: string, sources: NamedSource[] = []) =>
-  streamed(responseWith({ inScope: true, answer, sources }));
+const answered = (answer: string, sources: NamedSource[] = [], followUps: string[] = []) =>
+  streamed(responseWith({ inScope: true, answer, sources, followUps }));
 
 /** A fetch that answers only when aborted, as an answer still awaited. */
 function hangingFetch() {
@@ -154,7 +154,7 @@ describe("askChat: the answer and the session (FR-104, FR-107, FR-110)", () => {
     await vi.waitFor(() =>
       expect(chatSession(store).asking).toEqual({ question, answer: "None rose." }),
     );
-    stream.send(deltaEvent(',"sources":[]}'), completedEvent());
+    stream.send(deltaEvent(',"sources":[],"followUps":[]}'), completedEvent());
     stream.end();
 
     expect(await asked).toBeNull();
@@ -205,6 +205,31 @@ describe("askChat: the answer and the session (FR-104, FR-107, FR-110)", () => {
     expect((await loadState(db)).conversation).toEqual([stored]);
   });
 
+  test("stores a complete answer with its follow-ups, and one that suggests none without them (FR-111)", async () => {
+    const { db, store } = await setUp();
+    fetchMock
+      .mockResolvedValueOnce(
+        answered("Spotify Premium rose.", [], ["And Netflix?", "What do they cost a year?"]),
+      )
+      .mockResolvedValueOnce(answered("It did not."));
+
+    await askChat(store, question);
+    await askChat(store, "And Netflix?");
+
+    expect(conversationOf(store)).toStrictEqual([
+      {
+        question,
+        answer: "Spotify Premium rose.",
+        sources: [],
+        followUps: ["And Netflix?", "What do they cost a year?"],
+      },
+      { question: "And Netflix?", answer: "It did not.", sources: [] },
+    ]);
+    expect((await loadState(db)).conversation).toStrictEqual(conversationOf(store));
+    // Follow-ups are not sent with later questions (FR-111).
+    expect(String(fetchMock.mock.calls[1]![1]?.body)).not.toContain("What do they cost a year?");
+  });
+
   test("adds each answered question after the earlier ones", async () => {
     const { store } = await setUp();
     fetchMock.mockResolvedValueOnce(answered("First.")).mockResolvedValueOnce(answered("Second."));
@@ -226,7 +251,7 @@ describe("askChat: the answer and the session (FR-104, FR-107, FR-110)", () => {
   test("stores a question out of scope as such, with no text and no sources (FR-103)", async () => {
     const { store } = await setUp();
     fetchMock.mockResolvedValue(
-      streamed(responseWith({ inScope: false, answer: "Paris.", sources: [] })),
+      streamed(responseWith({ inScope: false, answer: "Paris.", sources: [], followUps: [] })),
     );
 
     expect(await askChat(store, "What is the capital of France?")).toBeNull();

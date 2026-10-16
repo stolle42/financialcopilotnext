@@ -15,13 +15,14 @@ import {
   outOfScope,
   questionField,
   standInChat,
+  suggestions,
   turnOnAiFeatures,
   type ChatQuestion,
   type Reply,
 } from "./support/ai";
 import { expect, setToday, test } from "./support/test";
 
-// The journey of User Story 8, scenarios 1–9 (quickstart.md, US8). A stand-in answers at the AI
+// The journey of User Story 8, scenarios 1–11 (quickstart.md, US8). A stand-in answers at the AI
 // route in OpenAI's place (R-26). On a hosted copy, where AI features cannot be turned on, only
 // scenario 1 runs (FR-106).
 
@@ -30,12 +31,18 @@ const outOfScopeQuestion = "What is the capital of France?";
 const beforeTheData = "Did I spend more on travel than in 2024?";
 const toStop = "Where did I spend more this month than last month?";
 const failing = "And how about next month?";
+const followUp = "Which subscription costs the most?";
+const setBudget = "Set my groceries budget to €300.";
 
 const priceRise =
   "Spotify Premium rose from €10.99 to €11.99 in September 2026. Both payments are in Leisure.";
 const missingData =
   "I can't tell: the data I get starts in September 2025, so 2024 is not in it. " +
   "Since then you spent nothing on Travel.";
+const mostExpensive = "Spotify Premium, at €11.99 a month.";
+const howToBudget =
+  "I can't change anything in the app. To set it, open Budgets, type 300 as the limit of " +
+  "Groceries and press Enter.";
 
 /** The stand-in's answer to each question of the journey. */
 const replies: Record<string, ReturnType<Reply<ChatQuestion>>> = {
@@ -52,8 +59,11 @@ const replies: Record<string, ReturnType<Reply<ChatQuestion>>> = {
           account: null,
         },
       ],
+      followUps: [followUp],
     },
   },
+  [followUp]: answer(mostExpensive)({} as ChatQuestion),
+  [setBudget]: answer(howToBudget)({} as ChatQuestion),
   [beforeTheData]: answer(missingData)({} as ChatQuestion),
   [outOfScopeQuestion]: outOfScope({} as ChatQuestion),
   [toStop]: answer("This comes too late.")({} as ChatQuestion),
@@ -85,7 +95,7 @@ test("scenario 1: every screen shows the chat's button, and with AI features off
   expect(standIn.requests).toEqual([]);
 });
 
-test("scenarios 2–9: ask, follow a source, stop, and keep the conversation (FR-101 – FR-110)", async ({
+test("scenarios 2–11: ask, follow a source, stop, keep the conversation, follow up, and ask about the app (FR-101 – FR-111)", async ({
   page,
   baseURL,
 }) => {
@@ -141,9 +151,11 @@ test("scenarios 2–9: ask, follow a source, stop, and keep the conversation (FR
   await expect(conversation(page).nth(3)).toHaveText(catalogue.financeChat.stopped);
   standIn.release();
 
-  // 5. A question that does not need the user's data gets the fixed answer (FR-103).
+  // 5. A question about neither finance nor the app gets the fixed answer, and the example
+  //    questions again (FR-101, FR-103).
   await askInChat(page, outOfScopeQuestion);
   await expect(conversation(page).nth(5)).toHaveText(catalogue.financeChat.outOfScope);
+  await expect(examples(page)).toBeVisible();
 
   // 6. A question the data answers only in part: the answer says what is missing, as the
   //    instructions ask of every answer (FR-109).
@@ -169,4 +181,22 @@ test("scenarios 2–9: ask, follow a source, stop, and keep the conversation (FR
   await page.getByRole("alertdialog").getByRole("button", { name: "Clear conversation" }).click();
   await expect(conversation(page)).toHaveCount(0);
   await expect(examples(page)).toBeVisible();
+
+  // 10. A complete answer offers its follow-up questions as the examples are offered, and one
+  //     sends at once (FR-111).
+  await examples(page).click();
+  await expect(suggestions(page).getByRole("button")).toHaveText([followUp]);
+  await suggestions(page).getByRole("button", { name: followUp }).click();
+  await expect(conversation(page).nth(2)).toHaveText(followUp);
+  await expect(conversation(page).nth(3)).toHaveText(mostExpensive);
+  expect(standIn.requests.at(-1)!.question).toBe(followUp);
+
+  // 11. A request to change something gets an answer, without sources; the instructions carry the
+  //     guide to the app and say that the chat cannot change anything (FR-103, FR-109).
+  await askInChat(page, setBudget);
+  await expect(conversation(page).nth(5)).toHaveText(howToBudget);
+  await expect(conversation(page).nth(5).getByRole("navigation")).toHaveCount(0);
+  const instructions = standIn.requests.at(-1)!.request.instructions;
+  expect(instructions).toContain("\nApp guide:\n");
+  expect(instructions).toMatch(/cannot change anything/i);
 });

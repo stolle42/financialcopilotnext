@@ -257,6 +257,12 @@ export function everyEntityState(): State {
         { question: "And on pets?", answer: "Nothing so", stopped: true, sources: [] },
         { question: "Where does my money go?", answer: "", stopped: true, sources: [] },
         { question: "What is the capital of France?", answer: "", outOfScope: true, sources: [] },
+        {
+          question: "And on rent?",
+          answer: "€800.00 a month.",
+          sources: [],
+          followUps: ["And last year?", "Where could I save on rent?"],
+        },
       ],
     },
   });

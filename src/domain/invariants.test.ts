@@ -100,12 +100,21 @@ const answeredTurn: ChatTurn = {
   ],
 };
 
-/** The turns of data-model.md: answered, stopped with and without text, and out of scope. */
+/**
+ * The turns of data-model.md: answered, stopped with and without text, out of scope, and answered
+ * with follow-ups.
+ */
 const conversation: ChatTurn[] = [
   answeredTurn,
   { question: "And on eating out?", answer: "You spent", stopped: true, sources: [] },
   { question: "Where does my money go?", answer: "", stopped: true, sources: [] },
   { question: "What is the capital of France?", answer: "", outOfScope: true, sources: [] },
+  {
+    question: "And on rent?",
+    answer: "€800.00 a month.",
+    sources: [],
+    followUps: ["And last year?", "Where could I save on rent?", "Is that more than last year?"],
+  },
 ];
 
 /** A valid state that touches every entity type. */
@@ -210,7 +219,7 @@ describe("checkInvariants", () => {
     const conversation = [...state.conversation, { ...answeredTurn, question: " " }];
     expect(checkInvariants({ ...state, conversation })).toEqual({
       code: "conversation-question-missing",
-      details: { turn: 5 },
+      details: { turn: conversation.length },
     });
   });
 
@@ -500,6 +509,36 @@ describe("checkInvariants", () => {
     [
       "9: a stopped turn with sources",
       () => withTurn({ stopped: true }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: follow-ups on a turn out of scope",
+      () => withTurn({ outOfScope: true, answer: "", sources: [], followUps: ["Why?"] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: follow-ups on a stopped turn",
+      () => withTurn({ stopped: true, sources: [], followUps: ["Why?"] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: an empty list of follow-ups",
+      () => withTurn({ followUps: [] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: more than three follow-ups",
+      () => withTurn({ followUps: ["One?", "Two?", "Three?", "Four?"] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a follow-up of spaces only",
+      () => withTurn({ followUps: ["Why?", " "] }),
+      "conversation-turn-invalid",
+    ],
+    [
+      "9: a repeated follow-up",
+      () => withTurn({ followUps: ["Why?", "Why?"] }),
       "conversation-turn-invalid",
     ],
     ["9: a source without a name", () => withSource({ name: " " }), "conversation-source-invalid"],

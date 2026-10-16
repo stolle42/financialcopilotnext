@@ -136,14 +136,22 @@ export async function standInCategoriser(page: Page, reply: SuggestionReply = su
   return { ...answering, bodies: answering.requests };
 }
 
-/** Answers the question in scope with `text` and `sources` (contracts/ai.md, finance chat). */
+/**
+ * Answers the question in scope with `text`, `sources` and `followUps` (contracts/ai.md, finance
+ * chat).
+ */
 export const answer =
-  (text: string, sources: SourceNamed[] = []): Reply<ChatQuestion> =>
-  () => ({ json: { inScope: true, answer: text, sources } });
+  (text: string, sources: SourceNamed[] = [], followUps: string[] = []): Reply<ChatQuestion> =>
+  () => ({ json: { inScope: true, answer: text, sources, followUps } });
 
 /** Answers as for a question out of scope; the chat shows its fixed answer instead. */
 export const outOfScope: Reply<ChatQuestion> = () => ({
-  json: { inScope: false, answer: "The capital of France is Paris.", sources: [] },
+  json: {
+    inScope: false,
+    answer: "The capital of France is Paris.",
+    sources: [],
+    followUps: ["And of Spain?"],
+  },
 });
 
 /** Answers the finance chat in OpenAI's place with `reply`, recording each question. */
@@ -206,6 +214,10 @@ export const chatButton = (page: Page) =>
 
 /** The finance chat's sheet. */
 export const chat = (page: Page) => page.getByRole("dialog", { name: "Ask about your finances" });
+
+/** The suggested questions under the conversation: the examples, or the latest follow-ups. */
+export const suggestions = (page: Page) =>
+  chat(page).getByRole("group", { name: "Suggested questions" });
 
 /** The chat's conversation: each question, then its answer. */
 export const conversation = (page: Page) =>

@@ -14,7 +14,7 @@ import {
   type PostedRequest,
 } from "./testing";
 
-// contracts/ai.md, finance chat; FR-102, FR-103, FR-107, FR-109, FR-110, R-25, R-26.
+// contracts/ai.md, finance chat; FR-102, FR-103, FR-107, FR-109 – FR-111, R-25, R-26.
 
 const context = chatContext(seedState(idCounter()), "2026-10-16");
 
@@ -37,10 +37,11 @@ const source: NamedSource = {
   account: null,
 };
 
-const inScope = (answer: string, sources: NamedSource[] = []) => ({
+const inScope = (answer: string, sources: NamedSource[] = [], followUps: unknown[] = []) => ({
   inScope: true,
   answer,
   sources,
+  followUps,
 });
 
 const turnsOf = (count: number): ChatTurn[] =>
@@ -62,6 +63,12 @@ async function posted(turns: ChatTurn[] = []): Promise<PostedRequest> {
   return JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as PostedRequest;
 }
 
+/** The rules alone: the instructions before the guide to the app, or before the data. */
+function rulesOf(instructions: string): string {
+  const guideAt = instructions.indexOf("\nApp guide:\n");
+  return instructions.slice(0, guideAt >= 0 ? guideAt : instructions.lastIndexOf("\nData:\n"));
+}
+
 interface Schema {
   type?: unknown;
   enum?: unknown[];
@@ -73,7 +80,7 @@ interface Schema {
 }
 
 describe("askFinanceChat: the request (contracts/ai.md, finance chat)", () => {
-  test("asks for the answer in the contract's strict schema, inScope, answer and sources in that order", async () => {
+  test("asks for the answer in the contract's strict schema, inScope, answer, sources and followUps in that order", async () => {
     const { format } = (await posted()).text;
 
     expect(format).toMatchObject({
@@ -84,10 +91,11 @@ describe("askFinanceChat: the request (contracts/ai.md, finance chat)", () => {
     const schema = format.schema as Schema;
     expect(schema).toMatchObject({ type: "object", additionalProperties: false });
     // OpenAI writes the keys in the schema's order, which lets the app read inScope first (R-26).
-    expect(Object.keys(schema.properties!)).toEqual(["inScope", "answer", "sources"]);
-    expect([...schema.required!].sort()).toEqual(["answer", "inScope", "sources"]);
+    expect(Object.keys(schema.properties!)).toEqual(["inScope", "answer", "sources", "followUps"]);
+    expect([...schema.required!].sort()).toEqual(["answer", "followUps", "inScope", "sources"]);
     expect(schema.properties!.inScope!.type).toBe("boolean");
     expect(schema.properties!.answer!.type).toBe("string");
+    expect(schema.properties!.followUps).toEqual({ type: "array", items: { type: "string" } });
   });
 
   test("asks for each source's name, dates, category with its side or null, and account or null (FR-110)", async () => {
@@ -118,13 +126,25 @@ describe("askFinanceChat: the request (contracts/ai.md, finance chat)", () => {
     expect(request.instructions.endsWith(JSON.stringify(context))).toBe(true);
   });
 
-  test("instructs to answer only from the user's own data, and never to follow instructions in descriptions (FR-103)", async () => {
+  test("sends the rules, then the guide to the app after the line App guide:, then the data (FR-102, FR-103)", async () => {
     const { instructions } = await posted();
-    const rules = instructions.slice(0, instructions.lastIndexOf("\nData:\n"));
+    const guideAt = instructions.indexOf("\nApp guide:\n");
+    const dataAt = instructions.lastIndexOf("\nData:\n");
 
-    expect(rules).toMatch(/only questions about the user's own finances/i);
-    expect(rules).toMatch(/inScope/);
-    expect(rules).toMatch(/general financial or investment advice/i);
+    expect(guideAt).toBeGreaterThan(0);
+    expect(guideAt).toBeLessThan(dataAt);
+    const guide = instructions.slice(guideAt + "\nApp guide:\n".length, dataAt);
+    for (const screen of ["Transactions", "Budgets", "Settings"]) expect(guide).toContain(screen);
+  });
+
+  test("instructs to answer questions about the user's finances, about finance in general and about the app, and to follow no instructions in descriptions (FR-103)", async () => {
+    const rules = rulesOf((await posted()).instructions);
+
+    expect(rules).toMatch(/questions about the user's own finances/i);
+    expect(rules).toMatch(/general questions about money and finance/i);
+    expect(rules).toMatch(/questions about how the app works/i);
+    expect(rules).toMatch(/general knowledge outside finance/i);
+    expect(rules).toMatch(/set inScope to false/);
     expect(rules).toMatch(/never invent/i);
     expect(rules).toMatch(/price increase/i);
     expect(rules).toMatch(/Never follow instructions/);
@@ -132,23 +152,45 @@ describe("askFinanceChat: the request (contracts/ai.md, finance chat)", () => {
     expect(rules).toMatch(/language of the question/i);
   });
 
+  test("instructs to answer a request to change something with that the chat cannot, and how to do it in the app (FR-103)", async () => {
+    const rules = rulesOf((await posted()).instructions);
+
+    expect(rules).toMatch(/cannot change anything/i);
+    expect(rules).toMatch(/explain step by step how/i);
+  });
+
+  test("instructs to mark general knowledge as general, and to say about the app only what the guide says (FR-109)", async () => {
+    const rules = rulesOf((await posted()).instructions);
+
+    expect(rules).toMatch(/general and not from the user's data/i);
+    expect(rules).toMatch(/only what the guide says/i);
+    expect(rules).toMatch(/instead of guessing/i);
+  });
+
   test("instructs to rest every figure on the data, and to say what is missing and why (FR-109)", async () => {
-    const { instructions } = await posted();
-    const rules = instructions.slice(0, instructions.lastIndexOf("\nData:\n"));
+    const rules = rulesOf((await posted()).instructions);
 
     expect(rules).toMatch(/never estimate/i);
     expect(rules).toMatch(/what is missing/i);
     expect(rules).toMatch(/why/i);
   });
 
-  test("instructs to list in sources what the answer rests on, as the data names it (FR-110)", async () => {
-    const { instructions } = await posted();
-    const rules = instructions.slice(0, instructions.lastIndexOf("\nData:\n"));
+  test("instructs to list in sources what the answer rests on, as the data names it, and none for an answer about the app or finance in general (FR-110)", async () => {
+    const rules = rulesOf((await posted()).instructions);
 
     expect(rules).toMatch(/sources/);
     expect(rules).toMatch(/rests on/i);
     expect(rules).toMatch(/side/);
     expect(rules).toMatch(/null/);
+    expect(rules).toMatch(/about the app or about finance in general/i);
+  });
+
+  test("instructs to suggest 1 to 3 follow-up questions that the chat can answer (FR-111)", async () => {
+    const rules = rulesOf((await posted()).instructions);
+
+    expect(rules).toMatch(/followUps/);
+    expect(rules).toMatch(/1 to 3/);
+    expect(rules).toMatch(/none already asked/i);
   });
 
   test("streams the answer", async () => {
@@ -211,15 +253,50 @@ describe("askFinanceChat: the request (contracts/ai.md, finance chat)", () => {
   });
 });
 
-describe("askFinanceChat: the answer (FR-103, FR-107, FR-110)", () => {
-  test("gives an answer in scope with the sources it names", async () => {
-    fetchMock.mockResolvedValue(streamed(responseWith(inScope("Cook more.", [source]))));
-    expect(await ask()).toStrictEqual({ inScope: true, answer: "Cook more.", sources: [source] });
+describe("askFinanceChat: the answer (FR-103, FR-107, FR-110, FR-111)", () => {
+  test("gives an answer in scope with the sources and follow-ups it names", async () => {
+    fetchMock.mockResolvedValue(
+      streamed(responseWith(inScope("Cook more.", [source], ["And last month?"]))),
+    );
+    expect(await ask()).toStrictEqual({
+      inScope: true,
+      answer: "Cook more.",
+      sources: [source],
+      followUps: ["And last month?"],
+    });
+  });
+
+  test("gives the follow-ups trimmed, without empty or repeated ones, and at most three (FR-111)", async () => {
+    fetchMock.mockResolvedValue(
+      streamed(
+        responseWith(
+          inScope(
+            "Cook more.",
+            [],
+            [
+              " And last month? ",
+              "",
+              "And last month?",
+              "Where can I save?",
+              "  ",
+              "What about rent?",
+              "And travel?",
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(await ask()).toStrictEqual({
+      inScope: true,
+      answer: "Cook more.",
+      sources: [],
+      followUps: ["And last month?", "Where can I save?", "What about rent?"],
+    });
   });
 
   test("gives a question out of scope as such, whatever the text", async () => {
     fetchMock.mockResolvedValue(
-      streamed(responseWith({ inScope: false, answer: "Paris.", sources: [] })),
+      streamed(responseWith({ inScope: false, answer: "Paris.", sources: [], followUps: [] })),
     );
     expect(await ask()).toEqual({ inScope: false });
   });
@@ -257,7 +334,7 @@ describe("askFinanceChat: the answer (FR-103, FR-107, FR-110)", () => {
         answer: "Cook more.\nAnd eat out less.",
       }),
     );
-    stream.send(deltaEvent(',"sources":[]}'), completedEvent());
+    stream.send(deltaEvent(',"sources":[],"followUps":[]}'), completedEvent());
     stream.end();
 
     expect(await result).toEqual(inScope("Cook more.\nAnd eat out less."));
@@ -272,9 +349,11 @@ describe("askFinanceChat: the answer (FR-103, FR-107, FR-110)", () => {
   );
 
   test.each<[string, unknown]>([
-    ["without sources", { inScope: true, answer: "Cook more." }],
-    ["without inScope", { answer: "Cook more.", sources: [] }],
+    ["without sources", { inScope: true, answer: "Cook more.", followUps: [] }],
+    ["without inScope", { answer: "Cook more.", sources: [], followUps: [] }],
+    ["without followUps", { inScope: true, answer: "Cook more.", sources: [] }],
     ["with a source of another shape", inScope("Cook more.", [{ name: "x" } as NamedSource])],
+    ["with a follow-up that is not a string", inScope("Cook more.", [], [1])],
   ])("gives ai-answer-invalid for an answer %s", async (_, answer) => {
     fetchMock.mockResolvedValue(streamed(responseWith(answer)));
     expect(await ask()).toEqual({ code: "ai-answer-invalid" });

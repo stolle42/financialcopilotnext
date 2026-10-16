@@ -172,7 +172,7 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro" });
   });
 
-  test("keeps the conversation, every kind of turn and source alike (FR-104)", () => {
+  test("keeps the conversation, every kind of turn, source and follow-up alike (FR-104, FR-111)", () => {
     const state = everyEntityState();
     const loaded = parseBackup(serializeBackup(state, EXPORTED_AT)) as State;
     expect(loaded.conversation).toStrictEqual(state.conversation);
@@ -338,6 +338,7 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     ["turn", "stopped", (turns) => (turns[1]!.stopped = false)],
     ["turn", "outOfScope", (turns) => (turns[3]!.outOfScope = "yes")],
     ["turn", "sources", (turns) => delete turns[0]!.sources],
+    ["turn", "followUps", (turns) => (turns[4]!.followUps = ["And last year?", 7])],
     ["source", "from", (turns) => delete (turns[0]!.sources as Json[])[0]!.from],
     ["source", "categoryId", (turns) => ((turns[0]!.sources as Json[])[0]!.categoryId = 7)],
   ])(
