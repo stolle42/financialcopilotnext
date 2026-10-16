@@ -1223,7 +1223,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - `onAnswer` gets the growing answer, delta by delta; an answer out of scope aborts the request
     as soon as it reads so, and resolves as out of scope; an empty answer in scope gives
     `ai-answer-invalid`; and the transport's failures, and a cancel, pass on.
-- [ ] T112 [US8] The chat's session in the store: `src/store/chat.ts` keeps in memory, outside any
+- [X] T112 [US8] The chat's session in the store: `src/store/chat.ts` keeps in memory, outside any
   component, the question being answered, its answer so far, and the last failure with its
   question, and lets the UI subscribe to them ([FR-104](spec.md#fr-104),
   [FR-108](spec.md#fr-108), [FR-110](spec.md#fr-110), [R-26](research.md#r-26)).
