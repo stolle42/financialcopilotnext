@@ -1292,7 +1292,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `src/ui/messages.test.ts` and `e2e/ui/settings.spec.ts`, the Settings line names both
     features, and the warning says that the chat sends amounts, dates and account balances while
     suggestions do not.
-- [ ] T114 [US8] The journey `e2e/us8-finance-chat.spec.ts`: [User Story 8](spec.md#user-story-8)
+- [X] T114 [US8] The journey `e2e/us8-finance-chat.spec.ts`: [User Story 8](spec.md#user-story-8)
   scenarios 1–9, as [quickstart.md](quickstart.md#us8-finance-chat) describes them, with the
   stand-in of `e2e/support/ai.ts`. On a hosted copy only scenario 1 runs
   ([FR-106](spec.md#fr-106)). It passes once T102 – T113 are done.
