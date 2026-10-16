@@ -325,23 +325,24 @@ into a fresh install, and verify everything matches ([SC-014](#sc-014)).
 <a id="user-story-8"></a>
 ### User Story 8 - Ask about my own finances (Priority: P8)
 
-The user opens the finance chat on Insights and asks about their own money, such as how to reduce
-spending or which subscriptions have become more expensive. The answer appears as it is written,
-rests only on the user's data, says plainly what that data cannot tell, and ends with links to the
-transactions it rests on, so the user can check it. Added in v1.3.
+The user opens the finance chat from any screen and asks about their own money, such as how to
+reduce spending or which subscriptions have become more expensive. The answer appears as it is
+written, rests only on the user's data, says plainly what that data cannot tell, and ends with
+links to the transactions it rests on, so the user can check it. Added in v1.3.
 
 **Why this priority**: It reads the data of every other story and sends it to OpenAI, so it comes
 last, and only for a user who turned AI features on ([FR-095](#fr-095)).
 
 **Independent Test**: With AI features on, a few months of transactions and a stand-in in OpenAI's
-place, ask an example question, follow one of its sources and come back, stop a second answer
-midway, then close and reopen the app, and verify that the conversation is as it was.
+place, ask an example question, follow one of its sources and open the chat again there, stop a
+second answer midway, then close and reopen the app, and verify that the conversation is as it
+was.
 
 **Acceptance Scenarios**:
 
-1. **Given** AI features are off, **When** the user opens the chat on Insights, **Then** it says
-   that it needs AI features, which Settings turns on, and offers nothing to send
-   ([FR-100](#fr-100)).
+1. **Given** any screen, **Then** it shows the chat's button with its name; **Given** AI features
+   are off, **When** the user opens the chat, **Then** it says that it needs AI features, which
+   Settings turns on, and offers nothing to send ([FR-100](#fr-100)).
 2. **Given** AI features are on and an empty conversation, **When** the user opens the chat,
    **Then** it offers example questions; **When** they select one, **Then** it is sent at once
    ([FR-101](#fr-101)).
@@ -355,8 +356,9 @@ midway, then close and reopen the app, and verify that the conversation is as it
 6. **Given** a question the data answers only in part, **Then** the answer says explicitly what is
    missing and states no figure that the data does not hold ([FR-109](#fr-109)).
 7. **Given** an answer about the user's data, **Then** it ends with its sources; **When** the user
-   selects one, **Then** the transaction list opens, filtered as the source says; **When** they
-   return to Insights, **Then** the conversation is as they left it ([FR-110](#fr-110)).
+   selects one, **Then** the chat closes and the transaction list shows, filtered as the source
+   says; **When** they open the chat again, **Then** the conversation is as they left it
+   ([FR-110](#fr-110)).
 8. **Given** a conversation, **When** the user closes and reopens the app, **Then** the
    conversation is still there; **When** they clear it and confirm, **Then** the chat offers the
    example questions again ([FR-104](#fr-104)).
@@ -580,8 +582,7 @@ midway, then close and reopen the app, and verify that the conversation is as it
   hovering over a point previews that point's spending by expense category; the
   proportion of spending by expense category; the proportion of income by income category; and
   budget progress per budgeted expense category for the most recent calendar month in the period.
-  Insights MUST also offer the finance chat ([FR-100](#fr-100)). Changed in v1.1:
-  [FR-087](#fr-087). Changed in v1.3: [FR-100](#fr-100).
+  Changed in v1.1: [FR-087](#fr-087).
 - <a id="fr-052"></a>**FR-052**: "Unaccounted" MUST appear in its side's breakdown at its true share, visually
   distinguished as a known unknown, and MUST NOT be hidden or merged.
 - <a id="fr-053"></a>**FR-053**: Charts MUST be read-only in v1.
@@ -593,7 +594,7 @@ midway, then close and reopen the app, and verify that the conversation is as it
   written as 1,250.00 for readability only.
 - <a id="fr-061"></a>**FR-061**: The application MUST NOT send any user data or usage information to any external
   party, except in the requests the user starts with an AI feature while AI features are on: by
-  selecting Suggest categories in review, and by asking the finance chat on Insights
+  selecting Suggest categories in review, and by asking the finance chat
   ([FR-090](#fr-090), [FR-091](#fr-091), [FR-095](#fr-095), [FR-100](#fr-100),
   [FR-102](#fr-102)). They are on only once the user turned them on in Settings and agreed to
   their warning.
@@ -783,11 +784,15 @@ through the server that serves the app, in place of v1.2's n8n workflow and Clau
 ([FR-105](#fr-105)). [User Story 8](#user-story-8) describes the chat. A requirement of an earlier
 version that it changes states the new behaviour and names the change.
 
-- <a id="fr-100"></a>**FR-100**: Insights MUST offer the **finance chat** through a button with a
-  chat icon, named "Ask about your finances", which opens the chat beside the screen. Opening and
-  closing the chat send nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say
-  that it needs AI features, which Settings turns on, and MUST offer nothing to send; a stored
-  conversation still shows ([FR-104](#fr-104)).
+- <a id="fr-100"></a>**FR-100**: Every screen MUST offer the **finance chat** through a button
+  fixed at the bottom right of the window, which shows a chat icon and its name, "Ask about your
+  finances", in the colour of the primary action, so it stands out wherever the user is. The
+  button MUST NOT keep any of a screen's content hidden: scrolled to its end, a screen's content
+  ends above it. The button opens the chat beside the screen; following a link in the chat, such
+  as a source, closes it, so the screen the link opens shows. Opening and closing the chat send
+  nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say that it needs AI
+  features, which Settings turns on, and MUST offer nothing to send; a stored conversation still
+  shows ([FR-104](#fr-104)).
 - <a id="fr-101"></a>**FR-101**: While its conversation is empty, the chat MUST offer example
   questions, among them how to reduce spending and which subscriptions have become more expensive.
   Selecting one MUST send it at once, as if the user had typed it. The user MUST also be able to
@@ -813,8 +818,8 @@ version that it changes states the new behaviour and names the change.
   conversation, after their question, with their sources ([FR-110](#fr-110)). An answer never
   changes the user's data: it is advice, and acting on it stays the user's step.
 - <a id="fr-104"></a>**FR-104**: There is one conversation, and it MUST be stored: it stays when
-  the chat is closed, when the user leaves Insights and when the app is closed, and it is part of
-  a backup ([FR-070](#fr-070)). A backup without one restores an empty conversation.
+  the chat is closed, when the user opens another screen and when the app is closed, and it is
+  part of a backup ([FR-070](#fr-070)). A backup without one restores an empty conversation.
   - A question and its answer are stored once the answer is complete or stopped
     ([FR-108](#fr-108)).
   - The chat MUST offer to clear the conversation, which asks the user to confirm
@@ -840,7 +845,7 @@ version that it changes states the new behaviour and names the change.
   [FR-103](#fr-103) whole, and nothing the AI wrote for it.
 - <a id="fr-108"></a>**FR-108**: While an answer is awaited or written, the chat and the rest of the
   app MUST stay usable: the user can scroll the conversation, close and open the chat, type the
-  next question, and leave Insights, which does not stop the answer.
+  next question, and open another screen, which does not stop the answer.
   - In place of Send, the chat MUST offer **Stop**. Selecting it MUST end the answer at once and
     cancel its request.
   - The text written so far MUST stay after its question, marked as stopped and without sources.
@@ -859,7 +864,7 @@ version that it changes states the new behaviour and names the change.
   a source MUST open the transaction list with its filters set to the source: a range of dates,
   and the expense or income category, the account, or both, when the answer rests on them
   ([FR-016](#fr-016), [FR-083](#fr-083)). The user can change or clear the filters there, and
-  coming back to Insights shows the conversation as it was ([FR-104](#fr-104)).
+  opening the chat again shows the conversation as it was ([FR-104](#fr-104)).
   - A source whose category or account the user does not have when the answer arrives MUST be left
     out, like anything else in the answer the app cannot use.
   - A source whose category or account is deleted later MUST show its name without a link. A
@@ -981,7 +986,7 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Learned recall: pre-filling a vendor's category from the user's own past decisions, with nothing
   to author and nothing sent anywhere. Category suggestions use earlier decisions only as examples
   in a request the user starts ([FR-091](#fr-091)).
-- AI features other than category suggestions in review and the finance chat on Insights
+- AI features other than category suggestions in review and the finance chat
   ([FR-090](#fr-090), [FR-100](#fr-100)), deferred by design rather than rejected: receipt
   scanning into a transaction. The ledger must be provably trustworthy before anything
   probabilistic sits on top of it, which is why a suggestion stays a suggestion until the user

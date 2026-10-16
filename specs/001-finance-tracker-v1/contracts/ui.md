@@ -14,6 +14,8 @@ The header holds the app name, the app's version and the primary action **Add tr
 which opens the [transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
 The version reads "Version" and the MAJOR.MINOR of the `version` field of `package.json`, such as
 "Version 1.1" for `1.1.0` ([FR-088](../spec.md#fr-088)).
+The button of the [finance chat](#finance-chat) sits at the bottom right of every screen
+([FR-100](../spec.md#fr-100)).
 
 The sidebar is one flat list, without group headings, in the order of the table below
 ([FR-084](../spec.md#fr-084)). Import opens from the [Transactions](#transactions) screen, and the
@@ -102,6 +104,50 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Kind changes** follow [FR-015](../spec.md#fr-015).
 - **Edit mode** adds Delete, which asks for confirmation.
 
+### Finance chat
+
+[FR-100](../spec.md#fr-100) – [FR-110](../spec.md#fr-110), [ai.md](ai.md#finance-chat),
+[User Story 8](../spec.md#user-story-8).
+
+- **Button**: on every screen, fixed at the bottom right of the window, above the screen's content:
+  a pill in the primary colour, as **Add transaction** is, with a chat icon and its name, "Ask
+  about your finances", as text. The main area ends in space taller than the button, so a screen
+  scrolled to its end shows its last content above it. The button opens a sheet from the right
+  with that title.
+- Following a link in the sheet, a source or the link to Settings, closes the sheet, so the screen
+  the link opens shows.
+- While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
+  features, with a link to [Settings](#settings), and shows neither examples nor a field. A
+  stored conversation still shows.
+- While the conversation is empty, the sheet shows the example questions as buttons: "How can I
+  reduce my spending?", "Which of my subscriptions have become more expensive?", "Am I on track
+  with my budgets this month?" and "Where did I spend more this month than last month?".
+  Selecting one sends it at once.
+- The conversation is a log: each question, then its answer as plain text, line breaks kept. A
+  question out of scope gets the chat's fixed answer, which names what the chat can help with
+  ([FR-103](../spec.md#fr-103)).
+- While an answer is awaited, its place says "Thinking…" until its first words arrive, and then
+  shows the text as it grows ([FR-107](../spec.md#fr-107)).
+- **Sources**: under a complete answer, a list headed "Sources" holds a link per source, named
+  as the source is. Each opens [Transactions](#transactions) with the source's filters. A source
+  whose category is gone shows its name as plain text ([FR-110](../spec.md#fr-110)).
+- A stopped answer ends in the mark "Stopped" and has no sources ([FR-108](../spec.md#fr-108)).
+- Under the log, a field labelled "Your question" and **Send**, which Enter selects too. Send is
+  unavailable while the field is empty. While an answer is awaited or written, **Stop** takes
+  Send's place, the field stays editable, Enter sends nothing, and the examples are unavailable
+  ([FR-108](../spec.md#fr-108)).
+- A failure shows in an alert above the field, with the codes of [ai.md](ai.md#failures). The
+  conversation stays as it was before the question, also when part of the answer had shown, and
+  the question is back in the field to send again ([FR-104](../spec.md#fr-104)). A failure to
+  store a finished answer shows `save-failed`, and the conversation stays as it was.
+- **Clear conversation**, a button in the sheet's header, shows while the conversation holds a
+  turn and is unavailable while an answer is awaited or written. It asks for confirmation, with
+  **Cancel** and **Clear conversation**, saying that the questions and answers will be deleted
+  ([FR-069](../spec.md#fr-069)). Then the sheet shows the example questions again.
+- The conversation is stored: it stays when the sheet closes, when another screen opens and when
+  the app closes. An answer being written goes on while the sheet is closed or another screen is
+  open ([FR-104](../spec.md#fr-104), [FR-108](../spec.md#fr-108)).
+
 ### Insights
 
 - **Period**: a start and end date picker with these presets ([FR-050](../spec.md#fr-050)):
@@ -136,41 +182,6 @@ Routes use the URL hash so the build works from any static host or local file ([
      budgets, the section links to Budgets.
 - Each section has its own empty state ([User Story 3](../spec.md#user-story-3) scenario 6). Charts
   show tooltips but offer no click-through ([FR-053](../spec.md#fr-053)).
-- **Finance chat** ([FR-100](../spec.md#fr-100) – [FR-110](../spec.md#fr-110),
-  [ai.md](ai.md#finance-chat), [User Story 8](../spec.md#user-story-8)): a round button with a
-  chat icon, fixed at the bottom right of the screen and named "Ask about your finances". It opens
-  a sheet from the right with that title.
-  - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
-    features, with a link to [Settings](#settings), and shows neither examples nor a field. A
-    stored conversation still shows.
-  - While the conversation is empty, the sheet shows the example questions as buttons: "How can I
-    reduce my spending?", "Which of my subscriptions have become more expensive?", "Am I on track
-    with my budgets this month?" and "Where did I spend more this month than last month?".
-    Selecting one sends it at once.
-  - The conversation is a log: each question, then its answer as plain text, line breaks kept. A
-    question out of scope gets the chat's fixed answer, which names what the chat can help with
-    ([FR-103](../spec.md#fr-103)).
-  - While an answer is awaited, its place says "Thinking…" until its first words arrive, and then
-    shows the text as it grows ([FR-107](../spec.md#fr-107)).
-  - **Sources**: under a complete answer, a list headed "Sources" holds a link per source, named
-    as the source is. Each opens [Transactions](#transactions) with the source's filters. A source
-    whose category is gone shows its name as plain text ([FR-110](../spec.md#fr-110)).
-  - A stopped answer ends in the mark "Stopped" and has no sources ([FR-108](../spec.md#fr-108)).
-  - Under the log, a field labelled "Your question" and **Send**, which Enter selects too. Send is
-    unavailable while the field is empty. While an answer is awaited or written, **Stop** takes
-    Send's place, the field stays editable, Enter sends nothing, and the examples are unavailable
-    ([FR-108](../spec.md#fr-108)).
-  - A failure shows in an alert above the field, with the codes of [ai.md](ai.md#failures). The
-    conversation stays as it was before the question, also when part of the answer had shown, and
-    the question is back in the field to send again ([FR-104](../spec.md#fr-104)). A failure to
-    store a finished answer shows `save-failed`, and the conversation stays as it was.
-  - **Clear conversation**, a button in the sheet's header, shows while the conversation holds a
-    turn and is unavailable while an answer is awaited or written. It asks for confirmation, with
-    **Cancel** and **Clear conversation**, saying that the questions and answers will be deleted
-    ([FR-069](../spec.md#fr-069)). Then the sheet shows the example questions again.
-  - The conversation is stored: it stays when the sheet closes, when the user leaves Insights and
-    when the app closes. An answer being written goes on while the sheet is closed or another
-    screen is open ([FR-104](../spec.md#fr-104), [FR-108](../spec.md#fr-108)).
 
 ### Import
 
@@ -294,7 +305,7 @@ Routes use the URL hash so the build works from any static host or local file ([
 
 - **AI features** ([FR-095](../spec.md#fr-095)): a section with one switch, **AI features**, off
   until the user turns it on. Under it, a line lists what the AI features do, "Suggest
-  categories in review" and "the finance chat on Insights", and says that they send data to OpenAI.
+  categories in review" and "the finance chat", and says that they send data to OpenAI.
   - Turning the switch on opens the **data-sharing warning**, a dialog titled "Turn on AI
     features?". It says that data will now be shared with OpenAI:
     - Suggest categories sends the payee and purpose of the rows under review, the category names

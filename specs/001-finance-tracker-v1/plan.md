@@ -22,7 +22,7 @@ It is built as a client-only TypeScript single-page app.
 - **Bank files**: decoded with `TextDecoder` and split into records with Papa Parse. Mapping,
   parsing and duplicate flagging are domain rules ([contracts/csv-import.md](contracts/csv-import.md)).
 - **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
-- **AI features**: category suggestions in review (v1.2) and a finance chat on Insights (v1.3) ask OpenAI
+- **AI features**: category suggestions in review (v1.2) and a finance chat on every screen (v1.3) ask OpenAI
   through a route that the local server adds, which holds the API key from `.env`, and only while
   the user has turned AI features on ([contracts/ai.md](contracts/ai.md), [R-24](research.md#r-24),
   [R-25](research.md#r-25)). Answers stream back through the route, and the chat's conversation is

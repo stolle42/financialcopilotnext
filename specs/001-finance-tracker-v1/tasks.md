@@ -1318,6 +1318,21 @@ this phase. The test commits of T102 – T107, written before that last request,
     hosted copy, which the `deployed` job tests, the switch is off and unavailable with the line
     beside it, also with AI features stored on, and review's button is unavailable; and the specs
     that turn AI features on skip there.
+- [ ] T116 [US8] The chat on every screen (owner, 2026-10-16): `FinanceChat.tsx` moves from
+  `src/ui/screens/insights/` to a new `src/ui/screens/chat/` and renders in the shell of
+  `src/ui/app/App.tsx` in place of `InsightsScreen.tsx`, outside `main`, which ends in space for
+  its button. The button shows its icon and its name as text, in the primary colour; following a
+  link in the chat closes it; and `aiFeaturesDescription` in `src/ui/messages.ts` names the chat
+  without Insights ([FR-100](spec.md#fr-100), [ui.md](contracts/ui.md#finance-chat)). Test first:
+  - in `e2e/ui/shell.spec.ts`: Transactions, Import, the profile editor and every other screen of
+    the sidebar show the button, with its name as text, in the colour of Add transaction; and on
+    a list long enough to scroll, scrolled to its end, the last row ends above the button;
+  - in `e2e/ui/insights.spec.ts`: the chat on Transactions shows the conversation asked on
+    Insights; following Settings or a source closes the chat, and the screen the link opens
+    shows; `chatButton` of `e2e/support/ai.ts` finds the button outside `main` too;
+  - in `e2e/us8-finance-chat.spec.ts`, scenarios 1 and 7 as [User Story 8](spec.md#user-story-8)
+    now words them;
+  - in `src/ui/messages.test.ts`, the Settings line names the finance chat without Insights.
 - [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
   describes, turn AI features off and on once to agree to the new warning, check that
   `git status` does not list `.env` and that `dist/` holds no part of the key, and walk the manual
@@ -1358,8 +1373,9 @@ its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061)
   backup keeps the marks. It follows Phase 11, whose version it raises. Order: T091 → T092 →
   T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T101 → T099.
 - **AI through OpenAI, and the finance chat (Phase 13)**: depends on Phase 12, whose suggestions
-  it moves to OpenAI; on US3, whose Insights screen holds the chat; and on US7, whose backup keeps
-  the conversation. Order: T102 → T103 → T104 → T109 → T106 → T112 → T107 → T114 → T115 → T108.
+  it moves to OpenAI; on US3, whose monthly totals the chat sends; and on US7, whose backup keeps
+  the conversation. Order: T102 → T103 → T104 → T109 → T106 → T112 → T107 → T114 → T115 → T116 →
+  T108.
   T105 → T110 → T111 come before T106 at any time, and T113 before T107. T109 comes before the
   chat's tasks, whose store checks `aiFeaturesOn`.
 
