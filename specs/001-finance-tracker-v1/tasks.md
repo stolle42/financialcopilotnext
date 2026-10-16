@@ -1296,7 +1296,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   scenarios 1–9, as [quickstart.md](quickstart.md#us8-finance-chat) describes them, with the
   stand-in of `e2e/support/ai.ts`. On a hosted copy only scenario 1 runs
   ([FR-106](spec.md#fr-106)). It passes once T102 – T113 are done.
-- [ ] T115 [US8] [SC-015](spec.md#sc-015) in `e2e/performance.spec.ts`, as
+- [X] T115 [US8] [SC-015](spec.md#sc-015) in `e2e/performance.spec.ts`, as
   [quickstart.md](quickstart.md#performance) describes it: with a generated backup of 5,000
   transactions in the last 13 months restored, AI features on and the stand-in holding its
   answer, the question and "Thinking…" show within 1 s of sending, and Stop ends the answer within
