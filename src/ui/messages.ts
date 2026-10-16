@@ -116,6 +116,8 @@ const recordWords: Record<string, string> = {
   pendingBatch: "the pending import",
   pendingRow: "a row of the pending import",
   settings: "the settings",
+  turn: "a question and answer of the finance chat's conversation",
+  source: "a source of an answer in the finance chat's conversation",
 };
 
 /** A field name in words: `openingBalanceCents` is "opening balance". */

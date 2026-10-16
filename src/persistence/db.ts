@@ -1,10 +1,17 @@
-import { openDB, type DBSchema, type IDBPDatabase, type StoreNames } from "idb";
+import {
+  openDB,
+  type DBSchema,
+  type IDBPDatabase,
+  type IDBPObjectStore,
+  type StoreNames,
+} from "idb";
 import type { Changes } from "@/domain/changes";
 import { seedState } from "@/domain/seed";
 import type {
   Account,
   Budget,
   Category,
+  ChatTurn,
   MappingProfile,
   PendingBatch,
   Refusal,
@@ -13,10 +20,13 @@ import type {
   Transaction,
 } from "@/domain/types";
 
-// One IndexedDB database holding the seven stores of data-model.md, storage layout (R-06).
+// One IndexedDB database holding the seven stores of data-model.md, storage layout (R-06). The
+// conversation is a second record of the settings store, so the schema stays at version 1, which
+// v1.2 can still open (R-26).
 
 const DATABASE_NAME = "financial-copilot";
 const SETTINGS_KEY = "settings";
+const CONVERSATION_KEY = "conversation";
 
 interface Schema extends DBSchema {
   accounts: { key: string; value: Account };
@@ -25,7 +35,10 @@ interface Schema extends DBSchema {
   budgets: { key: string; value: Budget };
   profiles: { key: string; value: MappingProfile };
   pendingBatch: { key: string; value: PendingBatch };
-  settings: { key: typeof SETTINGS_KEY; value: Settings };
+  settings: {
+    key: typeof SETTINGS_KEY | typeof CONVERSATION_KEY;
+    value: Settings | readonly ChatTurn[];
+  };
 }
 
 export type Database = IDBPDatabase<Schema>;
@@ -67,7 +80,7 @@ export function openDatabase(): Promise<Database> {
 export async function loadState(db: Database): Promise<State> {
   const storeNames = [...(Object.keys(recordStores) as RecordStore[]), "settings" as const];
   const transaction = db.transaction(storeNames, "readonly");
-  const [accounts, categories, transactions, budgets, profiles, batches, settings] =
+  const [accounts, categories, transactions, budgets, profiles, batches, settings, conversation] =
     await Promise.all([
       transaction.objectStore("accounts").getAll(),
       transaction.objectStore("categories").getAll(),
@@ -76,6 +89,7 @@ export async function loadState(db: Database): Promise<State> {
       transaction.objectStore("profiles").getAll(),
       transaction.objectStore("pendingBatch").getAll(),
       transaction.objectStore("settings").get(SETTINGS_KEY),
+      transaction.objectStore("settings").get(CONVERSATION_KEY),
       transaction.done,
     ]);
   if (!settings) throw new Error("The settings record is missing from storage");
@@ -86,8 +100,19 @@ export async function loadState(db: Database): Promise<State> {
     budgets,
     profiles,
     pendingBatch: batches[0] ?? null,
-    settings,
+    settings: settings as Settings,
+    conversation: (conversation as readonly ChatTurn[] | undefined) ?? [],
   };
+}
+
+/** Writes the conversation's record, or removes it for an empty conversation (R-26). */
+function writeConversation(
+  settings: IDBPObjectStore<Schema, StoreNames<Schema>[], "settings", "readwrite">,
+  turns: readonly ChatTurn[],
+): Promise<unknown> {
+  return turns.length > 0
+    ? settings.put(turns, CONVERSATION_KEY)
+    : settings.delete(CONVERSATION_KEY);
 }
 
 /** The refusal a write itself can give, when its option asks for a check inside the transaction. */
@@ -112,7 +137,13 @@ export async function writeChanges(
   changes: Changes,
   options: WriteOptions = {},
 ): Promise<Refusal<WriteRefusalCode> | null> {
-  const stores = (Object.keys(changes) as (keyof Changes)[]).filter((name) => changes[name]);
+  const stores = [
+    ...new Set(
+      (Object.keys(changes) as (keyof Changes)[])
+        .filter((name) => changes[name])
+        .map((name) => (name === "conversation" ? "settings" : name)),
+    ),
+  ];
   if (options.requireNoPendingBatch && !stores.includes("pendingBatch"))
     stores.push("pendingBatch");
   if (stores.length === 0) return null;
@@ -137,6 +168,11 @@ export async function writeChanges(
     }
     if (changes.settings) {
       requests.push(transaction.objectStore("settings").put(changes.settings.put, SETTINGS_KEY));
+    }
+    if (changes.conversation) {
+      requests.push(
+        writeConversation(transaction.objectStore("settings"), changes.conversation.put),
+      );
     }
   } catch (error) {
     // A request that throws at once, such as a record without its key, would otherwise let the
@@ -173,6 +209,9 @@ export async function replaceAll(db: Database, state: State): Promise<void> {
       for (const record of records[name]) requests.push(store.put(record as never));
     }
     requests.push(transaction.objectStore("settings").put(state.settings, SETTINGS_KEY));
+    if (state.conversation.length > 0) {
+      requests.push(writeConversation(transaction.objectStore("settings"), state.conversation));
+    }
   } catch (error) {
     // A request that throws at once would otherwise let the requests before it commit.
     transaction.abort();

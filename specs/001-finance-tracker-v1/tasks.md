@@ -1182,7 +1182,7 @@ this phase. The test commits of T102 – T107, written before that last request,
     and a source naming a deleted category passes;
   - in `src/domain/changes.test.ts`: `conversation` replaces the list, and deleting a category
     leaves the turns as they are.
-- [ ] T111 [US8] Storing and backing up the conversation: `src/persistence/db.ts` loads the record
+- [X] T111 [US8] Storing and backing up the conversation: `src/persistence/db.ts` loads the record
   under the key `conversation` of the `settings` store into `state.conversation`, an absent one as
   an empty list; writes `changes.conversation` in the same transaction as the other changes,
   removing the record for an empty list; and writes it in `replaceAll`. The schema stays at
