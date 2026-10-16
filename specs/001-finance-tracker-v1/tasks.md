@@ -1318,7 +1318,7 @@ this phase. The test commits of T102 – T107, written before that last request,
     hosted copy, which the `deployed` job tests, the switch is off and unavailable with the line
     beside it, also with AI features stored on, and review's button is unavailable; and the specs
     that turn AI features on skip there.
-- [ ] T116 [US8] The chat on every screen (owner, 2026-10-16): `FinanceChat.tsx` moves from
+- [X] T116 [US8] The chat on every screen (owner, 2026-10-16): `FinanceChat.tsx` moves from
   `src/ui/screens/insights/` to a new `src/ui/screens/chat/` and renders in the shell of
   `src/ui/app/App.tsx` in place of `InsightsScreen.tsx`, outside `main`, which ends in space for
   its button. The button shows its icon and its name as text, in the primary colour; opening

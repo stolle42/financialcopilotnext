@@ -244,7 +244,7 @@ const transactions = (count: number) => `${count} transaction${count === 1 ? "" 
 
 /** What AI features do and where their data goes, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
-  "Suggest categories in review, and the finance chat on Insights. AI features send data to OpenAI.";
+  "Suggest categories in review, and the finance chat. AI features send data to OpenAI.";
 
 /** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
 export const sharingWarning =
@@ -259,7 +259,7 @@ export const sharingWarning =
 export const aiFeaturesLocalOnly =
   "AI features need the app running on your computer. Run it locally to use them.";
 
-/** The finance chat's wording on Insights (contracts/ui.md, insights; FR-100 – FR-110). */
+/** The finance chat's wording (contracts/ui.md, finance chat; FR-100 – FR-110). */
 export const financeChat = {
   title: "Ask about your finances",
   examples: [

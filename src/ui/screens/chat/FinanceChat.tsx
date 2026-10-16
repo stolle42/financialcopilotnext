@@ -70,9 +70,10 @@ function Answer({ turn }: { turn: ChatTurn }) {
 const question = "self-end rounded-lg bg-muted px-3 py-2";
 
 /**
- * The finance chat on Insights (contracts/ui.md, insights; FR-100 – FR-110): a button that opens
- * the chat beside the screen. The conversation is stored, and the question being answered lives in
- * the store, so both outlast this screen (FR-104, FR-108).
+ * The finance chat (contracts/ui.md, finance chat; FR-100 – FR-110): a button fixed at the bottom
+ * right of every screen, which opens the chat beside the screen. The app shell renders it once, so
+ * it outlasts every screen; the conversation is stored, and the question being answered lives in
+ * the store (FR-104, FR-108).
  */
 export function FinanceChat() {
   const store = useStoreApi();
@@ -80,7 +81,8 @@ export function FinanceChat() {
   const conversation = useStore((state) => state.conversation);
   const session = useChatSession();
   const [open, setOpen] = useState(false);
-  // A question that failed goes back into the field, also after the user left Insights (FR-104).
+  // A question that failed goes back into the field, also when it failed while the chat was closed
+  // or another screen was open (FR-104).
   const [draft, setDraft] = useState(() => session.failure?.question ?? "");
   const [clearing, setClearing] = useState(false);
   const [clearFailed, setClearFailed] = useState(false);
@@ -92,6 +94,14 @@ export function FinanceChat() {
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight });
   }, [conversation, session.asking, open]);
+
+  // Another screen opening, by a link or by going back, closes the chat so that screen shows
+  // (FR-100).
+  useEffect(() => {
+    const close = () => setOpen(false);
+    window.addEventListener("hashchange", close);
+    return () => window.removeEventListener("hashchange", close);
+  }, []);
 
   async function send(text: string) {
     if (asking || text.trim() === "") return;
@@ -116,15 +126,21 @@ export function FinanceChat() {
   return (
     <>
       <Button
-        size="icon-lg"
-        className="fixed right-6 bottom-6 z-40 rounded-full shadow-lg"
-        aria-label={financeChat.title}
+        size="lg"
+        className="fixed right-6 bottom-6 z-40 h-10 rounded-full px-4 shadow-lg"
         onClick={() => setOpen(true)}
       >
         <MessageCircle aria-hidden />
+        {financeChat.title}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full sm:max-w-md">
+        <SheetContent
+          className="w-full sm:max-w-md"
+          onClick={(event) => {
+            // A link to the address already open raises no hashchange, yet still opens that screen.
+            if ((event.target as Element).closest("a[href]")) setOpen(false);
+          }}
+        >
           <SheetHeader className="flex-row items-center justify-between gap-2 pr-12">
             <SheetTitle>{financeChat.title}</SheetTitle>
             {conversation.length > 0 && (

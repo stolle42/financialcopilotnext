@@ -6,6 +6,7 @@ import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
 import { BackupScreen } from "@/ui/screens/backup/BackupScreen";
+import { FinanceChat } from "@/ui/screens/chat/FinanceChat";
 import { InsightsScreen } from "@/ui/screens/insights/InsightsScreen";
 import { BudgetsScreen } from "@/ui/screens/budgets/BudgetsScreen";
 import { CategoriesScreen } from "@/ui/screens/categories/CategoriesScreen";
@@ -131,8 +132,10 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                       </a>
                     ))}
                   </nav>
-                  <main className="flex-1 p-6">{screenFor(route)}</main>
+                  {/* Ends in space taller than the chat's button, which hides no content (FR-100). */}
+                  <main className="flex-1 p-6 pb-24">{screenFor(route)}</main>
                 </div>
+                <FinanceChat />
               </div>
               {form && (
                 <TransactionForm
