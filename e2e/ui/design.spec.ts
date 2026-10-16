@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { chat, chatButton } from "../support/ai";
-import { addAccount, addTransaction, reconcileAccount } from "../support/app";
+import { addAccount, addTransaction, putBudgets, reconcileAccount } from "../support/app";
 import { importWithProfile, saveMyBankProfile } from "../support/import";
 import { euros, expect, setToday, test } from "../support/test";
 
@@ -10,6 +10,7 @@ import { euros, expect, setToday, test } from "../support/test";
 const CANVAS = "rgb(238, 241, 247)";
 const CARD = "rgb(249, 250, 252)";
 const INK = "rgb(43, 51, 70)";
+const PRIMARY = "rgb(90, 112, 173)";
 const TRANSPARENT = "rgba(0, 0, 0, 0)";
 // The corners of ui.md: a card's, a notification's, and a control's or menu's.
 const CARD_CORNERS = "22px";
@@ -368,5 +369,72 @@ test.describe("cards (FR-114)", () => {
       NOTIFICATION_CORNERS,
     );
     expect(await style(notification, "box-shadow"), "notification").not.toBe("none");
+  });
+});
+
+test.describe("controls (FR-115)", () => {
+  test("fills Add transaction in the primary colour, raised and rounded, and Import CSV in the card colour", async ({
+    page,
+  }) => {
+    await open(page, "/", "Transactions");
+    const add = banner(page).getByRole("button", { name: "Add transaction" });
+    expect(await style(add, "background-color")).toBe(PRIMARY);
+    expect(await style(add, "border-top-left-radius")).toBe(CONTROL_CORNERS);
+    expect(await style(add, "box-shadow")).not.toBe("none");
+    const importCsv = main(page).getByRole("link", { name: "Import CSV" });
+    expect(await style(importCsv, "background-color")).toBe(CARD);
+    expect(await style(importCsv, "border-top-left-radius")).toBe(CONTROL_CORNERS);
+  });
+
+  test("rounds a date field and a select, filled in the card colour", async ({ page }) => {
+    await page.goto("/");
+    await addTransaction(page, { amount: "4.50", category: "Eating out" });
+    const filters = main(page).getByRole("region", { name: "Filters" });
+    for (const name of ["From", "Account"]) {
+      const field = filters.getByLabel(name, { exact: true });
+      expect(await style(field, "background-color"), name).toBe(CARD);
+      expect(await style(field, "border-top-left-radius"), name).toBe(CONTROL_CORNERS);
+    }
+  });
+
+  test("fills the pressed period preset in the primary colour", async ({ page }) => {
+    await open(page, "/#/insights", "Insights");
+    const pressed = main(page)
+      .getByRole("region", { name: "Period" })
+      .getByRole("button", { name: "This month", exact: true });
+    await expect(pressed).toHaveAttribute("aria-pressed", "true");
+    expect(await style(pressed, "background-color")).toBe(PRIMARY);
+    expect(await style(pressed, "color")).toBe(CARD);
+    expect(await style(pressed, "border-top-left-radius")).toBe(CONTROL_CORNERS);
+  });
+
+  test("shows the side tabs of Categories as a segmented control (FR-116)", async ({ page }) => {
+    await open(page, "/#/categories", "Categories");
+    const tabs = main(page).getByRole("tablist");
+    expect(await style(tabs, "background-color")).toBe(CARD);
+    expect(await style(tabs, "border-top-left-radius")).toBe(CONTROL_CORNERS);
+    expect(await style(tabs, "box-shadow"), "the outline").not.toBe("none");
+    const current = tabs.getByRole("tab", { selected: true });
+    expect(await style(current, "background-color")).toBe(CANVAS);
+    const other = tabs.getByRole("tab", { selected: false });
+    expect(await style(other, "background-color")).toBe(TRANSPARENT);
+    expect(await contrast(other), "the other tab's label").toBeGreaterThanOrEqual(4.5);
+  });
+
+  test("draws a budget bar 12px tall and fully rounded, on the canvas colour", async ({ page }) => {
+    await setToday(page, "2026-09-03");
+    await page.goto("/");
+    await addTransaction(page, { amount: "150.50", category: "Groceries" });
+    await putBudgets(page, { Groceries: 40000 });
+    await open(page, "/#/insights", "Insights");
+    const track = main(page)
+      .getByRole("region", { name: "Budgets" })
+      .getByRole("progressbar")
+      .locator('[data-slot="progress-track"]');
+    expect(await style(track, "height")).toBe("12px");
+    expect(Number.parseFloat(await style(track, "border-top-left-radius"))).toBeGreaterThanOrEqual(
+      6,
+    );
+    expect(await style(track, "background-color")).toBe(CANVAS);
   });
 });
