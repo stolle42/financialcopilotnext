@@ -1153,7 +1153,7 @@ this phase. The test commits of T102 – T107, written before that last request,
     `e2e/ui/review.spec.ts`, `e2e/messages.spec.ts`, `e2e/ui/settings.spec.ts` and
     `e2e/us7-backup.spec.ts`, the existing checks with the new stand-in, codes and wording
     ([SC-012](spec.md#sc-012)).
-- [ ] T105 [P] [US8] The chat's data: `chatContext(state, today)` in a new `src/domain/chat.ts`, as
+- [X] T105 [P] [US8] The chat's data: `chatContext(state, today)` in a new `src/domain/chat.ts`, as
   [R-25](research.md#r-25) and [ai.md](contracts/ai.md#finance-chat) describe it
   ([FR-102](spec.md#fr-102)). Test first in `src/domain/chat.test.ts`: the period runs from the
   first day of the month 12 months back to today, also across a year's end; each month's totals

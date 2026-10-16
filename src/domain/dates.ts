@@ -110,6 +110,19 @@ export function datesInPeriod(period: Period): string[] {
   return dates;
 }
 
+/** The first day of the month `months` months before the month of `date`. */
+export function startOfMonthsBefore(date: string, months: number): string {
+  const [year, month] = partsOf(date);
+  const [startYear, startMonth] = firstOfMonth(year, month, -months);
+  return dateOf(startYear, startMonth, 1);
+}
+
+/** The whole of a `YYYY-MM` month, as a period. */
+export function monthPeriod(month: string): Period {
+  const [year, number] = partsOf(`${month}-01`);
+  return { start: dateOf(year, number, 1), end: lastDayOf(year, number) };
+}
+
 /** Every `YYYY-MM` month the period touches, partial months at both ends included, in order. */
 export function monthsInPeriod(period: Period): string[] {
   const months: string[] = [];
