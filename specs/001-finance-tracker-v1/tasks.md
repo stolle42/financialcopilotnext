@@ -18,15 +18,15 @@ test commits stay on the phase branch: `main` gets each finished phase as one sq
 every commit on `main` stays green.
 
 **Organization**: Phases 1 and 2 build the shared base. Phases 3–9 follow the user stories in
-priority order. Each story phase ends with that story's end-to-end journey from
-[quickstart.md](quickstart.md#validation-scenarios).
+priority order, and Phase 13 adds User Story 8. Each story phase ends with that story's end-to-end
+journey from [quickstart.md](quickstart.md#validation-scenarios).
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: can run in parallel with the neighbouring [P] tasks, because it touches different files
   and depends on no unfinished task. A task that installs a package changes `package.json`, so run
   only one such task at a time.
-- **[Story]**: US1 … US7, the [user stories](spec.md#user-scenarios) of the spec.
+- **[Story]**: US1 … US8, the [user stories](spec.md#user-scenarios) of the spec.
 - Paths are relative to the repository root ([plan.md](plan.md#project-structure)).
 
 ## Conventions for every task
@@ -1065,13 +1065,19 @@ Push and run the post-push check.
 ## Phase 13: AI through OpenAI, and the finance chat
 
 **Purpose**: both AI features ask OpenAI through a route that the local server adds, with the key in
-`.env`, in place of the hosted n8n workflow; and Insights gains a finance chat about the user's own
-data, available only while AI features are on, which only the app run locally allows
-([FR-061](spec.md#fr-061), [FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095),
-[FR-100](spec.md#fr-100) – [FR-106](spec.md#fr-106), [R-24](research.md#r-24),
-[R-25](research.md#r-25), [ai.md](contracts/ai.md)). The owner asked for both on 2026-10-15,
-after v1.2, and on 2026-10-16 that a hosted copy keep AI features off (T109). The spec, contracts
-and research change first, in the commits that add this phase.
+`.env`, in place of the hosted n8n workflow; and Insights gains the finance chat of
+[User Story 8](spec.md#user-story-8), about the user's own data, available only while AI features
+are on, which only the app run locally allows ([FR-061](spec.md#fr-061),
+[FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [FR-100](spec.md#fr-100) –
+[FR-110](spec.md#fr-110), [R-24](research.md#r-24) – [R-26](research.md#r-26),
+[ai.md](contracts/ai.md)). The owner asked for both on 2026-10-15, after v1.2. On 2026-10-16 the
+owner asked that a hosted copy keep AI features off (T109), and then for streamed answers with
+Stop, answers that rest only on the data, sources that open the transaction list, and a stored
+conversation (T110 – T115). The spec, contracts and research change first, in the commits that add
+this phase. The test commits of T102 – T107, written before that last request, change with it.
+
+**Independent Test**: User Story 8's, automated as `e2e/us8-finance-chat.spec.ts`
+([quickstart.md](quickstart.md#us8-finance-chat)).
 
 - [ ] T102 The local route in a new `server/aiRoute.ts`: a Vite plugin, applied when serving, that
   reads `OPENAI_API_KEY` with `loadEnv(mode, envDir, "OPENAI_")` and, with a key, answers
@@ -1085,27 +1091,41 @@ and research change first, in the commits that add this phase.
   - in `server/aiRoute.test.ts`, with OpenAI's `fetch` stubbed: without a key, and with an empty
     one, the plugin adds no route; a POST from the app's origin, or without an Origin, goes
     unchanged to OpenAI's Responses API with only the key and the content type, and OpenAI's
-    status, content type and body come back; a GET, another Origin, `Origin: null` and a caller
-    that is not this computer get 403 and send nothing; a body over 2 MB gets 413 and sends
-    nothing; a failed call to OpenAI gives 502; and closing the request aborts OpenAI's;
+    status, content type and body come back, a body that OpenAI sends in parts reaching the
+    browser part by part, the first before OpenAI's last ([R-26](research.md#r-26)); a GET,
+    another Origin, `Origin: null` and a caller that is not this computer get 403 and send
+    nothing; a body over 2 MB gets 413 and sends nothing; a failed call to OpenAI gives 502; and
+    closing the request aborts OpenAI's;
   - in `e2e/ui/shell.spec.ts`, the production CSP's `connect-src` is `'self'` alone.
 
   The test commit adds `src/ai/path.ts`, the path only, so the specs of T104 and T107 can load.
-- [ ] T103 The transport in a new `src/ai/openai.ts`: `askOpenAi` posts
-  `{ model, store: false, instructions, input, text }` to the path of `src/ai/path.ts`, reads the
-  `output_text` of the answer's message items, checks it against the feature's zod schema, and
-  turns every failure into `ai-unreachable`, `ai-failed`, `ai-timeout` or `ai-answer-invalid`, as
-  [ai.md](contracts/ai.md#failures) says. A new `src/ai/testing.ts` builds answers of the Responses
-  API for Vitest and Playwright ([FR-094](spec.md#fr-094), [R-24](research.md#r-24)). Test first
-  in `src/ai/openai.test.ts`, with `fetch` stubbed: the request's path, method, content type and
-  body, with the model, `store: false` and a strict format; the text of the message items, after a
-  reasoning item; a rejected fetch, and a 403, 404, 405 or 502 with an empty, text or HTML body,
-  give `ai-unreachable`; OpenAI's error JSON with 400, 401, 404, 429 or 500 gives `ai-failed`; a
-  2xx body that is not JSON, `status: "incomplete"`, a refusal, no text, text that is not JSON,
-  and JSON of another shape give `ai-answer-invalid`; with fake timers, no answer within 4 minutes
-  gives `ai-timeout`, and the timeout stays below Firefox's 300 seconds; aborting the caller's
-  signal, before or during the request, resolves as cancelled; and nothing ever rejects. The test
-  commit adds `src/ai/testing.ts`.
+- [ ] T103 The transport in a new `src/ai/openai.ts`: `askOpenAi(request, signal, onText?)` posts
+  `{ model, store: false, stream: true, instructions, input, text }` to the path of
+  `src/ai/path.ts` and reads the server-sent events as [ai.md](contracts/ai.md#answer) says. After
+  each `response.output_text.delta` it reports the text so far to `onText`; on
+  `response.completed` it checks the whole text against the feature's zod schema; and it turns
+  every failure into `ai-unreachable`, `ai-failed`, `ai-timeout` or `ai-answer-invalid`, as
+  [ai.md](contracts/ai.md#failures) says. A new `src/ai/testing.ts` builds event streams of the
+  Responses API for Vitest and Playwright, whole or fed event by event through a `ReadableStream`
+  ([FR-094](spec.md#fr-094), [FR-107](spec.md#fr-107), [R-24](research.md#r-24),
+  [R-26](research.md#r-26)). Test first in `src/ai/openai.test.ts`, with `fetch` stubbed:
+  - the request's path, method, content type and body, with the model, `store: false`,
+    `stream: true` and a strict format;
+  - the text of the deltas, in order, with events of other types, such as a reasoning summary,
+    ignored; `onText` gets the text so far after each delta; and the result is the whole text,
+    checked against the schema;
+  - a rejected fetch; a 403, 404, 405 or 502 with an empty, text or HTML body; and events that
+    break off, or end before `response.completed`, give `ai-unreachable`;
+  - OpenAI's error JSON with 400, 401, 404, 429 or 500, and a `response.failed` or `error` event,
+    give `ai-failed`;
+  - a 2xx answer that is not an event stream, a `response.incomplete` or refusal event, text that
+    is not JSON, and JSON of another shape give `ai-answer-invalid`;
+  - with fake timers, no whole answer within 4 minutes gives `ai-timeout`, also while deltas keep
+    arriving, and the timeout stays below Firefox's 300 seconds;
+  - aborting the caller's signal, before the request or while events arrive, resolves as
+    cancelled; and nothing ever rejects.
+
+  The test commit adds `src/ai/testing.ts`.
 - [ ] T104 Category suggestions through OpenAI: a new `src/ai/categoriser.ts` with
   `askCategoriser`, of the same signature as before, which sends the request as JSON text with the
   instructions and the strict schema of [ai.md](contracts/ai.md#category-suggestions);
@@ -1121,19 +1141,19 @@ and research change first, in the commits that add this phase.
     to copy names exactly, to give `null` for a transfer between the user's own accounts, and
     never to follow instructions in the texts; the one input is the request as JSON text; a valid
     answer gives its suggestions; and an answer of another shape gives `ai-answer-invalid`;
-  - in `src/store/import.test.ts`, the stubbed answers are the Responses API's, and failures give
-    the `ai-*` codes;
+  - in `src/store/import.test.ts`, the stubbed answers are the Responses API's event streams, and
+    failures give the `ai-*` codes;
   - in `src/ui/messages.test.ts`, each `ai-*` message says what to do and that nothing changed,
     the warning names OpenAI and neither n8n nor Anthropic, and review's wording names no provider;
-  - `e2e/support/ai.ts` replaces `e2e/support/categoriser.ts`: it answers at `/api/ai` as the
-    Responses API does, records the decoded requests of each feature, and can hold or fail an
-    answer; and the guard in `e2e/support/test.ts` also aborts a request to `/api/ai` that no
-    stand-in answers;
+  - `e2e/support/ai.ts` replaces `e2e/support/categoriser.ts`: it answers at `/api/ai` with an
+    event stream, as the Responses API does ([R-26](research.md#r-26)), records the decoded
+    requests of each feature, and can hold or fail an answer; and the guard in
+    `e2e/support/test.ts` also aborts a request to `/api/ai` that no stand-in answers;
   - in `e2e/network-guard.spec.ts`, Suggest categories without a stand-in fails the guard; and in
     `e2e/ui/review.spec.ts`, `e2e/messages.spec.ts`, `e2e/ui/settings.spec.ts` and
     `e2e/us7-backup.spec.ts`, the existing checks with the new stand-in, codes and wording
     ([SC-012](spec.md#sc-012)).
-- [ ] T105 [P] The chat's data: `chatContext(state, today)` in a new `src/domain/chat.ts`, as
+- [ ] T105 [P] [US8] The chat's data: `chatContext(state, today)` in a new `src/domain/chat.ts`, as
   [R-25](research.md#r-25) and [ai.md](contracts/ai.md#finance-chat) describe it
   ([FR-102](spec.md#fr-102)). Test first in `src/domain/chat.test.ts`: the period runs from the
   first day of the month 12 months back to today, also across a year's end; each month's totals
@@ -1141,38 +1161,146 @@ and research change first, in the commits that add this phase.
   transactions outside the period are left out; rows are by date, then order of entry, with money
   out negative, in euros, such as `-12.34`; accounts carry their balance, and budgets this month's
   spending; and no id, colour, profile, pending import or setting appears.
-- [ ] T106 Asking the chat: a new `src/ai/chat.ts` with `askFinanceChat`, which sends the
-  instructions and context of [ai.md](contracts/ai.md#finance-chat), at most the last 10 turns and
-  the question; and `askChat(store, turns, question, signal)` in a new `src/store/chat.ts`, which
-  refuses with `ai-features-off` and sends nothing while AI features are off, builds `chatContext`
-  for `todayLocal()`, and writes nothing ([FR-102](spec.md#fr-102) – [FR-104](spec.md#fr-104),
-  [R-25](research.md#r-25)). Test first:
-  - in `src/ai/chat.test.ts`: the format name `finance_chat_answer` and its strict schema; the
-    instructions hold the rules of scope and of untrusted descriptions, and end with the context as
-    JSON; the input holds the earlier turns in order, as user and assistant messages, at most the
-    last 10, then the question; an answer gives `inScope` and `answer`; and an empty answer in
-    scope gives `ai-answer-invalid`;
-  - in `src/store/chat.test.ts`, with `fake-indexeddb` and `fetch` stubbed: with AI features off,
-    `ai-features-off`, and nothing is sent; it sends today's context; it resolves to the answer;
-    memory and storage stay unchanged; and an aborted question resolves as cancelled.
-- [ ] T107 The finance chat on Insights: a new `src/ui/screens/insights/FinanceChat.tsx` in
-  `InsightsScreen.tsx`, as [ui.md](contracts/ui.md#insights) describes it, with its wording, its
-  fixed answer out of scope, and the Settings line and the warning for both features, in
-  `src/ui/messages.ts` ([FR-095](spec.md#fr-095), [FR-100](spec.md#fr-100) –
-  [FR-104](spec.md#fr-104), [ui.md](contracts/ui.md#settings)). Test first:
-  - in `e2e/ui/insights.spec.ts`, with the stand-in: the button opens the chat; with AI features
-    off, the chat says that it needs them, links to Settings and sends nothing; an example question
-    sends at once, and its answer shows as plain text after it; a typed question sends with Enter,
-    and the next one sends the first turn too; while an answer is held, "Thinking…" shows and Send
-    is unavailable; an answer out of scope shows the fixed answer; a failure shows its message and
-    keeps the conversation and the question; closing and opening keeps the conversation; and
-    leaving Insights while an answer is held shows nothing later, with the chat empty on return;
+- [ ] T110 [US8] The conversation in the domain: `ChatTurn` and `ChatSource` in
+  `src/domain/types.ts`, as [data-model.md](data-model.md#conversation) describes them, and
+  `conversation: readonly ChatTurn[]` in `State`, empty in the seed; `conversation?: { put:
+  readonly ChatTurn[] }` in `Changes`, which replaces the whole list; in `src/domain/chat.ts`,
+  `chatSources(state, named)`, which turns the sources an answer names into sources with ids, and
+  `addTurn` and `clearConversation`, which return those changes; and invariant 9 in
+  `src/domain/invariants.ts` ([FR-104](spec.md#fr-104), [FR-108](spec.md#fr-108),
+  [FR-110](spec.md#fr-110), [R-26](research.md#r-26)). The data model's constraints, verbatim:
+  `question` "Non-empty after trimming"; `answer` "Empty when out of scope, and when stopped before
+  its first words"; `outOfScope` and `stopped` "`true`, or absent"; `sources` "Empty when out of
+  scope or stopped"; a source's `name` "Non-empty", its dates "`from` on or before `to`", and its
+  `categoryId` "May name a category deleted since". Test first:
+  - in `src/domain/chat.test.ts`: a category named by side and name, compared by name key, and an
+    account named by name, become their ids; a source with dates alone keeps `null` for both; a
+    source whose category is of the other side or does not exist, whose account does not exist,
+    whose name is empty, or whose dates are invalid or reversed is left out; `addTurn` appends a
+    turn at the end; and `clearConversation` empties the list;
+  - in `src/domain/invariants.test.ts`: each rule of invariant 9 fails for a turn that breaks it,
+    and a source naming a deleted category passes;
+  - in `src/domain/changes.test.ts`: `conversation` replaces the list, and deleting a category
+    leaves the turns as they are.
+- [ ] T111 [US8] Storing and backing up the conversation: `src/persistence/db.ts` loads the record
+  under the key `conversation` of the `settings` store into `state.conversation`, an absent one as
+  an empty list; writes `changes.conversation` in the same transaction as the other changes,
+  removing the record for an empty list; and writes it in `replaceAll`. The schema stays at
+  version 1. `src/files/backup.ts` saves `conversation` in `data` only while it holds a turn,
+  reads a file without it as an empty conversation, and refuses a file whose turns break
+  invariant 9 with `backup-damaged`, which `src/ui/messages.ts` words for the conversation
+  ([FR-070](spec.md#fr-070) – [FR-072](spec.md#fr-072), [FR-104](spec.md#fr-104),
+  [SC-014](spec.md#sc-014), [backup-file.md](contracts/backup-file.md#compatibility),
+  [R-26](research.md#r-26)). Test first:
+  - in `src/persistence/db.test.ts`: a database without the record loads an empty conversation; a
+    written conversation loads again; an empty one removes the record; the database stays at
+    version 1; and a failed write leaves the record as it was;
+  - in `src/files/backup.test.ts`: a round trip with a conversation, and one without, gives the
+    same `data`; a file without `conversation` restores an empty one; and a damaged turn is
+    refused;
+  - in `src/ui/messages.test.ts`, `backup-damaged` names the conversation in plain words;
+  - in `e2e/us7-backup.spec.ts`, where AI features can be on, the round trip includes a
+    conversation ([SC-014](spec.md#sc-014)).
+- [ ] T106 [US8] Asking the chat: a new `src/ai/chat.ts` with
+  `askFinanceChat(context, turns, question, signal, onAnswer)`. It sends the instructions and
+  context of [ai.md](contracts/ai.md#finance-chat), the history it describes and the question,
+  through `askOpenAi`; reads the answer as it arrives with `answerSoFar`, and reports the
+  `{ inScope, answer }` so far to `onAnswer`; stops the request once `inScope` reads false; and
+  resolves to `{ inScope, answer, sources }`, with the sources as the answer names them
+  ([FR-102](spec.md#fr-102), [FR-103](spec.md#fr-103), [FR-107](spec.md#fr-107),
+  [FR-109](spec.md#fr-109), [FR-110](spec.md#fr-110), [R-25](research.md#r-25),
+  [R-26](research.md#r-26)). Test first in `src/ai/chat.test.ts`, with `fetch` stubbed:
+  - the format name `finance_chat_answer` and its strict schema: `inScope`, `answer` and
+    `sources`, in that order and all required, with each source's `name`, `from` and `to`, its
+    `category` of `side` and `name` or `null`, and its `account` or `null`;
+  - the instructions hold the rules of scope, of untrusted descriptions, of resting only on the
+    data and saying what is missing, and of sources, and end with the context as JSON;
+  - the input holds the earlier turns that have an answer text, oldest first, as user and
+    assistant messages, at most the last 10, a stopped one with its text so far, then the
+    question; turns out of scope, and turns stopped before their first words, are left out;
+  - `answerSoFar` reads `inScope` once it is complete, and the answer's string as far as it has
+    arrived, with escapes such as `\n`, `\"` and `\u00e9` decoded and no escape cut in half;
+  - `onAnswer` gets the growing answer, delta by delta; an answer out of scope aborts the request
+    as soon as it reads so, and resolves as out of scope; an empty answer in scope gives
+    `ai-answer-invalid`; and the transport's failures, and a cancel, pass on.
+- [ ] T112 [US8] The chat's session in the store: `src/store/chat.ts` keeps in memory, outside any
+  component, the question being answered, its answer so far, and the last failure with its
+  question, and lets the UI subscribe to them ([FR-104](spec.md#fr-104),
+  [FR-108](spec.md#fr-108), [FR-110](spec.md#fr-110), [R-26](research.md#r-26)).
+  - `askChat(store, question)` refuses with `ai-features-off`, and sends nothing, while AI
+    features are off; builds `chatContext` for `todayLocal()`; sends the stored conversation with
+    the question; and, once the answer is complete or out of scope, stores the turn with `addTurn`
+    and the sources of `chatSources` (T110).
+  - `stopChat(store)` aborts the request and stores the turn with its text so far, marked
+    `stopped`, without sources. `setAiFeatures(store, false)` does the same.
+  - A failure stores nothing and keeps the question for the field. `clearConversation(store)`
+    empties the conversation.
+
+  Test first in `src/store/chat.test.ts`, with `fake-indexeddb` and `fetch` stubbed, feeding the
+  events one by one:
+  - with AI features off, `ai-features-off`, and nothing is sent or stored;
+  - it sends today's context, the stored turns and the question;
+  - the session shows the question at once, then the answer as it grows;
+  - a complete answer is stored, with its sources' ids, in memory and in storage, and the session
+    is empty again;
+  - an answer out of scope is stored as such, with no text and no sources;
+  - Stop, before the first words and after some, stores the text so far, marked stopped, without
+    sources; turning AI features off does the same;
+  - a failure, before any text or after some, stores nothing, and the session holds the code and
+    the question;
+  - while an answer is awaited, a second question is refused and sends nothing;
+  - a failed write leaves the conversation as it was, and the session holds `save-failed`;
+  - clearing empties the conversation in memory and in storage.
+- [ ] T113 [P] [US8] Transaction filters from the address: `parseRoute` in `src/ui/app/router.ts`
+  reads the query of `#/?category=<id>&account=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD`, each part
+  optional, into the transactions route, and `TransactionsScreen.tsx` starts with those filters,
+  ignoring an id it does not know and a date that is not valid ([FR-110](spec.md#fr-110),
+  [ui.md](contracts/ui.md#transactions), [R-26](research.md#r-26)). Test first:
+  - in `src/ui/app/router.test.ts`: each part alone, all together, none, and an empty or malformed
+    part; a query on another path leaves that path's route as it is;
+  - in `e2e/ui/transactions.spec.ts`: an address with a category and dates opens the list with
+    those filters set and only the matching rows; an unknown id and an invalid date are ignored;
+    and Clear filters clears them.
+- [ ] T107 [US8] The finance chat on Insights: a new `src/ui/screens/insights/FinanceChat.tsx` in
+  `InsightsScreen.tsx`, as [ui.md](contracts/ui.md#insights) describes it. It shows the stored
+  conversation and the session of `src/store/chat.ts` (T112). Its wording goes in
+  `src/ui/messages.ts`: the fixed answer out of scope, "Thinking…", "Stopped", "Sources", Stop,
+  Clear conversation and its confirmation, and the Settings line and the warning for both features
+  ([FR-095](spec.md#fr-095), [FR-100](spec.md#fr-100) – [FR-110](spec.md#fr-110),
+  [ui.md](contracts/ui.md#settings)). Test first:
+  - in `e2e/ui/insights.spec.ts`, with the stand-in:
+    - the button opens the chat; with AI features off, the chat says that it needs them, links to
+      Settings and sends nothing, and a stored conversation still shows;
+    - an example question sends at once, and its answer shows as plain text after it, followed by
+      its sources as links; a typed question sends with Enter, and the next one sends the first
+      turn too;
+    - while an answer is held, "Thinking…" shows, Stop takes Send's place, the field stays
+      editable, and Enter sends nothing; Stop then leaves the question with the mark "Stopped" and
+      no sources;
+    - an answer out of scope shows the fixed answer, without sources;
+    - a source opens Transactions with its filters, and returning to Insights shows the
+      conversation; a source whose category was deleted shows as text;
+    - a failure shows its message, keeps the conversation and puts the question back in the
+      field;
+    - closing and opening the chat, leaving Insights and reloading all keep the conversation; an
+      answer held while the user leaves Insights shows once released and the user is back;
+    - Clear conversation asks first: Cancel keeps the conversation, and confirming shows the
+      examples again;
   - in `e2e/network-guard.spec.ts`, opening Insights and the chat with AI features on sends nothing
     before a question;
   - in `e2e/messages.spec.ts`, `ai-unreachable` in the chat's alert ([SC-012](spec.md#sc-012));
   - in `src/ui/messages.test.ts` and `e2e/ui/settings.spec.ts`, the Settings line names both
     features, and the warning says that the chat sends amounts, dates and account balances while
     suggestions do not.
+- [ ] T114 [US8] The journey `e2e/us8-finance-chat.spec.ts`: [User Story 8](spec.md#user-story-8)
+  scenarios 1–9, as [quickstart.md](quickstart.md#us8-finance-chat) describes them, with the
+  stand-in of `e2e/support/ai.ts`. On a hosted copy only scenario 1 runs
+  ([FR-106](spec.md#fr-106)). It passes once T102 – T113 are done.
+- [ ] T115 [US8] [SC-015](spec.md#sc-015) in `e2e/performance.spec.ts`, as
+  [quickstart.md](quickstart.md#performance) describes it: with a generated backup of 5,000
+  transactions in the last 13 months restored, AI features on and the stand-in holding its
+  answer, the question and "Thinking…" show within 1 s of sending, and Stop ends the answer within
+  1 s, with no text after it once the stand-in answers. Skipped on a hosted copy.
 - [ ] T109 AI features only on the user's own computer (owner, 2026-10-16): `servedLocally` in a
   new `src/ai/local.ts`, true for the host names `localhost`, `127.0.0.1` and `[::1]`;
   `aiFeaturesOn(state)` in `src/store/settings.ts`, which `suggestCategories` and `askChat` check
@@ -1197,10 +1325,11 @@ and research change first, in the commits that add this phase.
   the tag `v1.3` goes on the phase's squash commit on `main` (constitution IX).
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.3 (constitution IX),
-MINOR because v1.2 reads v1.3 storage and backups, as the chat stores nothing, and no feature
-leaves the app as run locally; the hosted copy, which loses its AI features, serves only checks and
-demonstrations ([FR-061](spec.md#fr-061), [FR-105](spec.md#fr-105)). Push and run the post-push
-check.
+MINOR because v1.2 reads v1.3 storage and backups: the conversation is a second record of the
+settings store, which v1.2 does not read, and an optional key of a backup, which v1.2 drops
+([R-26](research.md#r-26)). No feature leaves the app as run locally; the hosted copy, which loses
+its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061),
+[FR-105](spec.md#fr-105)). Push and run the post-push check.
 
 ---
 
@@ -1229,8 +1358,9 @@ check.
   backup keeps the marks. It follows Phase 11, whose version it raises. Order: T091 → T092 →
   T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T101 → T099.
 - **AI through OpenAI, and the finance chat (Phase 13)**: depends on Phase 12, whose suggestions
-  it moves to OpenAI, and on US3, whose Insights screen holds the chat. Order: T102 → T103 → T104
-  → T106 → T107 → T109 → T108, with T105 at any time before T106.
+  it moves to OpenAI; on US3, whose Insights screen holds the chat; and on US7, whose backup keeps
+  the conversation. Order: T102 → T103 → T104 → T106 → T112 → T107 → T114 → T115 → T109 → T108.
+  T105 → T110 → T111 come before T106 at any time, and T113 before T107.
 
 ### Within Each Task and Story
 
@@ -1251,6 +1381,8 @@ check.
 - **US5**: T066 and T067 together, after T065.
 - **US7**: T072 and T073 together.
 - **Polish**: T077 and T078 together.
+- **Phase 13**: T105 and T113 together, alongside T102 – T104; T110 follows T105, because both
+  write `src/domain/chat.ts`.
 - **Ahead of their phase**: the domain modules of later stories depend only on Foundational and on
   T024/T025, so another agent can build them early: T034–T039, T053–T054, T058, T063, T068 and T072.
 
@@ -1297,6 +1429,14 @@ Task: "T067 [US5] Unaccounted scenarios in e2e/us3-insights.spec.ts"
 # US7:
 Task: "T072 [US7] Backup file format in src/files/backup.ts"
 Task: "T073 [US7] replaceAll in src/persistence/db.ts"
+```
+
+## Parallel Example: User Story 8
+
+```bash
+# Alongside the transport (T102 – T104):
+Task: "T105 [US8] The chat's data in src/domain/chat.ts"
+Task: "T113 [US8] Transaction filters from the address in src/ui/app/router.ts"
 ```
 
 ---
