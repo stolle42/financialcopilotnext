@@ -343,7 +343,8 @@ test.describe("cards (FR-114)", () => {
     expect(await style(options, "border-top-left-radius"), "options").toBe(CONTROL_CORNERS);
     expect(await style(options, "box-shadow"), "options").not.toBe("none");
     await page.keyboard.press("Escape");
-    await expect(options).toHaveCount(0);
+    // Base UI keeps a closed select's options in the page, hidden.
+    await expect(options).toBeHidden();
     await form.getByRole("button", { name: "Cancel" }).click();
     await expect(form).toHaveCount(0);
 
