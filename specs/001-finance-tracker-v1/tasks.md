@@ -1099,7 +1099,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `e2e/ui/shell.spec.ts`, the production CSP's `connect-src` is `'self'` alone.
 
   The test commit adds `src/ai/path.ts`, the path only, so the specs of T104 and T107 can load.
-- [ ] T103 The transport in a new `src/ai/openai.ts`: `askOpenAi(request, signal, onText?)` posts
+- [X] T103 The transport in a new `src/ai/openai.ts`: `askOpenAi(request, signal, onText?)` posts
   `{ model, store: false, stream: true, instructions, input, text }` to the path of
   `src/ai/path.ts` and reads the server-sent events as [ai.md](contracts/ai.md#answer) says. After
   each `response.output_text.delta` it reports the text so far to `onText`; on
