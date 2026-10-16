@@ -34,6 +34,8 @@ import { formatAmount, formatDate } from "@/ui/format";
 import { messageFor, type MessageCode } from "@/ui/messages";
 import { CellEditor, type Column } from "./CellEditor";
 import { OpenTransactionFormContext } from "./formContext";
+import { isCalendarDate } from "@/domain/dates";
+import type { ListFilters } from "@/ui/app/router";
 
 // The "All" option of a filter select; Base UI selects need a value for every option.
 const ALL = "";
@@ -173,20 +175,28 @@ const TransactionRow = memo(function TransactionRow({
 
 /**
  * Every transaction, newest first, with the account, category and date filters, and each value
- * editable in place (FR-016, FR-081, FR-083).
+ * editable in place (FR-016, FR-081, FR-083). `filters`, from the address, set the filters it
+ * starts with; an id it does not know and a date that is not valid are ignored (FR-110).
  */
-export function TransactionsScreen() {
+export function TransactionsScreen({ filters = {} }: { filters?: ListFilters }) {
   const openForm = useContext(OpenTransactionFormContext);
   const store = useStoreApi();
   const transactions = useStore((state) => state.transactions);
   const accounts = useStore((state) => state.accounts);
   const categories = useStore((state) => state.categories);
-  const [accountId, setAccountId] = useState(ALL);
-  const [categoryId, setCategoryId] = useState(ALL);
+  const [accountId, setAccountId] = useState(() =>
+    accounts.some((a) => a.id === filters.account) ? filters.account! : ALL,
+  );
+  const [categoryId, setCategoryId] = useState(() =>
+    categories.some((c) => c.id === filters.category) ? filters.category! : ALL,
+  );
   // What the date fields show, and the last range that held, which the list follows: a From after
   // To leaves the rows as they were, as the Insights period does (contracts/ui.md).
-  const [dates, setDates] = useState(allDates);
-  const [range, setRange] = useState(allDates);
+  const [dates, setDates] = useState<DateRange>(() => ({
+    from: filters.from && isCalendarDate(filters.from) ? filters.from : ALL,
+    to: filters.to && isCalendarDate(filters.to) ? filters.to : ALL,
+  }));
+  const [range, setRange] = useState(() => (isRange(dates) ? dates : allDates));
   const [editing, setEditing] = useState<EditedCell | null>(null);
   // The save of the cell being left, while it runs or after it was refused (see `edit`).
   const leaving = useRef<Promise<MessageCode | null> | null>(null);

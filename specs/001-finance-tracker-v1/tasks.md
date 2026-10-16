@@ -1251,7 +1251,7 @@ this phase. The test commits of T102 – T107, written before that last request,
   - while an answer is awaited, a second question is refused and sends nothing;
   - a failed write leaves the conversation as it was, and the session holds `save-failed`;
   - clearing empties the conversation in memory and in storage.
-- [ ] T113 [P] [US8] Transaction filters from the address: `parseRoute` in `src/ui/app/router.ts`
+- [X] T113 [P] [US8] Transaction filters from the address: `parseRoute` in `src/ui/app/router.ts`
   reads the query of `#/?category=<id>&account=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD`, each part
   optional, into the transactions route, and `TransactionsScreen.tsx` starts with those filters,
   ignoring an id it does not know and a date that is not valid ([FR-110](spec.md#fr-110),

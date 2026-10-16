@@ -17,7 +17,7 @@ import { SettingsScreen } from "@/ui/screens/settings/SettingsScreen";
 import { OpenTransactionFormContext } from "@/ui/screens/transactions/formContext";
 import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
-import { useRoute, type Route } from "./router";
+import { type Route, transactionsPath, useRoute } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
 import { version } from "../../../package.json";
 
@@ -55,7 +55,10 @@ function sidebarEntryOf(route: Route): Route["name"] {
 function screenFor(route: Route): ReactNode {
   switch (route.name) {
     case "transactions":
-      return <TransactionsScreen />;
+      // A new address starts the list again with its own filters (FR-110).
+      return (
+        <TransactionsScreen key={transactionsPath(route.filters ?? {})} filters={route.filters} />
+      );
     case "insights":
       return <InsightsScreen />;
     case "import":

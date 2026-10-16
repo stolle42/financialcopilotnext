@@ -2,8 +2,21 @@ import { useSyncExternalStore } from "react";
 
 // A hash router of our own: the build then works from any static host or local file (R-04).
 
+/**
+ * Filters of the transaction list that an address can set, as a source of the finance chat does:
+ * ids and `YYYY-MM-DD` dates, each optional (FR-110, R-26).
+ */
+export interface ListFilters {
+  category?: string;
+  account?: string;
+  from?: string;
+  to?: string;
+}
+
+const FILTER_KEYS = ["category", "account", "from", "to"] as const;
+
 export type Route =
-  | { name: "transactions" }
+  | { name: "transactions"; filters?: ListFilters }
   | { name: "insights" }
   | { name: "import" }
   | { name: "review" }
@@ -30,9 +43,29 @@ const fixedRoutes: Record<string, Route> = {
 
 const home: Route = { name: "transactions" };
 
-/** The route of a location hash; an empty or unknown hash opens Transactions (FR-063). */
+/** The filters a query holds, or none when no known part of it has a value. */
+function filtersOf(query: string): ListFilters | undefined {
+  const params = new URLSearchParams(query);
+  const filters: ListFilters = {};
+  for (const key of FILTER_KEYS) {
+    const value = params.get(key);
+    if (value) filters[key] = value;
+  }
+  return Object.keys(filters).length > 0 ? filters : undefined;
+}
+
+/**
+ * The route of a location hash; an empty or unknown hash opens Transactions (FR-063). On the home
+ * path, a query sets the list's filters; on any other path it is ignored.
+ */
 export function parseRoute(hash: string): Route {
-  const path = hash.replace(/^#/, "") || "/";
+  const address = hash.replace(/^#/, "");
+  const queryAt = address.indexOf("?");
+  const path = (queryAt < 0 ? address : address.slice(0, queryAt)) || "/";
+  if (path === "/" && queryAt >= 0) {
+    const filters = filtersOf(address.slice(queryAt + 1));
+    if (filters) return { name: "transactions", filters };
+  }
   const fixed = fixedRoutes[path];
   if (fixed) return fixed;
 
@@ -45,6 +78,17 @@ export function parseRoute(hash: string): Route {
     }
   }
   return home;
+}
+
+/** The path of the transaction list with `filters` set, as a source's link opens it (FR-110). */
+export function transactionsPath(filters: ListFilters): string {
+  const params = new URLSearchParams();
+  for (const key of FILTER_KEYS) {
+    const value = filters[key];
+    if (value) params.append(key, value);
+  }
+  const query = params.toString();
+  return query ? `/?${query}` : "/";
 }
 
 /** Opens `path`, such as `/insights`, as a new history entry. */
