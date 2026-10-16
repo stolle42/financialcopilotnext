@@ -54,3 +54,16 @@ test("carries a Content-Security-Policy that keeps everything on the app's origi
   expect(policy).toContain("style-src 'self'");
   expect(policy).not.toContain("unsafe-inline");
 });
+
+test("lets the page connect only to the app's own origin, where the AI route is (R-19, R-24)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const policy = await page
+    .locator('meta[http-equiv="Content-Security-Policy"]')
+    .getAttribute("content");
+  const directives = (policy ?? "").split(";").map((directive) => directive.trim());
+  expect(directives.filter((directive) => directive.startsWith("connect-src"))).toEqual([
+    "connect-src 'self'",
+  ]);
+});
