@@ -36,3 +36,13 @@ export interface PostedRequest {
   input: { role: "user" | "assistant"; content: string }[];
   text: { format: { type: string; name: string; strict: boolean; schema: unknown } };
 }
+
+/** The line after which a finance chat question's instructions hold its context as JSON. */
+const DATA_LINE = "\nData:\n";
+
+/** The context a finance chat question sent, read back from its instructions (contracts/ai.md). */
+export function chatContextOf(request: PostedRequest): unknown {
+  const at = request.instructions.lastIndexOf(DATA_LINE);
+  if (at < 0) throw new Error("The instructions hold no Data: line");
+  return JSON.parse(request.instructions.slice(at + DATA_LINE.length));
+}

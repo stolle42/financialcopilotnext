@@ -125,7 +125,7 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(byKey(parseBackup(serializeBackup(state, EXPORTED_AT)) as State)).toEqual(byKey(state));
   });
 
-  test("keeps the mark of a category Claude suggested (FR-093)", () => {
+  test("keeps the mark of a category the AI suggested (FR-093)", () => {
     const loaded = parseBackup(serializeBackup(everyEntityState(), EXPORTED_AT)) as State;
     const row = loaded.pendingBatch?.rows.find((r) => r.rowNumber === 2);
     expect(row).toMatchObject({

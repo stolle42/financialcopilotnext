@@ -134,7 +134,7 @@ describe("messages", () => {
     expect(messageFor({ code: "backup-damaged" })).toMatch(/incomplete|damaged/i);
   });
 
-  test("words a backup whose pending row holds a protected category as Claude's suggestion (FR-093)", () => {
+  test("words a backup whose pending row holds a protected category as the AI's suggestion (FR-093)", () => {
     const message = messageFor({
       code: "backup-damaged",
       details: { rule: "pending-row-suggestion-invalid", rowNumber: 2 },
@@ -149,44 +149,64 @@ describe("messages", () => {
     expect(catalogue.sharingWarning).toMatch(/purpose/i);
     expect(catalogue.sharingWarning).toMatch(/category names/i);
     expect(catalogue.sharingWarning).toContain("100");
-    expect(catalogue.sharingWarning).toContain("n8n");
-    expect(catalogue.sharingWarning).toContain("Anthropic");
+    expect(catalogue.sharingWarning).toContain("OpenAI");
+    expect(catalogue.aiFeaturesDescription).toContain("OpenAI");
   });
 
-  test("words the outcome of suggestions with the rows filled of the rows sent (FR-094)", () => {
+  test("names OpenAI as the one recipient, and neither n8n, Anthropic nor Claude (R-24)", () => {
+    const texts = [
+      catalogue.sharingWarning,
+      catalogue.aiFeaturesDescription,
+      catalogue.aiFeaturesNeeded,
+      ...(Object.keys(messages) as MessageCode[]).map((code) => messageFor({ code })),
+      messageFor({
+        code: "backup-damaged",
+        details: { rule: "pending-row-suggestion-invalid", rowNumber: 2 },
+      }),
+    ];
+    for (const text of texts) {
+      expect(text).not.toMatch(/n8n|Anthropic|Claude/);
+    }
+  });
+
+  test("words the outcome of suggestions with the rows filled of the rows sent, naming no provider (FR-094)", () => {
     expect(notifications.categoriesSuggested(14, 20)).toBe(
-      "Claude suggested categories for 14 of 20 rows.",
+      "The AI suggested categories for 14 of 20 rows.",
     );
     expect(notifications.categoriesSuggested(1, 3)).toBe(
-      "Claude suggested a category for 1 of 3 rows.",
+      "The AI suggested a category for 1 of 3 rows.",
     );
     expect(notifications.categoriesSuggested(1, 1)).toBe(
-      "Claude suggested a category for 1 of 1 row.",
+      "The AI suggested a category for 1 of 1 row.",
     );
     expect(notifications.categoriesSuggested(0, 3)).toBe(
-      "Claude found no category for the 3 rows sent.",
+      "The AI found no category for the 3 rows sent.",
     );
   });
 
   test("says that suggestions need AI features, and where to turn them on (FR-090)", () => {
     expect(catalogue.aiFeaturesNeeded).toMatch(/AI features/);
     expect(catalogue.aiFeaturesNeeded).toMatch(/Settings/);
-    expect(messageFor({ code: "ai-features-off" })).toMatch(/AI features/);
-    expect(messageFor({ code: "ai-features-off" })).toMatch(/nothing was sent/i);
   });
 
-  test("words each categoriser failure with what to do, and that no row changed (FR-094)", () => {
-    const codes = [
-      "categoriser-unreachable",
-      "categoriser-timeout",
-      "categoriser-failed",
-      "categoriser-answer-invalid",
-    ] as const;
+  test("words ai-features-off for any AI feature, saying that nothing was sent (FR-061)", () => {
+    const message = messageFor({ code: "ai-features-off" });
+    expect(message).toMatch(/AI features/);
+    expect(message).toMatch(/Settings/);
+    expect(message).toMatch(/nothing was sent/i);
+    expect(message).not.toMatch(/suggestion/i);
+  });
+
+  test("words each AI failure with what to do, and that nothing changed (FR-094, contracts/ai.md)", () => {
+    const codes = ["ai-unreachable", "ai-timeout", "ai-failed", "ai-answer-invalid"] as const;
     for (const code of codes) {
-      expect(messageFor({ code })).toMatch(/no row changed/i);
+      expect(messageFor({ code })).toMatch(/nothing changed/i);
+      expect(messageFor({ code })).toMatch(/try again/i);
     }
-    expect(messageFor({ code: "categoriser-unreachable" })).toMatch(/published/i);
-    expect(messageFor({ code: "categoriser-failed" })).toMatch(/credential/i);
+    expect(messageFor({ code: "ai-unreachable" })).toContain(".env");
+    expect(messageFor({ code: "ai-unreachable" })).toMatch(/OpenAI key/);
+    expect(messageFor({ code: "ai-failed" })).toMatch(/OpenAI/);
+    expect(messageFor({ code: "ai-failed" })).toMatch(/key/);
     expect(messageFor({ code: "suggestions-outdated" })).toMatch(/no suggestion was used/i);
   });
 

@@ -115,7 +115,7 @@ describe("confirmBatch (FR-027)", () => {
     expect(next.pendingBatch).toBeNull();
   });
 
-  test("books a category Claude suggested exactly as a chosen one, without the mark (FR-093)", () => {
+  test("books a category the AI suggested exactly as a chosen one, without the mark (FR-093)", () => {
     const groceries = (s: State) => categoryNamed(s, "expense", "Groceries");
     const chosen = withBatch((s) => [
       row(s, 2, -4520, { assignment: { type: "category", categoryId: groceries(s) } }),

@@ -153,7 +153,7 @@ describe("checkInvariants", () => {
     expect(checkInvariants(validState())).toBeNull();
   });
 
-  test("passes a row holding a category of its side as Claude's suggestion (FR-093)", () => {
+  test("passes a row holding a category of its side as the AI's suggestion (FR-093)", () => {
     const suggested = { type: "category", categoryId: "groceries", suggested: true };
     expect(checkInvariants(withRow({ assignment: suggested }))).toBeNull();
   });
@@ -370,7 +370,7 @@ describe("checkInvariants", () => {
       "pending-row-category-invalid",
     ],
     [
-      "7: a row in Uncategorised marked as Claude's suggestion",
+      "7: a row in Uncategorised marked as the AI's suggestion",
       () =>
         withRow({
           assignment: { type: "category", categoryId: "expense-uncategorised", suggested: true },
@@ -378,7 +378,7 @@ describe("checkInvariants", () => {
       "pending-row-suggestion-invalid",
     ],
     [
-      "7: a row in Unaccounted marked as Claude's suggestion",
+      "7: a row in Unaccounted marked as the AI's suggestion",
       () =>
         withRow({
           assignment: { type: "category", categoryId: "expense-unaccounted", suggested: true },

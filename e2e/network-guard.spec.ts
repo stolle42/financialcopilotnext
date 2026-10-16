@@ -1,5 +1,5 @@
 import { messageFor } from "../src/ui/messages";
-import { suggestButton, suggestCategories, turnOnAiFeatures } from "./support/categoriser";
+import { suggestButton, suggestCategories, turnOnAiFeatures } from "./support/ai";
 import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, test } from "./support/test";
 
@@ -30,7 +30,7 @@ test("turning AI features on and reviewing an import send nothing until Suggest 
   await page.waitForLoadState("networkidle");
 });
 
-test("the guard catches Suggest categories when no test answers in the workflow's place", async ({
+test("the guard catches Suggest categories when no test answers in OpenAI's place, though the route is on the app's origin (R-24)", async ({
   browser,
   baseURL,
 }) => {
@@ -44,7 +44,7 @@ test("the guard catches Suggest categories when no test answers in the workflow'
 
   // The guard aborted the request, so the app reports it as unreachable, and the guard fails.
   await expect(page.getByRole("main").getByRole("alert")).toHaveText(
-    messageFor({ code: "categoriser-unreachable" }),
+    messageFor({ code: "ai-unreachable" }),
   );
   await expect(check()).rejects.toThrow();
   await context.close();

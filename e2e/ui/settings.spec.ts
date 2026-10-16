@@ -3,7 +3,7 @@ import type { Settings } from "../../src/domain/types";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
 import { storedRecords } from "../support/app";
-import { aiFeaturesSwitch, sharingWarning } from "../support/categoriser";
+import { aiFeaturesSwitch, sharingWarning } from "../support/ai";
 import { expect, test } from "../support/test";
 
 // contracts/ui.md, settings; FR-084, FR-095, FR-061. The network guard also fails these tests on
@@ -34,7 +34,8 @@ test.describe("AI features (FR-095)", () => {
     await page.goto("/#/settings");
     await expect(aiFeaturesSwitch(page)).not.toBeChecked();
     await expect(main(page)).toContainText("Suggest categories");
-    await expect(main(page)).toContainText("Anthropic");
+    await expect(main(page)).toContainText("OpenAI");
+    await expect(main(page)).not.toContainText(/n8n|Anthropic/);
     expect(await storedSettings(page)).not.toHaveProperty("aiFeatures");
   });
 
@@ -46,6 +47,8 @@ test.describe("AI features (FR-095)", () => {
     await aiFeaturesSwitch(page).click();
 
     await expect(sharingWarning(page)).toContainText(catalogue.sharingWarning);
+    await expect(sharingWarning(page)).toContainText("OpenAI");
+    await expect(sharingWarning(page)).not.toContainText(/n8n|Anthropic/);
     await sharingWarning(page).getByRole("button", { name: "Cancel" }).click();
     await expect(sharingWarning(page)).toBeHidden();
     await expect(aiFeaturesSwitch(page)).not.toBeChecked();
@@ -100,6 +103,6 @@ test.describe("AI features (FR-095)", () => {
 
     await page.goto("/#/");
     await expect(main(page).getByRole("heading", { name: "Transactions" })).toBeVisible();
-    await expect(page.getByText("Anthropic")).toHaveCount(0);
+    await expect(page.getByText("OpenAI")).toHaveCount(0);
   });
 });

@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { openAiError, responseWith, type PostedRequest } from "@/ai/testing";
 import type { ProfileDraft } from "@/domain/import/profiles";
 import { suggestionRequest } from "@/domain/import/suggestions";
 import type { MappingProfile, ParsedRow, State } from "@/domain/types";
@@ -257,13 +258,16 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
       headers: { "Content-Type": "application/json" },
     });
 
-  /** A fetch that answers only when the test says so, as Claude thinking. */
+  /** OpenAI's answer whose message holds `suggestions` (contracts/ai.md, answer). */
+  const suggesting = (suggestions: unknown) => json(responseWith(suggestions));
+
+  /** A fetch that answers only when the test says so, as the AI thinking. */
   function heldAnswer() {
     let answer!: (response: Response) => void;
     fetchMock.mockImplementation(() => new Promise<Response>((resolve) => (answer = resolve)));
     return async (body: unknown) => {
       await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
-      answer(json(body));
+      answer(suggesting(body));
     };
   }
 
@@ -293,20 +297,22 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(store.getState()).toBe(before);
   });
 
-  test("sends the request of the suggestion rules", async () => {
+  test("sends the request of the suggestion rules as category suggestions (contracts/ai.md)", async () => {
     const { store } = await withBatch();
-    fetchMock.mockResolvedValue(json({ suggestions: [] }));
+    fetchMock.mockResolvedValue(suggesting({ suggestions: [] }));
 
     await ask(store);
 
-    const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as unknown;
-    expect(body).toEqual(suggestionRequest(store.getState()));
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as PostedRequest;
+    expect(body.text.format.name).toBe("category_suggestions");
+    expect(body.input).toHaveLength(1);
+    expect(JSON.parse(body.input[0]!.content)).toEqual(suggestionRequest(store.getState()));
   });
 
   test("fills rows with marks that survive reopening, and counts the rows sent and filled", async () => {
     const { db, store } = await withBatch();
     fetchMock.mockResolvedValue(
-      json({
+      suggesting({
         suggestions: [
           { rowNumber: 2, category: "Groceries" },
           { rowNumber: 3, category: "Groceries" },
@@ -331,19 +337,19 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
 
   test.each<[string, () => void, string]>([
     [
-      "n8n cannot be reached",
+      "the AI cannot be reached",
       () => fetchMock.mockRejectedValue(new TypeError("Failed to fetch")),
-      "categoriser-unreachable",
+      "ai-unreachable",
     ],
     [
-      "n8n reports a failure",
-      () => fetchMock.mockResolvedValue(json({ message: "Error" }, 500)),
-      "categoriser-failed",
+      "OpenAI reports a failure",
+      () => fetchMock.mockResolvedValue(json(openAiError("Incorrect API key provided."), 401)),
+      "ai-failed",
     ],
     [
       "the answer has the wrong form",
-      () => fetchMock.mockResolvedValue(json({ message: "Workflow was started" })),
-      "categoriser-answer-invalid",
+      () => fetchMock.mockResolvedValue(suggesting({ message: "Workflow was started" })),
+      "ai-answer-invalid",
     ],
   ])("when %s, refuses and changes nothing in memory or storage", async (_, answer, code) => {
     const { db, store } = await withBatch();
@@ -357,7 +363,7 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(await loadState(db)).toEqual(stored);
   });
 
-  test("keeps a choice the user makes while Claude answers", async () => {
+  test("keeps a choice the user makes while the AI answers", async () => {
     const { store } = await withBatch();
     const answer = heldAnswer();
     const travel = categoryNamed(store.getState(), "Travel");

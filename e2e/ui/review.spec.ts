@@ -6,6 +6,7 @@ import type {
   PendingBatch,
   Transaction,
 } from "../../src/domain/types";
+import { openAiError } from "../../src/ai/testing";
 import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
@@ -16,8 +17,8 @@ import {
   suggestButton,
   suggestCategories,
   turnOnAiFeatures,
-  type Reply,
-} from "../support/categoriser";
+  type SuggestionReply,
+} from "../support/ai";
 import { importWithProfile, saveDebitCreditProfile, saveMyBankProfile } from "../support/import";
 import { euros, expect, setToday, test } from "../support/test";
 
@@ -447,7 +448,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     }
   });
 
-  test("while Claude answers, the button says so, Confirm waits, and a choice made meanwhile is kept (FR-027, FR-092)", async ({
+  test("while the AI answers, the button says so, Confirm waits, and a choice made meanwhile is kept (FR-027, FR-092)", async ({
     page,
   }) => {
     const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
@@ -457,7 +458,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
 
     await suggestCategories(page);
 
-    await expect(suggestButton(page)).toHaveText("Asking Claude…");
+    await expect(suggestButton(page)).toHaveText("Asking the AI…");
     await expect(suggestButton(page)).toBeDisabled();
     await expect(confirmButton(page)).toBeDisabled();
     await choose(page, assignment(page, "Shop, expenses"), "Category", "Travel");
@@ -478,7 +479,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     await expect(confirmButton(page)).toBeEnabled();
   });
 
-  test("leaving review while Claude answers cancels the request and fills nothing (FR-090)", async ({
+  test("leaving review while the AI answers cancels the request and fills nothing (FR-090)", async ({
     page,
   }) => {
     const standIn = await standInCategoriser(page, suggestBySide("Groceries", "Salary"));
@@ -499,10 +500,10 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     }
   });
 
-  const failures: [MessageCode, Reply][] = [
-    ["categoriser-unreachable", () => "unreachable"],
-    ["categoriser-failed", () => ({ status: 500, json: { message: "Error in workflow" } })],
-    ["categoriser-answer-invalid", () => ({ json: { message: "Workflow was started" } })],
+  const failures: [MessageCode, SuggestionReply][] = [
+    ["ai-unreachable", () => "unreachable"],
+    ["ai-failed", () => ({ status: 401, json: openAiError("Incorrect API key provided.") })],
+    ["ai-answer-invalid", () => ({ json: { message: "Workflow was started" } })],
   ];
   for (const [code, reply] of failures) {
     test(`${code}: shows its message in review's alert and changes no row (FR-094)`, async ({
@@ -538,7 +539,7 @@ test.describe("the suggested mark (FR-093)", () => {
   const mark = (scope: Locator) => scope.getByText("Suggested", { exact: true });
 
   /**
-   * Imports August with AI features on and lets Claude's stand-in suggest: Groceries for every
+   * Imports August with AI features on and lets the AI's stand-in suggest: Groceries for every
    * Shop purchase, a mix for the Bäckerei Krüger group, and Transport for the parking ticket.
    */
   async function withSuggestions(page: Page) {
@@ -564,7 +565,7 @@ test.describe("the suggested mark (FR-093)", () => {
     );
   }
 
-  test("a suggested row shows the mark next to its category; a row Claude left alone does not", async ({
+  test("a suggested row shows the mark next to its category; a row the AI left alone does not", async ({
     page,
   }) => {
     await withSuggestions(page);
