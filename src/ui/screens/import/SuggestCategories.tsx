@@ -64,7 +64,7 @@ export function SuggestCategories({
         onClick={() => void ask()}
       >
         <Sparkles aria-hidden />
-        {asking ? "Asking Claude…" : `Suggest categories for ${rows(count)}`}
+        {asking ? "Asking the AI…" : `Suggest categories for ${rows(count)}`}
       </Button>
       {!aiFeatures && (
         <p className="text-sm text-muted-foreground">

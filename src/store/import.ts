@@ -1,4 +1,4 @@
-import { askCategoriser } from "@/categoriser/categoriser";
+import { askCategoriser } from "@/ai/categoriser";
 import { canStartImport, createBatch } from "@/domain/import/batch";
 import {
   confirmBatch as decideConfirm,
@@ -100,13 +100,13 @@ export interface SuggestOutcome {
 }
 
 /**
- * Asks Claude, through the n8n workflow, to suggest categories for the pending batch, and fills the
+ * Asks the AI, through the local route to OpenAI, to suggest categories for the pending batch, and fills the
  * rows the answer may fill (FR-090 – FR-094). Resolves to the outcome, a refusal, or `null` when
  * `signal` aborts first; nothing is written then, even if the answer had arrived. Never rejects.
  */
 export async function suggestCategories(store: Store, signal: AbortSignal) {
   const state = store.getState();
-  // Checked here too, so no screen can send data with AI features off (FR-061, R-23).
+  // Checked here too, so no screen can send data with AI features off (FR-061, R-24).
   if (state.settings.aiFeatures !== true) return { code: "ai-features-off" as const };
   if (!state.pendingBatch) return { code: "suggestions-outdated" as const };
   const request = suggestionRequest(state);

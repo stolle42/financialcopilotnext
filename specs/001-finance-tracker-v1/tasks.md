@@ -1126,7 +1126,7 @@ this phase. The test commits of T102 – T107, written before that last request,
     cancelled; and nothing ever rejects.
 
   The test commit adds `src/ai/testing.ts`.
-- [ ] T104 Category suggestions through OpenAI: a new `src/ai/categoriser.ts` with
+- [X] T104 Category suggestions through OpenAI: a new `src/ai/categoriser.ts` with
   `askCategoriser`, of the same signature as before, which sends the request as JSON text with the
   instructions and the strict schema of [ai.md](contracts/ai.md#category-suggestions);
   `src/store/import.ts` uses it; and `src/categoriser/`, `n8n/` and its line in `.prettierignore`

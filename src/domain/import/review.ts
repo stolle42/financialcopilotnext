@@ -37,7 +37,7 @@ function resolve(
   if (choice === "uncategorised") return uncategorisedAssignment(state.categories, side);
   if (choice.type === "category") {
     const category = state.categories.find((c) => c.id === choice.categoryId);
-    // A new assignment, so a user's choice never carries Claude's mark (FR-093).
+    // A new assignment, so a user's choice never carries the AI's mark (FR-093).
     return category?.side === side && category.role !== "unaccounted"
       ? { type: "category", categoryId: category.id }
       : null;

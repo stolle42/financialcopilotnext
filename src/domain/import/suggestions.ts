@@ -5,25 +5,25 @@ import type { Category, CategorisedTransaction, ParsedRow, Refusal, Side, State 
 import { proposedSide } from "./direction";
 import { reviewView, type ReviewView } from "./groups";
 
-// Category suggestions by Claude: which rows a request sends, what it holds, and how an answer
-// fills the batch (FR-090 – FR-093, contracts/categoriser.md).
+// Category suggestions by the AI: which rows a request sends, what it holds, and how an answer
+// fills the batch (FR-090 – FR-093, contracts/ai.md).
 
 /** At most this many rows per request (FR-090). */
 export const MAX_SUGGESTION_ROWS = 300;
 /** At most this many of the user's earlier decisions per request (FR-091). */
 export const MAX_SUGGESTION_EXAMPLES = 100;
 
-/** The batch was confirmed, discarded or replaced while Claude answered (FR-092). */
+/** The batch was confirmed, discarded or replaced while the AI answered (FR-092). */
 export type SuggestionRefusalCode = "suggestions-outdated";
 
-/** The body of a request (contracts/categoriser.md, request). */
+/** The body of a request (contracts/ai.md, category suggestions). */
 export interface SuggestionRequest {
   rows: { rowNumber: number; side: Side; counterparty: string | null; description: string }[];
   categories: Record<Side, string[]>;
   examples: { side: Side; description: string; category: string }[];
 }
 
-/** One entry of an answer: a category name for a row, or `null` (contracts/categoriser.md). */
+/** One entry of an answer: a category name for a row, or `null` (contracts/ai.md, category suggestions). */
 export interface Suggestion {
   rowNumber: number;
   category: string | null;

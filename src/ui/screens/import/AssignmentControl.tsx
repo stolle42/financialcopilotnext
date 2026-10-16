@@ -21,7 +21,7 @@ interface AssignmentControlProps {
   side: Side;
   /** `null` when the rows of a group differ. */
   assignment: Assignment | null;
-  /** Claude suggested the category, and the user has not assigned it since (FR-093). */
+  /** The AI suggested the category, and the user has not assigned it since (FR-093). */
   suggested: boolean;
   batchAccountId: string;
   onChoose: (choice: AssignmentChoice) => void;

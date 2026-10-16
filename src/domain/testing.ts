@@ -31,7 +31,7 @@ export function applyValid(state: State, changes: Changes): State {
 /**
  * A valid state with every entity type and every variant of each: accounts of several types, a
  * renamed and a new category, each kind of transaction including a reconciliation entry, budgets,
- * profiles with and without a header row, a pending batch with review progress, a category Claude
+ * profiles with and without a header row, a pending batch with review progress, a category the AI
  * suggested and an unparsable row, a manual-entry account other than Cash, AI features on, and a
  * conversation of the finance chat with every kind of turn and source. Backup tests round-trip it
  * (SC-014).

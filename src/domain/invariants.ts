@@ -230,7 +230,7 @@ function checkRow(
     if (category?.side !== proposedSide(row.amountCents) || category.role === "unaccounted") {
       return violation("pending-row-category-invalid", { rowNumber });
     }
-    // Claude suggests only ordinary categories (FR-092).
+    // The AI suggests only ordinary categories (FR-092).
     if (assignment.suggested && category.role !== null) {
       return violation("pending-row-suggestion-invalid", { rowNumber });
     }
