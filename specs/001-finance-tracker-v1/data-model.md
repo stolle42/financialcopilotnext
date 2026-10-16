@@ -133,7 +133,7 @@ row 1, as a spreadsheet shows it. It identifies the row within the batch and in 
 | `counterparty` | string \| `null` | Trimmed cell text; `null` when unmapped or empty, so the row has no vendor ([FR-026](spec.md#fr-026)) |
 | `duplicate` | boolean | Set once when the batch is created, never recomputed ([FR-024](spec.md#fr-024)) |
 | `included` | boolean | Starts as `!duplicate` ([FR-025](spec.md#fr-025)) |
-| `assignment` | `{ type: "category", categoryId, suggested? }` \| `{ type: "transfer", counterAccountId }` | Starts as the row side's "Uncategorised" ([FR-029](spec.md#fr-029)). `suggested` is `true` when Claude suggested the category, and absent otherwise: never `false`, never on a transfer ([FR-093](spec.md#fr-093)) |
+| `assignment` | `{ type: "category", categoryId, suggested? }` \| `{ type: "transfer", counterAccountId }` | Starts as the row side's "Uncategorised" ([FR-029](spec.md#fr-029)). `suggested` is `true` when the AI suggested the category, and absent otherwise: never `false`, never on a transfer ([FR-093](spec.md#fr-093)) |
 
 A category assignment uses the row's side: expense when `amountCents` ≤ 0, income otherwise
 ([R-12](research.md#r-12)). A transfer's counter-account differs from the batch account.
@@ -166,6 +166,9 @@ Derived values are computed by domain functions from the state above and never s
 - **Rows under review**: parsed rows with `included` true ([FR-025](spec.md#fr-025)). Vendor groups
   are formed over these rows, per side ([FR-026](spec.md#fr-026)).
 - **Budget progress** and **Insights aggregates**: see [R-14](research.md#r-14).
+- **Finance chat context**: the data one question of the finance chat sends, built when it is
+  asked and never stored, nor is the conversation ([FR-102](spec.md#fr-102),
+  [FR-104](spec.md#fr-104), [R-25](research.md#r-25)).
 
 ## Invariants
 

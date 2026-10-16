@@ -18,8 +18,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 
 - **Decision**: v1 is a single-page application that runs entirely in the browser and is served
   locally as static files. All data lives in IndexedDB in the user's browser profile. There is no
-  backend, no server-side code and no network traffic, except the category suggestions the user
-  asks for in review with AI features on, which go to a hosted n8n workflow ([R-23](#r-23)).
+  backend and no network traffic, except the requests of the AI features the user starts with AI
+  features on. Their one piece of server-side code is a route that the local server adds, which
+  passes them on to OpenAI ([R-24](#r-24)).
 - **Rationale**:
   - The spec describes this shape. v1 is "a local web app". Losing "the browser data" loses
     everything ([User Story 7](spec.md#user-story-7)). No capability may need a network
@@ -614,14 +615,15 @@ in the spec, so that the spec stays the single source of behaviour (constitution
       instead of the `<style>` element it injects by default. React applies style props through the
       DOM's style API, which CSP does not restrict, so per-category colours work the same way.
     - Notifications use Base UI's toast, not Sonner.
-  - **One exception, since v1.2**: `connect-src` also lists the origin of the hosted n8n workflow
-    that answers category suggestions, read from `src/categoriser/endpoint.ts`. The app sends a
-    request there only when the user selects Suggest categories with AI features on
-    ([FR-061](spec.md#fr-061), [R-23](#r-23)).
+  - **No exception**: the AI features post to `/api/ai` on the app's own origin, and the local
+    server passes their requests on to OpenAI ([R-24](#r-24)). `connect-src` therefore allows the
+    app's own origin alone. In v1.2, it also listed the origin of the hosted n8n workflow
+    ([R-23](#r-23)).
   - No web fonts and no CDN assets: the app uses the system font stack and bundled icons.
   - No analytics and no error-reporting SDK.
   - **Regression test**: the browser-test guard ([R-17](#r-17)) fails on any request outside the
-    app's origin and on any CSP violation the page reports.
+    app's origin, on a request to `/api/ai` that no test answers in OpenAI's place, and on any CSP
+    violation the page reports.
 - **Rationale**:
   - [FR-061](spec.md#fr-061) is a MUST, and telemetry is on the spec's "Never" list
     ([Out of Scope](spec.md#out-of-scope)).
@@ -744,10 +746,17 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 <a id="r-23"></a>
 ### R-23 · Category suggestions through a hosted n8n workflow that asks Claude
 
+**Superseded in part by [R-24](#r-24)** (owner, 2026-10-15), in v1.3. The n8n
+workflow, Claude, the address in the code, the CSP exception and `src/categoriser/` are gone: both
+AI features now ask OpenAI through a route of the local server, and the hosted copy has no AI
+features. What this entry decides about the AI features switch, the store's check, data
+minimisation, names rather than ids, one suggestion per row, the size and time of a request, the
+mark, concurrency, zod and the untrusted answer still holds.
+
 - **Decision** (owner, 2026-10-09 and 2026-10-12):
   - **Suggest categories** in review ([FR-090](spec.md#fr-090)) posts one JSON request to an n8n
     workflow on the owner's hosted n8n instance, such as n8n Cloud
-    ([contracts/categoriser.md](contracts/categoriser.md)). The workflow is committed as
+    ([contracts/ai.md](contracts/ai.md)). The workflow is committed as
     `n8n/financial-copilot-categories.json`:
     1. a Webhook node, the trigger, which answers through the Respond to Webhook node and allows
        the app's origins;
@@ -788,7 +797,7 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     exists, it holds a placeholder, and only the tests reach it. The cost: the address is public in
     every build, the Vercel copy included, so anyone could call the workflow and spend the owner's
     Anthropic credits. CORS stops only other web pages, not other callers. The safeguard is a
-    monthly spending limit on the Anthropic key ([quickstart.md](quickstart.md#category-suggestions)).
+    monthly spending limit on the Anthropic key ([quickstart.md](quickstart.md#ai-features)).
   - **n8n holds the key and the prompt.** The Anthropic API key stays in n8n's credential store,
     never in the browser, IndexedDB or a backup file. The prompt and the model change in n8n without
     a release of the app.
@@ -834,3 +843,130 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     adds a setting or a build step. The owner chose the address in the code.
   - **Chunked or parallel requests, one item per vendor group, or streaming**: faster for very
     large files, but more code for a size SC-001 does not reach.
+
+## AI through OpenAI, and the finance chat (v1.3)
+
+<a id="r-24"></a>
+### R-24 · AI requests through a route of the local server to OpenAI
+
+- **Decision** (owner, 2026-10-15), for [FR-105](spec.md#fr-105):
+  - Both AI features post to `POST /api/ai` on the app's own origin
+    ([contracts/ai.md](contracts/ai.md#route)). A Vite plugin of our own, `server/aiRoute.ts`, adds
+    that route to the dev server and to `vite preview`, the server of `npm start`. It reads
+    `OPENAI_API_KEY` from `.env` in the project folder, or from the environment, when the server
+    starts, and posts each request's body to OpenAI's Responses API with the key.
+    - Without a key, or with an empty one, it adds no route: a request ends in the server's own
+      404, and nothing leaves the computer.
+    - It answers only a POST from the computer itself, a loopback address, whose `Origin` header,
+      when there is one, is the app's own origin. Anything else gets 403, and a body over 2 MB gets
+      413.
+    - It forwards the body with only the key and the content type, no other header of the
+      browser's request, and returns OpenAI's status, content type and body. Closing the browser's
+      request cancels OpenAI's.
+  - `src/ai/openai.ts` is the only code that makes a request. It posts
+    `{ model, store: false, instructions, input, text }` with a strict JSON Schema for the answer,
+    reads the answer's `output_text`, and turns every failure into a code. `src/ai/categoriser.ts`
+    and `src/ai/chat.ts` hold each feature's prompt and answer schema ([R-25](#r-25)).
+    `src/ai/path.ts` holds the path and imports nothing, because Vite bundles its config without
+    the `@/` alias.
+  - The model is `gpt-6.1-sol`, one constant in `src/ai/openai.ts`.
+  - `.env` stays out of git, which ignores `.env*`; `.env.example`, with an empty key, is
+    committed.
+  - The production CSP allows connections to the app's own origin alone ([R-19](#r-19)).
+    `n8n/` and `src/categoriser/` are removed.
+- **Rationale**:
+  - **The key in `.env`** (owner, 2026-10-15). A variable without Vite's `VITE_` prefix never
+    reaches the bundle; only the server reads it. It never reaches the browser, IndexedDB or a
+    backup file either.
+  - **The server already runs**: `npm start` serves the build with `vite preview`
+    ([R-20](#r-20)), so the route is no new process to start. [R-23](#r-23) rejected "a proxy of
+    our own" as "a server to write, run and secure"; with the server already there, what remains
+    is about 60 lines in one plugin.
+  - **One provider, one path** (owner, 2026-10-15): both features share one key, one transport and
+    one recipient in the warning. Dropping n8n removes the public address that anyone could call to
+    spend the owner's credit, the workflow to publish, the CSP exception and the second third party.
+  - **The checks**:
+    - Vite's own CORS and host checks run before the route. The host check stops DNS rebinding,
+      as long as `allowedHosts` keeps its default, which [R-20](#r-20) does.
+    - The Origin check stops other web pages, other apps on `localhost` among them, including a
+      plain cross-site form post that needs no preflight.
+    - The loopback check matters only if someone starts the server with `--host`, which
+      [R-20](#r-20) rules out.
+    - Forwarding no other header keeps the browser's cookies for `localhost` away from OpenAI.
+  - **A plugin, not Vite's `server.proxy`**: the proxy option would hold the key in the resolved
+    config, which Vite prints with `--debug`, and forwards every header of the browser's request.
+  - **Failures by body, not by status**: OpenAI reports its own failures as JSON `{ error }`, with
+    any status, even 404 for an unknown model. Every other answer outside 2xx comes from no route
+    (an empty 404), from the route's checks or from a hosted copy, or is the route's 502 when
+    OpenAI cannot be reached, and means that the AI cannot be reached.
+  - **Timeout**: 4 minutes, as in [R-23](#r-23), below Firefox's own 300 seconds. The route adds
+    no timeout of its own.
+  - **No AI features in the hosted copy**: Vercel serves files only, so `/api/ai` answers there
+    with an error page, and the features say that the AI cannot be reached. The hosted copy is for
+    checks and demonstrations ([FR-061](spec.md#fr-061)).
+  - **Data at OpenAI**: OpenAI's API data policy applies to what a request holds. `store: false`
+    keeps the answer out of the responses OpenAI stores for continuing them.
+  - **Cost**: the owner gives the OpenAI project a monthly budget, or prepaid credit without
+    automatic recharge ([quickstart.md](quickstart.md#ai-features)).
+  - **Tests need no key**: Vitest stubs `fetch`, and tests the plugin against a local server with
+    OpenAI stubbed. Playwright answers at `/api/ai` in OpenAI's place, and the guard fails a
+    request there that no test answers, since a running preview may hold a key.
+    `playwright.config.ts` also starts its preview with an empty key.
+- **Alternatives considered**:
+  - **The key in the bundle**, as `VITE_OPENAI_API_KEY`: no route, but anyone who can load that
+    build can read a key that allows any use of the API.
+  - **Keeping n8n for suggestions**: two paths, two keys and three recipients in the warning.
+  - **A chat workflow in n8n**: works in the hosted copy, but as a public, unauthenticated chat on
+    the owner's key.
+  - **A Vercel Function**: AI features in the hosted copy too, but again a public address that
+    spends the owner's credit.
+  - **The `openai` package**: a dependency for one POST, which in a browser needs
+    `dangerouslyAllowBrowser`.
+
+<a id="r-25"></a>
+### R-25 · The finance chat: what a question sends and how it answers
+
+- **Decision** (owner, 2026-10-15):
+  - `chatContext(state, today)` in `src/domain/chat.ts` builds the data of
+    [FR-102](spec.md#fr-102), as [contracts/ai.md](contracts/ai.md#finance-chat) shows it:
+    - the period runs from the first day of the month 12 months before today's month, to today;
+    - each month's totals by category come from `insights` for that month ([R-14](#r-14));
+    - the budgets come from `budgetProgress` for today's month, and the balances from
+      `accountBalance`;
+    - every expense and income of the period is a row of date, description, amount and category
+      name, money out negative, in euros, by date and then order of entry.
+  - `src/ai/chat.ts` sends the instructions and then the context as JSON, then at most the last 10
+    turns as user and assistant messages, then the question. The answer has the strict shape
+    `{ inScope, answer }`. When `inScope` is false, the chat shows its fixed answer instead of the
+    model's text ([FR-103](spec.md#fr-103)).
+  - `askChat` in `src/store/chat.ts` refuses with `ai-features-off` while AI features are off,
+    takes today from the clock and writes nothing.
+  - The conversation lives in the chat's component on Insights, not in the store or IndexedDB
+    ([FR-104](spec.md#fr-104)).
+- **Rationale**:
+  - **Rows, not detection** (owner, 2026-10-15): subscriptions and price increases need the
+    single payments. The model groups similar descriptions better than a rule of ours would, and
+    the spec leaves recurring-transaction detection out of scope. The exact totals come from the
+    app, because models add up poorly.
+  - **13 months** reach a year back, so a yearly price change and the same month last year are
+    in the data.
+  - **Size**: about 20 tokens per row. The owner's demonstration data has about 650 rows in 13
+    months, about 15,000 tokens per question, or about 5 cents with gpt-6.1-sol at $2 and $10 per
+    million input and output tokens. A ledger of 10,000 transactions a year sends about ten times
+    as much.
+  - **The fixed answer out of scope**: only a model can read what a question needs, so the model
+    decides; the fixed text makes the refusal the same every time, and testable.
+  - **The context first**: every question of a conversation starts with the same instructions and
+    data, which lets OpenAI cache that prefix.
+  - **Plain text**: no Markdown renderer, and nothing in an answer can become a link or markup.
+    Descriptions are untrusted, so the prompt says never to follow instructions in them.
+  - **10 turns** bound the size of a long conversation.
+  - **Not stored**: a conversation is a way to an answer. Storing it would add an entity, a part
+    of the backup, and data to consent to.
+- **Alternatives considered**:
+  - **Totals and a detector of recurring payments of our own**: sends no single payment, but needs
+    rules for descriptions that vary from bank to bank, and cannot answer a question about one
+    purchase.
+  - **Function calling**, letting the model ask for the data it needs: smaller requests, but a
+    loop of requests per question and more code.
+  - **`previous_response_id`** for the conversation: needs `store: true` at OpenAI.

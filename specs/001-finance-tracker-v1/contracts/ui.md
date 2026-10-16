@@ -131,6 +131,25 @@ Routes use the URL hash so the build works from any static host or local file ([
      budgets, the section links to Budgets.
 - Each section has its own empty state ([User Story 3](../spec.md#user-story-3) scenario 6). Charts
   show tooltips but offer no click-through ([FR-053](../spec.md#fr-053)).
+- **Finance chat** ([FR-100](../spec.md#fr-100) – [FR-104](../spec.md#fr-104),
+  [ai.md](ai.md#finance-chat)): a round button with a chat icon, fixed at the bottom right of the
+  screen and named "Ask about your finances". It opens a sheet from the right with that title.
+  - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
+    features, with a link to [Settings](#settings), and shows neither examples nor a field.
+  - While the conversation is empty, the sheet shows the example questions as buttons: "How can I
+    reduce my spending?", "Which of my subscriptions have become more expensive?", "Am I on track
+    with my budgets this month?" and "Where did I spend more this month than last month?".
+    Selecting one sends it at once.
+  - The conversation is a log: each question, then its answer as plain text, line breaks kept. A
+    question out of scope gets the chat's fixed answer, which names what the chat can help with
+    ([FR-103](../spec.md#fr-103)).
+  - Under the log, a field labelled "Your question" and **Send**, which Enter selects too. Send is
+    unavailable while the field is empty. While an answer is awaited, the log ends in
+    "Thinking…", and Send and the examples are unavailable.
+  - A failure shows in an alert above the field, with the codes of [ai.md](ai.md#failures). The
+    conversation stays as it was, and the question stays in the field to send again.
+  - Closing the sheet keeps the conversation and a question still waiting for its answer. Leaving
+    Insights ends both ([FR-104](../spec.md#fr-104)).
 
 ### Import
 
@@ -170,19 +189,20 @@ Routes use the URL hash so the build works from any static host or local file ([
   - The **unparsable** drawer lists the row number, the raw cells and the reason. These rows cannot
     be included.
 - **Suggestions**, between the header and the body ([FR-090](../spec.md#fr-090) –
-  [FR-094](../spec.md#fr-094), [categoriser.md](categoriser.md)):
+  [FR-094](../spec.md#fr-094), [ai.md](ai.md#category-suggestions)):
   - An outline button **Suggest categories for N rows**, where N is the number of rows a request
     would send. It is unavailable when N is 0.
   - While AI features are off ([FR-095](../spec.md#fr-095)), the button is unavailable, and a line
     beside it says that suggestions need AI features, with a link to [Settings](#settings). While
     they are on, selecting the button sends the request at once, without a dialog.
-  - While Claude answers, the button reads **Asking Claude…** and is unavailable. The rows stay
+  - While the AI answers, the button reads **Asking the AI…** and is unavailable. The rows stay
     editable, Confirm is unavailable, and leaving review cancels the request.
-  - The outcome shows in a status line beside the button, such as "Claude suggested categories for
-    14 of 20 rows". A failure shows in the review's alert, with the codes of
-    [categoriser.md](categoriser.md#failures).
+  - The outcome shows in a status line beside the button, such as "The AI suggested categories
+    for 14 of 20 rows". A failure shows in the review's alert, with the codes of
+    [ai.md](ai.md#failures).
+  - Review names no AI provider; only [Settings](#settings) does.
 - **Suggested mark** ([FR-093](../spec.md#fr-093)): a sparkle icon and "Suggested" after the
-  category select of a row whose category Claude suggested. A group header shows the mark only when
+  category select of a row whose category the AI suggested. A group header shows the mark only when
   all its rows hold the same suggested category. Otherwise the group shows what it would without
   suggestions, a shared category or "Mixed", and the marks show on the unfolded rows.
 - **Body**: vendor groups first, largest first, collapsed. Plain rows follow by date
@@ -202,7 +222,7 @@ Routes use the URL hash so the build works from any static host or local file ([
   - **Discard** asks for confirmation.
   - **Confirm N transactions** opens a modal stating the count ([FR-027](../spec.md#fr-027)). After
     confirmation, a notification reports what was added and the app opens Transactions. It is
-    unavailable while Claude answers a request for suggestions.
+    unavailable while the AI answers a request for suggestions.
 
 ### Budgets
 
@@ -252,14 +272,19 @@ Routes use the URL hash so the build works from any static host or local file ([
 ### Settings
 
 - **AI features** ([FR-095](../spec.md#fr-095)): a section with one switch, **AI features**, off
-  until the user turns it on. Under it, a line lists what the AI features do, today "Suggest
-  categories in review", and says that they send data to the project's n8n workflow and to
-  Anthropic.
+  until the user turns it on. Under it, a line lists what the AI features do, "Suggest
+  categories in review" and "the finance chat on Insights", and says that they send data to OpenAI.
   - Turning the switch on opens the **data-sharing warning**, a dialog titled "Turn on AI
-    features?". It says that data will now be shared: Suggest categories sends the payee and
-    purpose of the rows under review, the category names and up to 100 earlier descriptions to the
-    project's n8n workflow and to Anthropic ([FR-091](../spec.md#fr-091)). It holds the buttons
-    **Cancel** and **Turn on**.
+    features?". It says that data will now be shared with OpenAI:
+    - Suggest categories sends the payee and purpose of the rows under review, the category names
+      and up to 100 earlier descriptions, and no amounts, dates or account names
+      ([FR-091](../spec.md#fr-091));
+    - the finance chat sends each question with the conversation, the expenses and incomes of the
+      current month and the 12 months before it with their dates, descriptions, amounts and
+      categories, their monthly totals, this month's budgets, and each account's name, type and
+      balance ([FR-102](../spec.md#fr-102)).
+
+    It holds the buttons **Cancel** and **Turn on**.
     - **Cancel** (or Escape) closes it; the switch stays off and nothing is saved.
     - **Turn on** saves the setting and turns the switch on. Nothing is sent.
   - Turning the switch off saves at once, without a dialog.
@@ -318,12 +343,12 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `import-duplicate-header` | [csv-import.md](csv-import.md#pipeline) step 4 | Which column name appears twice in the file |
 | `import-no-transactions` | [Edge cases](../spec.md#edge-cases), SC-012 | The file contained no transactions |
 | Row failure codes | [FR-028](../spec.md#fr-028), SC-012 | One reason per row, as in [csv-import.md](csv-import.md#unparsable-rows) |
-| `ai-features-off` | [FR-061](../spec.md#fr-061): suggestions asked for while AI features are off | Suggestions need AI features, which Settings turns on; nothing was sent |
-| `categoriser-unreachable` | [FR-094](../spec.md#fr-094), SC-012: the computer is offline, n8n is down, the workflow is not published, or the browser refused the request | Claude could not be asked; check the internet connection and that the n8n workflow is published, then try again. No row changed |
-| `categoriser-timeout` | [FR-094](../spec.md#fr-094): no answer within 4 minutes | Claude took too long; try again, or categorise some rows first so fewer are sent. No row changed |
-| `categoriser-failed` | [FR-094](../spec.md#fr-094): n8n reports a failure | The workflow failed; check its executions in n8n, for example its Anthropic credential. No row changed |
-| `categoriser-answer-invalid` | [FR-094](../spec.md#fr-094): the answer has the wrong form | The workflow's answer could not be read; import the workflow from `n8n/` again. No row changed |
-| `suggestions-outdated` | [FR-092](../spec.md#fr-092): the batch was confirmed, discarded or replaced while Claude answered | The import changed meanwhile, so no suggestion was used |
+| `ai-features-off` | [FR-061](../spec.md#fr-061): an AI feature asked for while AI features are off | This needs AI features, which Settings turns on; nothing was sent |
+| `ai-unreachable` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104), SC-012: no route, as in a hosted copy or without a key in `.env`, OpenAI cannot be reached, or the request was refused ([ai.md](ai.md#failures)) | The AI could not be asked; AI features need the app started on this computer with an OpenAI key in `.env`, and an internet connection; then try again. Nothing changed |
+| `ai-timeout` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): no answer within 4 minutes | The AI took too long; try again, with fewer rows or a shorter question. Nothing changed |
+| `ai-failed` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): OpenAI reports a failure | OpenAI refused the request, for example because of the key or the project's credit; check them on OpenAI's platform, then try again. Nothing changed |
+| `ai-answer-invalid` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): the answer has the wrong form | The AI's answer could not be read; try again. Nothing changed |
+| `suggestions-outdated` | [FR-092](../spec.md#fr-092): the batch was confirmed, discarded or replaced while the AI answered | The import changed meanwhile, so no suggestion was used |
 | `reconcile-already-matches` | [FR-005](../spec.md#fr-005), SC-012 | The account already holds this amount; nothing was booked |
 | `backup-not-a-backup` | [FR-072](../spec.md#fr-072), SC-012 | The file is not a Financial Copilot backup; current data is unchanged |
 | `backup-newer-version` | [FR-072](../spec.md#fr-072), SC-012 | The backup comes from a newer version of the app; current data is unchanged |

@@ -22,9 +22,10 @@ It is built as a client-only TypeScript single-page app.
 - **Bank files**: decoded with `TextDecoder` and split into records with Papa Parse. Mapping,
   parsing and duplicate flagging are domain rules ([contracts/csv-import.md](contracts/csv-import.md)).
 - **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
-- **Category suggestions** (v1.2): review asks Claude for categories through a hosted n8n workflow,
-  the one request the app makes outside its origin, and only while the user has turned on data
-  sharing ([contracts/categoriser.md](contracts/categoriser.md), [R-23](research.md#r-23)).
+- **AI features**: category suggestions in review (v1.2) and a finance chat on Insights (v1.3) ask OpenAI
+  through a route that the local server adds, which holds the API key from `.env`, and only while
+  the user has turned AI features on ([contracts/ai.md](contracts/ai.md), [R-24](research.md#r-24),
+  [R-25](research.md#r-25)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
@@ -54,7 +55,7 @@ our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 | Recharts, with its `react-is` peer | 3.8, as pinned by shadcn's chart component | Charts ([R-14](research.md#r-14)) |
 | `idb` | 8.0 | IndexedDB ([R-06](research.md#r-06)) |
 | Papa Parse, with `@types/papaparse` 5.5 | 5.7 | CSV ([R-09](research.md#r-09)) |
-| zod | 4.6 | Validating backups and the categoriser's answers ([R-13](research.md#r-13), [R-23](research.md#r-23)) |
+| zod | 4.6 | Validating backups and the AI's answers ([R-13](research.md#r-13), [R-24](research.md#r-24)) |
 
 | Dev dependency | Version |
 |---|---|
@@ -81,7 +82,8 @@ journeys, on the production build in Chromium and Firefox. All of it runs in Git
 for daily use, and is deployed to Vercel as a static site for the post-push check
 ([R-01](research.md#r-01), [R-20](research.md#r-20)).
 
-**Project Type**: Client-only single-page web application, with no backend.
+**Project Type**: Client-only single-page web application, with no backend. The local server adds
+one route, which passes the AI features' requests on to OpenAI ([R-24](research.md#r-24)).
 
 **Performance Goals**:
 
@@ -93,9 +95,9 @@ for daily use, and is deployed to Vercel as a static site for the post-push chec
 
 **Constraints**:
 
-- No network use and no external requests, except the category suggestions the user asks for with
-  AI features on, which go to the hosted n8n workflow ([FR-061](spec.md#fr-061),
-  [R-19](research.md#r-19), [R-23](research.md#r-23)).
+- No network use, and no request from the browser outside the app's origin. The AI features the
+  user asks for with AI features on go through the local server to OpenAI
+  ([FR-061](spec.md#fr-061), [R-19](research.md#r-19), [R-24](research.md#r-24)).
 - Money in integer euro cents and dates as local calendar strings ([R-08](research.md#r-08)).
 - Every change that touches several records is atomic ([R-06](research.md#r-06)).
 - One running tab ([R-07](research.md#r-07)).
@@ -139,10 +141,11 @@ quality gate.
 **Result**: the plan passes every principle and gate, both before research and after design. No
 deviation needs justifying.
 
-**v1.2**: category suggestions add a hosted n8n workflow, with Anthropic behind it, as an optional
-part outside the app, and the one request outside the app's origin, sent only while the user has
-AI features on ([R-23](research.md#r-23)). That deviates from
-KISS's "no server process" and from the single origin of [R-19](research.md#r-19). The owner
+**v1.3**: the AI features add a route of our own to the local server, which passes their
+requests on to OpenAI, sent only while the user has AI features on ([R-24](research.md#r-24)).
+That deviates from KISS's "no server process" in part: the server is the one `npm start` already
+runs, and the browser still reaches only the app's own origin ([R-19](research.md#r-19)). It
+replaces v1.2's hosted n8n workflow, with Anthropic behind it ([R-23](research.md#r-23)). The owner
 decided it, and [Complexity Tracking](#complexity-tracking) justifies it.
 
 ### Interpretations to confirm
@@ -162,13 +165,13 @@ in [R-22](research.md#r-22).
 specs/001-finance-tracker-v1/
 ├── spec.md              # The feature specification
 ├── plan.md              # This file
-├── research.md          # Phase 0: technical decisions R-01 – R-23
+├── research.md          # Phase 0: technical decisions R-01 – R-25
 ├── data-model.md        # Phase 1: entities, invariants, storage layout, seed data
 ├── quickstart.md        # Phase 1: how to run and validate v1
 ├── contracts/
 │   ├── csv-import.md    # Bank CSV files → pending batch
 │   ├── backup-file.md   # Backup file format, version 1
-│   ├── categoriser.md   # Category suggestions: the app ↔ the n8n workflow (v1.2)
+│   ├── ai.md            # AI features: the app ↔ the local route ↔ OpenAI (v1.3)
 │   └── ui.md            # Screens, navigation, shared patterns, message catalogue
 └── tasks.md             # Phase 2: written by /speckit-tasks, not by this command
 ```
@@ -187,7 +190,8 @@ playwright.config.ts                   # Chromium and Firefox against `vite prev
 components.json                        # shadcn/ui: Base UI, aliases into src/ui/ (R-03)
 tsconfig.json, tsconfig.app.json, tsconfig.node.json  # `@/*` alias via `paths` alone (R-03)
 vite.config.ts                         # Tailwind plugin, base "./", strict ports, Vitest settings (R-20)
-n8n/financial-copilot-categories.json  # The n8n workflow behind category suggestions, imported into the hosted n8n (R-23)
+.env.example                           # OPENAI_API_KEY, empty; the key goes into .env, which git ignores (R-24)
+server/aiRoute.ts                      # The local route /api/ai: passes AI requests on to OpenAI with the key (R-24)
 
 src/
 ├── main.tsx              # Start-up: lock, open storage, load state, render (R-07, R-15)
@@ -202,13 +206,14 @@ src/
 │   ├── categories.ts     # Category rules, effects of deletion
 │   ├── budgets.ts        # Limits and progress
 │   ├── insights.ts       # Aggregates for a period
+│   ├── chat.ts           # The data a finance chat question sends (R-25)
 │   ├── invariants.ts     # The state invariants of data-model.md
 │   └── import/           # Profile checks, date parsing, rows, duplicates, vendor groups,
 │                         # review edits, confirmation
 ├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse);
 │                         # backup JSON in and out (zod, configured once in zod.ts)
-├── categoriser/          # The one network boundary: the n8n workflow's address, the request
-│                         # and the check of its answer (R-23)
+├── ai/                   # The one network boundary: the transport to /api/ai, and each AI
+│                         # feature's prompt and answer (R-24, R-25)
 ├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
 ├── store/                # In-memory state and actions: decide in the domain, write, then apply
 └── ui/                   # React, shadcn/ui and Tailwind CSS
@@ -247,26 +252,28 @@ Tests for `src/` sit next to the module they test, as in `src/domain/accounts.te
 | `fixtures:sc001` | Writes the SC-001 file to `tmp/` |
 
 **`.gitignore` gains**: `node_modules/`, `dist/`, `coverage/`, `test-results/`,
-`playwright-report/`, `blob-report/`, `tmp/` and `.env*`. A fresh clone then needs only `npm ci`
-(portable-checkout rule).
+`playwright-report/`, `blob-report/`, `tmp/` and `.env*`, except `.env.example`. A fresh clone then
+needs only `npm ci`, and a key in `.env` for the AI features (portable-checkout rule).
 
 **Structure Decision**: one project at the repository root, with each folder in `src/` a layer.
 Dependencies point inward:
 
 - `ui` depends on `store` and on `domain`, for types and pure derivations.
-- `store` depends on `persistence`, `files`, `categoriser` and `domain`.
-- `categoriser` depends on `files`, for zod, and on `domain`, for types only.
+- `store` depends on `persistence`, `files`, `ai` and `domain`.
+- `ai` depends on `files`, for zod, and on `domain`, for types only.
 - `persistence` and `files` depend on `domain`, for types only.
 - `domain` depends on nothing.
 
 The UI reaches storage only through the store. The domain rule is the one automated check
 ([R-16](research.md#r-16)), because it is the constitution's gate. There is no `backend/` or
-`frontend/` split, because v1 has no server ([R-01](research.md#r-01)).
+`frontend/` split, because the app has no server of its own: `server/` holds only the route that
+the local server adds ([R-01](research.md#r-01), [R-24](research.md#r-24)).
 
 ## Complexity Tracking
 
-v1.0 and v1.1 had no deviation to justify. v1.2 adds one:
+v1.0 and v1.1 had no deviation to justify. v1.2 added one, a hosted n8n workflow, which v1.3
+replaces with this one:
 
 | Violation | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| A hosted n8n workflow, with Anthropic behind it, as a part outside the app, and the one request outside the app's origin, for category suggestions while the user has AI features on ([FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095), [R-23](research.md#r-23)) | The owner asked for suggestions by Claude in review. n8n keeps the API key and the prompt out of the app, and the app works fully without it | Calling Anthropic from the browser would put the key into the app and its backups. A proxy of our own would be a server to write, run and secure |
+| A route of our own in the local server, which passes the AI features' requests on to OpenAI while the user has AI features on ([FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095), [R-24](research.md#r-24)) | The owner asked for category suggestions and a finance chat, with the OpenAI key in `.env`. The route keeps the key out of the app's code, storage and backups, and runs in the server `npm start` already starts. The app works fully without it | Calling OpenAI from the browser would put the key into the bundle. The hosted n8n workflow of v1.2 was a second party and a public address that anyone could use to spend the owner's credit |

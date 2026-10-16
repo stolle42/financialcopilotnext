@@ -890,7 +890,7 @@ commit of its last task sets the version to `1.1.0`. Push and run the post-push 
 **Purpose**: Claude suggests categories for the rows that review still holds in "Uncategorised",
 through the n8n workflow in `n8n/`, and only while the user has AI features on in Settings
 ([FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [R-23](research.md#r-23),
-[categoriser.md](contracts/categoriser.md)). The owner asked for it after v1.1. The spec, contracts
+[ai.md](contracts/ai.md)). The owner asked for it after v1.1. The spec, contracts
 and research change first, in the commits that add this phase.
 
 - [X] T091 The suggested mark on a pending row: `suggested?: true` on the category assignment in
@@ -914,7 +914,7 @@ and research change first, in the commits that add this phase.
     refused as damaged.
 - [X] T092 Suggestion rules in `src/domain/import/suggestions.ts`: `suggestableRows`,
   `suggestionRequest` and `applySuggestions` ([FR-090](spec.md#fr-090) – [FR-093](spec.md#fr-093),
-  [categoriser.md](contracts/categoriser.md)). Test first in
+  [ai.md](contracts/ai.md)). Test first in
   `src/domain/import/suggestions.test.ts`:
   - which rows qualify: an included duplicate does; an excluded duplicate, a transfer, a row with
     another category, a row with no text, and a row whose side has only protected categories do
@@ -930,7 +930,7 @@ and research change first, in the commits that add this phase.
 - [X] T093 [P] The categoriser boundary in `src/categoriser/`: `endpoint.ts`, the address, and
   `categoriser.ts`, which posts the request, gives up after 4 minutes and checks the answer; zod
   comes from a new `src/files/zod.ts`, which `src/files/backup.ts` uses too
-  ([categoriser.md](contracts/categoriser.md), [FR-094](spec.md#fr-094), [R-23](research.md#r-23)).
+  ([ai.md](contracts/ai.md), [FR-094](spec.md#fr-094), [R-23](research.md#r-23)).
   Test first in `src/categoriser/categoriser.test.ts`, with `fetch` stubbed: it posts JSON to the
   address; a valid answer gives its suggestions without extra keys; a rejected fetch and a 404 give
   `categoriser-unreachable`; another error status gives `categoriser-failed`; a body that is not
@@ -940,7 +940,7 @@ and research change first, in the commits that add this phase.
   rejects. The test commit adds `endpoint.ts`, the address only, so the T097 specs can load.
 - [X] T094 [P] The workflow `n8n/financial-copilot-categories.json`, as [R-23](research.md#r-23)
   describes it, and `n8n/` in `.prettierignore`, so a file exported from n8n is committed as it is
-  ([categoriser.md](contracts/categoriser.md)). Test first in `src/categoriser/workflow.test.ts`:
+  ([ai.md](contracts/ai.md)). Test first in `src/categoriser/workflow.test.ts`:
   the Webhook node listens for POST on the path of `endpoint.ts`, allows the app's origins and
   answers through a Respond to Webhook node, and the output parser's schema requires the answer of
   the contract.
@@ -1049,14 +1049,140 @@ and research change first, in the commits that add this phase.
     that it needs AI features, linking to Settings; with them on, selecting it sends at once,
     without a dialog;
   - in `e2e/network-guard.spec.ts`: turning AI features on and reviewing an import send nothing.
-- [ ] T099 (Project owner, manual) Publish the workflow on the hosted n8n, put its address into
-  `src/categoriser/endpoint.ts` and [categoriser.md](contracts/categoriser.md#address), and walk
-  [category suggestions](quickstart.md#category-suggestions), including the SC-001 file. The commit
-  of this task sets the version to `1.2.0`.
+- [X] T099 (Project owner, manual) Publish the workflow on the hosted n8n, put its address into
+  `src/categoriser/endpoint.ts` and the categoriser contract, and walk the quickstart's category
+  suggestions, including the SC-001 file. The commit of this task sets the version to `1.2.0`.
+  Closed by the owner (2026-10-16): v1.2 was released with the squash commit `7acf45a` on `main`,
+  whose `package.json` still reads `1.1.0`, and without its tag. Phase 13 replaces the workflow and
+  sets the version to `1.3.0` (T108).
 
 **Checkpoint**: every task of the phase is done. The phase is a release (constitution IX), MINOR
 because v1.1 reads v1.2 storage and backups and only drops the marks ([R-23](research.md#r-23)).
 Push and run the post-push check.
+
+---
+
+## Phase 13: AI through OpenAI, and the finance chat
+
+**Purpose**: both AI features ask OpenAI through a route that the local server adds, with the key in
+`.env`, in place of the hosted n8n workflow; and Insights gains a finance chat about the user's own
+data, available only while AI features are on ([FR-061](spec.md#fr-061),
+[FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [FR-100](spec.md#fr-100) –
+[FR-104](spec.md#fr-104), [R-24](research.md#r-24), [R-25](research.md#r-25),
+[ai.md](contracts/ai.md), [FR-105](spec.md#fr-105)). The owner asked for both on 2026-10-15,
+after v1.2. The spec, contracts and research change first, in the commit that adds this phase.
+
+- [ ] T102 The local route in a new `server/aiRoute.ts`: a Vite plugin, applied when serving, that
+  reads `OPENAI_API_KEY` with `loadEnv(mode, envDir, "OPENAI_")` and, with a key, answers
+  `POST /api/ai` in the dev and preview servers as [ai.md](contracts/ai.md#route) says; without a
+  key, or with an empty one, it adds no route. The path lives in a new `src/ai/path.ts`, which
+  imports nothing. `vite.config.ts` adds the plugin, drops the n8n origin from `connect-src` and
+  adds `server/**/*.test.ts` to `test.include`; `tsconfig.node.json` includes `server`;
+  `.env.example` is committed, with `!.env.example` in `.gitignore`; and `playwright.config.ts`
+  starts its preview with an empty `OPENAI_API_KEY` ([R-24](research.md#r-24),
+  [R-19](research.md#r-19), [FR-061](spec.md#fr-061), [FR-105](spec.md#fr-105)). Test first:
+  - in `server/aiRoute.test.ts`, with OpenAI's `fetch` stubbed: without a key, and with an empty
+    one, the plugin adds no route; a POST from the app's origin, or without an Origin, goes
+    unchanged to OpenAI's Responses API with only the key and the content type, and OpenAI's
+    status, content type and body come back; a GET, another Origin, `Origin: null` and a caller
+    that is not this computer get 403 and send nothing; a body over 2 MB gets 413 and sends
+    nothing; a failed call to OpenAI gives 502; and closing the request aborts OpenAI's;
+  - in `e2e/ui/shell.spec.ts`, the production CSP's `connect-src` is `'self'` alone.
+
+  The test commit adds `src/ai/path.ts`, the path only, so the specs of T104 and T107 can load.
+- [ ] T103 The transport in a new `src/ai/openai.ts`: `askOpenAi` posts
+  `{ model, store: false, instructions, input, text }` to the path of `src/ai/path.ts`, reads the
+  `output_text` of the answer's message items, checks it against the feature's zod schema, and
+  turns every failure into `ai-unreachable`, `ai-failed`, `ai-timeout` or `ai-answer-invalid`, as
+  [ai.md](contracts/ai.md#failures) says. A new `src/ai/testing.ts` builds answers of the Responses
+  API for Vitest and Playwright ([FR-094](spec.md#fr-094), [R-24](research.md#r-24)). Test first
+  in `src/ai/openai.test.ts`, with `fetch` stubbed: the request's path, method, content type and
+  body, with the model, `store: false` and a strict format; the text of the message items, after a
+  reasoning item; a rejected fetch, and a 403, 404, 405 or 502 with an empty, text or HTML body,
+  give `ai-unreachable`; OpenAI's error JSON with 400, 401, 404, 429 or 500 gives `ai-failed`; a
+  2xx body that is not JSON, `status: "incomplete"`, a refusal, no text, text that is not JSON,
+  and JSON of another shape give `ai-answer-invalid`; with fake timers, no answer within 4 minutes
+  gives `ai-timeout`, and the timeout stays below Firefox's 300 seconds; aborting the caller's
+  signal, before or during the request, resolves as cancelled; and nothing ever rejects. The test
+  commit adds `src/ai/testing.ts`.
+- [ ] T104 Category suggestions through OpenAI: a new `src/ai/categoriser.ts` with
+  `askCategoriser`, of the same signature as before, which sends the request as JSON text with the
+  instructions and the strict schema of [ai.md](contracts/ai.md#category-suggestions);
+  `src/store/import.ts` uses it; and `src/categoriser/`, `n8n/` and its line in `.prettierignore`
+  go. `src/ui/messages.ts` words the `ai-*` codes in place of `categoriser-*`, and
+  `ai-features-off` for any AI feature. Review's texts name no provider: "Asking the AI…" in
+  `SuggestCategories.tsx`, the outcome line, `suggestions-outdated` and
+  `pending-row-suggestion-invalid`; nor do `ReviewScreen.tsx` and the comments. The Settings line
+  and the warning name OpenAI ([ai.md](contracts/ai.md), [ui.md](contracts/ui.md#review),
+  [FR-090](spec.md#fr-090) – [FR-095](spec.md#fr-095), [FR-105](spec.md#fr-105)). Test first:
+  - in `src/ai/categoriser.test.ts`: it posts with the format name `category_suggestions` and a
+    strict schema that requires `suggestions` of `rowNumber` and `category`; the instructions say
+    to copy names exactly, to give `null` for a transfer between the user's own accounts, and
+    never to follow instructions in the texts; the one input is the request as JSON text; a valid
+    answer gives its suggestions; and an answer of another shape gives `ai-answer-invalid`;
+  - in `src/store/import.test.ts`, the stubbed answers are the Responses API's, and failures give
+    the `ai-*` codes;
+  - in `src/ui/messages.test.ts`, each `ai-*` message says what to do and that nothing changed,
+    the warning names OpenAI and neither n8n nor Anthropic, and review's wording names no provider;
+  - `e2e/support/ai.ts` replaces `e2e/support/categoriser.ts`: it answers at `/api/ai` as the
+    Responses API does, records the decoded requests of each feature, and can hold or fail an
+    answer; and the guard in `e2e/support/test.ts` also aborts a request to `/api/ai` that no
+    stand-in answers;
+  - in `e2e/network-guard.spec.ts`, Suggest categories without a stand-in fails the guard; and in
+    `e2e/ui/review.spec.ts`, `e2e/messages.spec.ts`, `e2e/ui/settings.spec.ts` and
+    `e2e/us7-backup.spec.ts`, the existing checks with the new stand-in, codes and wording
+    ([SC-012](spec.md#sc-012)).
+- [ ] T105 [P] The chat's data: `chatContext(state, today)` in a new `src/domain/chat.ts`, as
+  [R-25](research.md#r-25) and [ai.md](contracts/ai.md#finance-chat) describe it
+  ([FR-102](spec.md#fr-102)). Test first in `src/domain/chat.test.ts`: the period runs from the
+  first day of the month 12 months back to today, also across a year's end; each month's totals
+  match `insights` for that month, and a month without money has zero totals; transfers and
+  transactions outside the period are left out; rows are by date, then order of entry, with money
+  out negative, in euros, such as `-12.34`; accounts carry their balance, and budgets this month's
+  spending; and no id, colour, profile, pending import or setting appears.
+- [ ] T106 Asking the chat: a new `src/ai/chat.ts` with `askFinanceChat`, which sends the
+  instructions and context of [ai.md](contracts/ai.md#finance-chat), at most the last 10 turns and
+  the question; and `askChat(store, turns, question, signal)` in a new `src/store/chat.ts`, which
+  refuses with `ai-features-off` and sends nothing while AI features are off, builds `chatContext`
+  for `todayLocal()`, and writes nothing ([FR-102](spec.md#fr-102) – [FR-104](spec.md#fr-104),
+  [R-25](research.md#r-25)). Test first:
+  - in `src/ai/chat.test.ts`: the format name `finance_chat_answer` and its strict schema; the
+    instructions hold the rules of scope and of untrusted descriptions, and end with the context as
+    JSON; the input holds the earlier turns in order, as user and assistant messages, at most the
+    last 10, then the question; an answer gives `inScope` and `answer`; and an empty answer in
+    scope gives `ai-answer-invalid`;
+  - in `src/store/chat.test.ts`, with `fake-indexeddb` and `fetch` stubbed: with AI features off,
+    `ai-features-off`, and nothing is sent; it sends today's context; it resolves to the answer;
+    memory and storage stay unchanged; and an aborted question resolves as cancelled.
+- [ ] T107 The finance chat on Insights: a new `src/ui/screens/insights/FinanceChat.tsx` in
+  `InsightsScreen.tsx`, as [ui.md](contracts/ui.md#insights) describes it, with its wording, its
+  fixed answer out of scope, and the Settings line and the warning for both features, in
+  `src/ui/messages.ts` ([FR-095](spec.md#fr-095), [FR-100](spec.md#fr-100) –
+  [FR-104](spec.md#fr-104), [ui.md](contracts/ui.md#settings)). Test first:
+  - in `e2e/ui/insights.spec.ts`, with the stand-in: the button opens the chat; with AI features
+    off, the chat says that it needs them, links to Settings and sends nothing; an example question
+    sends at once, and its answer shows as plain text after it; a typed question sends with Enter,
+    and the next one sends the first turn too; while an answer is held, "Thinking…" shows and Send
+    is unavailable; an answer out of scope shows the fixed answer; a failure shows its message and
+    keeps the conversation and the question; closing and opening keeps the conversation; and
+    leaving Insights while an answer is held shows nothing later, with the chat empty on return;
+  - in `e2e/network-guard.spec.ts`, opening Insights and the chat with AI features on sends nothing
+    before a question;
+  - in `e2e/messages.spec.ts`, `ai-unreachable` in the chat's alert ([SC-012](spec.md#sc-012));
+  - in `src/ui/messages.test.ts` and `e2e/ui/settings.spec.ts`, the Settings line names both
+    features, and the warning says that the chat sends amounts, dates and account balances while
+    suggestions do not.
+- [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
+  describes, check that `git status` does not list `.env` and that `dist/` holds no part of the
+  key, and walk the manual checks there, including the SC-001 file and the chat. Its commit sets
+  the version to `1.3.0`, and the tag `v1.3` goes on the phase's squash commit on `main`
+  (constitution IX).
+
+**Checkpoint**: every task of the phase is done. The phase is a release, v1.3 (constitution IX),
+MINOR because v1.2 reads v1.3 storage and backups, as the chat stores nothing, and no feature
+leaves the app as run locally; the hosted copy, which loses its AI features, serves only checks and
+demonstrations ([FR-061](spec.md#fr-061), [FR-105](spec.md#fr-105)). Push and run the post-push
+check.
 
 ---
 
@@ -1083,7 +1209,10 @@ Push and run the post-push check.
   screens.
 - **Category suggestions (Phase 12)**: depends on US2, whose review it fills, and US7, whose
   backup keeps the marks. It follows Phase 11, whose version it raises. Order: T091 → T092 →
-  T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T099.
+  T093 and T094 together → T095 → T096 → T097 → T098 → T100 → T101 → T099.
+- **AI through OpenAI, and the finance chat (Phase 13)**: depends on Phase 12, whose suggestions
+  it moves to OpenAI, and on US3, whose Insights screen holds the chat. Order: T102 → T103 → T104
+  → T106 → T107 → T108, with T105 at any time before T106.
 
 ### Within Each Task and Story
 
