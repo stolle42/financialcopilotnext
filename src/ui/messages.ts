@@ -270,9 +270,10 @@ export const financeChat = {
   ],
   /** The fixed answer to a question out of scope (FR-103). */
   outOfScope:
-    "I can only answer questions about your own finances that your data in this app can answer, " +
-    "such as where your money goes, how your spending changes, whether your budgets hold, which " +
-    "subscriptions became more expensive, and where you could save.",
+    "I can help with questions about your own finances, which I answer from your data in this " +
+    "app, such as where your money goes, whether your budgets hold and where you could save; " +
+    "with general questions about money and finance; and with questions about how this app " +
+    "works. I cannot help with other topics.",
   /** The group of the example questions, or of the latest answer's follow-ups (FR-101, FR-111). */
   suggestions: "Suggested questions",
   needsAiFeatures: "The chat needs AI features, which you turn on in Settings.",

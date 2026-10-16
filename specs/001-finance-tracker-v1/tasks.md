@@ -1360,7 +1360,7 @@ this phase. The test commits of T102 – T107, written before that last request,
     question out of scope the examples show again;
   - in `src/ui/messages.test.ts`, the group's name;
   - in `e2e/us8-finance-chat.spec.ts`, scenarios 5 and 10.
-- [ ] T118 [US8] The chat's wider scope (owner, 2026-10-16): the rules of `src/ai/chat.ts` answer
+- [X] T118 [US8] The chat's wider scope (owner, 2026-10-16): the rules of `src/ai/chat.ts` answer
   questions about the user's finances, general questions about money and finance, and questions
   about how the app works, from the guide of a new `src/ai/appGuide.ts` sent after the line
   `App guide:` and before the line `Data:`; a request to change something gets that the chat
