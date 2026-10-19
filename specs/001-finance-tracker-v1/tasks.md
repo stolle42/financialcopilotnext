@@ -1451,14 +1451,14 @@ checks of the look and of the chat's width in [quickstart.md](quickstart.md#manu
   as [ui.md](contracts/ui.md#finance-chat) describes it, with the width in the state of
   `FinanceChat`, which the shell renders once ([FR-117](spec.md#fr-117),
   [R-28](research.md#r-28)). Test first in `e2e/ui/finance-chat.spec.ts`:
-  - the chat opens 448px wide, with a separator named "Resize the chat" whose value is the width,
+  - the chat opens 384px wide, with a separator named "Resize the chat" whose value is the width,
     between 320 and three quarters of the window;
   - dragging the separator widens and narrows the chat, which stops at 320px and at three quarters
     of the window;
   - with focus on the separator, Left widens the chat by 16px and Right narrows it by 16px;
   - a window that becomes too narrow narrows the chat to three quarters of it;
   - the chat keeps its width when it closes and opens again and when another screen opens, and
-    opens 448px wide again after a reload.
+    opens 384px wide again after a reload.
 - [ ] T122 (Project owner, manual) Walk the manual checks of the look and of the chat's width in
   [quickstart.md](quickstart.md#manual-checks), on `localhost` and on the hosted copy. Its commit
   sets the version to `1.4.0`, after T108's `1.3.0`, and the tag `v1.4` goes on the phase's squash

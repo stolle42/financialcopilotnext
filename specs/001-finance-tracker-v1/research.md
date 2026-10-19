@@ -1147,7 +1147,7 @@ mark, concurrency, zod and the untrusted answer still holds.
     inside the sheet. Pointer events, with the pointer captured, set the width to the distance from
     the pointer to the window's right edge; the arrow keys move it in 16px steps.
   - **Kept in memory.** The width lives in the state of `FinanceChat`, which the app's shell renders
-    once, so it outlasts the sheet and every screen, and a reload starts from 448px.
+    once, so it outlasts the sheet and every screen, and a reload starts from 384px.
   - **Clamped as it shows.** The state keeps the width the user chose, and the sheet shows it
     clamped to the bounds of the window's current width, which `FinanceChat` follows. A window
     that narrows therefore narrows the sheet and the separator's value with it, and one that widens
