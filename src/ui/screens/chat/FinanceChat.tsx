@@ -133,7 +133,7 @@ function ChatEdge({
       aria-valuemax={greatest}
       tabIndex={0}
       data-dragging={drag ? "" : undefined}
-      className="group/edge absolute inset-y-0 -left-1.5 flex w-3 cursor-col-resize touch-none items-center justify-center outline-none select-none"
+      className="group/edge absolute inset-y-0 -left-1.5 flex w-3 cursor-ew-resize touch-none items-center justify-center outline-none select-none"
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         event.currentTarget.setPointerCapture(event.pointerId);
