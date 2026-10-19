@@ -1137,3 +1137,32 @@ mark, concurrency, zod and the untrusted answer still holds.
     look.
   - **shadcn's Card component**: it renders a `div`, which would replace the sections, lists and
     tables that tests and screen readers find by their roles.
+
+<a id="r-28"></a>
+### R-28 · The chat's width, set by a separator of the app's own and kept in memory
+
+- **Decision** (owner, 2026-10-19), for [FR-117](spec.md#fr-117):
+  - **A separator of the app's own.** The sheet's left edge is an element with the `separator`
+    role, as WAI-ARIA's window splitter pattern describes it, which `FinanceChat.tsx` renders
+    inside the sheet. Pointer events, with the pointer captured, set the width to the distance from
+    the pointer to the window's right edge; the arrow keys move it in 16px steps.
+  - **Kept in memory.** The width lives in the state of `FinanceChat`, which the app's shell renders
+    once, so it outlasts the sheet and every screen, and a reload starts from 448px.
+  - **Clamped twice.** The handlers clamp the width to its bounds when it changes, and the sheet's
+    CSS clamps it again, to `clamp(20rem, width, 75vw)`, so a window that narrows narrows the sheet
+    without a resize listener.
+  - React sets the width as a CSS variable through the CSSOM, which `style-src 'self'` allows
+    ([R-19](#r-19)), as the colour chips' backgrounds do.
+- **Rationale**: one edge needs a few dozen lines, and the separator role gives screen readers and
+  the keyboard the same control the pointer has. Storing the width would change storage, backups
+  and Delete all data for a view preference ([FR-104](spec.md#fr-104) stores the conversation,
+  which is data).
+- **Testing**: Playwright drags the separator and presses the arrow keys in both browsers, and
+  reads the sheet's width and the separator's value (`e2e/ui/finance-chat.spec.ts`). A person
+  checks that dragging feels smooth ([quickstart.md](quickstart.md#manual-checks)).
+- **Alternatives considered**:
+  - **`react-resizable-panels` or `re-resizable`**: they lay out panels side by side, not a sheet
+    over the screen, and add a dependency for one edge.
+  - **CSS `resize: horizontal`**: its grip sits at the corner on the window's edge, which does not
+    move, and the keyboard cannot reach it.
+  - **Storing the width in settings**: see the rationale. The owner may ask for it later.

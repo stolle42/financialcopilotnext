@@ -174,6 +174,7 @@ noted. Use `npm start` with a fresh browser profile.
 | [SC-001](spec.md#sc-001) | With a saved profile that maps a counterparty column, import a generated file of about 300 rows from about 40 vendors and review it until no row is in "Uncategorised" | Under 5 min from choosing the file to confirming |
 | [FR-064](spec.md#fr-064), [FR-065](spec.md#fr-065) | Walk every screen at default zoom on a desktop viewport | Clear hierarchy, comfortable spacing, and categories that look the same everywhere |
 | [FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116) | Walk every screen, a dialog, the chat and a notification, on `localhost` and on the hosted copy, beside the reference design at `financialcopilot4you.lovable.app` | The reference's canvas, cards, ink, periwinkle and fonts, as [ui.md](contracts/ui.md#look) lists them; each screen keeps its layout, labels and flows; the browser's network log shows the fonts coming from the app's own origin |
+| [FR-117](spec.md#fr-117) | Open the chat, drag its left edge toward the screen and back, then move it with the arrow keys | The edge follows the pointer without lag and stops at 320px and at three quarters of the window; closed and opened again, the chat keeps its width |
 
 `npm run fixtures:sc001` writes the SC-001 file to `tmp/` ([plan.md](plan.md#project-structure)).
 

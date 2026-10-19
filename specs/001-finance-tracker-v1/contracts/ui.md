@@ -107,14 +107,23 @@ Routes use the URL hash so the build works from any static host or local file ([
 
 ### Finance chat
 
-[FR-100](../spec.md#fr-100) – [FR-110](../spec.md#fr-110), [ai.md](ai.md#finance-chat),
-[User Story 8](../spec.md#user-story-8).
+[FR-100](../spec.md#fr-100) – [FR-110](../spec.md#fr-110), [FR-117](../spec.md#fr-117),
+[ai.md](ai.md#finance-chat), [User Story 8](../spec.md#user-story-8).
 
 - **Button**: on every screen, fixed at the bottom right of the window, above the screen's content:
   a pill in the primary colour, as **Add transaction** is, with a chat icon and its name, "Ask
   about your finances", as text. The main area ends in space taller than the button, so a screen
   scrolled to its end shows its last content above it. The button opens a sheet from the right
   with that title.
+- **Width** ([FR-117](../spec.md#fr-117)): the sheet opens 448px wide. Its left edge is a
+  separator named "Resize the chat", which shows the column-resize cursor and takes focus.
+  - Dragging the separator moves the sheet's left edge with the pointer, between 320px and three
+    quarters of the window. With focus on it, Left widens the sheet by 16px and Right narrows it by
+    16px, within the same bounds.
+  - The separator's value is the width in pixels, with the bounds as its least and greatest.
+  - The width lasts while the app stays open, and is not stored.
+  - In a window narrower than 640px, the sheet fills the window, as it did before v1.4, and has no
+    separator.
 - Opening another screen closes the sheet, so that screen shows: by following a link in the
   sheet, a source or the link to Settings, or by going back in the browser's history.
 - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
@@ -403,6 +412,7 @@ tokens live in `src/ui/index.css`. Layout, controls and labels are those of the 
 | Switch | The primary colour when on, the off colour when off |
 | Budget bar | 12px tall and fully rounded, on a canvas track |
 | The chat's button | The primary button's look, as a pill, where it was before ([finance chat](#finance-chat)) |
+| The chat's edge | A grip at the middle of the sheet's left edge, 4px wide, 40px tall and fully rounded, in the off colour, and in the primary colour on hover, while dragged and with focus ([finance chat](#finance-chat)) |
 
 ## Message catalogue
 

@@ -29,6 +29,8 @@ It is built as a client-only TypeScript single-page app.
   stored with the rest of the data ([R-26](research.md#r-26)).
 - **Look** (v1.4): the reference design's palette, cards and fonts, with the fonts bundled
   ([contracts/ui.md](contracts/ui.md#look), [R-27](research.md#r-27)).
+- **Resizable chat** (v1.4): a separator on the finance chat's edge sets its width, which stays in
+  memory ([contracts/ui.md](contracts/ui.md#finance-chat), [R-28](research.md#r-28)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`

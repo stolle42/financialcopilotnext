@@ -1397,13 +1397,15 @@ its AI features, serves only checks and demonstrations ([FR-061](spec.md#fr-061)
 
 **Purpose**: the look of the owner's reference design on every screen, with nothing that the app
 does changed ([FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116),
-[ui.md](contracts/ui.md#look), [R-27](research.md#r-27)). The owner asked for it on 2026-10-16,
-after v1.3: its palette, fonts, shadows, corners and spacing, not its layout. The spec, contract
-and research change first, in the commit that adds this phase. Each task's tests follow in a commit
-of their own, before any code of the phase.
+[ui.md](contracts/ui.md#look), [R-27](research.md#r-27)), and a finance chat whose width the user
+can change ([FR-117](spec.md#fr-117), [R-28](research.md#r-28)). The owner asked for the look on
+2026-10-16, after v1.3: its palette, fonts, shadows, corners and spacing, not its layout; and for
+the chat's width on 2026-10-19. The spec, contract and research change first, in the commit that
+adds this phase, and for the chat's width in a commit of its own. Each task's tests follow in a
+commit of their own, before the task's code.
 
-**Independent Test**: `e2e/ui/design.spec.ts`, and the manual check of the look in
-[quickstart.md](quickstart.md#manual-checks).
+**Independent Test**: `e2e/ui/design.spec.ts` and `e2e/ui/finance-chat.spec.ts`, and the manual
+checks of the look and of the chat's width in [quickstart.md](quickstart.md#manual-checks).
 
 - [X] T119 Palette and type: the tokens of [ui.md](contracts/ui.md#look) in `src/ui/index.css`,
   with `--positive` for positive amounts in place of `text-emerald-700` in `TransactionsScreen.tsx`,
@@ -1445,13 +1447,26 @@ of their own, before any code of the phase.
   - the side tabs on Categories form a segmented control, whose current tab shows the canvas
     colour and whose other tab's label keeps 4.5:1 ([FR-116](spec.md#fr-116));
   - a budget bar on Insights is 12px tall and fully rounded.
-- [ ] T122 (Project owner, manual) Walk the manual check of the look in
+- [ ] T123 Resizable chat: a separator on the left edge of the chat's sheet in `FinanceChat.tsx`,
+  as [ui.md](contracts/ui.md#finance-chat) describes it, with the width in the state of
+  `FinanceChat`, which the shell renders once ([FR-117](spec.md#fr-117),
+  [R-28](research.md#r-28)). Test first in `e2e/ui/finance-chat.spec.ts`:
+  - the chat opens 448px wide, with a separator named "Resize the chat" whose value is the width,
+    between 320 and three quarters of the window;
+  - dragging the separator widens and narrows the chat, which stops at 320px and at three quarters
+    of the window;
+  - with focus on the separator, Left widens the chat by 16px and Right narrows it by 16px;
+  - a window that becomes too narrow narrows the chat to three quarters of it;
+  - the chat keeps its width when it closes and opens again and when another screen opens, and
+    opens 448px wide again after a reload.
+- [ ] T122 (Project owner, manual) Walk the manual checks of the look and of the chat's width in
   [quickstart.md](quickstart.md#manual-checks), on `localhost` and on the hosted copy. Its commit
   sets the version to `1.4.0`, after T108's `1.3.0`, and the tag `v1.4` goes on the phase's squash
   commit on `main` (constitution IX).
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.4 (constitution IX),
-MINOR because it removes no feature and leaves storage and backups as they were. Push and run the
+MINOR because it adds the chat's width, removes no feature, and leaves storage and backups as they
+were. Push and run the
 post-push check.
 
 ---
@@ -1487,7 +1502,7 @@ post-push check.
   T105 → T110 → T111 come before T106 at any time, and T113 before T107. T109 comes before the
   chat's tasks, whose store checks `aiFeaturesOn`.
 - **Design (Phase 14)**: depends on every screen, whose look it changes, and follows Phase 13,
-  whose version it raises. Order: T119 → T120 → T121 → T122.
+  whose version it raises. Order: T119 → T120 → T121 → T123 → T122.
 
 ### Within Each Task and Story
 

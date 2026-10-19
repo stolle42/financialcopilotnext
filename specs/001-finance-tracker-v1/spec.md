@@ -940,6 +940,20 @@ read, the app uses darker shades of them ([FR-116](#fr-116)).
   the primary colour. This keeps the softer palette readable at default zoom
   ([FR-064](#fr-064)).
 
+**Resizable chat (v1.4)**
+
+A change the owner asked for on 2026-10-19, while v1.4 was being made, and released with it. Unlike
+the design, it changes what the app does: the user can change how wide the finance chat is.
+[User Story 8](#user-story-8) describes the chat.
+
+- <a id="fr-117"></a>**FR-117**: The user MUST be able to change the finance chat's width by
+  dragging its edge toward the screen, which widens it, or away from the screen, which narrows it,
+  and by keyboard, through that edge. The chat MUST open 448px wide, MUST NOT become narrower than
+  320px or wider than three quarters of the window, and MUST narrow with a window that becomes too
+  narrow for its width. It MUST keep the width the user gave it while the app stays open: when it
+  closes and opens again, and when another screen opens. Reloading or opening the app again starts
+  it at 448px. Changing the width sends nothing and stores nothing.
+
 <a id="key-entities"></a>
 ### Key Entities
 
