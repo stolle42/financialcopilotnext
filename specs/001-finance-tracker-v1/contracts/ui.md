@@ -116,8 +116,8 @@ Routes use the URL hash so the build works from any static host or local file ([
   scrolled to its end shows its last content above it. The button opens a sheet from the right
   with that title.
 - **Width** ([FR-117](../spec.md#fr-117)): the sheet opens 384px wide, as it did before v1.4.
-  Its left edge is a separator named "Resize the chat", which shows the column-resize cursor and
-  takes focus.
+  Its left edge is a separator named "Resize the chat", which shows the left-right resize cursor
+  (`ew-resize`, a double arrow pointing left and right) and takes focus.
   - Dragging the separator moves the sheet's left edge with the pointer, between 320px and three
     quarters of the window. With focus on it, Left widens the sheet by 16px and Right narrows it by
     16px, within the same bounds.
