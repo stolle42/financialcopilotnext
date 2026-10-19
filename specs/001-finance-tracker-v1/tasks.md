@@ -1459,7 +1459,7 @@ checks of the look and of the chat's width in [quickstart.md](quickstart.md#manu
   - a window that becomes too narrow narrows the chat to three quarters of it;
   - the chat keeps its width when it closes and opens again and when another screen opens, and
     opens 384px wide again after a reload.
-- [ ] T122 (Project owner, manual) Walk the manual checks of the look and of the chat's width in
+- [x] T122 (Project owner, manual) Walk the manual checks of the look and of the chat's width in
   [quickstart.md](quickstart.md#manual-checks), on `localhost` and on the hosted copy. Its commit
   sets the version to `1.4.0`, after T108's `1.3.0`, and the tag `v1.4` goes on the phase's squash
   commit on `main` (constitution IX).
