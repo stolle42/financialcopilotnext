@@ -123,8 +123,6 @@ Routes use the URL hash so the build works from any static host or local file ([
     16px, within the same bounds.
   - The separator's value is the width in pixels, with the bounds as its least and greatest.
   - The width lasts while the app stays open, and is not stored.
-  - In a window narrower than 640px, the sheet fills the window, as it did before v1.4, and has no
-    separator.
 - Opening another screen closes the sheet, so that screen shows: by following a link in the
   sheet, a source or the link to Settings, or by going back in the browser's history.
 - While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
