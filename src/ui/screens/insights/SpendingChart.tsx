@@ -30,7 +30,7 @@ function PointPreview({ point }: { point: SpendingPoint }) {
     <div className="grid w-full min-w-48 gap-1.5">
       <div className="flex items-center justify-between gap-4 leading-none">
         <span className="text-muted-foreground">Spending</span>
-        <span className="font-mono font-medium text-foreground tabular-nums">
+        <span className="font-medium text-foreground tabular-nums">
           {formatAmount(point.totalCents)}
         </span>
       </div>
@@ -43,13 +43,13 @@ function PointPreview({ point }: { point: SpendingPoint }) {
                 {/* As in the legend: money the user could not account for (FR-052). */}
                 {entry.unknown && <span className="text-muted-foreground">unknown</span>}
               </span>
-              <span className="font-mono tabular-nums">{formatAmount(entry.amountCents)}</span>
+              <span className="tabular-nums">{formatAmount(entry.amountCents)}</span>
             </li>
           ))}
           {rest.length > 0 && (
             <li className="flex items-center justify-between gap-4 text-muted-foreground">
               <span>{rest.length} more categories</span>
-              <span className="font-mono tabular-nums">{formatAmount(restCents)}</span>
+              <span className="tabular-nums">{formatAmount(restCents)}</span>
             </li>
           )}
         </ul>

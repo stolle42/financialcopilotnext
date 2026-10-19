@@ -27,40 +27,44 @@ export function AccountsScreen() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Accounts</h1>
+        <h1 className="text-3xl font-semibold">Accounts</h1>
         <Button onClick={() => setDialog({ account: null })}>New account</Button>
       </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="py-2 font-medium">Name</th>
-            <th className="py-2 font-medium">Type</th>
-            <th className="py-2 text-right font-medium">Balance</th>
-            <th className="py-2">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ account, balance }) => (
-            <tr key={account.id} className="border-b">
-              <td className="py-2 font-medium">{account.name}</td>
-              <td className="py-2 text-muted-foreground">{accountTypeLabel(account.type)}</td>
-              <td className={cn("py-2 text-right tabular-nums", balance < 0 && "text-destructive")}>
-                {formatAmount(balance)}
-              </td>
-              <td className="py-2 text-right">
-                <Button variant="ghost" size="sm" onClick={() => setReconciling(account)}>
-                  Reconcile
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDialog({ account })}>
-                  Edit
-                </Button>
-              </td>
+      <div className="surface px-6 py-2">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left text-muted-foreground">
+              <th className="py-2 font-medium">Name</th>
+              <th className="py-2 font-medium">Type</th>
+              <th className="py-2 text-right font-medium">Balance</th>
+              <th className="py-2">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(({ account, balance }) => (
+              <tr key={account.id} className="border-b last:border-b-0">
+                <td className="py-2 font-medium">{account.name}</td>
+                <td className="py-2 text-muted-foreground">{accountTypeLabel(account.type)}</td>
+                <td
+                  className={cn("py-2 text-right tabular-nums", balance < 0 && "text-destructive")}
+                >
+                  {formatAmount(balance)}
+                </td>
+                <td className="py-2 text-right">
+                  <Button variant="ghost" size="sm" onClick={() => setReconciling(account)}>
+                    Reconcile
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDialog({ account })}>
+                    Edit
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {dialog && <AccountDialog account={dialog.account} onClose={() => setDialog(null)} />}
       {reconciling && (
         <ReconcileDialog account={reconciling} onClose={() => setReconciling(null)} />

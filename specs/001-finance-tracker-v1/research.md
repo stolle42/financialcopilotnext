@@ -619,7 +619,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     server passes their requests on to OpenAI ([R-24](#r-24)). `connect-src` therefore allows the
     app's own origin alone. In v1.2, it also listed the origin of the hosted n8n workflow
     ([R-23](#r-23)).
-  - No web fonts and no CDN assets: the app uses the system font stack and bundled icons.
+  - No CDN assets: the app bundles its icons and its fonts, and serves them from its own origin
+    ([R-27](#r-27)). Before v1.4, it used the system font stack and no web fonts.
   - No analytics and no error-reporting SDK.
   - **Regression test**: the browser-test guard ([R-17](#r-17)) fails on any request outside the
     app's origin, on a request to `/api/ai` that no test answers in OpenAI's place, and on any CSP
@@ -1079,3 +1080,90 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **Sources as exact transactions**: rejected by the owner, as above.
   - **Links written into the answer's text**, with a Markdown renderer: the model would write the
     links, and an answer could link anywhere.
+
+## Design (v1.4)
+
+<a id="r-27"></a>
+### R-27 · The reference design's look, made readable, with bundled fonts
+
+- **Decision** (owner, 2026-10-16), for [FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116):
+  - **The reference's tokens.** The colours, corners and shadows of
+    [ui.md](contracts/ui.md#look) come from the stylesheet that the reference design publishes. Its
+    corner scale matches the app's, since both derive from a radius of 0.625rem.
+  - **Four colours darkened.** On its own backgrounds, the reference's text reaches 3.6:1 under its
+    primary colour, 4.2:1 in its secondary ink on its canvas, and 2.3:1 and 2.2:1 in its danger and
+    positive colours, short of [FR-116](spec.md#fr-116). Each of the four is darkened in OKLCH
+    lightness alone, keeping its hue and chroma, until it reaches 4.6:1 on both the canvas and the
+    card, or under the card colour for the primary:
+
+    | Colour | Reference | App |
+    |---|---|---|
+    | Primary | `#6b82c0` | `#5a70ad` |
+    | Secondary ink | `#6a7288` | `#646c82` |
+    | Danger | `#e88f9a` | `#a65360` |
+    | Positive | `#84b79c` | `#45765d` |
+
+  - **The canvas as the accent.** shadcn's components tint hovered and focused options in
+    `--accent`. The reference sets it to amber, while the app tints them in the canvas colour,
+    which keeps menus and lists calm.
+  - **Bundled fonts.** Fontsource's variable packages ship Figtree and Fraunces as `woff2` files,
+    with their licence, the SIL Open Font License 1.1 ([plan.md](plan.md#technical-context)).
+    - Vite bundles the files, so they come from the app's own origin, as `font-src 'self'` requires
+      ([R-19](#r-19)), and work without a network.
+    - Fraunces comes with its optical-size axis, as the reference loads it.
+    - Each face is split by script. The browser loads only the files the app's text needs, the
+      Latin ones, which hold the euro sign: about 20 kB for Figtree and 67 kB for Fraunces.
+    - `font-display: swap` shows text at once in the system font ([FR-113](spec.md#fr-113)).
+  - **One utility for the card.** The card is a Tailwind `@utility surface` in `src/ui/index.css`,
+    because more than twenty elements wear it (constitution III). The elements keep their roles:
+    sections, lists and tables.
+  - **No dark mode.** The reference has one, but v1 has none ([plan](plan.md#constitution-check)),
+    and the owner asked for a look, not a feature.
+  - **The layout stays** (owner, 2026-10-16). The reference's top navigation, overview dashboard and
+    logo are not taken over; the sidebar and header stay where they are.
+- **Rationale**: the owner prefers the reference's look. Its exact tokens get closest to it, and the
+  four darker colours keep text readable ([FR-064](spec.md#fr-064)).
+- **Testing**: Playwright reads the computed styles of the production build in both browsers,
+  colours as the browser resolves them and contrast from them, as WCAG computes it
+  (`e2e/ui/design.spec.ts`). A person compares the screens with the reference
+  ([quickstart.md](quickstart.md#manual-checks)).
+- **Alternatives considered**:
+  - **The reference's colours as they are**: text below 4.5:1, as above.
+  - **Google Fonts, from which the reference loads them**: a request to a third party, which
+    [FR-061](spec.md#fr-061) forbids and the CSP blocks.
+  - **Font files copied into the repo**: no version and no licence beside them; the packages carry
+    both.
+  - **The system font stack**, [R-19](#r-19)'s choice before v1.4: it cannot give the reference's
+    look.
+  - **shadcn's Card component**: it renders a `div`, which would replace the sections, lists and
+    tables that tests and screen readers find by their roles.
+
+<a id="r-28"></a>
+### R-28 · The chat's width, set by a separator of the app's own and kept in memory
+
+- **Decision** (owner, 2026-10-19), for [FR-117](spec.md#fr-117):
+  - **A separator of the app's own.** The sheet's left edge is an element with the `separator`
+    role, as WAI-ARIA's window splitter pattern describes it, which `FinanceChat.tsx` renders
+    inside the sheet. Pointer events, with the pointer captured, set the width to the distance from
+    the pointer to the window's right edge; the arrow keys move it in 16px steps.
+  - **Kept in memory.** The width lives in the state of `FinanceChat`, which the app's shell renders
+    once, so it outlasts the sheet and every screen, and a reload starts from 384px.
+  - **Clamped as it shows.** The state keeps the width the user chose, and the sheet shows it
+    clamped to the bounds of the window's current width, which `FinanceChat` follows. A window
+    that narrows therefore narrows the sheet and the separator's value with it, and one that widens
+    again gives back the width chosen.
+  - React sets the width as a CSS variable through the CSSOM, which `style-src 'self'` allows
+    ([R-19](#r-19)), as the colour chips' backgrounds do.
+- **Rationale**: one edge needs a few dozen lines, and the separator role gives screen readers and
+  the keyboard the same control the pointer has. Storing the width would change storage, backups
+  and Delete all data for a view preference ([FR-104](spec.md#fr-104) stores the conversation,
+  which is data).
+- **Testing**: Playwright drags the separator and presses the arrow keys in both browsers, and
+  reads the sheet's width and the separator's value (`e2e/ui/finance-chat.spec.ts`). A person
+  checks that dragging feels smooth ([quickstart.md](quickstart.md#manual-checks)).
+- **Alternatives considered**:
+  - **`react-resizable-panels` or `re-resizable`**: they lay out panels side by side, not a sheet
+    over the screen, and add a dependency for one edge.
+  - **CSS `resize: horizontal`**: its grip sits at the corner on the window's edge, which does not
+    move, and the keyboard cannot reach it.
+  - **Storing the width in settings**: see the rationale. The owner may ask for it later.

@@ -81,9 +81,9 @@ export function BackupScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Backup</h1>
+      <h1 className="text-3xl font-semibold">Backup</h1>
       {persisted === false && (
-        <p className="rounded-lg border p-4 text-sm">
+        <p className="surface p-6 text-sm">
           Your browser may clear this app&apos;s data when disk space runs low, because it did not
           agree to keep it. A backup is the safeguard, so save one now and then.
         </p>
@@ -93,8 +93,11 @@ export function BackupScreen() {
           {messageFor(refusal)}
         </p>
       )}
-      <section aria-labelledby="save-backup" className="flex flex-col items-start gap-3">
-        <h2 id="save-backup" className="text-lg font-medium">
+      <section
+        aria-labelledby="save-backup"
+        className="surface flex flex-col items-start gap-3 p-6"
+      >
+        <h2 id="save-backup" className="text-xl font-semibold">
           Save a backup
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -102,8 +105,11 @@ export function BackupScreen() {
         </p>
         <Button onClick={save}>Save backup</Button>
       </section>
-      <section aria-labelledby="restore-backup" className="flex flex-col items-start gap-3">
-        <h2 id="restore-backup" className="text-lg font-medium">
+      <section
+        aria-labelledby="restore-backup"
+        className="surface flex flex-col items-start gap-3 p-6"
+      >
+        <h2 id="restore-backup" className="text-xl font-semibold">
           Restore from a backup
         </h2>
         <p className="text-sm text-muted-foreground">

@@ -20,13 +20,10 @@ export function InsightsScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Insights</h1>
+      <h1 className="text-3xl font-semibold">Insights</h1>
       <PeriodPicker period={period} onChange={setPeriod} />
-      <section
-        aria-labelledby={spendingHeading}
-        className="flex flex-col gap-4 rounded-lg border p-6"
-      >
-        <h2 id={spendingHeading} className="text-lg font-medium">
+      <section aria-labelledby={spendingHeading} className="surface flex flex-col gap-4 p-6">
+        <h2 id={spendingHeading} className="text-xl font-semibold">
           Spending over time
         </h2>
         <SpendingChart spending={result.spending} />

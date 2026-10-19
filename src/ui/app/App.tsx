@@ -105,9 +105,9 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
           <ImportStateContext.Provider value={importContext}>
             <Toaster>
               <div className="flex min-h-screen flex-col">
-                <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
+                <header className="flex h-16 shrink-0 items-center justify-between px-6">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-semibold">Financial Copilot</span>
+                    <span className="font-heading text-xl font-semibold">Financial Copilot</span>
                     <span className="text-xs text-muted-foreground">Version {appVersion}</span>
                   </div>
                   {/* The primary action, reachable from every screen (FR-066). */}
@@ -116,7 +116,7 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                 <div className="flex flex-1">
                   <nav
                     aria-label="Screens"
-                    className="flex w-56 shrink-0 flex-col gap-1 border-r bg-sidebar p-4 text-sidebar-foreground"
+                    className="surface mt-6 ml-6 flex w-56 shrink-0 flex-col gap-1 self-start p-2"
                   >
                     {sidebarEntries.map((entry) => (
                       <a
@@ -124,8 +124,9 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                         href={entry.href}
                         aria-current={currentEntry === entry.route ? "page" : undefined}
                         className={cn(
-                          "rounded-md px-3 py-2 text-sm font-medium hover:bg-sidebar-accent",
-                          currentEntry === entry.route && "bg-sidebar-accent",
+                          "rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+                          currentEntry === entry.route &&
+                            "bg-sidebar-accent text-sidebar-accent-foreground",
                         )}
                       >
                         {entry.label}

@@ -27,6 +27,10 @@ It is built as a client-only TypeScript single-page app.
   the user has turned AI features on ([contracts/ai.md](contracts/ai.md), [R-24](research.md#r-24),
   [R-25](research.md#r-25)). Answers stream back through the route, and the chat's conversation is
   stored with the rest of the data ([R-26](research.md#r-26)).
+- **Look** (v1.4): the reference design's palette, cards and fonts, with the fonts bundled
+  ([contracts/ui.md](contracts/ui.md#look), [R-27](research.md#r-27)).
+- **Resizable chat** (v1.4): a separator on the finance chat's edge sets its width, which stays in
+  memory ([contracts/ui.md](contracts/ui.md#finance-chat), [R-28](research.md#r-28)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
@@ -53,6 +57,7 @@ our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 | `shadcn`: CLI and base stylesheet, with `class-variance-authority` 0.7, `cn` 0.4 and `tw-animate-css` 1.4 | 4.21 | Copying in components, and the helpers they use ([R-03](research.md#r-03)) |
 | Base UI (`@base-ui/react`) | 1.8 | Accessible primitives under the components ([R-03](research.md#r-03)) |
 | `lucide-react` | 1.49 | Icons |
+| `@fontsource-variable/figtree` and `@fontsource-variable/fraunces` | 5.3 | The text and heading fonts, bundled (v1.4, [R-27](research.md#r-27)) |
 | Recharts, with its `react-is` peer | 3.8, as pinned by shadcn's chart component | Charts ([R-14](research.md#r-14)) |
 | `idb` | 8.0 | IndexedDB ([R-06](research.md#r-06)) |
 | Papa Parse, with `@types/papaparse` 5.5 | 5.7 | CSV ([R-09](research.md#r-09)) |
@@ -233,7 +238,7 @@ src/
     │   ├── ui/           # shadcn/ui components, copied in by its CLI; our code from then on
     │   └── …             # The shared patterns of contracts/ui.md, such as the amount field
     ├── lib/utils.ts      # shadcn's `cn` class-name helper
-    ├── index.css         # Tailwind entry and theme tokens
+    ├── index.css         # Tailwind entry, theme tokens, fonts and the card utility (R-27)
     ├── screens/          # One folder per screen of contracts/ui.md
     ├── format.ts         # The one amount formatter and the one date formatter
     └── messages.ts       # The one message catalogue

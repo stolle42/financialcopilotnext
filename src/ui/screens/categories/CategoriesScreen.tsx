@@ -99,7 +99,7 @@ function CategoryList({ side }: { side: Side }) {
           {messageFor(alert)}
         </p>
       )}
-      <ul className="flex flex-col divide-y rounded-lg border">
+      <ul className="surface flex flex-col divide-y">
         {listed.map((category) => (
           <li key={category.id} className="flex flex-col gap-3 px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-4">
@@ -190,7 +190,7 @@ export function CategoriesScreen() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Categories</h1>
+        <h1 className="text-3xl font-semibold">Categories</h1>
         <Button onClick={() => setCreating(true)}>New category</Button>
       </div>
       <Tabs value={side} onValueChange={(value) => setSide(value as Side)}>

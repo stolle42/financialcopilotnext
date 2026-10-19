@@ -42,10 +42,7 @@ function PendingBatchCard({ batch }: { batch: PendingBatch }) {
   }
 
   return (
-    <section
-      aria-label="Import waiting for review"
-      className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-4"
-    >
+    <section aria-label="Import waiting for review" className="surface flex flex-col gap-3 p-6">
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
           {messageFor(refusal)}
@@ -53,7 +50,7 @@ function PendingBatchCard({ batch }: { batch: PendingBatch }) {
       )}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="font-medium">An import is waiting for review</h2>
+          <h2 className="text-xl font-semibold">An import is waiting for review</h2>
           <p className="text-sm text-muted-foreground">
             {batch.fileName} into {account?.name} · {countsText(batch)}
           </p>
@@ -159,7 +156,7 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
     <Field>
       <FieldLabel htmlFor={ids.file}>Bank file</FieldLabel>
       <div
-        className="flex flex-col gap-2 rounded-lg border border-dashed p-4"
+        className="flex flex-col gap-2 rounded-2xl border border-dashed border-foreground/15 bg-muted/60 p-4"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -185,11 +182,11 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
   );
 
   return (
-    <section aria-label="Import a file" className="flex max-w-2xl flex-col gap-4">
+    <section aria-label="Import a file" className="surface flex max-w-2xl flex-col gap-4 p-6">
       {refusal && !accountRefused && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 p-4 text-sm text-destructive"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-destructive/40 p-4 text-sm text-destructive"
         >
           <span>{messageFor(refusal)}</span>
           {step && (
@@ -294,8 +291,8 @@ function ProfileList({ batchPending }: { batchPending: boolean }) {
   }
 
   return (
-    <section aria-label="Mapping profiles" className="flex max-w-2xl flex-col gap-3">
-      <h2 className="text-lg font-semibold">Mapping profiles</h2>
+    <section aria-label="Mapping profiles" className="surface flex max-w-2xl flex-col gap-3 p-6">
+      <h2 className="text-xl font-semibold">Mapping profiles</h2>
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
           {messageFor(refusal)}
@@ -306,9 +303,9 @@ function ProfileList({ batchPending }: { batchPending: boolean }) {
           No profiles yet. You define one the first time you import a file.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y rounded-lg border">
+        <ul className="flex flex-col divide-y">
           {sorted.map((profile) => (
-            <li key={profile.id} className="flex items-center justify-between px-4 py-2">
+            <li key={profile.id} className="flex items-center justify-between py-2">
               <span className="font-medium">{profile.name}</span>
               <span className="flex gap-1">
                 <Button
@@ -348,7 +345,7 @@ export function ImportScreen() {
   const batch = useStore((state) => state.pendingBatch);
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Import</h1>
+      <h1 className="text-3xl font-semibold">Import</h1>
       {batch && <PendingBatchCard batch={batch} />}
       <ImportForm batchPending={batch !== null} />
       <ProfileList batchPending={batch !== null} />
