@@ -1,0 +1,164 @@
+import type { Page } from "@playwright/test";
+import { chat, chatButton } from "../support/ai";
+import { expect, test } from "../support/test";
+
+// contracts/ui.md, finance chat, width (FR-117, R-28). The window is 1280px wide, so the chat's
+// greatest width, three quarters of it, is 960px.
+
+const START = 384;
+const LEAST = 320;
+const GREATEST = 960;
+const STEP = 16;
+
+/** The edge of the chat's sheet, which sets its width. */
+const separator = (page: Page) => chat(page).getByRole("separator", { name: "Resize the chat" });
+
+/** The chat's sheet's width, in CSS pixels. */
+async function width(page: Page) {
+  return Math.round((await chat(page).boundingBox())!.width);
+}
+
+/** Opens the chat and waits until it has slid into place, against the window's right edge. */
+async function openChat(page: Page) {
+  await chatButton(page).click();
+  await expect(chat(page)).toBeVisible();
+  await expect
+    .poll(async () => {
+      const box = (await chat(page).boundingBox())!;
+      return Math.round(box.x + box.width);
+    })
+    .toBe(page.viewportSize()!.width);
+}
+
+/** Drags the separator by `by` pixels, to the left when negative. */
+async function drag(page: Page, by: number) {
+  const box = (await separator(page).boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + by, y, { steps: 8 });
+  await page.mouse.up();
+}
+
+/** Drags the separator to `x`, measured from the window's left edge. */
+async function dragTo(page: Page, x: number) {
+  const box = (await separator(page).boundingBox())!;
+  await drag(page, x - (box.x + box.width / 2));
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/#/insights");
+  await expect(
+    page.getByRole("main").getByRole("heading", { name: "Insights", level: 1 }),
+  ).toBeVisible();
+});
+
+test("opens 384px wide, with a separator on its edge whose value is its width", async ({
+  page,
+}) => {
+  await openChat(page);
+
+  expect(await width(page)).toBe(START);
+  await expect(separator(page)).toBeVisible();
+  await expect(separator(page)).toHaveAttribute("aria-orientation", "vertical");
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(START));
+  await expect(separator(page)).toHaveAttribute("aria-valuemin", String(LEAST));
+  await expect(separator(page)).toHaveAttribute("aria-valuemax", String(GREATEST));
+  expect(await separator(page).evaluate((element) => getComputedStyle(element).cursor)).toBe(
+    "col-resize",
+  );
+  // The separator sits on the sheet's left edge.
+  const sheet = (await chat(page).boundingBox())!;
+  const edge = (await separator(page).boundingBox())!;
+  expect(edge.x).toBeLessThanOrEqual(sheet.x);
+  expect(edge.x + edge.width).toBeGreaterThanOrEqual(sheet.x);
+});
+
+test("widens and narrows as the separator is dragged, within 320px and three quarters of the window", async ({
+  page,
+}) => {
+  await openChat(page);
+
+  await drag(page, -200);
+  expect(await width(page)).toBe(START + 200);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(START + 200));
+
+  await drag(page, 120);
+  expect(await width(page)).toBe(START + 80);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(START + 80));
+
+  await dragTo(page, 1200);
+  expect(await width(page)).toBe(LEAST);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(LEAST));
+
+  await dragTo(page, 10);
+  expect(await width(page)).toBe(GREATEST);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(GREATEST));
+});
+
+test("widens by 16px with Left and narrows by 16px with Right, once the separator has focus", async ({
+  page,
+}) => {
+  await openChat(page);
+  await separator(page).focus();
+  await expect(separator(page)).toBeFocused();
+
+  await page.keyboard.press("ArrowLeft");
+  expect(await width(page)).toBe(START + STEP);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(START + STEP));
+
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  expect(await width(page)).toBe(START - STEP);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(START - STEP));
+  // The chat stays open: the keys move the edge and nothing else.
+  await expect(chat(page)).toBeVisible();
+});
+
+test("narrows with a window too narrow for its width, to three quarters of it", async ({
+  page,
+}) => {
+  await openChat(page);
+  await dragTo(page, 1280 - 900);
+  expect(await width(page)).toBe(900);
+
+  await page.setViewportSize({ width: 1000, height: 720 });
+  await expect.poll(() => width(page)).toBe(750);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", "750");
+  await expect(separator(page)).toHaveAttribute("aria-valuemax", "750");
+});
+
+test("keeps its width when closed and opened again and when another screen opens, until a reload", async ({
+  page,
+}) => {
+  await openChat(page);
+  await drag(page, -200);
+  expect(await width(page)).toBe(START + 200);
+
+  await page.keyboard.press("Escape");
+  await expect(chat(page)).toBeHidden();
+  await openChat(page);
+  expect(await width(page)).toBe(START + 200);
+
+  await page.keyboard.press("Escape");
+  await expect(chat(page)).toBeHidden();
+  await page
+    .getByRole("navigation", { name: "Screens" })
+    .getByRole("link", { name: "Accounts" })
+    .click();
+  await expect(
+    page.getByRole("main").getByRole("heading", { name: "Accounts", level: 1 }),
+  ).toBeVisible();
+  await openChat(page);
+  expect(await width(page)).toBe(START + 200);
+  await expect(separator(page)).toHaveAttribute("aria-valuenow", String(START + 200));
+
+  await page.reload();
+  await expect(
+    page.getByRole("main").getByRole("heading", { name: "Accounts", level: 1 }),
+  ).toBeVisible();
+  await openChat(page);
+  expect(await width(page)).toBe(START);
+});
