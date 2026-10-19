@@ -140,7 +140,7 @@ export function FinanceChat() {
     <>
       <Button
         size="lg"
-        className="fixed right-6 bottom-6 z-40 h-10 rounded-full px-4 shadow-lg"
+        className="fixed right-6 bottom-6 z-40 h-10 rounded-full px-4"
         onClick={() => setOpen(true)}
       >
         <MessageCircle aria-hidden />

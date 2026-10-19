@@ -1434,7 +1434,7 @@ of their own, before any code of the phase.
   - the header has no line below it;
   - the transaction form, a select's options, a confirmation, the chat's panel and a notification
     are in the card colour, rounded and raised by a shadow.
-- [ ] T121 Controls: `button.tsx`, `input.tsx`, `select.tsx`, `toggle.tsx`, `tabs.tsx`,
+- [X] T121 Controls: `button.tsx`, `input.tsx`, `select.tsx`, `toggle.tsx`, `tabs.tsx`,
   `switch.tsx` and `progress.tsx` in `src/ui/components/ui/` as ui.md describes them, and the
   budget bars of `BudgetSection.tsx` at its height ([FR-115](spec.md#fr-115)). Test first in
   `e2e/ui/design.spec.ts`:

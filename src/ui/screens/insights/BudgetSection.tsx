@@ -63,10 +63,7 @@ export function BudgetSection({ month, progress }: { month: string; progress: Bu
                   // The bar stops at the limit, however far spending went past it.
                   value={Math.min(spentCents, limitCents)}
                   max={limitCents}
-                  className={cn(
-                    "[&_[data-slot=progress-track]]:h-2",
-                    overLimit && "[&_[data-slot=progress-indicator]]:bg-destructive",
-                  )}
+                  className={cn(overLimit && "[&_[data-slot=progress-indicator]]:bg-destructive")}
                 />
               </li>
             );
