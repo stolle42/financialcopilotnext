@@ -41,10 +41,13 @@ async function drag(page: Page, by: number) {
   await page.mouse.up();
 }
 
-/** Drags the separator to `x`, measured from the window's left edge. */
+/**
+ * Drags the separator until the sheet's left edge is at `x`, measured from the window's left edge.
+ * The separator's middle need not lie on that edge, which the sheet's outline moves by a pixel.
+ */
 async function dragTo(page: Page, x: number) {
-  const box = (await separator(page).boundingBox())!;
-  await drag(page, x - (box.x + box.width / 2));
+  const sheet = (await chat(page).boundingBox())!;
+  await drag(page, x - sheet.x);
 }
 
 test.beforeEach(async ({ page }) => {
