@@ -70,7 +70,7 @@ test("opens 384px wide, with a separator on its edge whose value is its width", 
   await expect(separator(page)).toHaveAttribute("aria-valuemin", String(LEAST));
   await expect(separator(page)).toHaveAttribute("aria-valuemax", String(GREATEST));
   expect(await separator(page).evaluate((element) => getComputedStyle(element).cursor)).toBe(
-    "col-resize",
+    "ew-resize",
   );
   // The separator sits on the sheet's left edge.
   const sheet = (await chat(page).boundingBox())!;
