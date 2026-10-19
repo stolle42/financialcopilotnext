@@ -1148,9 +1148,10 @@ mark, concurrency, zod and the untrusted answer still holds.
     the pointer to the window's right edge; the arrow keys move it in 16px steps.
   - **Kept in memory.** The width lives in the state of `FinanceChat`, which the app's shell renders
     once, so it outlasts the sheet and every screen, and a reload starts from 448px.
-  - **Clamped twice.** The handlers clamp the width to its bounds when it changes, and the sheet's
-    CSS clamps it again, to `clamp(20rem, width, 75vw)`, so a window that narrows narrows the sheet
-    without a resize listener.
+  - **Clamped as it shows.** The state keeps the width the user chose, and the sheet shows it
+    clamped to the bounds of the window's current width, which `FinanceChat` follows. A window
+    that narrows therefore narrows the sheet and the separator's value with it, and one that widens
+    again gives back the width chosen.
   - React sets the width as a CSS variable through the CSSOM, which `style-src 'self'` allows
     ([R-19](#r-19)), as the colour chips' backgrounds do.
 - **Rationale**: one edge needs a few dozen lines, and the separator role gives screen readers and
