@@ -1,5 +1,13 @@
 import { MessageCircle } from "lucide-react";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 import type { ChatSource, ChatTurn } from "@/domain/types";
 import {
   askChat,
@@ -80,6 +88,77 @@ function suggestedQuestions(conversation: readonly ChatTurn[]): readonly string[
   return latest.stopped ? [] : (latest.followUps ?? []);
 }
 
+/** The chat's width where it opens, its least, and a step of the arrow keys (FR-117). */
+const chatWidth = { start: 384, least: 320, step: 16 };
+
+/** The chat's greatest width in a window this wide: three quarters of it, yet never under the least. */
+function greatestChatWidth(windowWidth: number): number {
+  return Math.max(chatWidth.least, Math.floor(windowWidth * 0.75));
+}
+
+/** The window's width, kept up to date, since it bounds the chat's (R-28). */
+function useWindowWidth(): number {
+  return useSyncExternalStore(
+    (listener) => {
+      window.addEventListener("resize", listener);
+      return () => window.removeEventListener("resize", listener);
+    },
+    () => window.innerWidth,
+  );
+}
+
+/**
+ * The left edge of the chat's sheet: a separator, as WAI-ARIA's window splitter pattern has it,
+ * that sets the chat's width by pointer and with the arrow keys (contracts/ui.md, finance chat;
+ * FR-117, R-28). It hands `onResize` the width asked for, which may lie beyond the bounds.
+ */
+function ChatEdge({
+  width,
+  greatest,
+  onResize,
+}: {
+  width: number;
+  greatest: number;
+  onResize: (width: number) => void;
+}) {
+  // Where the drag took hold, so the edge moves by as much as the pointer, wherever it was grabbed.
+  const [drag, setDrag] = useState<{ x: number; width: number } | null>(null);
+  return (
+    <div
+      role="separator"
+      aria-label="Resize the chat"
+      aria-orientation="vertical"
+      aria-valuenow={width}
+      aria-valuemin={chatWidth.least}
+      aria-valuemax={greatest}
+      tabIndex={0}
+      data-dragging={drag ? "" : undefined}
+      className="group/edge absolute inset-y-0 -left-1.5 flex w-3 cursor-col-resize touch-none items-center justify-center outline-none select-none"
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setDrag({ x: event.clientX, width });
+      }}
+      onPointerMove={(event) => {
+        if (drag) onResize(drag.width + drag.x - event.clientX);
+      }}
+      onPointerUp={() => setDrag(null)}
+      onPointerCancel={() => setDrag(null)}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft") onResize(width + chatWidth.step);
+        else if (event.key === "ArrowRight") onResize(width - chatWidth.step);
+        else return;
+        event.preventDefault();
+      }}
+    >
+      <span
+        aria-hidden
+        className="h-10 w-1 rounded-full bg-foreground/20 transition-colors group-hover/edge:bg-primary group-focus-visible/edge:bg-primary group-data-dragging/edge:bg-primary"
+      />
+    </div>
+  );
+}
+
 /**
  * The finance chat (contracts/ui.md, finance chat; FR-100 – FR-110): a button fixed at the bottom
  * right of every screen, which opens the chat beside the screen. The app shell renders it once, so
@@ -97,6 +176,11 @@ export function FinanceChat() {
   const [draft, setDraft] = useState(() => session.failure?.question ?? "");
   const [clearing, setClearing] = useState(false);
   const [clearFailed, setClearFailed] = useState(false);
+  // The width the user gave the chat, which lasts while the app stays open, and the width it shows:
+  // that one, within the bounds of the window as it is now (FR-117, R-28).
+  const [chosenWidth, setChosenWidth] = useState(chatWidth.start);
+  const greatestWidth = greatestChatWidth(useWindowWidth());
+  const width = Math.min(chosenWidth, greatestWidth);
   const fieldId = useId();
   const suggestionsId = useId();
   const log = useRef<HTMLDivElement>(null);
@@ -148,7 +232,8 @@ export function FinanceChat() {
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
-          className="w-full sm:max-w-md"
+          className="data-[side=right]:w-(--chat-width) data-[side=right]:sm:max-w-none"
+          style={{ "--chat-width": `${width}px` } as CSSProperties}
           onClick={(event) => {
             // A link to the address already open raises no hashchange, yet still opens that screen.
             if ((event.target as Element).closest("a[href]")) setOpen(false);
@@ -247,6 +332,14 @@ export function FinanceChat() {
               </div>
             </form>
           )}
+          {/* Last, so that it takes focus after the chat's own controls, not when the chat opens. */}
+          <ChatEdge
+            width={width}
+            greatest={greatestWidth}
+            onResize={(asked) =>
+              setChosenWidth(Math.min(Math.max(Math.round(asked), chatWidth.least), greatestWidth))
+            }
+          />
         </SheetContent>
       </Sheet>
       <ConfirmDialog

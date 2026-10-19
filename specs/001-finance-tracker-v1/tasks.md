@@ -1447,7 +1447,7 @@ checks of the look and of the chat's width in [quickstart.md](quickstart.md#manu
   - the side tabs on Categories form a segmented control, whose current tab shows the canvas
     colour and whose other tab's label keeps 4.5:1 ([FR-116](spec.md#fr-116));
   - a budget bar on Insights is 12px tall and fully rounded.
-- [ ] T123 Resizable chat: a separator on the left edge of the chat's sheet in `FinanceChat.tsx`,
+- [X] T123 Resizable chat: a separator on the left edge of the chat's sheet in `FinanceChat.tsx`,
   as [ui.md](contracts/ui.md#finance-chat) describes it, with the width in the state of
   `FinanceChat`, which the shell renders once ([FR-117](spec.md#fr-117),
   [R-28](research.md#r-28)). Test first in `e2e/ui/finance-chat.spec.ts`:
