@@ -941,6 +941,8 @@ mark, concurrency, zod and the untrusted answer still holds.
     spends the owner's credit.
   - **The `openai` package**: a dependency for one POST, which in a browser needs
     `dangerouslyAllowBrowser`.
+  - **A model on the user's own computer through Ollama**: measured on the owner's laptop for v1.5,
+    and too slow or too often wrong there ([R-29](#r-29)).
 
 <a id="r-25"></a>
 ### R-25 · The finance chat: what a question sends and how it answers
@@ -1167,3 +1169,99 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **CSS `resize: horizontal`**: its grip sits at the corner on the window's edge, which does not
     move, and the keyboard cannot reach it.
   - **Storing the width in settings**: see the rationale. The owner may ask for it later.
+
+## AI on the user's own computer (measured for v1.5, not built)
+
+<a id="r-29"></a>
+### R-29 · A model through Ollama on the owner's laptop: too slow or too often wrong
+
+- **Decision** (owner, 2026-10-20): v1.5 is not built. Its spec would have answered both AI
+  features with a model that Ollama runs on the user's own computer and removed OpenAI, so that no
+  ledger data leaves the computer (FR-118 – FR-120 and tasks T124 – T129, written in commit
+  `1837fa0` and reverted). T124 measured models on the owner's laptop first, and none served both
+  features usefully within a minute. The AI features stay with OpenAI as [R-24](#r-24) describes
+  them. The measurements are kept here for a later attempt.
+- **Rationale**:
+  - **The owner's limit is one minute** (owner, 2026-10-20): a request still running after 60
+    seconds is "well beyond anything a user could bear", whatever the 4 minutes of
+    [FR-094](spec.md#fr-094) allow.
+  - **The model that was right was far too slow.** `qwen3:8b` suggested 99 of 100 categories
+    correctly, but needed 2.7 to 9 minutes for one batch of review and wrote no word of a chat answer
+    within 5 minutes.
+  - **The models fast enough were too often wrong.** Below 2B parameters, suggestions dropped to
+    between none and 16 of 20 right, and chat answers stated wrong conclusions about the user's
+    money, such as budgets exceeded that were not. That is the failure [FR-109](spec.md#fr-109)
+    rules out, and one a user would believe.
+- **Computer**: Intel Core i7-1255U (10 cores, 12 threads), 16 GB DDR4-3200, Intel Iris Xe graphics
+  sharing that memory, Windows 11, Ollama 0.40.6. Ollama leaves an integrated GPU unused unless
+  `OLLAMA_IGPU_ENABLE=1` is set; with it, all runs below except the first used the Iris Xe through
+  Vulkan.
+- **Method**:
+  - The requests were the ones the app builds, from the demonstration data with today as
+    2026-10-20, sent to Ollama's `POST /api/chat` with the feature's instructions as the system
+    message, the schema as `format`, `think: false` and `temperature: 0`.
+  - For review, the newest 300 categorised expenses and incomes were held out as rows to suggest,
+    with their categories hidden, and the examples were built from the rest as
+    `suggestionRequest` does. "Known" rows have a description the examples hold; "new" rows do not.
+  - Each model was loaded before timing. From `qwen3:1.7b` on, each request was stopped after 60
+    seconds, and the first request over the limit ended that model's run (owner, 2026-10-20).
+- **Suggest categories**:
+
+  | Model, memory | Rows | First words | Whole answer | Right |
+  |---|---|---|---|---|
+  | `qwen3:8b`, processor only | 20 | 278 s | 372 s | 20 of 20 |
+  | `qwen3:8b` | 20 | 83 s | 162 s | 20 of 20 |
+  | `qwen3:8b` | 50 | 78 s | 279 s | 49 of 50 |
+  | `qwen3:8b` | 100 | 82 s | 547 s | 99 of 100 |
+  | `qwen3:1.7b`, 2.2 GB | 20 | 10 s | 34 s | 16 of 20: 13 of 13 known, 3 of 7 new |
+  | `qwen3:0.6b`, 1.4 GB | 50 | 14 s | 44 s | 36 of 50, one category invented |
+  | `qwen3.5:0.8b`, 642 MB | 20 | 14 s | 31 s | 11 of 20, and 21 rows answered |
+  | `gemma3:1b`, 962 MB | 20 | 10 s | 11 s | no suggestion at all |
+  | `llama3.2:1b`, 1.7 GB | 20 | 10 s | stopped at 60 s | 33 rows answered by then |
+
+- **The finance chat**, first as v1.4 sends it, then with less data:
+  - **All rows of 13 months** (about 19,800 tokens): `qwen3:8b` with `num_ctx` 20,480 needed
+    8.4 GB, held 30 of its 37 layers on the GPU, and had written no word after 300 seconds.
+    `qwen3:0.6b` began after 468 s and called "How can I reduce my spending?" out of scope.
+  - **Rows since 1 September only** (66 rows, about 5,800 tokens), stopped at 60 s: `qwen3:1.7b`
+    began after 49 s and was stopped; `qwen3.5:0.8b` began after 20 s, wrongly out of scope, and
+    was stopped still writing; `gemma3:1b` answered in 22 s but wrongly out of scope, and its next
+    answer was stopped at 60 s, repeating itself.
+  - **No rows** (about 3,000 tokens): totals per month and category, budgets and accounts, and a
+    guide cut to 1,000 characters, read once in advance as the chat could on opening (13 s), with
+    `qwen3:1.7b`. Every question then began within a second and ended within the minute, but only
+    the off-topic one was answered well:
+
+    | Question | Whole answer | Answer |
+    |---|---|---|
+    | How can I reduce my spending? | 53 s | Cut Eating out and Groceries, both far under budget; Shopping, over budget at €355.92 of €250, not named |
+    | Which of my subscriptions have become more expensive? | 21 s | An invented rise of €1.00, written twice, with the budget in dollars |
+    | Am I on track with my budgets this month? | 39 s | All six budgets' figures right, then "exceeds your budget for most categories"; only Shopping does |
+    | Where did I spend more this month than last month? | 25 s | Shopping the same €355.92 both months; it was €94.17 in September |
+    | What is the capital of France? | 5 s | Out of scope, correctly |
+
+  - **No rows, with each recurring payment and its prices** (about 3,400 tokens, read in 17 s):
+    the subscriptions question named Spotify's rise from €10.99 to €11.99 in January 2026
+    correctly, but added an invented rise of the newspaper and listed iCloud+ and bouldering, whose
+    prices never changed.
+  - Nearly every answer named the Cash account as a source, which none rested on.
+- **Other findings**:
+  - **Reading and writing.** The Iris Xe read prompts 4 to 6 times faster than the processor
+    (`qwen3:8b`: 9.7 against 43 – 61 tokens a second) but wrote barely faster (2.3 against 2.7).
+    Writing set the time: about 2.5 tokens a second for `qwen3:8b`, 9 – 11 for `qwen3:1.7b`, and
+    10 – 18 for the models of 1B and less.
+  - **Ollama sends no headers before the first words.** Node's `fetch` gave up after 300 seconds
+    without headers, so a route waiting longer needs `node:http`.
+  - **A repeated system message is read from Ollama's cache**: 3,000 tokens in under a second
+    instead of 13 s. Reading the data once when the chat opens makes later questions start at once.
+  - **Memory.** `qwen3:8b` needs about 147 KB per token of context, so 15,000 tokens take about
+    2.2 GB beside the model's 5 GB; on the processor alone, `num_ctx` 8,192 already failed to
+    allocate. During the long runs, Windows grew its page file to 18 GB and left 628 MB of the disk
+    free until a restart.
+- **Not tried**, for a later attempt:
+  - A computer with a dedicated GPU or Apple silicon, where `qwen3:8b` writes many times faster.
+  - Models between 2B and 8B, such as `qwen3:4b`, and Gemma 4 E4B and 12B.
+  - Ready-made facts: the app works out the budgets over their limit, the changes since last month
+    and the price rises itself, and the model only words them, since `qwen3:1.7b` copied figures
+    correctly but drew wrong conclusions from them.
+  - Local AI for suggestions only, with the chat kept on OpenAI or off.
