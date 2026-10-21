@@ -3,12 +3,11 @@ import { z } from "@/files/zod";
 import {
   AI_TIMEOUT_MS,
   KEY_CHECK_TIMEOUT_MS,
-  OPENAI_MODEL,
   askOpenAi,
   checkKey,
+  type AiAccess,
   type AiRequest,
 } from "./openai";
-import { AI_PATH } from "./path";
 import {
   completedEvent,
   createdEvent,
@@ -71,34 +70,46 @@ function hangingFetch() {
   );
 }
 
+/** The user's key and the model in use, as the store passes them when a request starts. */
+const access: AiAccess = { apiKey: "sk-proj-askTestKey00a1b2", model: "gpt-5.6-luna" };
+
+/** True when `value`, written out, holds the key or the last 4 characters the app shows of it. */
+const holdsKey = (value: unknown) => {
+  const text = JSON.stringify(value) ?? "";
+  return text.includes(access.apiKey) || text.includes(access.apiKey.slice(-4));
+};
+
 const ask = (signal = new AbortController().signal, onText?: (text: string) => void) =>
-  askOpenAi(request, signal, onText);
+  askOpenAi(request, access, signal, onText);
 
 /** Lets the transport read what the test has sent so far. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-describe("askOpenAi: the request (contracts/ai.md, request)", () => {
-  test("posts JSON to the AI route on the app's own origin", async () => {
+describe("askOpenAi: the request (contracts/ai.md, request; FR-128)", () => {
+  test("posts JSON straight to OpenAI's Responses API with the key, and no cookie", async () => {
     fetchMock.mockResolvedValue(streamed(responseWith({ value: "x" })));
 
     await ask();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(url).toBe(AI_PATH);
+    expect(url).toBe("https://api.openai.com/v1/responses");
     expect(init?.method).toBe("POST");
-    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(init?.credentials).toBe("omit");
+    const headers = new Headers(init?.headers);
+    expect([...headers.keys()].sort()).toEqual(["authorization", "content-type"]);
+    expect(headers.get("authorization")).toBe(`Bearer ${access.apiKey}`);
+    expect(headers.get("content-type")).toBe("application/json");
   });
 
-  test("asks gpt-6.1-sol, stores nothing at OpenAI, streams the answer, and asks for its strict schema", async () => {
+  test("asks the model passed in, stores nothing at OpenAI, streams the answer, and asks for its strict schema", async () => {
     fetchMock.mockResolvedValue(streamed(responseWith({ value: "x" })));
 
     await ask();
 
     const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as PostedRequest;
-    expect(OPENAI_MODEL).toBe("gpt-6.1-sol");
     expect(body).toEqual({
-      model: OPENAI_MODEL,
+      model: "gpt-5.6-luna",
       store: false,
       stream: true,
       instructions: request.instructions,
@@ -107,6 +118,16 @@ describe("askOpenAi: the request (contracts/ai.md, request)", () => {
         format: { type: "json_schema", name: "test_answer", strict: true, schema: request.schema },
       },
     });
+  });
+
+  test("asks whichever model it is given, and the body never holds the key", async () => {
+    fetchMock.mockResolvedValue(streamed(responseWith({ value: "x" })));
+
+    await askOpenAi(request, { ...access, model: "gpt-6.1-sol" }, new AbortController().signal);
+
+    const body = String(fetchMock.mock.calls[0]![1]?.body);
+    expect((JSON.parse(body) as PostedRequest).model).toBe("gpt-6.1-sol");
+    expect(holdsKey(body)).toBe(false);
   });
 });
 
@@ -186,27 +207,35 @@ describe("askOpenAi: failures (contracts/ai.md, failures)", () => {
   });
 
   test.each<[string, () => Response]>([
-    ["no route: the server's empty 404", () => new Response(null, { status: 404 })],
-    ["the route's empty 403", () => new Response(null, { status: 403 })],
-    ["the route's empty 413", () => new Response(null, { status: 413 })],
+    ["an empty 404", () => new Response(null, { status: 404 })],
+    ["an empty 403", () => new Response(null, { status: 403 })],
+    ["an empty 502", () => new Response(null, { status: 502 })],
     [
-      "another server's error page",
+      "a network's login page",
       () =>
-        new Response("<!doctype html><title>405</title>", {
+        new Response("<!doctype html><title>Sign in to the Wi-Fi</title>", {
           status: 405,
           headers: { "Content-Type": "text/html" },
         }),
     ],
     [
-      "another server's not-found page",
+      "a 401 with an HTML body, not OpenAI's error JSON",
+      () =>
+        new Response("<!doctype html><title>401 Unauthorized</title>", {
+          status: 401,
+          headers: { "Content-Type": "text/html" },
+        }),
+    ],
+    [
+      "a not-found page",
       () =>
         new Response("The page could not be found", {
           status: 404,
           headers: { "Content-Type": "text/plain" },
         }),
     ],
-    ["the route's 502 when OpenAI cannot be reached", () => new Response(null, { status: 502 })],
     ["JSON that is not OpenAI's error", () => json({ message: "Not found" }, 404)],
+    ["a 401 with JSON that is not OpenAI's error", () => json({ message: "Unauthorized" }, 401)],
   ])("gives ai-unreachable for %s", async (_, response) => {
     fetchMock.mockResolvedValue(response());
     expect(await ask()).toEqual({ code: "ai-unreachable" });
@@ -229,13 +258,74 @@ describe("askOpenAi: failures (contracts/ai.md, failures)", () => {
     expect(await ask()).toEqual({ code: "ai-unreachable" });
   });
 
-  test.each([400, 401, 404, 429, 500])(
-    "gives ai-failed for OpenAI's own error JSON with status %i",
+  test.each<[string, string | null]>([
+    ["OpenAI no longer accepting the key", "invalid_api_key"],
+    ["any other code", null],
+    ["even the code of no credit", "insufficient_quota"],
+    ["even the code of a model not found", "model_not_found"],
+  ])("gives ai-key-rejected for a 401 with OpenAI's error JSON: %s (FR-126)", async (_, code) => {
+    fetchMock.mockResolvedValue(json(openAiError("Incorrect API key provided.", code), 401));
+    expect(await ask()).toEqual({ code: "ai-key-rejected" });
+  });
+
+  test.each([429, 403, 400])(
+    "gives ai-no-credit for insufficient_quota with status %i",
     async (status) => {
-      fetchMock.mockResolvedValue(json(openAiError("Incorrect API key provided."), status));
+      fetchMock.mockResolvedValue(
+        json(openAiError("You exceeded your current quota.", "insufficient_quota"), status),
+      );
+      expect(await ask()).toEqual({ code: "ai-no-credit" });
+    },
+  );
+
+  test.each([404, 403, 400])(
+    "gives ai-model-unavailable, naming the model asked, for model_not_found with status %i (FR-129)",
+    async (status) => {
+      fetchMock.mockResolvedValue(
+        json(
+          openAiError("The model does not exist or you lack access.", "model_not_found"),
+          status,
+        ),
+      );
+      expect(await ask()).toEqual({
+        code: "ai-model-unavailable",
+        details: { model: "gpt-5.6-luna" },
+      });
+    },
+  );
+
+  test.each<[number, string | null]>([
+    [429, "rate_limit_exceeded"],
+    [400, null],
+    [404, null],
+    [500, "server_error"],
+    [503, null],
+  ])(
+    "gives ai-failed for OpenAI's own error JSON with status %i and code %s",
+    async (status, code) => {
+      fetchMock.mockResolvedValue(json(openAiError("Rate limit reached.", code), status));
       expect(await ask()).toEqual({ code: "ai-failed" });
     },
   );
+
+  test("never passes on OpenAI's message, and no failure holds the key", async () => {
+    const message = `Incorrect API key provided: ${access.apiKey}.`;
+    const answers = [
+      () => json(openAiError(message, "invalid_api_key"), 401),
+      () => json(openAiError(message, "insufficient_quota"), 429),
+      () => json(openAiError(message, "model_not_found"), 404),
+      () => json(openAiError(message, "rate_limit_exceeded"), 429),
+      () => new Response(`<html>${access.apiKey}</html>`, { status: 401 }),
+      () => streamed(createdEvent() + failedEvent()),
+    ];
+    for (const answer of answers) {
+      fetchMock.mockResolvedValueOnce(answer());
+      const result = await ask();
+      expect(result).toHaveProperty("code");
+      expect(JSON.stringify(result)).not.toContain("Incorrect");
+      expect(holdsKey(result)).toBe(false);
+    }
+  });
 
   test.each<[string, string]>([
     ["a response.failed event", failedEvent()],

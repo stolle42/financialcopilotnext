@@ -18,8 +18,6 @@ import {
   suggestCategories,
   turnOnAiFeatures,
   type SuggestionReply,
-  LOCAL_ONLY,
-  onHostedCopy,
 } from "../support/ai";
 import { importWithProfile, saveDebitCreditProfile, saveMyBankProfile } from "../support/import";
 import { euros, expect, setToday, test } from "../support/test";
@@ -316,7 +314,6 @@ test("discarding asks first, then books nothing (scenario 10)", async ({ page })
 });
 
 test.describe("Suggest categories (FR-090 – FR-094)", () => {
-  test.skip(({ baseURL }) => onHostedCopy(baseURL), LOCAL_ONLY);
   const suggestions = (page: Page) => page.getByRole("region", { name: "Suggestions" });
 
   const outcome = (page: Page) => suggestions(page).getByRole("status");
@@ -539,7 +536,6 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
 });
 
 test.describe("the suggested mark (FR-093)", () => {
-  test.skip(({ baseURL }) => onHostedCopy(baseURL), LOCAL_ONLY);
   const mark = (scope: Locator) => scope.getByText("Suggested", { exact: true });
 
   /**

@@ -17,7 +17,7 @@ import {
   saveProfile,
   suggestCategories,
 } from "./import";
-import { removeKey, setAiFeatures, turnOnWithKey } from "./settings";
+import { chooseModel, removeKey, setAiFeatures, turnOnWithKey } from "./settings";
 import { createStore } from "./store";
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -322,6 +322,54 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(JSON.parse(body.input[0]!.content)).toEqual(suggestionRequest(store.getState()));
   });
 
+  test("asks OpenAI with the stored key and the default model when none is chosen (FR-128, FR-129)", async () => {
+    const { store } = await withBatch();
+    fetchMock.mockResolvedValue(suggesting({ suggestions: [] }));
+
+    await ask(store);
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.openai.com/v1/responses");
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${testKey}`);
+    expect((JSON.parse(String(init?.body)) as PostedRequest).model).toBe("gpt-5.4-mini");
+  });
+
+  test("asks the model chosen when the request starts, and keeps it while the user chooses another (FR-129)", async () => {
+    const { store } = await withBatch();
+    await chooseModel(store, "gpt-6.1-sol");
+    const answer = heldAnswer();
+
+    const asked = ask(store);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await chooseModel(store, "gpt-5.6-luna");
+    await answer({ suggestions: [] });
+    await asked;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as PostedRequest;
+    expect(body.model).toBe("gpt-6.1-sol");
+
+    fetchMock.mockResolvedValue(suggesting({ suggestions: [] }));
+    await ask(store);
+    const next = JSON.parse(String(fetchMock.mock.calls[1]![1]?.body)) as PostedRequest;
+    expect(next.model).toBe("gpt-5.6-luna");
+  });
+
+  test("gives ai-model-unavailable naming the model in use when the key may not use it (FR-129)", async () => {
+    const { store } = await withBatch();
+    await chooseModel(store, "gpt-6.1-sol");
+    fetchMock.mockResolvedValue(
+      json(openAiError("The model does not exist.", "model_not_found"), 404),
+    );
+    const before = store.getState();
+
+    expect(await ask(store)).toEqual({
+      code: "ai-model-unavailable",
+      details: { model: "gpt-6.1-sol" },
+    });
+    expect(store.getState()).toBe(before);
+  });
+
   test("fills rows with marks that survive reopening, and counts the rows sent and filled", async () => {
     const { db, store } = await withBatch();
     fetchMock.mockResolvedValue(
@@ -355,8 +403,27 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
       "ai-unreachable",
     ],
     [
-      "OpenAI reports a failure",
-      () => fetchMock.mockResolvedValue(json(openAiError("Incorrect API key provided."), 401)),
+      "OpenAI no longer accepts the key",
+      () =>
+        fetchMock.mockResolvedValue(
+          json(openAiError("Incorrect API key provided.", "invalid_api_key"), 401),
+        ),
+      "ai-key-rejected",
+    ],
+    [
+      "the account has no credit left",
+      () =>
+        fetchMock.mockResolvedValue(
+          json(openAiError("You exceeded your current quota.", "insufficient_quota"), 429),
+        ),
+      "ai-no-credit",
+    ],
+    [
+      "OpenAI reports another failure",
+      () =>
+        fetchMock.mockResolvedValue(
+          json(openAiError("Rate limit reached.", "rate_limit_exceeded"), 429),
+        ),
       "ai-failed",
     ],
     [

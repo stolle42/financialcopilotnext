@@ -5,14 +5,23 @@ import * as catalogue from "../src/ui/messages";
 import { putRecord, storedRecord } from "./support/app";
 import {
   aiFeaturesSwitch,
+  answer,
+  askInChat,
+  conversation,
   keyDialog,
   keyField,
   MASKED_TEST_KEY,
+  openChat,
+  RESPONSES_URL,
+  standInCategoriser,
+  standInChat,
   standInKeyCheck,
+  suggestCategories,
   TEST_KEY,
   turnOnAiFeatures,
 } from "./support/ai";
 import { backupText, restoreBackup, saveBackup, storedData } from "./support/backup";
+import { importWithProfile, saveMyBankProfile } from "./support/import";
 import { expect, guardNetwork, test } from "./support/test";
 
 // The journey of User Story 10: AI features with the user's own OpenAI key, and the model they
@@ -179,5 +188,52 @@ test("8. a backup whose model the app no longer lists uses gpt-5.4-mini, and Set
   await expect(model(page, "gpt-5.4-mini")).toBeChecked();
   await expect(main(page)).toContainText(
     "The model you chose is no longer offered; now using gpt-5.4-mini.",
+  );
+});
+
+test("9. the chat and Suggest categories ask api.openai.com with the key and the model in use, and only they carry the key (FR-128)", async ({
+  page,
+  baseURL,
+}) => {
+  const appOrigin = new URL(baseURL!).origin;
+  const requests: { url: string; method: string; headers: Record<string, string> }[] = [];
+  page.on("request", (request) => {
+    void request
+      .allHeaders()
+      .then((headers) => requests.push({ url: request.url(), method: request.method(), headers }));
+  });
+  const categoriser = await standInCategoriser(page);
+  const chatStandIn = await standInChat(page, answer("Mostly groceries."));
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await page.goto("/#/settings");
+  await model(page, "gpt-5.6-luna").check();
+  await turnOnAiFeatures(page);
+  const fromHere = requests.length;
+
+  await page.goto("/#/import");
+  await suggestCategories(page);
+  await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toBeVisible();
+  await openChat(page);
+  await askInChat(page, "Where does my money go?");
+  await expect(conversation(page)).toHaveCount(2);
+
+  for (const standIn of [categoriser, chatStandIn]) {
+    expect(standIn.sent).toHaveLength(1);
+    expect(standIn.sent[0]!.headers.authorization).toBe(`Bearer ${TEST_KEY}`);
+    expect(standIn.sent[0]!.headers).not.toHaveProperty("cookie");
+    expect(standIn.sent[0]!.posted.model).toBe("gpt-5.6-luna");
+  }
+  // Only the requests to OpenAI carry the key, and the app's own origin receives nothing for an
+  // AI feature: no request to it while the two features asked.
+  const sentByFeatures = requests.slice(fromHere);
+  const carrying = requests.filter((r) => JSON.stringify(r.headers).includes(TEST_KEY));
+  expect(carrying.length).toBeGreaterThanOrEqual(2);
+  for (const request of carrying) expect(request.url).toMatch(/^https:\/\/api\.openai\.com\//);
+  expect(sentByFeatures.filter((r) => r.url.startsWith(appOrigin) && r.method !== "GET")).toEqual(
+    [],
+  );
+  expect(sentByFeatures.filter((r) => r.url === RESPONSES_URL && r.method === "POST")).toHaveLength(
+    2,
   );
 });

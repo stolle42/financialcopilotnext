@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Transaction } from "../src/domain/types";
+import { openAiError } from "../src/ai/testing";
 import { messageFor, type MessageCode } from "../src/ui/messages";
 import {
   addAccount,
@@ -12,8 +13,6 @@ import { backupText, chooseBackupFile, storedData } from "./support/backup";
 import {
   askInChat,
   chat,
-  LOCAL_ONLY,
-  onHostedCopy,
   openChat,
   standInCategoriser,
   standInChat,
@@ -171,11 +170,7 @@ test.describe("an alert at the top of the region, with its next step", () => {
   });
 });
 
-test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", async ({
-  page,
-  baseURL,
-}) => {
-  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
+test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", async ({ page }) => {
   await standInCategoriser(page, () => "unreachable");
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
@@ -188,9 +183,7 @@ test("ai-unreachable: the AI could not be asked, in review's alert (FR-094)", as
 
 test("ai-unreachable: the AI could not be asked, in the finance chat's alert (FR-104)", async ({
   page,
-  baseURL,
 }) => {
-  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   await standInChat(page, () => "unreachable");
   await turnOnAiFeatures(page);
   await openChat(page);
@@ -198,6 +191,56 @@ test("ai-unreachable: the AI could not be asked, in the finance chat's alert (FR
   await askInChat(page, "Where does my money go?");
 
   await expectWording(chat(page).getByRole("alert"), "ai-unreachable");
+});
+
+test("ai-key-rejected: OpenAI no longer accepts the key, in review's alert, with a link to Settings (FR-126)", async ({
+  page,
+}) => {
+  await standInCategoriser(page, () => ({
+    status: 401,
+    json: openAiError("Incorrect API key provided.", "invalid_api_key"),
+  }));
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await turnOnAiFeatures(page);
+
+  await suggestCategories(page);
+
+  const alert = main(page).getByRole("alert");
+  await expectWording(alert, "ai-key-rejected");
+  await expect(alert.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "#/settings");
+});
+
+test("ai-no-credit: the OpenAI account has no credit left, in the finance chat's alert (FR-094)", async ({
+  page,
+}) => {
+  await standInChat(page, () => ({
+    status: 429,
+    json: openAiError("You exceeded your current quota.", "insufficient_quota"),
+  }));
+  await turnOnAiFeatures(page);
+  await openChat(page);
+
+  await askInChat(page, "Where does my money go?");
+
+  await expectWording(chat(page).getByRole("alert"), "ai-no-credit");
+});
+
+test("ai-model-unavailable: the key cannot use the model, named, in the finance chat's alert, with a link to Settings (FR-129)", async ({
+  page,
+}) => {
+  await standInChat(page, () => ({
+    status: 404,
+    json: openAiError("The model does not exist or you lack access.", "model_not_found"),
+  }));
+  await turnOnAiFeatures(page);
+  await openChat(page);
+
+  await askInChat(page, "Where does my money go?");
+
+  const alert = chat(page).getByRole("alert");
+  await expectWording(alert, "ai-model-unavailable", { model: "gpt-5.4-mini" });
+  await expect(alert.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "#/settings");
 });
 
 test("unparsable import rows: each is listed with the reason it failed", async ({ page }) => {

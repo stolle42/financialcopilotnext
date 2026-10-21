@@ -16,7 +16,6 @@ import {
   answer,
   askInChat,
   conversation,
-  onHostedCopy,
   openChat,
   standInCategoriser,
   standInChat,
@@ -136,37 +135,33 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await duplicates.getByRole("switch").first().click();
   await expect(duplicates.getByRole("switch").first()).toBeChecked();
   await page.keyboard.press("Escape");
-  // A category the AI suggested, with AI features on (FR-093, FR-095), where they can be on: not in
-  // a hosted copy (FR-106).
-  const local = !onHostedCopy(baseURL);
-  if (local) {
-    await standInCategoriser(page, () => ({
-      json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
-    }));
-    await turnOnAiFeatures(page);
-    await suggestCategories(page);
-    await expect(
-      page.getByRole("region", { name: "Suggestions" }).getByRole("status"),
-    ).toContainText("The AI suggested a category for 1 of");
-    // A conversation of the finance chat, with a source (FR-104, FR-110).
-    await standInChat(
-      page,
-      answer("Mostly groceries.", [
-        {
-          name: "Groceries, September 2026",
-          from: "2026-09-01",
-          to: "2026-09-30",
-          category: { side: "expense", name: "Groceries" },
-          account: "Giro",
-        },
-      ]),
-    );
-    await openChat(page);
-    await askInChat(page, "Where does my money go?");
-    await expect(conversation(page)).toHaveCount(2);
-    // The turn shows while the answer streams, and is stored once it is complete.
-    await expect.poll(async () => (await storedData(page)).conversation?.length ?? 0).toBe(1);
-  }
+  // A category the AI suggested, with AI features on (FR-093, FR-095), on every copy (FR-106).
+  await standInCategoriser(page, () => ({
+    json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
+  }));
+  await turnOnAiFeatures(page);
+  await suggestCategories(page);
+  await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toContainText(
+    "The AI suggested a category for 1 of",
+  );
+  // A conversation of the finance chat, with a source (FR-104, FR-110).
+  await standInChat(
+    page,
+    answer("Mostly groceries.", [
+      {
+        name: "Groceries, September 2026",
+        from: "2026-09-01",
+        to: "2026-09-30",
+        category: { side: "expense", name: "Groceries" },
+        account: "Giro",
+      },
+    ]),
+  );
+  await openChat(page);
+  await askInChat(page, "Where does my money go?");
+  await expect(conversation(page)).toHaveCount(2);
+  // The turn shows while the answer streams, and is stored once it is complete.
+  await expect.poll(async () => (await storedData(page)).conversation?.length ?? 0).toBe(1);
 
   const filled = await storedData(page);
   const giro = (await storedRecords<Account>(page, "accounts")).find((a) => a.name === "Giro")!;
@@ -181,14 +176,12 @@ test("saves everything to one file and restores exactly that, also into a fresh 
     filled.pendingBatch?.rows.some(
       (r) => r.status === "parsed" && r.assignment.type === "category" && r.assignment.suggested,
     ),
-  ).toBe(local);
-  expect(filled.settings.aiFeatures === true).toBe(local);
-  expect(filled.conversation?.length ?? 0).toBe(local ? 1 : 0);
-  if (local) {
-    expect(filled.conversation![0]!.sources).toEqual([
-      expect.objectContaining({ name: "Groceries, September 2026", accountId: giro.id }),
-    ]);
-  }
+  ).toBe(true);
+  expect(filled.settings.aiFeatures).toBe(true);
+  expect(filled.conversation).toHaveLength(1);
+  expect(filled.conversation![0]!.sources).toEqual([
+    expect.objectContaining({ name: "Groceries, September 2026", accountId: giro.id }),
+  ]);
 
   // 1. Saving gives one file with every record, and changes nothing in the app.
   const backup = await saveBackup(page);

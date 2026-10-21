@@ -51,11 +51,14 @@ const turnsOf = (count: number): ChatTurn[] =>
     sources: [],
   }));
 
+/** The user's key and the model in use (FR-128, FR-129). */
+const access = { apiKey: "sk-proj-chatTestKey00q7r6", model: "gpt-5.6-luna" };
+
 const ask = (
   turns: readonly ChatTurn[] = [],
   signal = new AbortController().signal,
   onAnswer?: (soFar: { inScope?: boolean; answer: string }) => void,
-) => askFinanceChat(context, turns, "How can I reduce my spending?", signal, onAnswer);
+) => askFinanceChat(context, turns, "How can I reduce my spending?", access, signal, onAnswer);
 
 async function posted(turns: ChatTurn[] = []): Promise<PostedRequest> {
   fetchMock.mockResolvedValue(streamed(responseWith(inScope("Cook more."))));
@@ -80,6 +83,15 @@ interface Schema {
 }
 
 describe("askFinanceChat: the request (contracts/ai.md, finance chat)", () => {
+  test("asks OpenAI with the key and the model it is given (FR-128, FR-129)", async () => {
+    const { model } = await posted();
+
+    expect(model).toBe("gpt-5.6-luna");
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.openai.com/v1/responses");
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${access.apiKey}`);
+  });
+
   test("asks for the answer in the contract's strict schema, inScope, answer, sources and followUps in that order", async () => {
     const { format } = (await posted()).text;
 

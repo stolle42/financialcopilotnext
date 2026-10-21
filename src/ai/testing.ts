@@ -123,12 +123,12 @@ export function feedStream() {
   };
 }
 
-/** OpenAI's JSON for a failure it reports itself, such as a rejected key. */
-export function openAiError(message: string) {
-  return { error: { message, type: "invalid_request_error", param: null, code: null } };
+/** OpenAI's JSON for a failure it reports itself, such as a rejected key, with its `code`. */
+export function openAiError(message: string, code: string | null = null) {
+  return { error: { message, type: "invalid_request_error", param: null, code } };
 }
 
-/** The body the app posts to the AI route (contracts/ai.md, request). */
+/** The body the app posts to OpenAI (contracts/ai.md, request). */
 export interface PostedRequest {
   model: string;
   store: boolean;

@@ -1,5 +1,4 @@
 import type { Page, Route } from "@playwright/test";
-import { AI_PATH } from "../../src/ai/path";
 import {
   EVENT_STREAM,
   chatContextOf,
@@ -9,10 +8,13 @@ import {
 import type { SuggestionRequest } from "../../src/domain/import/suggestions";
 import { expect } from "./test";
 
-// The AI features without OpenAI or a key (R-24): a stand-in answers at the AI route in OpenAI's
-// place. Each stand-in answers only its own feature, told by the format's name, and passes the
-// rest on. Page routes take precedence over the network guard's context route, so the guard still
-// fails a test on any request no stand-in answers (FR-061).
+// The AI features without OpenAI or a real key (R-24, R-31): a stand-in answers at OpenAI's
+// address in OpenAI's place. Each stand-in answers only its own feature, told by the format's
+// name, and passes the rest on. Page routes take precedence over the network guard's context
+// route, so the guard still fails a test on any request no stand-in answers (FR-061).
+
+/** OpenAI's Responses API, which the app asks straight from the browser (contracts/ai.md, request). */
+export const RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 /**
  * What a stand-in does with one request: give `json` as the feature's answer, as the text of
@@ -51,9 +53,24 @@ export interface ChatContextSent {
   transactions: { columns: string[]; rows: unknown[][] };
 }
 
+/** OpenAI answers a page on another origin only with these, so the browser lets the page read it. */
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Methods": "GET, POST",
+};
+
+/** One request to OpenAI as the browser sent it: every header, by lower-case name, and the body. */
+export interface Sent {
+  headers: Record<string, string>;
+  posted: PostedRequest;
+}
+
 export interface StandIn<Request> {
   /** The requests the app sent, decoded, in order. */
   requests: Request[];
+  /** The same requests as sent, in order. */
+  sent: Sent[];
   /** Holds every answer from now on, until `release`. */
   hold(): void;
   release(): void;
@@ -66,37 +83,46 @@ async function standIn<Request>(
   reply: Reply<Request>,
 ): Promise<StandIn<Request>> {
   const requests: Request[] = [];
+  const sent: Sent[] = [];
   let held: Promise<void> = Promise.resolve();
   let release = () => {};
 
-  await page.route(
-    (url) => url.pathname === AI_PATH,
-    async (route: Route) => {
-      const posted = route.request().postDataJSON() as PostedRequest;
-      if (posted?.text?.format?.name !== name) return route.fallback();
-      const request = decode(posted);
-      requests.push(request);
-      await held;
-      const answer = reply(request);
-      // The app may have cancelled the request while it was held; then there is no one to answer.
-      try {
-        if (answer === "unreachable") await route.abort("connectionrefused");
-        else {
-          const status = answer.status ?? 200;
-          await route.fulfill(
-            status === 200
-              ? { status, contentType: EVENT_STREAM, body: responseWith(answer.json) }
-              : { status, contentType: "application/json", body: JSON.stringify(answer.json) },
-          );
-        }
-      } catch {
-        // The request is gone.
+  await page.route(RESPONSES_URL, async (route: Route) => {
+    // The browser asks first whether a page on another origin may send the key (CORS).
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    const posted = route.request().postDataJSON() as PostedRequest;
+    if (posted?.text?.format?.name !== name) return route.fallback();
+    const request = decode(posted);
+    requests.push(request);
+    sent.push({ headers: await route.request().allHeaders(), posted });
+    await held;
+    const answer = reply(request);
+    // The app may have cancelled the request while it was held; then there is no one to answer.
+    try {
+      if (answer === "unreachable") await route.abort("connectionrefused");
+      else {
+        const status = answer.status ?? 200;
+        await route.fulfill(
+          status === 200
+            ? { status, headers: CORS, contentType: EVENT_STREAM, body: responseWith(answer.json) }
+            : {
+                status,
+                headers: CORS,
+                contentType: "application/json",
+                body: JSON.stringify(answer.json),
+              },
+        );
       }
-    },
-  );
+    } catch {
+      // The request is gone.
+    }
+  });
 
   return {
     requests,
+    sent,
     hold() {
       held = new Promise((resolve) => (release = resolve));
     },
@@ -208,13 +234,6 @@ export interface KeyCheckSent {
 /** What the stand-in of the key check answers: a status, or no connection. */
 export type KeyCheckAnswer = number | "unreachable";
 
-/** OpenAI answers a page on another origin only with these, so the browser lets the page read it. */
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "GET, POST",
-};
-
 /**
  * Answers the key check in OpenAI's place with `answer`, recording each check (contracts/ai.md, key
  * check). `hold` keeps every answer back until `release`, as a slow connection would.
@@ -222,7 +241,7 @@ const CORS = {
 export async function standInKeyCheck(
   page: Page,
   answer: KeyCheckAnswer = 200,
-): Promise<StandIn<KeyCheckSent> & { answer(next: KeyCheckAnswer): void }> {
+): Promise<Omit<StandIn<KeyCheckSent>, "sent"> & { answer(next: KeyCheckAnswer): void }> {
   const requests: KeyCheckSent[] = [];
   let current = answer;
   let held: Promise<void> = Promise.resolve();
@@ -328,14 +347,3 @@ export async function askInChat(page: Page, question: string) {
   await questionField(page).fill(question);
   await questionField(page).press("Enter");
 }
-
-/**
- * True when the specs run against a copy not served from the user's own computer, such as the
- * Vercel one in the `deployed` job, where AI features cannot be turned on (FR-106). The specs keep
- * their own list of local host names, apart from the app's.
- */
-export const onHostedCopy = (baseURL: string | undefined) =>
-  !["localhost", "127.0.0.1", "[::1]"].includes(new URL(baseURL ?? "http://localhost").hostname);
-
-/** Why a spec that turns AI features on skips on a hosted copy. */
-export const LOCAL_ONLY = "AI features cannot be turned on in a hosted copy (FR-106)";

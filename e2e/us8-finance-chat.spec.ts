@@ -4,13 +4,11 @@ import { messageFor } from "../src/ui/messages";
 import * as catalogue from "../src/ui/messages";
 import { addTransaction } from "./support/app";
 import {
-  LOCAL_ONLY,
   answer,
   askInChat,
   chat,
   chatButton,
   conversation,
-  onHostedCopy,
   openChat,
   outOfScope,
   questionField,
@@ -22,9 +20,8 @@ import {
 } from "./support/ai";
 import { expect, setToday, test } from "./support/test";
 
-// The journey of User Story 8, scenarios 1–11 (quickstart.md, US8). A stand-in answers at the AI
-// route in OpenAI's place (R-26). On a hosted copy, where AI features cannot be turned on, only
-// scenario 1 runs (FR-106).
+// The journey of User Story 8, scenarios 1–11 (quickstart.md, US8). A stand-in answers at
+// OpenAI's address in OpenAI's place (R-26, R-31), on every copy of the app (FR-106).
 
 const subscriptions = "Which of my subscriptions have become more expensive?";
 const outOfScopeQuestion = "What is the capital of France?";
@@ -97,9 +94,7 @@ test("scenario 1: every screen shows the chat's button, and with AI features off
 
 test("scenarios 2–11: ask, follow a source, stop, keep the conversation, follow up, and ask about the app (FR-101 – FR-111)", async ({
   page,
-  baseURL,
 }) => {
-  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   await page.goto("/");
   await addTransaction(page, {
     amount: "10.99",
