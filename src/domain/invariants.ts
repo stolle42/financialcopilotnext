@@ -47,6 +47,7 @@ export type InvariantCode =
   | "pending-row-failure-unknown"
   | "settings-account-missing"
   | "settings-model-invalid"
+  | "settings-key-present"
   | "conversation-question-missing"
   | "conversation-turn-invalid"
   | "conversation-source-invalid";
@@ -267,7 +268,7 @@ const pendingBatch: Check = (state) => {
 };
 
 // 8. The manual-entry default account exists; `settings.model`, when present, is a non-empty
-// string.
+// string; the settings hold no field for the key, which lives beside them (FR-126).
 const settings: Check = (state) => {
   const { manualEntryAccountId: accountId, model } = state.settings;
   if (!state.accounts.some((a) => a.id === accountId)) {
@@ -276,6 +277,7 @@ const settings: Check = (state) => {
   if (model !== undefined && (typeof model !== "string" || model === "")) {
     return violation("settings-model-invalid", { model });
   }
+  if ("apiKey" in state.settings) return violation("settings-key-present", { field: "apiKey" });
   return null;
 };
 

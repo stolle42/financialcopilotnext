@@ -203,6 +203,11 @@ export interface State {
   profiles: readonly MappingProfile[];
   pendingBatch: PendingBatch | null;
   settings: Settings;
+  /**
+   * The user's OpenAI key, beside the settings and never inside them, so no backup holds it
+   * (FR-126). Trimmed when entered, non-empty. `null` while no key is stored.
+   */
+  apiKey: string | null;
   /** The finance chat's turns, oldest first; empty while there is no conversation. */
   conversation: readonly ChatTurn[];
 }

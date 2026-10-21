@@ -1,7 +1,6 @@
 import { InfoIcon } from "lucide-react";
 import { useId, useState } from "react";
 import type { Refusal } from "@/domain/types";
-import { servedLocally } from "@/ai/local";
 import { applyUpdate, runningVersion, useNewerVersion } from "@/pwa/updates";
 import { aiFeaturesOn, setAiFeatures } from "@/store/settings";
 import { useStore, useStoreApi } from "@/store/store";
@@ -11,7 +10,6 @@ import { Label } from "@/ui/components/ui/label";
 import { Switch } from "@/ui/components/ui/switch";
 import {
   aiFeaturesDescription,
-  aiFeaturesLocalOnly,
   messageFor,
   sharingWarning,
   updateNotice,
@@ -27,12 +25,10 @@ import { saveBackup } from "@/ui/screens/backup/saveBackup";
  */
 export function SettingsScreen() {
   const store = useStoreApi();
-  const local = servedLocally();
   const on = useStore(aiFeaturesOn);
   const [warning, setWarning] = useState(false);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const switchId = useId();
-  const localOnlyId = useId();
   const newer = useNewerVersion();
 
   async function update() {
@@ -75,18 +71,11 @@ export function SettingsScreen() {
           <Switch
             id={switchId}
             checked={on}
-            disabled={!local}
-            aria-describedby={local ? undefined : localOnlyId}
             onCheckedChange={(checked) => (checked ? setWarning(true) : void set(false))}
           />
           <Label htmlFor={switchId} className="text-sm font-normal">
             AI features
           </Label>
-          {!local && (
-            <span id={localOnlyId} className="text-sm text-muted-foreground">
-              {aiFeaturesLocalOnly}
-            </span>
-          )}
         </div>
         <p className="text-sm text-muted-foreground">{aiFeaturesDescription}</p>
       </section>

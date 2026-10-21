@@ -1662,7 +1662,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     refused, and a file without one, as v1.5 saves it, loads without a model;
   - in `src/store/settings.test.ts`: `chooseModel` writes at once, and a failed write gives
     `save-failed` and keeps the choice as it was.
-- [ ] T138 [US10] The key in storage: `apiKey: string | null` in `State` of
+- [X] T138 [US10] The key in storage: `apiKey: string | null` in `State` of
   `src/domain/types.ts`, beside `settings` and not inside it, "Trimmed when entered, non-empty.
   `null` while no key is stored", and `null` in the seed; `apiKey` in `Changes`, a key to write or
   `null` to delete it; in `src/domain/settings.ts`, `turnOnWithKey(state, key)`, which trims the key

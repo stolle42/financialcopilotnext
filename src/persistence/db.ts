@@ -21,12 +21,13 @@ import type {
 } from "@/domain/types";
 
 // One IndexedDB database holding the seven stores of data-model.md, storage layout (R-06). The
-// conversation is a second record of the settings store, so the schema stays at version 1, which
-// v1.2 can still open (R-26).
+// conversation and the OpenAI key are further records of the settings store, so the schema stays
+// at version 1, which v1.2 can still open (R-26, R-31).
 
 const DATABASE_NAME = "financial-copilot";
 const SETTINGS_KEY = "settings";
 const CONVERSATION_KEY = "conversation";
+const OPENAI_KEY = "openaiKey";
 
 interface Schema extends DBSchema {
   accounts: { key: string; value: Account };
@@ -36,8 +37,8 @@ interface Schema extends DBSchema {
   profiles: { key: string; value: MappingProfile };
   pendingBatch: { key: string; value: PendingBatch };
   settings: {
-    key: typeof SETTINGS_KEY | typeof CONVERSATION_KEY;
-    value: Settings | readonly ChatTurn[];
+    key: typeof SETTINGS_KEY | typeof CONVERSATION_KEY | typeof OPENAI_KEY;
+    value: Settings | readonly ChatTurn[] | string;
   };
 }
 
@@ -80,18 +81,28 @@ export function openDatabase(): Promise<Database> {
 export async function loadState(db: Database): Promise<State> {
   const storeNames = [...(Object.keys(recordStores) as RecordStore[]), "settings" as const];
   const transaction = db.transaction(storeNames, "readonly");
-  const [accounts, categories, transactions, budgets, profiles, batches, settings, conversation] =
-    await Promise.all([
-      transaction.objectStore("accounts").getAll(),
-      transaction.objectStore("categories").getAll(),
-      transaction.objectStore("transactions").getAll(),
-      transaction.objectStore("budgets").getAll(),
-      transaction.objectStore("profiles").getAll(),
-      transaction.objectStore("pendingBatch").getAll(),
-      transaction.objectStore("settings").get(SETTINGS_KEY),
-      transaction.objectStore("settings").get(CONVERSATION_KEY),
-      transaction.done,
-    ]);
+  const [
+    accounts,
+    categories,
+    transactions,
+    budgets,
+    profiles,
+    batches,
+    settings,
+    conversation,
+    apiKey,
+  ] = await Promise.all([
+    transaction.objectStore("accounts").getAll(),
+    transaction.objectStore("categories").getAll(),
+    transaction.objectStore("transactions").getAll(),
+    transaction.objectStore("budgets").getAll(),
+    transaction.objectStore("profiles").getAll(),
+    transaction.objectStore("pendingBatch").getAll(),
+    transaction.objectStore("settings").get(SETTINGS_KEY),
+    transaction.objectStore("settings").get(CONVERSATION_KEY),
+    transaction.objectStore("settings").get(OPENAI_KEY),
+    transaction.done,
+  ]);
   if (!settings) throw new Error("The settings record is missing from storage");
   return {
     accounts,
@@ -101,6 +112,8 @@ export async function loadState(db: Database): Promise<State> {
     profiles,
     pendingBatch: batches[0] ?? null,
     settings: settings as Settings,
+    // Absent while no key is stored, as v1.5 and earlier always leave it (FR-126).
+    apiKey: (apiKey as string | undefined) ?? null,
     conversation: (conversation as readonly ChatTurn[] | undefined) ?? [],
   };
 }
@@ -140,8 +153,8 @@ export async function writeChanges(
   const stores = [
     ...new Set(
       (Object.keys(changes) as (keyof Changes)[])
-        .filter((name) => changes[name])
-        .map((name) => (name === "conversation" ? "settings" : name)),
+        .filter((name) => changes[name] !== undefined)
+        .map((name) => (name === "conversation" || name === "apiKey" ? "settings" : name)),
     ),
   ];
   if (options.requireNoPendingBatch && !stores.includes("pendingBatch"))
@@ -174,6 +187,14 @@ export async function writeChanges(
         writeConversation(transaction.objectStore("settings"), changes.conversation.put),
       );
     }
+    if (changes.apiKey !== undefined) {
+      const settings = transaction.objectStore("settings");
+      requests.push(
+        changes.apiKey === null
+          ? settings.delete(OPENAI_KEY)
+          : settings.put(changes.apiKey, OPENAI_KEY),
+      );
+    }
   } catch (error) {
     // A request that throws at once, such as a record without its key, would otherwise let the
     // requests before it commit.
@@ -187,7 +208,7 @@ export async function writeChanges(
 
 /**
  * Clears every store and writes every record of `state`, in one transaction (backup-file.md,
- * loading step 4). Resolves once the transaction has completed. On any failure no store changes
+ * loading step 4). The stored key is written back, since a backup never holds one (R-31). Resolves once the transaction has completed. On any failure no store changes
  * and the original error, with its `name`, is rethrown (FR-072, R-15).
  */
 export async function replaceAll(db: Database, state: State): Promise<void> {
@@ -195,6 +216,9 @@ export async function replaceAll(db: Database, state: State): Promise<void> {
   const transaction = db.transaction(storeNames, "readwrite");
   const requests: Promise<unknown>[] = [];
   try {
+    const settings = transaction.objectStore("settings");
+    const storedKey = settings.get(OPENAI_KEY);
+    requests.push(storedKey);
     for (const name of storeNames) requests.push(transaction.objectStore(name).clear());
     const records: Record<RecordStore, readonly unknown[]> = {
       accounts: state.accounts,
@@ -208,10 +232,13 @@ export async function replaceAll(db: Database, state: State): Promise<void> {
       const store = transaction.objectStore(name);
       for (const record of records[name]) requests.push(store.put(record as never));
     }
-    requests.push(transaction.objectStore("settings").put(state.settings, SETTINGS_KEY));
+    requests.push(settings.put(state.settings, SETTINGS_KEY));
     if (state.conversation.length > 0) {
-      requests.push(writeConversation(transaction.objectStore("settings"), state.conversation));
+      requests.push(writeConversation(settings, state.conversation));
     }
+    requests.push(
+      storedKey.then((key) => (key === undefined ? undefined : settings.put(key, OPENAI_KEY))),
+    );
   } catch (error) {
     // A request that throws at once would otherwise let the requests before it commit.
     transaction.abort();
