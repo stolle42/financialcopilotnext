@@ -3,7 +3,6 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { aiRoute } from "./server/aiRoute.ts";
 import { appVersion, serviceWorkerBuild } from "./worker/plugin.ts";
 
 // Names the commit in the built page, so CI's `deployed` job can wait until the production domain
@@ -61,7 +60,6 @@ export default defineConfig({
     tailwindcss(),
     appCommit(),
     contentSecurityPolicyTag(),
-    aiRoute(),
     serviceWorkerBuild(),
   ],
   // The header shows the version the build's worker names (FR-088, R-30).
@@ -77,7 +75,6 @@ export default defineConfig({
     environment: "node",
     include: [
       "src/**/*.test.ts",
-      "server/**/*.test.ts",
       "worker/**/*.test.ts",
       "scripts/**/*.test.ts",
     ],

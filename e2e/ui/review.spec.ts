@@ -502,7 +502,10 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
 
   const failures: [MessageCode, SuggestionReply][] = [
     ["ai-unreachable", () => "unreachable"],
-    ["ai-failed", () => ({ status: 401, json: openAiError("Incorrect API key provided.") })],
+    [
+      "ai-failed",
+      () => ({ status: 429, json: openAiError("Rate limit reached.", "rate_limit_exceeded") }),
+    ],
     ["ai-answer-invalid", () => ({ json: { message: "Workflow was started" } })],
   ];
   for (const [code, reply] of failures) {

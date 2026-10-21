@@ -52,6 +52,8 @@ export function SettingsScreen() {
   const settings = useStore((state) => state.settings);
   const [turningOn, setTurningOn] = useState(false);
   const [removing, setRemoving] = useState(false);
+  // The model being saved, shown checked at once rather than once the write is done.
+  const [choosing, setChoosing] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const switchId = useId();
   const modelLabelId = useId();
@@ -75,7 +77,10 @@ export function SettingsScreen() {
   }
 
   async function choose(id: string) {
-    setRefusal(await chooseModel(store, id));
+    setChoosing(id);
+    const refused = await chooseModel(store, id);
+    setChoosing(null);
+    setRefusal(refused);
   }
 
   return (
@@ -132,7 +137,7 @@ export function SettingsScreen() {
                 type="radio"
                 name="model"
                 value={id}
-                checked={id === model}
+                checked={id === (choosing ?? model)}
                 // Selecting the one already checked saves it too, which ends the note (FR-130).
                 onClick={() => void choose(id)}
                 onChange={() => undefined}

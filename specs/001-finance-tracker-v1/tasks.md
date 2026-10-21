@@ -1740,7 +1740,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     key and restores in a fresh context with gpt-5.6-luna and the switch off; a database of v1.5
     with AI features on shows the switch off and asks for a key; and a backup with a model not
     listed shows the note.
-- [ ] T141 [US10] Straight to OpenAI: `askOpenAi` in `src/ai/openai.ts` posts to
+- [X] T141 [US10] Straight to OpenAI: `askOpenAi` in `src/ai/openai.ts` posts to
   `https://api.openai.com/v1/responses` with `Authorization: Bearer <key>`,
   `Content-Type: application/json` and `credentials: "omit"`, and with the key and model its caller
   passes in place of `OPENAI_MODEL`; it reads OpenAI's error JSON by `code` and status, never

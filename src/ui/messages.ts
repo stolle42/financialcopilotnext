@@ -222,14 +222,20 @@ export const messages: Record<MessageCode, Wording> = {
     "An import is waiting for review. Confirm or discard it before you import another file.",
   "ai-features-off": "This needs AI features, which you turn on in Settings. Nothing was sent.",
   "ai-unreachable":
-    "The AI could not be asked. AI features need the app started on this computer with an OpenAI " +
-    "key in .env, and an internet connection; then try again. Nothing changed.",
+    "OpenAI could not be reached. Check the internet connection, then try again. Nothing changed.",
+  "ai-key-rejected":
+    "OpenAI no longer accepts your key. Remove it in Settings and turn AI features on with a new " +
+    "one. Nothing changed.",
+  "ai-no-credit":
+    "Your OpenAI account has no credit left or reached its monthly limit. Add credit or raise the " +
+    "limit on OpenAI's platform, then try again. Nothing changed.",
+  "ai-model-unavailable": (details) =>
+    `Your key cannot use ${details.model ? `the model ${text(details.model)}` : "this model"}. ` +
+    "Choose another model in Settings, then try again. Nothing changed.",
   "ai-timeout":
     "The AI took too long to answer. Try again, with fewer rows or a shorter question. Nothing " +
     "changed.",
-  "ai-failed":
-    "OpenAI refused the request, for example because of the key or the project's credit. Check " +
-    "them on OpenAI's platform, then try again. Nothing changed.",
+  "ai-failed": "OpenAI refused the request; try again in a moment. Nothing changed.",
   "ai-answer-invalid": "The AI's answer could not be read. Try again. Nothing changed.",
   "ai-key-not-accepted": "OpenAI didn't accept this key. Check that you copied all of it.",
   "ai-key-check-unreachable":

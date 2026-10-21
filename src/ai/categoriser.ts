@@ -1,6 +1,6 @@
 import type { Suggestion, SuggestionRequest } from "@/domain/import/suggestions";
 import { z } from "@/files/zod";
-import { askOpenAi, type AiFailure } from "./openai";
+import { askOpenAi, type AiAccess, type AiFailure } from "./openai";
 
 // Category suggestions through the local route to OpenAI (contracts/ai.md, category suggestions;
 // FR-090 – FR-094).
@@ -54,6 +54,7 @@ const answerSchema = z.object({
  */
 export async function askCategoriser(
   request: SuggestionRequest,
+  access: AiAccess,
   signal: AbortSignal,
 ): Promise<Suggestion[] | AiFailure | null> {
   const answer = await askOpenAi(
@@ -64,6 +65,7 @@ export async function askCategoriser(
       schema: SCHEMA,
       answer: answerSchema,
     },
+    access,
     signal,
   );
   if (answer === null || "code" in answer) return answer;

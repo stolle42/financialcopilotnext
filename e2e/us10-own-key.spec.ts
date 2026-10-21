@@ -148,7 +148,7 @@ test("5. after choosing gpt-6.1-sol, the chat says so, and the next question and
   await askInChat(page, "Where does my money go?");
   await expect(conversation(page)).toHaveCount(2);
   await page.keyboard.press("Escape");
-  await page.goto("/#/import");
+  await page.goto("/#/import/review");
   await suggestCategories(page);
   await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toBeVisible();
 
@@ -241,7 +241,7 @@ test("9. the chat and Suggest categories ask api.openai.com with the key and the
   await turnOnAiFeatures(page);
   const fromHere = requests.length;
 
-  await page.goto("/#/import");
+  await page.goto("/#/import/review");
   await suggestCategories(page);
   await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toBeVisible();
   await openChat(page);

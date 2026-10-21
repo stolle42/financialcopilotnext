@@ -2,7 +2,7 @@ import type { ChatContext, NamedSource } from "@/domain/chat";
 import type { ChatTurn } from "@/domain/types";
 import { z } from "@/files/zod";
 import { APP_GUIDE } from "./appGuide";
-import { askOpenAi, type AiFailure, type AiMessage } from "./openai";
+import { askOpenAi, type AiAccess, type AiFailure, type AiMessage } from "./openai";
 
 // The finance chat's question to OpenAI, and its answer as it streams (contracts/ai.md, finance
 // chat; FR-102, FR-103, FR-107, FR-109 – FR-111; R-25, R-26).
@@ -199,6 +199,7 @@ export async function askFinanceChat(
   context: ChatContext,
   turns: readonly ChatTurn[],
   question: string,
+  access: AiAccess,
   signal: AbortSignal,
   onAnswer?: (soFar: AnswerSoFar) => void,
 ): Promise<ChatAnswer | AiFailure | null> {
@@ -217,6 +218,7 @@ export async function askFinanceChat(
         schema: SCHEMA,
         answer: answerSchema,
       },
+      access,
       controller.signal,
       (text) => {
         const soFar = answerSoFar(text);

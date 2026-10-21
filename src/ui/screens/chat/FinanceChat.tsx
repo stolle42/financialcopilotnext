@@ -21,10 +21,11 @@ import { aiFeaturesOn } from "@/store/settings";
 import { useStore, useStoreApi } from "@/store/store";
 import { transactionsPath } from "@/ui/app/router";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
+import { RefusalMessage } from "@/ui/components/RefusalMessage";
 import { Button } from "@/ui/components/ui/button";
 import { Input } from "@/ui/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/ui/components/ui/sheet";
-import { financeChat, messageFor } from "@/ui/messages";
+import { financeChat } from "@/ui/messages";
 
 /** The chat's session from the store, kept up to date (R-26). */
 function useChatSession(): ChatSession {
@@ -307,7 +308,7 @@ export function FinanceChat() {
             <form onSubmit={submit} className="flex flex-col gap-2 border-t p-4">
               {(session.failure || clearFailed) && (
                 <p role="alert" className="text-sm text-destructive">
-                  {messageFor({ code: session.failure?.code ?? "save-failed" })}
+                  <RefusalMessage refusal={session.failure ?? { code: "save-failed" }} />
                 </p>
               )}
               <div className="flex gap-2">
