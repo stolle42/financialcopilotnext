@@ -246,6 +246,8 @@ describe("messages", () => {
       catalogue.sharingWarning,
       catalogue.aiFeaturesDescription,
       catalogue.aiFeaturesNeeded,
+      catalogue.aiKey.about,
+      catalogue.aiKey.removeWarning,
       ...(Object.keys(messages) as MessageCode[]).map((code) => messageFor({ code })),
       messageFor({
         code: "backup-damaged",
@@ -272,9 +274,41 @@ describe("messages", () => {
     );
   });
 
-  test("says beside an unavailable switch that AI features need the app run locally (FR-106)", () => {
-    expect(catalogue.aiFeaturesLocalOnly).toMatch(/AI features/);
-    expect(catalogue.aiFeaturesLocalOnly).toMatch(/locally/);
+  test("says under the switch that OpenAI charges the user's own OpenAI account (FR-126)", () => {
+    expect(catalogue.aiFeaturesDescription).toMatch(/OpenAI/);
+    expect(catalogue.aiFeaturesDescription).toMatch(/your own OpenAI account/);
+    expect(catalogue.aiFeaturesDescription).toMatch(/charges/);
+  });
+
+  test("words the lines about the key: OpenAI charges the user's own account, and a monthly limit is wise (FR-127)", () => {
+    expect(catalogue.aiKey.about).toBe(
+      "An OpenAI API key lets the app ask OpenAI for you. OpenAI charges your own OpenAI " +
+        "account for every question and every request for suggestions, so setting a monthly " +
+        "limit there is wise.",
+    );
+    expect(catalogue.aiKey.createLink).toBe("Create an API key at OpenAI");
+    expect(catalogue.aiKey.createUrl).toBe("https://platform.openai.com/api-keys");
+    expect(catalogue.aiKey.field).toBe("OpenAI API key");
+    expect(catalogue.aiKey.checking).toBe("Checking key…");
+  });
+
+  test("shows a stored key only masked (FR-126)", () => {
+    expect(catalogue.aiKey.stored("sk-…a1b2")).toBe("Your key: sk-…a1b2");
+  });
+
+  test("words the confirmation of Remove key: AI features turn off and the key must be entered again (FR-126, FR-069)", () => {
+    expect(catalogue.aiKey.removeTitle).toBe("Remove key?");
+    expect(catalogue.aiKey.remove).toBe("Remove key");
+    expect(catalogue.aiKey.removeWarning).toMatch(/AI features/);
+    expect(catalogue.aiKey.removeWarning).toMatch(/off/);
+    expect(catalogue.aiKey.removeWarning).toMatch(/enter .*key again/i);
+  });
+
+  test("names the default in the note for a model no longer offered (FR-130)", () => {
+    expect(catalogue.modelChoice.label).toBe("Model");
+    expect(catalogue.modelChoice.noLongerOffered("gpt-5.4-mini")).toBe(
+      "The model you chose is no longer offered; now using gpt-5.4-mini.",
+    );
   });
 
   test("says that suggestions need AI features, and where to turn them on (FR-090)", () => {

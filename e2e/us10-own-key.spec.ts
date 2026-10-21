@@ -1,0 +1,183 @@
+import type { Page } from "@playwright/test";
+import type { Settings } from "../src/domain/types";
+// A namespace import, so the spec loads even before the catalogue words a new message.
+import * as catalogue from "../src/ui/messages";
+import { putRecord, storedRecord } from "./support/app";
+import {
+  aiFeaturesSwitch,
+  keyDialog,
+  keyField,
+  MASKED_TEST_KEY,
+  standInKeyCheck,
+  TEST_KEY,
+  turnOnAiFeatures,
+} from "./support/ai";
+import { backupText, restoreBackup, saveBackup, storedData } from "./support/backup";
+import { expect, guardNetwork, test } from "./support/test";
+
+// The journey of User Story 10: AI features with the user's own OpenAI key, and the model they
+// choose (FR-126 – FR-130, SC-021; quickstart.md, US10). A stand-in answers the key check in
+// OpenAI's place, and the network guard fails a test on any other request outside the app's origin.
+
+const main = (page: Page) => page.getByRole("main");
+const storedSettings = (page: Page) => storedRecord<Settings>(page, "settings", "settings");
+const storedKey = (page: Page) => storedRecord<string>(page, "settings", "openaiKey");
+const turnOnButton = (page: Page) =>
+  keyDialog(page).getByRole("button", { name: /^(Turn on|Checking key…)$/ });
+const modelGroup = (page: Page) => main(page).getByRole("radiogroup", { name: "Model" });
+const model = (page: Page, id: string) =>
+  modelGroup(page).getByRole("radio", {
+    name: new RegExp(`^${id.replaceAll(".", "\\.")}(?![\\w.-])`),
+  });
+
+/** True when `text` holds the key or any part of it the app ever shows. */
+const holdsKey = (text: string) => text.includes(TEST_KEY) || text.includes(TEST_KEY.slice(-4));
+
+async function openKeyDialog(page: Page) {
+  await page.goto("/#/settings");
+  await aiFeaturesSwitch(page).click();
+  await expect(keyDialog(page)).toBeVisible();
+}
+
+test("1. turning AI features on shows one dialog with the warning, the key's cost, the link and an empty field", async ({
+  page,
+}) => {
+  await openKeyDialog(page);
+
+  await expect(keyDialog(page)).toContainText(catalogue.sharingWarning);
+  await expect(keyDialog(page)).toContainText(catalogue.aiKey.about);
+  await expect(
+    keyDialog(page).getByRole("link", { name: "Create an API key at OpenAI" }),
+  ).toHaveAttribute("href", "https://platform.openai.com/api-keys");
+  await expect(keyField(page)).toHaveValue("");
+  await expect(turnOnButton(page)).toBeDisabled();
+  await keyField(page).fill(TEST_KEY);
+  await expect(turnOnButton(page)).toBeEnabled();
+});
+
+test("2. a key OpenAI does not accept shows its message within 10 seconds, and nothing is stored (SC-021)", async ({
+  page,
+}) => {
+  const check = await standInKeyCheck(page, 401);
+  await openKeyDialog(page);
+  await keyField(page).fill(TEST_KEY);
+
+  const started = Date.now();
+  await turnOnButton(page).click();
+  await expect(keyDialog(page)).toContainText(
+    "OpenAI didn't accept this key. Check that you copied all of it.",
+    { timeout: 10_000 },
+  );
+  expect(Date.now() - started).toBeLessThan(10_000);
+
+  // The check sends the key and nothing else (FR-127, contracts/ai.md, key check).
+  expect(check.requests).toHaveLength(1);
+  const [sent] = check.requests;
+  expect(sent!.method).toBe("GET");
+  expect(sent!.body).toBeNull();
+  expect(sent!.headers.authorization).toBe(`Bearer ${TEST_KEY}`);
+  expect(sent!.headers).not.toHaveProperty("cookie");
+  expect(sent!.headers).not.toHaveProperty("content-type");
+
+  await keyDialog(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(aiFeaturesSwitch(page)).not.toBeChecked();
+  expect(await storedKey(page)).toBeUndefined();
+  expect(await storedSettings(page)).not.toHaveProperty("aiFeatures");
+});
+
+test("3. a key OpenAI accepts turns AI features on, showing the masked key, Remove key and gpt-5.4-mini", async ({
+  page,
+}) => {
+  await standInKeyCheck(page, 200);
+  await openKeyDialog(page);
+  await keyField(page).fill(TEST_KEY);
+
+  await turnOnButton(page).click();
+
+  await expect(keyDialog(page)).toBeHidden();
+  await expect(aiFeaturesSwitch(page)).toBeChecked();
+  await expect(main(page)).toContainText(`Your key: ${MASKED_TEST_KEY}`);
+  await expect(main(page)).not.toContainText(TEST_KEY);
+  await expect(main(page).getByRole("button", { name: "Remove key", exact: true })).toBeVisible();
+  await expect(model(page, "gpt-5.4-mini")).toBeChecked();
+});
+
+test("4. Remove key, confirmed, deletes the key and turns AI features off", async ({ page }) => {
+  await turnOnAiFeatures(page);
+  await page.goto("/#/settings");
+
+  await main(page).getByRole("button", { name: "Remove key", exact: true }).click();
+  await page
+    .getByRole("alertdialog", { name: "Remove key?" })
+    .getByRole("button", { name: "Remove key" })
+    .click();
+
+  await expect(aiFeaturesSwitch(page)).not.toBeChecked();
+  await expect(main(page)).not.toContainText("Your key:");
+  await expect.poll(() => storedKey(page)).toBeUndefined();
+});
+
+test("6. a backup holds the model and AI features on but no part of the key, and restores in a fresh install with the switch off", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await page.goto("/#/settings");
+  await model(page, "gpt-5.6-luna").check();
+  await turnOnAiFeatures(page);
+
+  const backup = await saveBackup(page);
+
+  expect(backup.json.data.settings).toMatchObject({ aiFeatures: true, model: "gpt-5.6-luna" });
+  expect(holdsKey(backup.text)).toBe(false);
+
+  const fresh = await browser.newContext({ baseURL, locale: "en-US" });
+  const freshPage = await fresh.newPage();
+  const checkNetwork = await guardNetwork(fresh, freshPage, baseURL);
+  await freshPage.goto("/");
+  await restoreBackup(freshPage, backup.text, backup.fileName);
+
+  await freshPage.goto("/#/settings");
+  await expect(model(freshPage, "gpt-5.6-luna")).toBeChecked();
+  await expect(aiFeaturesSwitch(freshPage)).not.toBeChecked();
+  expect(await storedKey(freshPage)).toBeUndefined();
+  // Turning them on there asks for a key.
+  await aiFeaturesSwitch(freshPage).click();
+  await expect(keyField(freshPage)).toBeVisible();
+  await expect(keyField(freshPage)).toHaveValue("");
+  await checkNetwork();
+  await fresh.close();
+});
+
+test("7. AI features on in v1.5, with no key, show the switch off, and turning it on asks for a key", async ({
+  page,
+}) => {
+  await page.goto("/#/settings");
+  await expect(aiFeaturesSwitch(page)).toBeVisible();
+  await putRecord(page, "settings", "settings", {
+    ...(await storedSettings(page)),
+    aiFeatures: true,
+  });
+  await page.reload();
+
+  await expect(aiFeaturesSwitch(page)).not.toBeChecked();
+  await aiFeaturesSwitch(page).click();
+  await expect(keyField(page)).toBeVisible();
+  await expect(keyField(page)).toHaveValue("");
+});
+
+test("8. a backup whose model the app no longer lists uses gpt-5.4-mini, and Settings says so", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const data = await storedData(page);
+  const text = backupText({ ...data, settings: { ...data.settings, model: "gpt-4o" } });
+
+  await restoreBackup(page, text, "old-model.json");
+
+  await page.goto("/#/settings");
+  await expect(model(page, "gpt-5.4-mini")).toBeChecked();
+  await expect(main(page)).toContainText(
+    "The model you chose is no longer offered; now using gpt-5.4-mini.",
+  );
+});
