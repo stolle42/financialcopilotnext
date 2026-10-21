@@ -25,7 +25,8 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
 - Q: May the copy of the app hosted on Vercel be used for real financial data, or only for checks
   and demonstrations? → A: Only for checks and demonstrations; real data stays in the app as run
   locally ([FR-061](#fr-061)). Using a hosted copy for real data is out of scope for v1
-  ([Out of Scope](#out-of-scope)).
+  ([Out of Scope](#out-of-scope)). Superseded in v1.5: the app at its web address is where real
+  data lives ([FR-121](#fr-121)).
 - Q: If the user changes a category's monthly limit, should Insights measure earlier months against
   the new limit, or against the limit that applied in those months? → A: Against the new limit. A
   category has one limit at a time, and it applies to every month, past and present
@@ -45,7 +46,8 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
   The warning [FR-071](#fr-071) requires is the protection ([Out of Scope](#out-of-scope)).
 - Q: Must a hosted copy show in the app that it serves only checks and demonstrations? → A: No.
   The project's documentation says so, and the app shows no notice
-  ([Out of Scope](#out-of-scope)).
+  ([Out of Scope](#out-of-scope)). Superseded in v1.5: the app at its web address is the real app,
+  not a copy for checks ([FR-121](#fr-121)).
 - The design's decisions on atomic changes, failed saves, a second tab, browser storage that may be
   cleared, outgoing requests, backup validity and versions, review progress, and confirmations
   are now requirements: [FR-022](#fr-022), [FR-061](#fr-061), [FR-069](#fr-069),
@@ -377,6 +379,52 @@ was.
 
 ---
 
+<a id="user-story-9"></a>
+### User Story 9 - Open the app from its web address and install it (Priority: P9)
+
+Someone who has never used a terminal gets the app's address, opens it in Chrome, Edge or Firefox,
+and starts recording their money at once, with nothing to download or set up. In Chrome and Edge
+they can install it, so it opens in a window of its own like any other program. After the first
+visit it works without a network connection. A new version never replaces the one they use until
+they choose to update, after a hint to save a backup first. Added in v1.5.
+
+**Why this priority**: Until v1.5, using the app with real data meant installing developer tools
+and running it from a terminal, which only an IT expert would do. It comes after the stories it
+makes reachable.
+
+**Independent Test**: In a browser that never opened the app, open its address, record an
+expense, install the app, disconnect the network and open it again; then publish a new version and
+verify that the app keeps the old one through a restart, until Update is selected.
+
+**Acceptance Scenarios**:
+
+1. **Given** a browser that never opened the app, **When** the user opens its address, **Then**
+   the transaction list shows ([FR-063](#fr-063)) and nothing asks them to install or set up
+   anything first ([FR-121](#fr-121)).
+2. **Given** Chrome or Edge and the app not installed, **Then** the header offers **Install app**;
+   **When** the user selects it and confirms the browser's question, **Then** the app opens in a
+   window of its own, with the same data, and no longer offers Install app ([FR-122](#fr-122)).
+3. **Given** Firefox, **Then** the app offers no Install app, and works as in a tab of Chrome
+   ([FR-122](#fr-122), [FR-125](#fr-125)).
+4. **Given** the app opened once, **When** the network is disconnected and the user opens the app,
+   **Then** it opens with all their data, and every capability other than the AI features works
+   ([FR-123](#fr-123)).
+5. **Given** the user runs version 1.5 and version 1.6 is published, **When** they open the app,
+   **Then** it still runs 1.5, and Settings says "Version 1.6 is available (you have 1.5). Make a
+   backup first." with **Backup** and **Update** ([FR-124](#fr-124)).
+6. **Given** that notice, **When** the user closes and opens the app again, also after restarting
+   the computer, **Then** it still runs 1.5 and still shows the notice ([FR-124](#fr-124)).
+7. **Given** that notice, **When** the user selects Backup, **Then** they receive a backup file as
+   on the Backup screen ([FR-070](#fr-070)); **When** they select Update, **Then** the app opens
+   again on 1.6 with exactly the data it had, the header shows "Version 1.6", and the notice is gone
+   ([FR-124](#fr-124)).
+8. **Given** the browser has not agreed to keep the app's data, **When** the user opens the Backup
+   screen in Chrome or Edge with the app not installed, **Then** it says so, that a saved backup is
+   the safeguard, and that installing the app helps the browser keep the data, and offers Install
+   app ([FR-075](#fr-075)).
+
+---
+
 <a id="edge-cases"></a>
 ### Edge Cases
 
@@ -428,6 +476,27 @@ was.
   and the answer says that the chat cannot and how to do it in the app ([FR-103](#fr-103)).
 - The AI suggests no follow-up questions, or more than three: the chat shows none, or the first
   three ([FR-111](#fr-111)).
+- The user opens the app in a browser tab while the installed app is open, or the other way round:
+  both use the same data, so the second shows that the app is already open elsewhere
+  ([FR-074](#fr-074)).
+- The user opens the app for the first time without a network connection: it cannot open, since
+  it has never been downloaded ([FR-123](#fr-123)).
+- The browser's data for the app's address is cleared, by the user or by the browser
+  ([FR-075](#fr-075)): the app and its data are both gone. The next visit opens the newest version,
+  empty, and loading a backup brings the data back.
+- The user never selects Update: the app keeps working on its version, and the notice stays
+  ([FR-124](#fr-124)). A backup saved by the newer version, for example on another computer, is
+  refused with a message saying so ([FR-072](#fr-072)), and updating solves it.
+- Several versions are published before the user updates: the notice names the newest, and Update
+  goes straight to it ([FR-124](#fr-124)).
+- A change reaches the app's address without a new version number, such as a change to the
+  project's documentation: no notice shows, and the user gets it with the next version
+  ([FR-124](#fr-124)).
+- A user of v1.4 opens the app after v1.5 is published: it opens on v1.5 at once, since v1.4 holds
+  back no version. From v1.5 on, every newer version waits for Update ([FR-124](#fr-124)).
+- A developer runs the app from their own computer: that copy has its own address, so it holds
+  data of its own. A backup saved in one and loaded into the other moves the data
+  ([FR-121](#fr-121)).
 
 ## Requirements *(mandatory)*
 
@@ -613,17 +682,19 @@ was.
   [FR-102](#fr-102)). They are on only once the user turned them on in Settings and agreed to
   their warning.
   No flow may make a request to any host other than the one serving the app: no analytics, no
-  error reports, no update checks, and no fonts, scripts or other files from third parties. An AI
+  error reports, and no fonts, scripts or other files from third parties. Requests to the app's
+  own address fetch only the app itself: when it opens, and when it looks for a newer version,
+  which it downloads but does not use until the user selects Update ([FR-124](#fr-124)). These
+  requests carry no user data. An AI
   feature's request goes to the server that serves the app on the user's own computer, which
   passes it on to OpenAI with the owner's API key. The key stays on that computer, outside the
-  app's code, storage and backups. No capability may require a network connection, except the AI
-  features; everything else works without one. Serving the app from the user's own computer
-  (`localhost`) is not a network connection. Real data lives only in the app as run locally. A copy
-  hosted on the web, such as the one the project's post-push check deploys, needs a network
-  connection to open, so it serves only checks and demonstrations
-  ([Out of Scope](#out-of-scope)). It cannot pass requests on to OpenAI, so there AI features
-  cannot be turned on ([FR-106](#fr-106)). Changed in v1.2: [FR-090](#fr-090), [FR-095](#fr-095).
-  Changed in v1.3: [FR-100](#fr-100), [FR-105](#fr-105), [FR-106](#fr-106).
+  app's code, storage and backups. After the app has opened once, no capability may require a
+  network connection, except the AI features and getting a newer version; everything else works
+  without one ([FR-123](#fr-123)). Real data lives in the app at its web address
+  ([FR-121](#fr-121)). That address has no server to pass requests on to OpenAI, so there AI
+  features cannot be turned on ([FR-106](#fr-106)). Changed in v1.2: [FR-090](#fr-090),
+  [FR-095](#fr-095). Changed in v1.3: [FR-100](#fr-100), [FR-105](#fr-105), [FR-106](#fr-106).
+  Changed in v1.5: [FR-121](#fr-121), [FR-123](#fr-123), [FR-124](#fr-124).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -688,7 +759,9 @@ testable for v1.
   or window MUST load no data, and MUST tell the user that the app is already open elsewhere.
 - <a id="fr-075"></a>**FR-075**: The browser may clear the app's data when disk space runs low, unless
   the browser has agreed to keep it. The backup screen MUST say when the browser has not agreed,
-  and that a saved backup is the safeguard ([User Story 7](#user-story-7)).
+  and that a saved backup is the safeguard ([User Story 7](#user-story-7)). While the app offers
+  Install app ([FR-122](#fr-122)), it MUST also say there that installing the app helps the browser
+  keep the data, and offer Install app. Changed in v1.5: [FR-122](#fr-122).
 
 **UI improvements (v1.1)**
 
@@ -857,14 +930,15 @@ version that it changes states the new behaviour and names the change.
     minutes of FR-094 run until the answer is complete.
 - <a id="fr-105"></a>**FR-105**: Both AI features MUST ask OpenAI through the server that serves
   the app on the user's own computer, which holds the owner's OpenAI API key. The key MUST NOT
-  reach the app's code, its storage or a backup. A copy hosted on the web has no such server
-  ([FR-061](#fr-061), [FR-106](#fr-106)). This replaces v1.2's n8n workflow and Claude.
+  reach the app's code, its storage or a backup. The app at its web address has no such server
+  ([FR-061](#fr-061), [FR-106](#fr-106)). This replaces v1.2's n8n workflow and Claude. Changed
+  in v1.5: [FR-121](#fr-121).
 - <a id="fr-106"></a>**FR-106**: A copy of the app not served from the user's own computer, such as
-  the hosted copy, MUST NOT let AI features be turned on. There, Settings MUST show the AI features
+  the app at its web address ([FR-121](#fr-121)), MUST NOT let AI features be turned on. There, Settings MUST show the AI features
   switch off and unavailable, also when a restored backup holds them on, and MUST say beside it
   that AI features need the app run locally. Review and the finance chat MUST then behave as with
   AI features off, and such a copy MUST send nothing for an AI feature, not even to the server
-  that serves it ([FR-061](#fr-061), [FR-095](#fr-095)).
+  that serves it ([FR-061](#fr-061), [FR-095](#fr-095)). Changed in v1.5: [FR-121](#fr-121).
 - <a id="fr-107"></a>**FR-107**: An answer MUST show as it is written, after its question, so the
   user can read its start while the rest follows. From sending until the answer's first words
   arrive, its place MUST say "Thinking…". A question out of scope MUST show the fixed answer of
@@ -954,6 +1028,52 @@ the design, it changes what the app does: the user can change how wide the finan
   closes and opens again, and when another screen opens. Reloading or opening the app again starts
   it at 384px. Changing the width sends nothing and stores nothing.
 
+**Installable app (v1.5)**
+
+A change the owner asked for after v1.4, released as v1.5, so that people who are not IT experts
+can use the app: they open its web address, may install it, and keep their real data there, with
+nothing to download or set up. [User Story 9](#user-story-9) describes it. A requirement of an
+earlier version that it changes states the new behaviour and names the change. The AI features
+stay as v1.3 made them until v1.6.
+
+- <a id="fr-121"></a>**FR-121**: The app MUST be used at one web address, the one each release is
+  published to: `financialcopilot-three.vercel.app`. That is where users keep their real data. The
+  address MUST NOT change: a browser keeps the app's data per address, so the app at a new address
+  would open empty for every user ([quickstart.md](quickstart.md)). Opening the address MUST be
+  all a user needs to start; nothing asks them to install or set up anything first. Running the
+  app from a developer's own computer serves development only; it holds data of its own, and a
+  backup moves data between the two ([FR-070](#fr-070), [FR-071](#fr-071)).
+- <a id="fr-122"></a>**FR-122**: Where the browser can install the app, as Chrome and Edge can, the
+  user MUST be able to install it from the app: while it is not installed, the header MUST offer
+  **Install app**, which asks the browser's own question to install it. Installed, the app MUST
+  open in a window of its own, under its name and icon, from where the computer keeps its programs,
+  with the same data as in the browser. Installed, and where the browser cannot install it, as in
+  Firefox, the app MUST NOT offer Install app.
+- <a id="fr-123"></a>**FR-123**: After the app has opened once with a network connection, it MUST
+  open and work without one, in a browser tab and installed: every capability except the AI
+  features and getting a newer version ([FR-124](#fr-124)). Without a connection the AI features
+  fail as [FR-094](#fr-094) says.
+- <a id="fr-124"></a>**FR-124**: A newer version MUST take effect only when the user selects
+  Update.
+  - When the app opens with a network connection, it MUST look at its own address for a newer
+    version and download it in the background, without asking and without changing what runs
+    ([FR-061](#fr-061)).
+  - Until the user selects Update, the app MUST keep running the version it runs, also after it is
+    closed and opened again and after the computer restarts.
+  - Once a newer version is fully downloaded, Settings MUST say "Version 1.6 is available (you have
+    1.5). Make a backup first.", with the two versions as the header shows them
+    ([FR-088](#fr-088)), and offer **Backup**, which saves a backup as the Backup screen does
+    ([FR-070](#fr-070)), and **Update**, which opens the app again on the newer version. No other
+    screen shows the notice, and it holds no list of changes.
+  - A version is newer only when its number differs from the one running. A change published
+    without a new number shows no notice.
+  - When several newer versions were published, the notice MUST name the newest, and Update MUST
+    go to it.
+  - Updating MUST keep every piece of data exactly as it was ([FR-073](#fr-073)).
+- <a id="fr-125"></a>**FR-125**: The app MUST work in the current versions of Chrome, Edge and
+  Firefox on a desktop computer, in a browser tab and, in Chrome and Edge, installed. Safari is not
+  supported ([Out of Scope](#out-of-scope)).
+
 <a id="key-entities"></a>
 ### Key Entities
 
@@ -982,6 +1102,9 @@ the design, it changes what the app does: the user can change how wide the finan
   has a name, a range of
   dates, and a category, an account, both or neither. There is one conversation; it is stored and
   is part of a backup ([FR-104](#fr-104), [FR-110](#fr-110)).
+- **Waiting version**: A newer version of the app, downloaded and kept until the user selects
+  Update. It has a version number; there is at most one, the newest ([FR-124](#fr-124)). It is not
+  the user's data and is not part of a backup.
 
 ## Success Criteria *(mandatory)*
 
@@ -1021,6 +1144,31 @@ the design, it changes what the app does: the user can change how wide the finan
   chat shows the question and "Thinking…" within 1 second of sending, and selecting Stop ends the
   answer within 1 second, after which no further text appears ([FR-107](#fr-107),
   [FR-108](#fr-108)).
+- <a id="sc-016"></a>**SC-016**: A person who has never used a terminal starts using the app within
+  1 minute of receiving its address, in Chrome, Edge or Firefox, without downloading or setting up
+  anything ([FR-121](#fr-121)).
+- <a id="sc-017"></a>**SC-017**: In Chrome and Edge, installing the app takes at most two selections
+  from the app: Install app and the browser's own confirmation ([FR-122](#fr-122)).
+- <a id="sc-018"></a>**SC-018**: After one visit, with the network disconnected, the app opens and
+  the independent tests of User Stories 1 to 7 pass ([FR-123](#fr-123)).
+- <a id="sc-019"></a>**SC-019**: After a newer version is published, the app runs the version it
+  ran through three closings and openings, until the user selects Update. After Update, the app
+  holds every account balance, transaction, category, budget, mapping profile, the pending batch,
+  the settings and the conversation exactly as before ([FR-124](#fr-124)).
+
+<a id="assumptions"></a>
+## Assumptions
+
+- **v1.5**:
+  - Every change that reaches the project's main line is published to the app's address
+    ([FR-121](#fr-121)), as before v1.5. Each release that changes the app carries a new version
+    number ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)), so the notice
+    of [FR-124](#fr-124) shows for every release and for nothing else.
+  - The app looks for a newer version only when it opens. A user who keeps it open for days sees
+    the notice the next time they open it.
+  - Chrome and Edge are more likely to keep an installed app's data ([FR-075](#fr-075)); Firefox
+    decides on its own.
+  - A user moves their data between computers or browsers with a backup, as before.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -1097,11 +1245,17 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - A switch per AI feature, a notice on every screen while AI features are on, and a warning each
   time an AI feature sends. Since v1.2, the app warns once, when the user turns AI features on in
   Settings ([FR-095](#fr-095)), and Settings shows whether they are on.
-- Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
-  v1 must not foreclose them.
-- Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,
-  which [FR-061](#fr-061) rules out for v1, so it serves only checks and demonstrations. The
-  project's documentation says so; the app itself shows no notice in a hosted copy.
+- Docker images and desktop packaging. Since v1.5 the app is a web app that can be installed from
+  the browser ([FR-122](#fr-122)); these are later delivery options and it must not foreclose
+  them.
+- Safari, on the Mac and on iPhone and iPad. The app is made and checked for Chrome, Edge and
+  Firefox ([FR-125](#fr-125)); Safari is a later step.
+- Updating without the user: automatic updates, and asking the user to update anywhere but
+  Settings. A newer version waits for Update ([FR-124](#fr-124)).
+- Release notes, in the update notice or elsewhere in the app ([FR-124](#fr-124)).
+- An address of the app's own name, such as a domain bought for it. Moving away from
+  [FR-121](#fr-121)'s address would leave every user's data behind at the old one.
+- Moving data between computers or browsers other than by a backup ([FR-121](#fr-121)).
 - Drill-down from a chart into its transactions. Desirable, to be considered in UX design, not a v1
   commitment.
 - Searching the transaction list, paginating it, and editing several transactions at once. v1 has
