@@ -39,6 +39,12 @@ export interface SentRows {
 const ordinaryCategories = (categories: readonly Category[], side: Side) =>
   sortCategories(categories, side).filter((c) => c.role === null);
 
+/** The names of the categories a suggestion may name, by side, as a request offers them. */
+export function suggestionCategories(categories: readonly Category[]): Record<Side, string[]> {
+  const names = (side: Side) => ordinaryCategories(categories, side).map((c) => c.name);
+  return { expense: names("expense"), income: names("income") };
+}
+
 function holdsUncategorised(row: ParsedRow, categories: readonly Category[]): boolean {
   const uncategorised = protectedCategory(
     categories,
@@ -70,7 +76,7 @@ export function suggestableRows(view: ReviewView, categories: readonly Category[
 }
 
 /** The newest decision for each side and description, newest first, at most 100 (FR-091). */
-function examples(state: State): SuggestionRequest["examples"] {
+export function suggestionExamples(state: State): SuggestionRequest["examples"] {
   const categoriesById = new Map(state.categories.map((c) => [c.id, c]));
   const newestFirst = state.transactions
     .filter((t): t is CategorisedTransaction => t.kind !== "transfer")
@@ -96,7 +102,6 @@ function examples(state: State): SuggestionRequest["examples"] {
 export function suggestionRequest(state: State): SuggestionRequest {
   if (!state.pendingBatch) throw new Error("No pending batch");
   const rows = suggestableRows(reviewView(state.pendingBatch), state.categories);
-  const names = (side: Side) => ordinaryCategories(state.categories, side).map((c) => c.name);
   return {
     rows: rows.map((row) => ({
       rowNumber: row.rowNumber,
@@ -104,8 +109,8 @@ export function suggestionRequest(state: State): SuggestionRequest {
       counterparty: row.counterparty,
       description: row.description,
     })),
-    categories: { expense: names("expense"), income: names("income") },
-    examples: examples(state),
+    categories: suggestionCategories(state.categories),
+    examples: suggestionExamples(state),
   };
 }
 

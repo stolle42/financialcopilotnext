@@ -1782,7 +1782,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     Settings, and is absent while AI features are off;
   - in `e2e/us10-own-key.spec.ts`, scenario 5: after choosing gpt-6.1-sol, the chat says so, and
     the next question and the next request for suggestions name that model.
-- [ ] T143 [P] [US10] The model check of [FR-131](spec.md#fr-131): `scripts/check-models.ts`, run
+- [X] T143 [P] [US10] The model check of [FR-131](spec.md#fr-131): `scripts/check-models.ts`, run
   by `npm run check:models` with Vitest outside `test.include`, so `npm test` and CI never run it.
   It reads `OPENAI_API_KEY` and `DEMO_BACKUP` from the environment, never writing the key to a
   file; loads the backup with `src/files/backup.ts`, with today the day after its last

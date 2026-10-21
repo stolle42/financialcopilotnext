@@ -23,8 +23,15 @@ const cash = seeded.accounts[0]!.id;
 const categoryId = (side: Side, name: string) =>
   seeded.categories.find((c) => c.side === side && c.name === name)!.id;
 
+/** A transaction of any kind without its `id` and `seq`. */
+type NewTransaction = Transaction extends infer T
+  ? T extends Transaction
+    ? Omit<T, "id" | "seq">
+    : never
+  : never;
+
 /** The state with `transactions` added, in the order given, as `seq` 1, 2, … */
-function withTransactions(transactions: Omit<Transaction, "id" | "seq">[]): State {
+function withTransactions(transactions: NewTransaction[]): State {
   return applyValid(seeded, {
     accounts: {
       put: [{ id: "savings", name: "Savings", type: "savings", openingBalanceCents: 0 }],
