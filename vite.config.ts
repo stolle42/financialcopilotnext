@@ -75,7 +75,12 @@ export default defineConfig({
   // Domain and store tests run in Node; the browser is Playwright's job (R-17).
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "server/**/*.test.ts", "worker/**/*.test.ts"],
+    include: [
+      "src/**/*.test.ts",
+      "server/**/*.test.ts",
+      "worker/**/*.test.ts",
+      "scripts/**/*.test.ts",
+    ],
     passWithNoTests: true,
     // A zone west of UTC, where a date read as UTC midnight shows as the day before, so tests
     // catch that mistake on every machine.
