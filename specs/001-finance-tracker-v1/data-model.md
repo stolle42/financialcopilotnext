@@ -143,7 +143,34 @@ A category assignment uses the row's side: expense when `amountCents` ≤ 0, inc
 | Field | Type | Notes |
 |---|---|---|
 | `manualEntryAccountId` | Account id | Default account of the manual-entry form ([FR-006](spec.md#fr-006)) |
-| `aiFeatures` | `true`, or absent | Present while the user has AI features on ([FR-095](spec.md#fr-095)); never `false` |
+| `aiFeatures` | `true`, or absent | Present while the user has the AI features switch on ([FR-095](spec.md#fr-095)); never `false`. AI features are on only while it is present and a key is stored ([OpenAI key](#openai-key)) |
+| `model` | model id, or absent | The chosen model ([FR-129](spec.md#fr-129), [FR-130](spec.md#fr-130)). Absent means the default. Any non-empty string is kept, also one no longer in the list; the model in use is then the default ([R-32](research.md#r-32)) |
+
+Settings is part of a backup, `model` included ([FR-070](spec.md#fr-070)). Since v1.6 it never
+holds the key, so nothing that saves `state.settings` can carry it.
+
+<a id="openai-key"></a>
+### OpenAI key
+
+The user's own OpenAI API key ([FR-126](spec.md#fr-126), [R-31](research.md#r-31)), held in memory
+as `state.apiKey`, beside `state.settings` and not inside it.
+
+| Field | Type | Notes |
+|---|---|---|
+| `apiKey` | string, or `null` | Trimmed when entered, non-empty. `null` while no key is stored |
+
+- Stored on this computer only, as its own record in the `settings` store
+  ([Storage layout](#storage-layout)); never part of a backup
+  ([contracts/backup-file.md](contracts/backup-file.md)).
+- Shown only masked: `sk-…` and its last 4 characters ([FR-126](spec.md#fr-126)).
+- Sent only to OpenAI, with an AI feature's request and the key check
+  ([contracts/ai.md](contracts/ai.md)).
+
+### Waiting version
+
+Not stored data. A downloaded newer version lives in the service worker's caches, outside the
+database, and is never part of a backup ([FR-124](spec.md#fr-124),
+[contracts/app-updates.md](contracts/app-updates.md)).
 
 ### Conversation
 
@@ -193,6 +220,11 @@ Derived values are computed by domain functions from the state above and never s
 - **Budget progress** and **Insights aggregates**: see [R-14](research.md#r-14).
 - **Finance chat context**: the data one question of the finance chat sends, built when it is
   asked and never stored ([FR-102](spec.md#fr-102), [R-25](research.md#r-25)).
+- **AI features on**: `settings.aiFeatures` is present and `apiKey` is not `null`
+  ([FR-095](spec.md#fr-095)).
+- **Model in use**: `settings.model` when it is in the list of offered models, otherwise the
+  default; "no longer offered" when `settings.model` is present and not in the list
+  ([FR-130](spec.md#fr-130), [R-32](research.md#r-32)).
 
 ## Invariants
 
@@ -219,7 +251,8 @@ fails ([FR-072](spec.md#fr-072)); domain tests assert that no operation can brea
    ([FR-030](spec.md#fr-030)). A suggested category assignment references a category with role
    `null` ([FR-092](spec.md#fr-092)). A transfer assignment references an existing account other
    than the batch account. Every unparsable row carries a known failure code.
-8. `settings.manualEntryAccountId` references an existing account.
+8. `settings.manualEntryAccountId` references an existing account. `settings.model`, when
+   present, is a non-empty string. Settings holds no field for the key.
 9. Every turn of the conversation has a question that is non-empty after trimming. A turn out of
    scope has an empty answer, no sources and no `stopped`. A stopped turn has no sources. Any
    other turn has a non-empty answer. A turn's follow-ups, when present, are one to three distinct
@@ -265,9 +298,25 @@ side's "Uncategorised". The last part keeps invariant 7 true ([R-12](research.md
 **Manual-entry default** ([FR-006](spec.md#fr-006)): `settings.manualEntryAccountId` changes only
 when a transaction is created from the manual-entry form. It becomes that transaction's `accountId`.
 
-**AI features** ([FR-095](spec.md#fr-095)): `settings.aiFeatures` is set when the user turns the
-switch in Settings on and agrees to the data-sharing warning, and removed when the user turns it
-off. Nothing else changes it, apart from restoring a backup.
+**AI features and the key** ([FR-095](spec.md#fr-095), [FR-126](spec.md#fr-126),
+[FR-127](spec.md#fr-127)):
+
+```text
+off, no key ── Turn on, key accepted ──▶ on, key stored        one storage transaction
+off, key    ── Turn on ────────────────▶ on                    the stored key, checked again
+off         ── Turn on, key refused or unreachable, Cancel ─▶ unchanged
+on          ── switch off ─────────────▶ off, key kept         FR-095, FR-108
+any         ── Remove key, confirmed ──▶ off, no key           one storage transaction, FR-108
+any         ── restore a backup ───────▶ the file's switch, the key kept   FR-071, FR-126
+```
+
+Turn on writes the key and `settings.aiFeatures` in one storage transaction, so a key never lands
+without the switch nor the switch without a key. A switch stored without a key, as after restoring
+a backup on a computer that has none, shows off; turning it on asks for a key.
+
+**Model** ([FR-129](spec.md#fr-129), [FR-130](spec.md#fr-130)): `settings.model` is set when the
+user chooses a model, whether AI features are on or off, and changes nothing else. Nothing else
+changes it, apart from restoring a backup, which sets it to the file's or removes it.
 
 **Conversation** ([FR-104](spec.md#fr-104), [FR-108](spec.md#fr-108)):
 
@@ -295,6 +344,11 @@ One IndexedDB database, `financial-copilot`, schema version 1 ([R-06](research.m
 | `pendingBatch` | `id` | Pending batch, at most one record |
 | `settings` | fixed key `settings` | Settings, exactly one record |
 | `settings` | fixed key `conversation` | The conversation's turn list; absent while it is empty ([R-26](research.md#r-26)) |
+| `settings` | fixed key `openaiKey` | The OpenAI key, a string; absent while no key is stored ([OpenAI key](#openai-key), [R-31](research.md#r-31)) |
+
+The schema version stays 1: the key is a new record in an existing store, and the model a new
+optional field, so v1.5 reads a v1.6 database unchanged. Replacing all data on restore writes the
+stored key back after clearing the stores ([contracts/backup-file.md](contracts/backup-file.md)).
 
 There are no secondary indexes, because the whole state is loaded into memory at start
 ([R-05](research.md#r-05)). The backup file holds the same records ([contracts/backup-file.md](contracts/backup-file.md)).
