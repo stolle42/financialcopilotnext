@@ -1532,9 +1532,9 @@ mark, concurrency, zod and the untrusted answer still holds.
 - **Decision** (owner, 2026-10-21), for [FR-129](spec.md#fr-129) – [FR-131](spec.md#fr-131):
   - **The list** is one constant, `AI_MODELS` in `src/ai/models.ts`, in the order Settings shows
     it, each with its hint:
-    - gpt-5.4-mini, the default;
-    - gpt-6.1-sol, "better answers, costs more";
-    - gpt-5.6-luna, "cheaper".
+    - gpt-5.4-mini, "fastest", the default;
+    - gpt-5.6-luna, "balanced";
+    - gpt-6.1-sol, "most thorough, slowest".
 
     `DEFAULT_MODEL` names the default. Together they replace `OPENAI_MODEL`.
   - **The choice** is `settings.model`, a model's id, absent until the user chooses

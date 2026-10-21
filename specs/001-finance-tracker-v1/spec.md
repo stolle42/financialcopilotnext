@@ -1200,9 +1200,9 @@ names the change.
   ([FR-106](#fr-106)).
 - <a id="fr-129"></a>**FR-129**: Settings MUST offer, beside the AI features switch, a choice of
   the model that answers both AI features, from a short list, each with a plain hint:
-  - gpt-5.4-mini, the default;
-  - gpt-6.1-sol, "better answers, costs more";
-  - gpt-5.6-luna, "cheaper".
+  - gpt-5.4-mini, "fastest", the default;
+  - gpt-5.6-luna, "balanced";
+  - gpt-6.1-sol, "most thorough, slowest".
 
   Settings MUST show the model in use, whether AI features are on or off. While AI features are
   on, the finance chat MUST say in a small line which model answers, such as "Answers by

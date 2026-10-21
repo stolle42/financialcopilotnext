@@ -370,8 +370,8 @@ Routes use the URL hash so the build works from any static host or local file ([
   - No screen shows the whole key, and no notice shows while AI features are on.
 - **Model** ([FR-129](../spec.md#fr-129), [FR-130](../spec.md#fr-130)): beside the switch, a group
   of radio buttons labelled "Model", in the order of `AI_MODELS`, each its model's id with its hint
-  in the muted colour: "gpt-5.4-mini" with "default", "gpt-6.1-sol" with "better answers, costs
-  more", "gpt-5.6-luna" with "cheaper". It is available whether AI features are on or off.
+  in the muted colour: "gpt-5.4-mini" with "fastest", "gpt-5.6-luna" with "balanced",
+  "gpt-6.1-sol" with "most thorough, slowest". It is available whether AI features are on or off.
   - The checked one is the model in use ([data-model.md](../data-model.md#derived-values)).
   - Selecting one, also the one already checked, saves it at once and sends nothing. A failed
     write shows `save-failed`, and the choice stays as it was.

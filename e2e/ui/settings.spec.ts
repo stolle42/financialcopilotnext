@@ -34,9 +34,9 @@ const model = (page: Page, id: string) =>
 
 /** The models Settings offers, in order, with their hints (FR-129). */
 const MODELS = [
-  { id: "gpt-5.4-mini", hint: "default" },
-  { id: "gpt-6.1-sol", hint: "better answers, costs more" },
-  { id: "gpt-5.6-luna", hint: "cheaper" },
+  { id: "gpt-5.4-mini", hint: "fastest" },
+  { id: "gpt-5.6-luna", hint: "balanced" },
+  { id: "gpt-6.1-sol", hint: "most thorough, slowest" },
 ];
 
 /** Opens Settings and the dialog of turning AI features on. */

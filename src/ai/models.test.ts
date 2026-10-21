@@ -6,9 +6,9 @@ import { AI_MODELS, DEFAULT_MODEL, modelInUse } from "./models";
 describe("AI_MODELS (R-32)", () => {
   test("lists three models in the order Settings shows them, each with its hint", () => {
     expect(AI_MODELS).toEqual([
-      { id: "gpt-5.4-mini", hint: "default" },
-      { id: "gpt-6.1-sol", hint: "better answers, costs more" },
-      { id: "gpt-5.6-luna", hint: "cheaper" },
+      { id: "gpt-5.4-mini", hint: "fastest" },
+      { id: "gpt-5.6-luna", hint: "balanced" },
+      { id: "gpt-6.1-sol", hint: "most thorough, slowest" },
     ]);
   });
 

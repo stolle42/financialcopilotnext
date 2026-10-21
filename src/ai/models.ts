@@ -2,9 +2,9 @@ import type { Settings } from "@/domain/types";
 
 /** The models Settings offers, in the order it shows them, each with its hint (FR-129, R-32). */
 export const AI_MODELS = [
-  { id: "gpt-5.4-mini", hint: "default" },
-  { id: "gpt-6.1-sol", hint: "better answers, costs more" },
-  { id: "gpt-5.6-luna", hint: "cheaper" },
+  { id: "gpt-5.4-mini", hint: "fastest" },
+  { id: "gpt-5.6-luna", hint: "balanced" },
+  { id: "gpt-6.1-sol", hint: "most thorough, slowest" },
 ] as const satisfies readonly { id: string; hint: string }[];
 
 /** The model in use while the user has chosen none. */
