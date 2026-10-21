@@ -1,6 +1,12 @@
-import type { Browser, BrowserContext, Page } from "@playwright/test";
+import type {
+  Browser,
+  BrowserContext,
+  Page,
+  PlaywrightWorkerArgs,
+  PlaywrightWorkerOptions,
+} from "@playwright/test";
 import { addTransaction } from "./support/app";
-import { saveBackup } from "./support/backup";
+import { byKey, readDownload, saveBackup, storedData } from "./support/backup";
 import { expect, guardNetwork, test } from "./support/test";
 import {
   prepareVersions,
@@ -158,6 +164,43 @@ test.describe("the service worker (contracts/app-updates.md, the worker's lifecy
   });
 });
 
+const updateNotice = (page: Page) => main(page).getByText(/is available/);
+const headerVersion = (page: Page) => banner(page).getByText(/^Version /);
+
+/**
+ * Opens the browser with the profile in `dir`, at `server`, with workers allowed and the network
+ * guard on it. Closing the context closes the browser; opening `dir` again opens the same profile.
+ */
+async function openProfile(
+  playwright: PlaywrightWorkerArgs["playwright"],
+  browserName: PlaywrightWorkerOptions["browserName"],
+  dir: string,
+  server: VersionsServer,
+) {
+  const context = await playwright[browserName].launchPersistentContext(dir, {
+    baseURL: server.url,
+    serviceWorkers: "allow",
+    locale: "en-US",
+    acceptDownloads: true,
+  });
+  const page = context.pages()[0] ?? (await context.newPage());
+  const check = await guardNetwork(context, page, server.url);
+  return { context, page, check };
+}
+
+/** Waits until the worker that controls the page is the one of `build`. */
+async function waitForOwn(page: Page, build: { id: string }) {
+  await expect
+    .poll(
+      async () =>
+        ((await askWorker(page, { type: "versions" })) as { own?: { id: string } }).own?.id,
+      {
+        timeout: 30_000,
+      },
+    )
+    .toBe(build.id);
+}
+
 /** A context of the test's own at `server`, with workers allowed and the network guard on it. */
 async function contextAt(browser: Browser, server: VersionsServer) {
   const context = await browser.newContext({
@@ -191,6 +234,143 @@ test.describe("publishing a build (e2e/support/versions.ts)", () => {
 
   test.beforeEach(() => {
     server.publish("current");
+  });
+
+  test("scenarios 5 – 7: with the next MINOR published, the old version stays through three openings, Backup saves a backup, and Update opens the new version with every record as before (FR-124, SC-019)", async ({
+    playwright,
+    browserName,
+  }, testInfo) => {
+    const dir = testInfo.outputPath("profile");
+    const old = versions.current.build.version;
+    const next = versions.next.build.version;
+    let profile = await openProfile(playwright, browserName, dir, server);
+    try {
+      await firstVisit(profile.page);
+      await addTransaction(profile.page, {
+        amount: "12.00",
+        category: "Groceries",
+        description: "Before the update",
+      });
+
+      server.publish("next");
+      for (let opening = 1; opening <= 3; opening++) {
+        if (opening > 1) {
+          await profile.check();
+          await profile.context.close();
+          profile = await openProfile(playwright, browserName, dir, server);
+        }
+        await profile.page.goto("/#/settings");
+        await expect(updateNotice(profile.page)).toHaveText(
+          `Version ${next} is available (you have ${old}). Make a backup first.`,
+          { timeout: 30_000 },
+        );
+        await expect(headerVersion(profile.page)).toHaveText(`Version ${old}`);
+      }
+      const { page } = profile;
+
+      // Scenario 6: Backup saves a backup as Save backup on the Backup screen does.
+      const download = page.waitForEvent("download");
+      await main(page).getByRole("button", { name: "Backup", exact: true }).click();
+      const backup = await readDownload(await download);
+      expect(backup.fileName).toMatch(/^financial-copilot-backup-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(backup.json.data.transactions.map((t) => t.description)).toContain(
+        "Before the update",
+      );
+      const before = byKey(await storedData(page));
+
+      // Scenario 7: Update opens the app on the new version, with every store as before.
+      await main(page).getByRole("button", { name: "Update", exact: true }).click();
+      await expect(headerVersion(page)).toHaveText(`Version ${next}`, { timeout: 30_000 });
+      expect(await pageBuild(page)).toBe(versions.next.build.id);
+      await expect
+        .poll(() => inUse(page))
+        .toEqual({
+          id: versions.next.build.id,
+          version: next,
+        });
+      await page.goto("/#/settings");
+      await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+      await expect(updateNotice(page)).toHaveCount(0);
+      expect(byKey(await storedData(page))).toEqual(before);
+      await profile.check();
+    } finally {
+      await profile.context.close();
+    }
+  });
+
+  test("a build of the same MAJOR.MINOR with other files shows no notice (FR-124)", async ({
+    playwright,
+    browserName,
+  }, testInfo) => {
+    const old = versions.current.build.version;
+    expect(versions.sameVersion.build.version).toBe(old);
+    expect(versions.sameVersion.build.id).not.toBe(versions.current.build.id);
+    const profile = await openProfile(
+      playwright,
+      browserName,
+      testInfo.outputPath("profile"),
+      server,
+    );
+    try {
+      await firstVisit(profile.page);
+      server.publish("sameVersion");
+      await profile.page.goto("/#/settings");
+      await waitForOwn(profile.page, versions.sameVersion.build);
+
+      await profile.page.reload();
+      await expect(
+        main(profile.page).getByRole("heading", { name: "Settings", level: 1 }),
+      ).toBeVisible();
+      await expect(updateNotice(profile.page)).toHaveCount(0);
+      await expect(
+        main(profile.page).getByRole("button", { name: "Update", exact: true }),
+      ).toHaveCount(0);
+      await expect(headerVersion(profile.page)).toHaveText(`Version ${old}`);
+      await profile.check();
+    } finally {
+      await profile.context.close();
+    }
+  });
+
+  test("with two newer versions published, the notice names the newest and Update goes to it (FR-124)", async ({
+    playwright,
+    browserName,
+  }, testInfo) => {
+    const old = versions.current.build.version;
+    const newest = versions.newest.build.version;
+    const profile = await openProfile(
+      playwright,
+      browserName,
+      testInfo.outputPath("profile"),
+      server,
+    );
+    const { page } = profile;
+    try {
+      await firstVisit(page);
+      server.publish("next");
+      await page.goto("/#/settings");
+      await waitForOwn(page, versions.next.build);
+      server.publish("newest");
+      await page.reload();
+      await waitForOwn(page, versions.newest.build);
+
+      await page.goto("/#/settings");
+      await expect(updateNotice(page)).toHaveText(
+        `Version ${newest} is available (you have ${old}). Make a backup first.`,
+        { timeout: 30_000 },
+      );
+      await main(page).getByRole("button", { name: "Update", exact: true }).click();
+      await expect(headerVersion(page)).toHaveText(`Version ${newest}`, { timeout: 30_000 });
+      await expect
+        .poll(() => inUse(page))
+        .toEqual({
+          id: versions.newest.build.id,
+          version: newest,
+        });
+      await profile.check();
+    } finally {
+      await profile.context.close();
+    }
   });
 
   test("an index.html of another build fails the install and leaves no build cache of its own", async ({

@@ -291,6 +291,20 @@ describe("messages", () => {
     expect(messageFor({ code: "suggestions-outdated" })).toMatch(/no suggestion was used/i);
   });
 
+  test("words the update notice with both versions as the header shows them, asking for a backup first (FR-124)", () => {
+    expect(catalogue.updateNotice("1.6", "1.5")).toBe(
+      "Version 1.6 is available (you have 1.5). Make a backup first.",
+    );
+  });
+
+  test("says what to do when an update could not start, and that the data is unchanged (FR-124)", () => {
+    const message = messageFor({ code: "update-failed" });
+    expect(message).toMatch(/close the app/i);
+    expect(message).toMatch(/open it again/i);
+    expect(message).toMatch(/try again/i);
+    expect(message).toMatch(/data is unchanged/i);
+  });
+
   test("words the restore notification with the file's name", () => {
     expect(notifications.restored("financial-copilot-backup-2026-09-03.json")).toContain(
       "financial-copilot-backup-2026-09-03.json",
