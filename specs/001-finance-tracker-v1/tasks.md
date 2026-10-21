@@ -1800,7 +1800,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   hides their categories; scoring compares by name key; a model passes with 90 right and fails
   with 89; the facts name each budget over and within its limit and each price change; and the
   check stops at a model's first failure.
-- [ ] T144 (Project owner, with Claude) Run the model check as
+- [X] T144 (Project owner, with Claude) Run the model check as
   [quickstart.md](quickstart.md#model-check) says, with the owner's key in the shell for that run
   only, on a backup of the demonstration data in `tmp/`. The owner and Claude judge each chat
   answer against the facts. Record in [R-32](research.md#r-32) the table of model, prices of the

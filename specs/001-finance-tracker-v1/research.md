@@ -1571,11 +1571,40 @@ mark, concurrency, zod and the untrusted answer still holds.
     - The prices per million input and output tokens are copied from OpenAI's pricing page on the
       day of the check. If gpt-5.4-mini fails, they decide the default: the cheapest model that
       passes.
-  - **Results**: pending.
-    - The task that runs the check records them here, in a table of model, prices, time to the
-      whole answer and suggestions right, and each chat answer with its verdict.
-    - That task sets `AI_MODELS` and `DEFAULT_MODEL` to match.
-    - v1.6 is not released before that.
+  - **Results** (owner and Claude, 2026-10-21), from `tmp/demo-backup.json`, today 2026-10-08:
+
+    | Model | Suggestions right | Suggestions, whole answer | Chat, slowest answer | Chat answers | Verdict |
+    |---|---|---|---|---|---|
+    | gpt-5.4-mini | 99 of 100 | 4.4 s | 4.4 s | 4 of 4 complete, 1 with a wrong conclusion | passed, by the owner's decision |
+    | gpt-5.6-luna | 99 of 100 | 9.0 s | 13.9 s | 4 of 4 right | passed |
+    | gpt-6.1-sol | 99 of 100 | 14.0 s | 15.8 s | 4 of 4 right | passed |
+
+    Every model gave the question out of scope `inScope` false, within 2.2 s.
+
+    - **gpt-5.4-mini**:
+      - *How can I reduce my spending?* Right: Shopping €355.92 of €250, €105.92 over; the other
+        budgets as the facts hold them; the jacket and the boots are real payments.
+      - *Which of my subscriptions have become more expensive?* Right: only Spotify Premium, €10.99
+        to €11.99 in January 2026. It lists the three unchanged subscriptions under a heading that
+        calls them more expensive, then says only Spotify rose: clumsy, not false.
+      - *Am I on track with my budgets this month?* Right: all six budgets, Shopping the only one
+        over.
+      - *Where did I spend more this month than last month?* **Wrong**: it names Shopping,
+        Groceries, Eating out and Uncategorised, while its own amounts show Groceries (€388.31 to
+        €82.34) and Eating out (€273.80 to €26.30) went down. Every amount is from the data; the
+        conclusion is not.
+    - **gpt-5.6-luna**: all four right. It names the highs of the months correctly (Eating out
+      €757.90 in July, Travel €1,128.00 in July and €385.10 in February, Groceries €548.01 in June),
+      only Shopping and Uncategorised went up, €1,859.34 against €2,465.98 in total, and it says
+      each time that October covers only 1 to 8 October.
+    - **gpt-6.1-sol**: all four right, with the amount left of each budget worked out correctly.
+      The payments it names beyond the facts, the €118.40 birthday dinner, the €34.90 gym, the
+      €149.90 jacket and the €119.95 boots, are in the backup.
+    - **The owner's decision**: one answer that draws a wrong conclusion from amounts the data
+      holds does not fail a model ([FR-131](spec.md#fr-131)). All three models stay listed, and
+      `AI_MODELS` and `DEFAULT_MODEL` stay as above.
+    - **Prices**: not recorded. The owner left the cost of a question for later; the default stays
+      gpt-5.4-mini, so no price decides it.
 - **Rationale**:
   - **One list, in code**: the models change with OpenAI's offer, and each version lists the
     models it was checked with ([FR-131](spec.md#fr-131)). A list fetched from OpenAI would offer
