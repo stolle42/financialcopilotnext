@@ -1532,7 +1532,7 @@ Playwright project `offline` for [SC-018](spec.md#sc-018)
     set, and throws with `TEST_APP_VERSION` and `VERCEL` both set;
   - in `e2e/ui/shell.spec.ts`: the built page's `app-build` names the id that `sw.js`, fetched from
     the app's origin, starts with, and `sw.js` names the version the header shows.
-- [ ] T132 [US9] The service worker: `worker/serviceWorker.js` as
+- [X] T132 [US9] The service worker: `worker/serviceWorker.js` as
   [app-updates.md](contracts/app-updates.md#the-workers-lifecycle) describes it: install with
   `cache: "reload"` into `build-<id>` and the `app-build` check of the downloaded `index.html`, then
   `skipWaiting()`; activate, which writes `in-use` to `app-state` when it has none, claims the

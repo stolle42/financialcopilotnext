@@ -7,7 +7,7 @@ import type {
 } from "@playwright/test";
 import { addTransaction } from "./support/app";
 import { byKey, readDownload, saveBackup, storedData } from "./support/backup";
-import { expect, guardNetwork, test } from "./support/test";
+import { expect, guardNetwork, guardWatchesOnly, test } from "./support/test";
 import {
   prepareVersions,
   startVersionsServer,
@@ -198,6 +198,9 @@ test.describe("the service worker (contracts/app-updates.md, the worker's lifecy
   test.describe("requests to another origin", () => {
     // Until v1.6 the page's policy lets it reach no other origin; this test asks one itself.
     test.use({ bypassCSP: true });
+    // In Firefox a page.route passes the worker by, so only Chromium can tell that it lets the
+    // request go; and the guard there only watches, so the stand-in's request would fail the test.
+    test.skip(({ browserName }) => browserName === "firefox", "Chromium only");
 
     test("are left to the browser, so a stand-in's page.route still sees them", async ({
       page,
@@ -276,7 +279,9 @@ async function openProfile(
     acceptDownloads: true,
   });
   const page = context.pages()[0] ?? (await context.newPage());
-  const check = await guardNetwork(context, page, server.url);
+  const check = await guardNetwork(context, page, server.url, {
+    watchOnly: guardWatchesOnly(browserName, "allow"),
+  });
   return { context, page, check };
 }
 
@@ -302,7 +307,9 @@ async function contextAt(browser: Browser, server: VersionsServer) {
     acceptDownloads: true,
   });
   const page = await context.newPage();
-  const check = await guardNetwork(context, page, server.url);
+  const check = await guardNetwork(context, page, server.url, {
+    watchOnly: guardWatchesOnly(browser.browserType().name(), "allow"),
+  });
   return { context, page, check };
 }
 

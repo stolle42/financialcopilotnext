@@ -2,6 +2,7 @@ import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import "@/ui/index.css";
 import { loadState, openDatabase, type Database } from "@/persistence/db";
+import { registerWorker } from "@/pwa/updates";
 import { createStore, StoreContext } from "@/store/store";
 import { App } from "@/ui/app/App";
 import { ErrorBoundary } from "@/ui/app/ErrorBoundary";
@@ -64,6 +65,8 @@ async function start(): Promise<void> {
     </ErrorBoundary>,
   );
 }
+
+registerWorker();
 
 // One running copy: a second tab would hold its own state and write over the first one's (R-07).
 void navigator.locks.request("financial-copilot", { ifAvailable: true }, async (lock) => {

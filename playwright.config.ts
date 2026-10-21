@@ -14,6 +14,9 @@ export default defineConfig({
     baseURL,
     // A fixed locale, so amounts and dates read the same on every machine (FR-060).
     locale: "en-US",
+    // Every spec but the installable app's runs without the service worker, so it sees each
+    // request the page makes (R-30).
+    serviceWorkers: "block",
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: performanceSpec },
