@@ -1,39 +1,54 @@
-# Contract: AI features through the local route to OpenAI
+# Contract: AI features, straight from the app to OpenAI
 
 **Spec**: [FR-061](../spec.md#fr-061), [FR-090 – FR-095](../spec.md#fr-090),
-[FR-100 – FR-110](../spec.md#fr-100) · **Decisions**: [R-24](../research.md#r-24),
-[R-25](../research.md#r-25), [R-26](../research.md#r-26)
+[FR-100 – FR-110](../spec.md#fr-100), [FR-126 – FR-131](../spec.md#fr-126) · **Decisions**:
+[R-24](../research.md#r-24), [R-25](../research.md#r-25), [R-26](../research.md#r-26),
+[R-31](../research.md#r-31), [R-32](../research.md#r-32)
 
-This contract fixes the interface between the app, the route that the local server adds, and
-OpenAI's Responses API. Both AI features, Suggest categories in review and the finance chat on
-Insights, use it. The app sends a request only while AI features are on, which the user turns on in
-Settings ([FR-095](../spec.md#fr-095)).
+This contract fixes the interface between the app and OpenAI's API. Both AI features, Suggest
+categories in review and the finance chat on Insights, use it, and so does the check of a key when
+the user turns AI features on. The app sends a feature's request only while AI features are on,
+which needs the switch in Settings and a stored key ([FR-095](../spec.md#fr-095),
+[data-model.md](../data-model.md#openai-key)). No server of the project's takes part
+([FR-128](../spec.md#fr-128)).
 
-## Route
+## Endpoint
 
-`POST /api/ai` on the app's own origin: `http://localhost:4173` for `npm start`, and
-`http://localhost:5173` for `npm run dev`. The app's one copy of the path is `src/ai/path.ts`.
-`server/aiRoute.ts` adds the route to both servers, reading `OPENAI_API_KEY` from `.env`, or from
-the environment, when the server starts ([R-24](../research.md#r-24)):
+`src/ai/openai.ts` is the only code that talks to OpenAI. Every request it sends:
 
-| The request | The route's answer |
+- goes to `https://api.openai.com`, the one origin outside the app's own that the CSP allows
+  ([R-19](../research.md#r-19));
+- carries `Authorization: Bearer <key>`, with the stored key, and no other credential:
+  `credentials: "omit"`, so no cookie goes with it;
+- names nothing of the user's beyond what this contract lists.
+
+No message, log entry or failure code holds the key. The service worker leaves these requests to
+the browser ([app-updates.md](app-updates.md)).
+
+<a id="key-check"></a>
+## Key check
+
+Turn on in the dialog of [FR-127](../spec.md#fr-127) sends `GET https://api.openai.com/v1/models`
+with the trimmed key, no body and nothing else. The app reads only the status:
+
+| The answer | Result |
 |---|---|
-| Any, while the server has no key or an empty one | No route: the server's own empty 404. Nothing leaves the computer |
-| Not a POST; an `Origin` header other than the app's own origin, or `null`; or a caller that is not this computer | 403, empty. Nothing is sent |
-| A body over 2 MB | 413, empty. Nothing is sent |
-| Any other | The body goes unchanged to `https://api.openai.com/v1/responses`, with `Authorization: Bearer <key>` and `Content-Type: application/json` and no other header of the browser's request. OpenAI's status, `Content-Type` and body come back unchanged, the body passed on as it arrives, or a 502 when OpenAI cannot be reached. Closing the browser's request cancels OpenAI's |
+| 200–299, or 403 (OpenAI knows the key, which may not list models) | Accepted: the app stores the key and turns AI features on, in one storage transaction ([data-model.md](../data-model.md#state-transitions)) |
+| 401 | Not accepted: `ai-key-not-accepted`. Nothing is stored |
+| Any other status, no response, or no answer within 10 seconds | `ai-key-check-unreachable`. Nothing is stored |
 
-A hosted copy, such as the one on Vercel, serves files only and has no route. The app sends it
-nothing: outside the user's own computer, AI features cannot be turned on
-([FR-061](../spec.md#fr-061), [FR-106](../spec.md#fr-106)).
+Cancel while the check runs aborts it, and leaves everything as it was. The check cannot tell
+whether the key may use the chosen model; that shows at the first request, as
+`ai-model-unavailable` ([failures](#failures)).
 
 ## Request
 
-`Content-Type: application/json`, with a body such as:
+`POST https://api.openai.com/v1/responses`, with `Content-Type: application/json` beside the key,
+and a body such as:
 
 ```json
 {
-  "model": "gpt-6.1-sol",
+  "model": "gpt-5.4-mini",
   "store": false,
   "stream": true,
   "instructions": "You categorise bank transactions for a personal finance app. …",
@@ -51,7 +66,7 @@ nothing: outside the user's own computer, AI features cannot be turned on
 
 | Field | Content |
 |---|---|
-| `model` | `gpt-6.1-sol`, the one constant in `src/ai/openai.ts` |
+| `model` | The model in use when the request starts: the user's choice, or the default ([data-model.md](../data-model.md#derived-values), `AI_MODELS` in `src/ai/models.ts`). An answer being written keeps it ([FR-129](../spec.md#fr-129)) |
 | `store` | Always `false`, so OpenAI keeps no stored response to continue |
 | `stream` | Always `true`: the answer comes as server-sent events ([R-26](../research.md#r-26)) |
 | `instructions`, `input` | Set by each feature, below |
@@ -256,19 +271,30 @@ The answer's schema, with its keys in this order and every key required:
   name. Which sources become links is [R-26](../research.md#r-26) and
   [FR-110](../spec.md#fr-110).
 
+<a id="failures"></a>
 ## Failures
 
 The app waits at most 4 minutes for the whole answer ([FR-094](../spec.md#fr-094),
 [FR-104](../spec.md#fr-104)). Each failure, also one after part of an answer arrived, leaves the
 batch, or the conversation, unchanged and becomes a code of the
 [message catalogue](ui.md#message-catalogue). Stopping an answer is no failure: the chat keeps its
-text so far ([FR-108](../spec.md#fr-108)).
+text so far ([FR-108](../spec.md#fr-108)). AI features stay on after every failure; the message says
+what to do.
+
+OpenAI's error JSON is `{ "error": { "message": …, "type": …, "code": … } }`. The app reads `code`
+and the status, never shows `message`, and checks in this order:
 
 | What happens | Code |
 |---|---|
 | The request cannot be sent or gets no response, or the events break off before `response.completed` | `ai-unreachable` |
-| A status outside 200–299 whose body is not OpenAI's error JSON: no route (404), the route's 403 or 413, the route's 502 when OpenAI cannot be reached, or any other server's error page | `ai-unreachable` |
-| A status outside 200–299 with OpenAI's error JSON, `{ "error": { "message": … } }`: a rejected key, no credit left, an unknown model or too many requests | `ai-failed` |
+| A status outside 200–299 whose body is not OpenAI's error JSON, such as a network's login page | `ai-unreachable` |
+| 401 with OpenAI's error JSON: OpenAI no longer accepts the key, for example because the user deleted it there | `ai-key-rejected` |
+| OpenAI's error JSON with `code` `insufficient_quota`: no credit left, or the account's monthly limit reached | `ai-no-credit` |
+| OpenAI's error JSON with `code` `model_not_found`: the key may not use the model, or OpenAI no longer offers it | `ai-model-unavailable` |
+| Any other status outside 200–299 with OpenAI's error JSON, such as too many requests | `ai-failed` |
 | A `response.failed` or `error` event | `ai-failed` |
 | No whole answer within 4 minutes | `ai-timeout` |
 | A 2xx answer that is not an event stream, a `response.incomplete` or refusal event, or a complete text that is not JSON of the feature's schema | `ai-answer-invalid` |
+
+The tests answer in OpenAI's place at both addresses, with the status and error JSON of each row
+([R-31](../research.md#r-31)).
