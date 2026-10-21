@@ -22,19 +22,25 @@ It is built as a client-only TypeScript single-page app.
 - **Bank files**: decoded with `TextDecoder` and split into records with Papa Parse. Mapping,
   parsing and duplicate flagging are domain rules ([contracts/csv-import.md](contracts/csv-import.md)).
 - **Backups**: one JSON file ([contracts/backup-file.md](contracts/backup-file.md)).
-- **AI features**: category suggestions in review (v1.2) and a finance chat on every screen (v1.3) ask OpenAI
-  through a route that the local server adds, which holds the API key from `.env`, and only while
-  the user has turned AI features on ([contracts/ai.md](contracts/ai.md), [R-24](research.md#r-24),
-  [R-25](research.md#r-25)). Answers stream back through the route, and the chat's conversation is
-  stored with the rest of the data ([R-26](research.md#r-26)).
+- **AI features**: category suggestions in review (v1.2) and a finance chat on every screen (v1.3)
+  ask OpenAI, and only while the user has turned AI features on ([contracts/ai.md](contracts/ai.md),
+  [R-24](research.md#r-24), [R-25](research.md#r-25)). From v1.6 the app asks
+  `api.openai.com` itself, with the user's own key, checked before it is stored, and the model the
+  user chose ([R-31](research.md#r-31), [R-32](research.md#r-32)). Answers stream back, and the
+  chat's conversation is stored with the rest of the data ([R-26](research.md#r-26)).
 - **Look** (v1.4): the reference design's palette, cards and fonts, with the fonts bundled
   ([contracts/ui.md](contracts/ui.md#look), [R-27](research.md#r-27)).
 - **Resizable chat** (v1.4): a separator on the finance chat's edge sets its width, which stays in
   memory ([contracts/ui.md](contracts/ui.md#finance-chat), [R-28](research.md#r-28)).
+- **Installable app** (v1.5): a manifest and a service worker of our own make the app installable
+  and let it open offline. A newer version waits until the user selects Update in Settings
+  ([contracts/app-updates.md](contracts/app-updates.md), [R-30](research.md#r-30)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
-- **Deployment**: the local production build is for daily use. Vercel deploys every push to `main`
-  as a static site for the constitution's post-push check ([R-20](research.md#r-20)).
+- **Deployment**: Vercel deploys every push to `main` as a static site, at
+  `https://financialcopilot-three.vercel.app`. From v1.5 that address is where users run the app
+  and keep their data, so it never changes. `npm start` is for developers
+  ([R-20](research.md#r-20), [R-30](research.md#r-30), [quickstart.md](quickstart.md#run)).
 
 ## Technical Context
 
@@ -73,25 +79,33 @@ our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 | Prettier | 3.9 |
 | dependency-cruiser | 18.5 |
 
-These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-17).
+These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-17). v1.5 and v1.6
+add no dependency: the service worker and its Vite plugin are code of our own, and the app asks
+OpenAI with `fetch` ([R-30](research.md#r-30), [R-31](research.md#r-31)).
 
 **Storage**: IndexedDB in the user's browser profile, through `idb`
 ([data-model.md](data-model.md#storage-layout)). The finance chat's conversation is a second
 record in the settings store, so the schema stays at version 1 and v1.2 still opens it
-([R-26](research.md#r-26)). Backups are JSON files
-([contracts/backup-file.md](contracts/backup-file.md)).
+([R-26](research.md#r-26)). The user's OpenAI key (v1.6) is a third record there, outside the
+settings, so a backup never holds it ([data-model.md](data-model.md#openai-key)). Backups are JSON
+files ([contracts/backup-file.md](contracts/backup-file.md)). The service worker keeps the app's
+files in Cache Storage, apart from the data ([contracts/app-updates.md](contracts/app-updates.md#caches)).
 
 **Testing**: Vitest covers domain unit tests and store integration tests against `fake-indexeddb`,
 both in Node. Playwright covers everything in the browser, both UI behaviour and end-to-end
-journeys, on the production build in Chromium and Firefox. All of it runs in GitHub Actions
+journeys, on the production build in Chromium and Firefox. Service workers are blocked in every
+spec but `e2e/us9-installable.spec.ts`, and a project `offline` runs the journeys of User Stories
+1–7 in Chromium without a network ([R-30](research.md#r-30)). All of it runs in GitHub Actions
 ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 
-**Target Platform**: Current desktop Chrome, Edge and Firefox. The app is served from `localhost`
-for daily use, and is deployed to Vercel as a static site for the post-push check
-([R-01](research.md#r-01), [R-20](research.md#r-20)).
+**Target Platform**: Current desktop Chrome, Edge and Firefox. Users open the app at its Vercel
+address, and in Chrome and Edge can install it from there; Firefox runs it in a tab
+([R-20](research.md#r-20), [R-30](research.md#r-30)). Developers serve it from `localhost`
+([R-01](research.md#r-01)).
 
-**Project Type**: Client-only single-page web application, with no backend. The local server adds
-one route, which passes the AI features' requests on to OpenAI ([R-24](research.md#r-24)).
+**Project Type**: Client-only single-page web application, installable, with no backend. From
+v1.6 no server of the project's takes part in the AI features ([FR-128](spec.md#fr-128),
+[R-31](research.md#r-31)).
 
 **Performance Goals**:
 
@@ -106,18 +120,24 @@ one route, which passes the AI features' requests on to OpenAI ([R-24](research.
 
 **Constraints**:
 
-- No network use, and no request from the browser outside the app's origin. The AI features the
-  user asks for with AI features on go through the local server to OpenAI
-  ([FR-061](spec.md#fr-061), [R-19](research.md#r-19), [R-24](research.md#r-24)).
+- No network use, and no request from the browser outside the app's origin, but to
+  `https://api.openai.com` for the AI features the user asks for with AI features on, and for the
+  key check. The CSP allows exactly that origin ([FR-061](spec.md#fr-061),
+  [R-19](research.md#r-19), [R-31](research.md#r-31)).
+- The key never leaves the browser but to OpenAI, never enters a backup, and no screen shows it
+  whole ([FR-126](spec.md#fr-126)).
+- A newer version never replaces the running one without Update, and the files and messages
+  between page and worker stay compatible from version to version
+  ([FR-124](spec.md#fr-124), [contracts/app-updates.md](contracts/app-updates.md#compatibility)).
 - Money in integer euro cents and dates as local calendar strings ([R-08](research.md#r-08)).
 - Every change that touches several records is atomic ([R-06](research.md#r-06)).
 - One running tab ([R-07](research.md#r-07)).
 - Desktop viewport only ([Out of Scope](spec.md#out-of-scope)).
-- Real data stays in the local build. The Vercel copy is for checks and demonstrations
-  ([FR-061](spec.md#fr-061), [R-20](research.md#r-20)).
+- The Vercel project is never renamed and its production domain never changes: the data lives in
+  that origin ([quickstart.md](quickstart.md#vercel-setup)).
 
 **Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
-years of use, with headroom to about 50,000. There are 8 stored entity types and 11 screens
+years of use, with headroom to about 50,000. There are 9 stored entity types and 11 screens
 ([data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md)).
 
 Nothing in this context remains marked NEEDS CLARIFICATION: every open technical question is
@@ -133,7 +153,7 @@ quality gate.
 | Principle | How this plan complies | Before research | After design |
 |---|---|---|---|
 | I. Single Source of Truth | The design documents link to spec requirements instead of restating them. Package versions appear only in this plan, and message wording only in `src/ui/messages.ts`. Interpretations of the spec are recorded once, in research, and marked to be moved into the spec | Pass | Pass |
-| II. KISS | No backend, API or server process. The whole state lives in memory. No virtualisation, web workers, offline caching, translations or dark mode. The app is built on two frameworks (React, Tailwind CSS), with three for development (Vite, Vitest, Playwright), each replacing far more code than it costs. shadcn/ui components are added one at a time, when a task first needs them. The router and the store are small modules of our own ([R-03](research.md#r-03), [R-04](research.md#r-04), [R-05](research.md#r-05), [R-17](research.md#r-17)). Each library replaces code we would otherwise write ([R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
+| II. KISS | No backend, API or server process: from v1.6 the app asks OpenAI itself. The whole state lives in memory. No virtualisation, translations or dark mode. Offline use (v1.5) is one service worker of about 100 lines of our own, with no dependency, which caches the build's files and nothing else ([R-30](research.md#r-30)). The app is built on two frameworks (React, Tailwind CSS), with three for development (Vite, Vitest, Playwright), each replacing far more code than it costs. shadcn/ui components are added one at a time, when a task first needs them. The router and the store are small modules of our own ([R-03](research.md#r-03), [R-04](research.md#r-04), [R-05](research.md#r-05), [R-17](research.md#r-17)). Each library replaces code we would otherwise write ([R-06](research.md#r-06), [R-09](research.md#r-09), [R-13](research.md#r-13)) | Pass | Pass |
 | III. DRY | No shared abstraction is planned ahead. The one shared path, parsing for both import and preview, has two real uses from the start ([contracts/csv-import.md](contracts/csv-import.md#pipeline)) | Pass | Pass |
 | IV. SOLID | No interfaces: storage code is tested against `fake-indexeddb` instead of behind a repository interface ([R-06](research.md#r-06)). The clock and ids are passed in as values ([R-05](research.md#r-05)). There is one domain module per business area | Pass | Pass |
 | V. Clean Architecture | `src/domain` imports nothing outside itself. Files, persistence, store and UI all depend inward. dependency-cruiser checks this in CI ([R-16](research.md#r-16)) | Pass | Pass |
@@ -149,15 +169,23 @@ quality gate.
 | Expected error paths are handled and show a clear message | The message catalogue, and `e2e/messages.spec.ts` for [SC-012](spec.md#sc-012) |
 | After a push to `main`, the localhost and Vercel deployments are checked against the user stories | CI's `test` job on the local build, CI's `deployed` job on the Vercel deployment, and a manual walkthrough on both ([R-18](research.md#r-18), [quickstart.md](quickstart.md#after-pushing-to-main)) |
 
-**Result**: the plan passes every principle and gate, both before research and after design. No
-deviation needs justifying.
+**Result**: the plan passes every principle and gate, both before research and after design, the
+design of v1.5 and v1.6 included. No deviation needs justifying.
 
-**v1.3**: the AI features add a route of our own to the local server, which passes their
-requests on to OpenAI, sent only while the user has AI features on ([R-24](research.md#r-24)).
-That deviates from KISS's "no server process" in part: the server is the one `npm start` already
-runs, and the browser still reaches only the app's own origin ([R-19](research.md#r-19)). It
-replaces v1.2's hosted n8n workflow, with Anthropic behind it ([R-23](research.md#r-23)). The owner
-decided it, and [Complexity Tracking](#complexity-tracking) justifies it.
+**v1.3** added a route of our own to the local server, which passed the AI features' requests on
+to OpenAI with the key from `.env`: a partial deviation from KISS's "no server process"
+([R-24](research.md#r-24)). **v1.6** removes it. The app asks `api.openai.com` itself with the
+user's key, so the project runs no server, holds no key and has no `.env`
+([R-31](research.md#r-31)). The browser now reaches one origin outside the app's own, which the CSP
+names ([R-19](research.md#r-19)).
+
+**v1.5** adds a manifest, a service worker and a Vite plugin, all of our own, and no dependency.
+`vite-plugin-pwa` was weighed and would not be simpler: its worker takes over by itself once every
+window is closed, against [FR-124](spec.md#fr-124), and its worker would be ours anyway
+([R-30](research.md#r-30)). The worker's caches and messages are a contract kept from version to
+version ([contracts/app-updates.md](contracts/app-updates.md)), so they are tested like the backup
+format. v1.5 and v1.6 add no object store, and the database keeps schema version 1, so each is a
+MINOR release ([data-model.md](data-model.md#storage-layout)).
 
 The chat's streamed answers, Stop, sources and stored conversation, which the owner asked for on
 2026-10-16, need no further deviation: no dependency, process or object store is added, and the
@@ -180,13 +208,14 @@ in [R-22](research.md#r-22).
 specs/001-finance-tracker-v1/
 ├── spec.md              # The feature specification
 ├── plan.md              # This file
-├── research.md          # Phase 0: technical decisions R-01 – R-26
+├── research.md          # Phase 0: technical decisions R-01 – R-32
 ├── data-model.md        # Phase 1: entities, invariants, storage layout, seed data
 ├── quickstart.md        # Phase 1: how to run and validate v1
 ├── contracts/
 │   ├── csv-import.md    # Bank CSV files → pending batch
 │   ├── backup-file.md   # Backup file format, version 1
-│   ├── ai.md            # AI features: the app ↔ the local route ↔ OpenAI (v1.3)
+│   ├── ai.md            # AI features: the app ↔ OpenAI, the key check, failures (v1.6)
+│   ├── app-updates.md   # The installable app: emitted files, the worker's caches and messages (v1.5)
 │   └── ui.md            # Screens, navigation, shared patterns, message catalogue
 └── tasks.md             # Phase 2: written by /speckit-tasks, not by this command
 ```
@@ -199,14 +228,17 @@ specs/001-finance-tracker-v1/
 .dependency-cruiser.cjs                # src/domain imports nothing outside itself (R-16)
 eslint.config.js
 .prettierrc.json
-index.html                             # The production build adds the CSP (R-19) and commit (R-18) meta tags
+index.html                             # Links the manifest; the production build adds the CSP (R-19), commit (R-18) and app-build (R-30) meta tags
 package.json, package-lock.json
 playwright.config.ts                   # Chromium and Firefox against `vite preview`, or BASE_URL (R-17)
 components.json                        # shadcn/ui: Base UI, aliases into src/ui/ (R-03)
 tsconfig.json, tsconfig.app.json, tsconfig.node.json  # `@/*` alias via `paths` alone (R-03)
-vite.config.ts                         # Tailwind plugin, base "./", strict ports, Vitest settings (R-20)
-.env.example                           # OPENAI_API_KEY, empty; the key goes into .env, which git ignores (R-24)
-server/aiRoute.ts                      # The local route /api/ai: passes AI requests on to OpenAI with the key (R-24)
+vite.config.ts                         # Tailwind and worker plugins, base "./", strict ports, Vitest settings (R-20)
+public/manifest.webmanifest            # Name, start URL, display, colours and icons (R-30)
+public/icons/                          # icon-192.png, icon-512.png, icon-maskable-512.png (R-30)
+worker/serviceWorker.js                # The service worker: caches, build in use, messages (R-30)
+worker/plugin.ts                       # Emits sw.js with the build's header, and app-build into index.html (R-30)
+scripts/check-models.ts                # npm run check:models: each listed model on the demonstration data (R-32)
 
 src/
 ├── main.tsx              # Start-up: lock, open storage, load state, render (R-07, R-15)
@@ -228,8 +260,11 @@ src/
 │                         # review edits, confirmation
 ├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse);
 │                         # backup JSON in and out (zod, configured once in zod.ts)
-├── ai/                   # The one network boundary: the transport to /api/ai, and each AI
-│                         # feature's prompt and answer (R-24, R-25)
+├── ai/                   # The one network boundary: talks to api.openai.com with the user's key,
+│                         # the key check, the models (models.ts), and each AI feature's prompt
+│                         # and answer (R-24, R-25, R-31, R-32)
+├── pwa/                  # The page's side of the worker: updates.ts registers it and compares
+│                         # versions, install.ts keeps the install question (R-30)
 ├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
 ├── store/                # In-memory state and actions: decide in the domain, write, then apply
 └── ui/                   # React, shadcn/ui and Tailwind CSS
@@ -245,9 +280,11 @@ src/
 
 e2e/
 ├── fixtures/             # Small CSV files (quickstart.md)
-├── support/              # Network guard, data generators, backup helpers
+├── support/              # Network guard, data generators, backup helpers, versions.ts for builds
+│                         # of another version (R-30)
 ├── ui/                   # UI behaviour specs, one per screen of contracts/ui.md (R-17)
-└── *.spec.ts             # One journey per user story, plus messages and performance
+└── *.spec.ts             # One journey per user story, plus messages and performance;
+                          # us9-installable.spec.ts alone runs with a service worker
 ```
 
 Tests for `src/` sit next to the module they test, as in `src/domain/accounts.test.ts`.
@@ -266,30 +303,37 @@ Tests for `src/` sit next to the module they test, as in `src/domain/accounts.te
 | `test:e2e` | Build, then Playwright |
 | `verify` | Every check, in CI order |
 | `fixtures:sc001` | Writes the SC-001 file to `tmp/` |
+| `check:models` | Each listed model on the demonstration data, with `OPENAI_API_KEY` and `DEMO_BACKUP` from the environment; not part of `test` or CI (R-32) |
 
 **`.gitignore` gains**: `node_modules/`, `dist/`, `coverage/`, `test-results/`,
-`playwright-report/`, `blob-report/`, `tmp/` and `.env*`, except `.env.example`. A fresh clone then
-needs only `npm ci`, and a key in `.env` for the AI features (portable-checkout rule).
+`playwright-report/`, `blob-report/`, `tmp/` and `.env*`. From v1.6 nothing reads `.env` and no
+`.env.example` exists; `.env*` stays ignored so that an old key on a developer's computer stays out
+of git. A fresh clone needs only `npm ci`, and each user enters their own key in the app
+(portable-checkout rule).
 
 **Structure Decision**: one project at the repository root, with each folder in `src/` a layer.
 Dependencies point inward:
 
 - `ui` depends on `store` and on `domain`, for types and pure derivations.
 - `store` depends on `persistence`, `files`, `ai` and `domain`.
+- `pwa` depends on nothing in `src/`; `ui` uses it for Install app and the update notice.
 - `ai` depends on `files`, for zod, and on `domain`, for types only.
 - `persistence` and `files` depend on `domain`, for types only.
 - `domain` depends on nothing.
 
 The UI reaches storage only through the store. The domain rule is the one automated check
 ([R-16](research.md#r-16)), because it is the constitution's gate. There is no `backend/` or
-`frontend/` split, because the app has no server of its own: `server/` holds only the route that
-the local server adds ([R-01](research.md#r-01), [R-24](research.md#r-24)).
+`frontend/` split, because the app has no server of its own; v1.6 removes `server/`
+([R-01](research.md#r-01), [R-31](research.md#r-31)). `worker/` is build input, not a layer: the
+browser runs the worker apart from the page, and the page talks to it only by the messages of
+[contracts/app-updates.md](contracts/app-updates.md#messages).
 
 ## Complexity Tracking
 
 v1.0 and v1.1 had no deviation to justify. v1.2 added one, a hosted n8n workflow, which v1.3
-replaces with this one:
+replaced with a route of its own in the local server, passing the AI features' requests on to
+OpenAI with the key from `.env` ([R-24](research.md#r-24)). v1.6 removes that route: the app asks
+OpenAI itself with the user's key ([R-31](research.md#r-31)). v1.5's service worker is code of our
+own with no dependency and needs no deviation ([Constitution Check](#constitution-check)).
 
-| Violation | Why needed | Simpler alternative rejected because |
-|---|---|---|
-| A route of our own in the local server, which passes the AI features' requests on to OpenAI while the user has AI features on ([FR-061](spec.md#fr-061), [FR-095](spec.md#fr-095), [R-24](research.md#r-24)) | The owner asked for category suggestions and a finance chat, with the OpenAI key in `.env`. The route keeps the key out of the app's code, storage and backups, and runs in the server `npm start` already starts. The app works fully without it | Calling OpenAI from the browser would put the key into the bundle. The hosted n8n workflow of v1.2 was a second party and a public address that anyone could use to spend the owner's credit |
+No deviation remains to justify.
