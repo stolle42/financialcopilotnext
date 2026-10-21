@@ -1,7 +1,8 @@
 # Contract: User interface
 
 **Spec**: [User scenarios](../spec.md#user-scenarios), [FR-063 – FR-068](../spec.md#fr-063),
-[FR-112 – FR-116](../spec.md#fr-112) ·
+[FR-112 – FR-116](../spec.md#fr-112), [FR-122](../spec.md#fr-122), [FR-124](../spec.md#fr-124),
+[FR-126 – FR-130](../spec.md#fr-126) ·
 **Constitution**: Principle VIII
 
 This contract covers the interface the app exposes to its user: screens, navigation, where each
@@ -13,6 +14,10 @@ leaves open. Each entry links to the requirement it serves instead of restating 
 The app is a desktop layout with a sidebar for navigation and a header ([FR-064](../spec.md#fr-064)).
 The header holds the app name, the app's version and the primary action **Add transaction**,
 which opens the [transaction form](#transaction-form) from any screen ([FR-066](../spec.md#fr-066)).
+Before Add transaction, while the browser offers to install the app, an outline button
+**Install app** with a download icon asks the browser's own question to install it
+([FR-122](../spec.md#fr-122), [app-updates.md](app-updates.md#the-pages-side)). Installed, in
+Firefox, and on the dev server, it never shows.
 The version reads "Version" and the MAJOR.MINOR of the `version` field of `package.json`, such as
 "Version 1.1" for `1.1.0` ([FR-088](../spec.md#fr-088)).
 The button of the [finance chat](#finance-chat) sits at the bottom right of every screen
@@ -149,6 +154,9 @@ Routes use the URL hash so the build works from any static host or local file ([
   unavailable while the field is empty. While an answer is awaited or written, **Stop** takes
   Send's place, the field stays editable, Enter sends nothing, and no suggested questions show
   ([FR-108](../spec.md#fr-108)).
+- While AI features are on, a small line in the muted colour above the field says which model
+  answers, such as "Answers by gpt-5.4-mini": the model in use ([FR-129](../spec.md#fr-129),
+  [data-model.md](../data-model.md#derived-values)).
 - A failure shows in an alert above the field, with the codes of [ai.md](ai.md#failures). The
   conversation stays as it was before the question, also when part of the answer had shown, and
   the question is back in the field to send again ([FR-104](../spec.md#fr-104)). A failure to
@@ -312,33 +320,71 @@ Routes use the URL hash so the build works from any static host or local file ([
   restore and the app opens Transactions.
 - When the browser has not granted persistent storage, the screen says so. It explains that the
   browser may then clear the data under storage pressure, and that a backup is the safeguard
-  ([R-07](../research.md#r-07)).
+  ([R-07](../research.md#r-07)). While the header offers Install app, the note adds that
+  installing the app helps the browser keep the data, and holds **Install app** too
+  ([FR-075](../spec.md#fr-075)).
 
 ### Settings
 
-- **AI features** ([FR-095](../spec.md#fr-095)): a section with one switch, **AI features**, off
-  until the user turns it on. Under it, a line lists what the AI features do, "Suggest
-  categories in review" and "the finance chat", and says that they send data to OpenAI.
-  - Turning the switch on opens the **data-sharing warning**, a dialog titled "Turn on AI
-    features?". It says that data will now be shared with OpenAI:
-    - Suggest categories sends the payee and purpose of the rows under review, the category names
-      and up to 100 earlier descriptions, and no amounts, dates or account names
-      ([FR-091](../spec.md#fr-091));
-    - the finance chat sends each question with the conversation, the expenses and incomes of the
-      current month and the 12 months before it with their dates, descriptions, amounts and
-      categories, their monthly totals, this month's budgets, and each account's name, type and
-      balance ([FR-102](../spec.md#fr-102)).
-
-    It holds the buttons **Cancel** and **Turn on**.
-    - **Cancel** (or Escape) closes it; the switch stays off and nothing is saved.
-    - **Turn on** saves the setting and turns the switch on. Nothing is sent.
-  - Turning the switch off saves at once, without a dialog.
-  - Outside the user's own computer, as in the hosted copy, the switch is off and unavailable,
-    whatever is stored, and a line beside it says that AI features need the app run locally
-    ([FR-106](../spec.md#fr-106)). Review and the finance chat then show what they show with AI
-    features off.
-  - The switch saves at once, so the choice survives closing the app. No other screen shows a
-    notice while AI features are on.
+- **AI features** ([FR-095](../spec.md#fr-095), [FR-126](../spec.md#fr-126) –
+  [FR-130](../spec.md#fr-130)): a section with one switch, **AI features**. It shows on only while
+  AI features are on: the stored switch and a stored key
+  ([data-model.md](../data-model.md#derived-values)). Under it, a line lists what the AI features
+  do, "Suggest categories in review" and "the finance chat", and says that they send data to
+  OpenAI, which charges the user's own OpenAI account.
+  - Turning the switch on opens a dialog titled "Turn on AI features?" ([FR-127](../spec.md#fr-127)):
+    - The **data-sharing warning**: data will now be shared with OpenAI.
+      - Suggest categories sends the payee and purpose of the rows under review, the category
+        names and up to 100 earlier descriptions, and no amounts, dates or account names
+        ([FR-091](../spec.md#fr-091)).
+      - The finance chat sends each question with the conversation, the expenses and incomes of
+        the current month and the 12 months before it with their dates, descriptions, amounts and
+        categories, their monthly totals, this month's budgets, and each account's name, type and
+        balance ([FR-102](../spec.md#fr-102)).
+    - **About the key**: "An OpenAI API key lets the app ask OpenAI for you. OpenAI charges your
+      own OpenAI account for every question and every request for suggestions, so setting a monthly
+      limit there is wise."
+    - A link, "Create an API key at OpenAI", to `https://platform.openai.com/api-keys`, opening in
+      a new tab (`target="_blank"`, `rel="noopener noreferrer"`). Following it is no request of the
+      app's ([FR-061](../spec.md#fr-061)).
+    - With no key stored, a field labelled "OpenAI API key": a password field, with autocomplete
+      and spellcheck off. With a key stored, the line "Your key: sk-…a1b2" in its place
+      ([FR-126](../spec.md#fr-126)).
+    - **Cancel** and **Turn on**. Turn on is unavailable while the field is empty after trimming.
+  - **Turn on** checks the key ([ai.md](ai.md#key-check)). While it does, Turn on reads
+    **Checking key…** and is unavailable, and the field is read-only.
+    - Accepted: the dialog closes, the key is stored and the switch is on. A failed write shows
+      `save-failed` in the dialog, and nothing is stored.
+    - Not accepted: the dialog shows `ai-key-not-accepted` as a form error, and keeps what the
+      user entered. With a stored key, the message is the same; Remove key clears it.
+    - Not reachable: the dialog shows `ai-key-check-unreachable` as a form error.
+  - **Cancel** (or Escape), also during the check, stops the check and closes the dialog; the
+    switch stays off and nothing is saved.
+  - Turning the switch off saves at once, without a dialog, and keeps the key. An answer being
+    written stops ([FR-108](../spec.md#fr-108)).
+  - With a key stored, the section shows "Your key: sk-…a1b2" and **Remove key**, whether the
+    switch is on or off. Remove key asks for confirmation, titled "Remove key?", saying that AI
+    features turn off and the key must be entered again to use them, with **Cancel** and
+    **Remove key** ([FR-069](../spec.md#fr-069)). Confirming deletes the key and turns AI features
+    off at once, as turning the switch off does.
+  - No screen shows the whole key, and no notice shows while AI features are on.
+- **Model** ([FR-129](../spec.md#fr-129), [FR-130](../spec.md#fr-130)): beside the switch, a group
+  of radio buttons labelled "Model", in the order of `AI_MODELS`, each its model's id with its hint
+  in the muted colour: "gpt-5.4-mini" with "default", "gpt-6.1-sol" with "better answers, costs
+  more", "gpt-5.6-luna" with "cheaper". It is available whether AI features are on or off.
+  - The checked one is the model in use ([data-model.md](../data-model.md#derived-values)).
+  - Selecting one, also the one already checked, saves it at once and sends nothing. A failed
+    write shows `save-failed`, and the choice stays as it was.
+  - While the stored model is no longer offered, a line under the group says "The model you chose
+    is no longer offered; now using gpt-5.4-mini.", naming the default, until the user selects one.
+- **Update** ([FR-124](../spec.md#fr-124), [app-updates.md](app-updates.md#the-pages-side)): once
+  a newer version is downloaded, a section at the top of the screen, in the info style, says
+  "Version 1.6 is available (you have 1.5). Make a backup first.", with the versions as the header
+  shows them, and holds **Backup** and **Update**.
+  - **Backup** saves a backup, as Save backup on the [Backup](#backup) screen does.
+  - **Update** opens the app again on the newer version. If the worker does not answer, the
+    section shows `update-failed`, and the app runs on as it was.
+  - The section shows nothing else, such as a list of changes. No other screen shows the notice.
 - Later settings join this screen as sections of their own.
 
 ## Shared patterns
@@ -446,9 +492,14 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `import-no-transactions` | [Edge cases](../spec.md#edge-cases), SC-012 | The file contained no transactions |
 | Row failure codes | [FR-028](../spec.md#fr-028), SC-012 | One reason per row, as in [csv-import.md](csv-import.md#unparsable-rows) |
 | `ai-features-off` | [FR-061](../spec.md#fr-061): an AI feature asked for while AI features are off | This needs AI features, which Settings turns on; nothing was sent |
-| `ai-unreachable` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104), SC-012: no route, as in a hosted copy or without a key in `.env`, OpenAI cannot be reached, or the request was refused ([ai.md](ai.md#failures)) | The AI could not be asked; AI features need the app started on this computer with an OpenAI key in `.env`, and an internet connection; then try again. Nothing changed |
+| `ai-unreachable` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104), SC-012: OpenAI cannot be reached ([ai.md](ai.md#failures)) | OpenAI could not be reached; check the internet connection, then try again. Nothing changed |
 | `ai-timeout` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): no answer within 4 minutes | The AI took too long; try again, with fewer rows or a shorter question. Nothing changed |
-| `ai-failed` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): OpenAI reports a failure | OpenAI refused the request, for example because of the key or the project's credit; check them on OpenAI's platform, then try again. Nothing changed |
+| `ai-key-rejected` | [FR-094](../spec.md#fr-094), [FR-126](../spec.md#fr-126): OpenAI no longer accepts the stored key | OpenAI no longer accepts your key; remove it in Settings and turn AI features on with a new one. Links to [Settings](#settings). Nothing changed |
+| `ai-no-credit` | [FR-094](../spec.md#fr-094): no credit left, or the monthly limit reached | Your OpenAI account has no credit left or reached its monthly limit; add credit or raise the limit on OpenAI's platform, then try again. Nothing changed |
+| `ai-model-unavailable` | [FR-094](../spec.md#fr-094), [FR-129](../spec.md#fr-129): the key may not use the model in use | Your key cannot use the model, which it names; choose another model in Settings, then try again. Links to [Settings](#settings). Nothing changed |
+| `ai-failed` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): OpenAI reports another failure, such as too many requests | OpenAI refused the request; try again in a moment. Nothing changed |
+| `ai-key-not-accepted` | [FR-127](../spec.md#fr-127): the key check got a 401 | Exactly: "OpenAI didn't accept this key. Check that you copied all of it." |
+| `ai-key-check-unreachable` | [FR-127](../spec.md#fr-127): the key check got no answer, or another status | OpenAI could not be reached, so the key was not checked; try again once connected. Nothing was stored |
 | `ai-answer-invalid` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): the answer has the wrong form | The AI's answer could not be read; try again. Nothing changed |
 | `suggestions-outdated` | [FR-092](../spec.md#fr-092): the batch was confirmed, discarded or replaced while the AI answered | The import changed meanwhile, so no suggestion was used |
 | `reconcile-already-matches` | [FR-005](../spec.md#fr-005), SC-012 | The account already holds this amount; nothing was booked |
@@ -457,5 +508,6 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `backup-damaged` | [FR-072](../spec.md#fr-072), SC-012 | What is incomplete or inconsistent; current data is unchanged |
 | `save-failed` | A storage write fails ([R-15](../research.md#r-15)) | The change was not saved and nothing changed; free disk space and try again |
 | `storage-unavailable` | Storage cannot be opened at start ([R-15](../research.md#r-15)) | The browser does not let the app store data (private window or blocked site data), and what to change |
+| `update-failed` | [FR-124](../spec.md#fr-124): the worker did not confirm Update ([app-updates.md](app-updates.md#messages)) | The update could not start; close the app, open it again and try again. Your data is unchanged |
 | `open-in-another-tab` | A second tab starts ([R-07](../research.md#r-07)) | The app is already open in another tab or window; use that one |
 | `unexpected-error` | Anything unforeseen ([R-15](../research.md#r-15)) | Something went wrong, saved data is safe, reload the page |
