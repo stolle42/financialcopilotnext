@@ -1379,11 +1379,16 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `src/ui/messages.test.ts`, the fixed answer names the user's finances, finance in general
     and the app;
   - in `e2e/us8-finance-chat.spec.ts`, scenario 11.
-- [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
+- [X] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
   describes, turn AI features off and on once to agree to the new warning, check that
   `git status` does not list `.env` and that `dist/` holds no part of the key, and walk the manual
   checks there, including the SC-001 file and the chat. Its commit sets the version to `1.3.0`, and
   the tag `v1.3` goes on the phase's squash commit on `main` (constitution IX).
+  - *Closed in Phase 16*: the tag `v1.3` is on `360d9a6`, pushed on 2026-10-22. The version change
+    was missed, so v1.3 shows `1.1.0`, as v1.2 does; main is not rewritten to fix it. No `.env` and
+    no real key is in any commit. The key in `.env`, its warning and the manual checks were
+    overtaken: Phase 16 moves the key into Settings, and v1.5's and v1.6's checks run on the
+    versions now served (T146, T145).
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.3 (constitution IX),
 MINOR because v1.2 reads v1.3 storage and backups: the conversation is a second record of the
