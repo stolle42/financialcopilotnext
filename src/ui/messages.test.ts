@@ -135,10 +135,11 @@ describe("messages", () => {
   });
 
   test("words a backup whose settings hold an empty model, naming the model (FR-130)", () => {
-    for (const details of [
+    const damaged: Record<string, string>[] = [
       { record: "settings", field: "model" },
       { rule: "settings-model-invalid", model: "" },
-    ]) {
+    ];
+    for (const details of damaged) {
       const message = messageFor({ code: "backup-damaged", details });
       expect(message).toMatch(/model/i);
       expect(message).toMatch(/unchanged/i);

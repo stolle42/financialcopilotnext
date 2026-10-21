@@ -103,6 +103,7 @@ const brokenRules: Record<InvariantCode, string> = {
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
   "settings-account-missing": "the settings name an account that is not in the backup",
+  "settings-model-invalid": "the settings name an empty model",
   "conversation-question-missing": "a question of the finance chat's conversation is empty",
   "conversation-turn-invalid":
     "an answer of the finance chat's conversation does not fit its marks, such as stopped or out of scope",

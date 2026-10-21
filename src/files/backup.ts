@@ -175,6 +175,8 @@ const dataSchema: z.ZodType<State> = z.object({
   settings: z.object({
     manualEntryAccountId: z.string(),
     aiFeatures: z.literal(true).optional(),
+    // A file of v1.5 or earlier has none. A model no longer listed is kept (FR-130).
+    model: z.string().min(1).optional(),
   }),
   // A file of an earlier version has none, and restores an empty conversation (R-26).
   conversation: z.array(turnSchema).default([]),

@@ -1642,7 +1642,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
 ([quickstart.md](quickstart.md#us10-own-openai-key-and-model-choice)), and the manual checks of
 [AI features](quickstart.md#ai-features) at the web address.
 
-- [ ] T137 [US10] The models: a new `src/ai/models.ts` with `AI_MODELS`, in the order Settings shows
+- [X] T137 [US10] The models: a new `src/ai/models.ts` with `AI_MODELS`, in the order Settings shows
   them, each with its hint (gpt-5.4-mini "default", gpt-6.1-sol "better answers, costs more",
   gpt-5.6-luna "cheaper"), `DEFAULT_MODEL`, and `modelInUse(settings)`, which gives
   `{ model, noLongerOffered }`; `model` in `Settings` of `src/domain/types.ts`, "model id, or

@@ -1,5 +1,5 @@
 import { servedLocally } from "@/ai/local";
-import { setAiFeatures as decideAiFeatures } from "@/domain/settings";
+import { setAiFeatures as decideAiFeatures, setModel } from "@/domain/settings";
 import type { State } from "@/domain/types";
 import type { Store } from "./store";
 
@@ -15,4 +15,9 @@ export function aiFeaturesOn(state: State): boolean {
 export function setAiFeatures(store: Store, on: boolean) {
   // Turning them on or off never refuses, so only the store's own save-failed can come back.
   return store.run<never>((state) => decideAiFeatures(state, on));
+}
+
+/** Saves the chosen model at once (FR-129). A failed write keeps the choice as it was. */
+export function chooseModel(store: Store, model: string) {
+  return store.run<never>((state) => setModel(state, model));
 }

@@ -157,6 +157,11 @@ export interface Settings {
   manualEntryAccountId: string;
   /** Present while the user has AI features on, never `false` (FR-095). */
   aiFeatures?: true;
+  /**
+   * The model id the user chose, or absent. Absent means the default. Any non-empty string is
+   * kept, also one no longer in the list (FR-129, FR-130).
+   */
+  model?: string;
 }
 
 /**

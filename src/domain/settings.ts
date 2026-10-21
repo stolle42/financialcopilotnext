@@ -11,3 +11,8 @@ export function setAiFeatures(state: State, on: boolean): Changes {
   else delete settings.aiFeatures;
   return { settings: { put: settings } };
 }
+
+/** Chooses the model that answers, and changes nothing else (FR-129). */
+export function setModel(state: State, model: string): Changes {
+  return { settings: { put: { ...state.settings, model } } };
+}
