@@ -1490,7 +1490,7 @@ Playwright project `offline` for [SC-018](spec.md#sc-018)
 ([quickstart.md](quickstart.md#us9-installable-app)), and the
 [installable app checks](quickstart.md#installable-app-checks) by a person.
 
-- [ ] T130 [P] [US9] The manifest and icons: `public/manifest.webmanifest` with the fields of
+- [X] T130 [P] [US9] The manifest and icons: `public/manifest.webmanifest` with the fields of
   [app-updates.md](contracts/app-updates.md#files-the-build-emits): `name` and `short_name`
   "Financial Copilot", `start_url` and `scope` `./`, `display` `standalone`, `background_color` the
   canvas and `theme_color` the primary colour of [ui.md](contracts/ui.md#look), and the three icons;
