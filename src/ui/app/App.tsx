@@ -2,6 +2,7 @@ import { CSPProvider } from "@base-ui/react/csp-provider";
 import { cn } from "cn";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Transaction } from "@/domain/types";
+import { runningVersion } from "@/pwa/updates";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
 import { AccountsScreen } from "@/ui/screens/accounts/AccountsScreen";
@@ -20,10 +21,6 @@ import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
 import { type Route, transactionsPath, useRoute } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
-
-// package.json writes MAJOR.MINOR.0, as npm needs three parts; the app shows MAJOR.MINOR
-// (constitution IX, FR-088).
-const appVersion = __APP_VERSION__.split(".").slice(0, 2).join(".");
 
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [
@@ -107,7 +104,7 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                 <header className="flex h-16 shrink-0 items-center justify-between px-6">
                   <div className="flex items-baseline gap-2">
                     <span className="font-heading text-xl font-semibold">Financial Copilot</span>
-                    <span className="text-xs text-muted-foreground">Version {appVersion}</span>
+                    <span className="text-xs text-muted-foreground">Version {runningVersion}</span>
                   </div>
                   {/* The primary action, reachable from every screen (FR-066). */}
                   <Button onClick={() => openForm(null)}>Add transaction</Button>

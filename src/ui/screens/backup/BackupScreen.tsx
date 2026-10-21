@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import type { Refusal, State } from "@/domain/types";
-import { createBackup, prepareRestore, restore } from "@/store/backup";
+import { prepareRestore, restore } from "@/store/backup";
 import { useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
 import { StoragePersistedContext } from "@/ui/app/storagePersisted";
@@ -8,19 +8,7 @@ import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Button } from "@/ui/components/ui/button";
 import { toast } from "@/ui/components/ui/toast";
 import { messageFor, notifications, type MessageCode } from "@/ui/messages";
-
-/** Hands `text` to the browser as a download named `fileName` (FR-070). */
-function download(text: string, fileName: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // The browser starts the download from the link before this runs.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+import { saveBackup } from "./saveBackup";
 
 /** A state that passed validation, waiting for the user to agree to replace everything. */
 interface Pending {
@@ -48,8 +36,7 @@ export function BackupScreen() {
 
   function save() {
     setRefusal(null);
-    const backup = createBackup(store);
-    download(backup.text, backup.fileName);
+    saveBackup(store);
   }
 
   async function chooseFile(file: File | undefined) {

@@ -1564,7 +1564,7 @@ Playwright project `offline` for [SC-018](spec.md#sc-018)
   builds the next versions once with `TEST_APP_VERSION` into `tmp/`, and which a test switches
   between them. The scenarios that switch builds skip when `BASE_URL` is set, since they publish a
   build of their own ([R-30](research.md#r-30)).
-- [ ] T133 [P] [US9] The update notice: in `src/pwa/updates.ts`, `workerVersions()`, which posts
+- [X] T133 [P] [US9] The update notice: in `src/pwa/updates.ts`, `workerVersions()`, which posts
   `versions` and waits 5 seconds at most; `isNewer(own, running)`, which compares MAJOR.MINOR
   strings; and `applyUpdate()`, which posts `update` and reloads the page on `done`; asked when
   Settings opens and again on `controllerchange`. At the top of `src/ui/screens/settings/SettingsScreen.tsx`, in the info
