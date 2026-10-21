@@ -239,6 +239,98 @@ describe("the conversation in storage (FR-104, R-26)", () => {
   });
 });
 
+describe("the OpenAI key in storage (FR-126, R-31; data-model.md, storage layout)", () => {
+  const key = "sk-proj-abcdefa1b2";
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const settingsKeys = async (db: Awaited<ReturnType<typeof openDatabase>>) =>
+    (await db.getAllKeys("settings")).map(String).sort();
+
+  test("a database without a key, as v1.5 leaves it, loads with apiKey null", async () => {
+    const db = await openDatabase();
+    await writeChanges(db, {
+      settings: { put: { ...(await loadState(db)).settings, aiFeatures: true } },
+    });
+
+    expect((await loadState(db)).apiKey).toBeNull();
+    expect(await settingsKeys(db)).toEqual(["settings"]);
+  });
+
+  test("stores the key as the record openaiKey of the settings store, and loads it again", async () => {
+    const db = await openDatabase();
+
+    await writeChanges(db, { apiKey: key });
+
+    expect(await settingsKeys(db)).toEqual(["openaiKey", "settings"]);
+    expect(await db.get("settings", "openaiKey" as never)).toBe(key);
+    expect((await loadState(db)).settings).not.toHaveProperty("apiKey");
+    db.close();
+    expect((await loadState(await openDatabase())).apiKey).toBe(key);
+  });
+
+  test("deletes the record when the key is removed", async () => {
+    const db = await openDatabase();
+    await writeChanges(db, { apiKey: key });
+
+    await writeChanges(db, { apiKey: null });
+
+    expect(await settingsKeys(db)).toEqual(["settings"]);
+    expect((await loadState(db)).apiKey).toBeNull();
+  });
+
+  test("writes the key in the same transaction as the settings", async () => {
+    const db = await openDatabase();
+    const before = await loadState(db);
+
+    await writeChanges(db, {
+      settings: { put: { ...before.settings, aiFeatures: true } },
+      apiKey: key,
+    });
+
+    const after = await loadState(db);
+    expect(after.apiKey).toBe(key);
+    expect(after.settings.aiFeatures).toBe(true);
+  });
+
+  test.each(["openaiKey", "settings"])(
+    "a failed write of the %s record leaves neither the key nor the settings",
+    async (failing) => {
+      const db = await openDatabase();
+      const before = await loadState(db);
+      const put = IDBObjectStore.prototype.put;
+      vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(function (
+        this: IDBObjectStore,
+        ...args: Parameters<IDBObjectStore["put"]>
+      ) {
+        const [, recordKey] = args;
+        if (this.name === "settings" && recordKey === failing) {
+          throw new DOMException("The disk is full", "QuotaExceededError");
+        }
+        return put.apply(this, args);
+      });
+
+      const write = writeChanges(db, {
+        settings: { put: { ...before.settings, aiFeatures: true } },
+        apiKey: key,
+      });
+
+      await expect(write).rejects.toMatchObject({ name: "QuotaExceededError" });
+      vi.restoreAllMocks();
+      expect(await loadState(db)).toEqual(before);
+      expect(await settingsKeys(db)).toEqual(["settings"]);
+    },
+  );
+
+  test("keeps the database at schema version 1, so v1.5 still opens it (R-31)", async () => {
+    const db = await openDatabase();
+    await writeChanges(db, { apiKey: key });
+    expect(db.version).toBe(1);
+  });
+});
+
 describe("writeChanges with requireNoPendingBatch (FR-022)", () => {
   function batchOn(state: State, id: string): PendingBatch {
     return {
@@ -364,6 +456,25 @@ describe("replaceAll (backup-file.md, loading step 4)", () => {
     await replaceAll(db, { ...state, conversation: [] });
     expect((await loadState(db)).conversation).toEqual([]);
     expect((await db.getAllKeys("settings")).map(String)).toEqual(["settings"]);
+  });
+
+  test("keeps the key stored on this computer, which a backup never holds (R-31)", async () => {
+    const { db } = await withOldData();
+    await writeChanges(db, { apiKey: "sk-proj-abcdefa1b2" });
+
+    await replaceAll(db, { ...everyEntityState(), apiKey: null });
+
+    expect((await loadState(db)).apiKey).toBe("sk-proj-abcdefa1b2");
+    expect(await db.get("settings", "openaiKey" as never)).toBe("sk-proj-abcdefa1b2");
+  });
+
+  test("keeps no key when none was stored", async () => {
+    const { db } = await withOldData();
+
+    await replaceAll(db, { ...everyEntityState(), apiKey: null });
+
+    expect((await loadState(db)).apiKey).toBeNull();
+    expect((await db.getAllKeys("settings")).map(String)).not.toContain("openaiKey");
   });
 
   test("clears the pending batch when the state has none", async () => {

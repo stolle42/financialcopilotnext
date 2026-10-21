@@ -14,20 +14,19 @@ import { addTurn, chatContext, type NamedSource } from "@/domain/chat";
 import type { ChatTurn } from "@/domain/types";
 import { loadState, openDatabase } from "@/persistence/db";
 import { askChat, chatSession, clearConversation, stopChat, subscribeChat } from "./chat";
-import { setAiFeatures } from "./settings";
+import { removeKey, setAiFeatures, turnOnWithKey } from "./settings";
 import { createStore, type Store } from "./store";
 
 // FR-061, FR-102 – FR-110, R-25, R-26: a question to the finance chat, asked from the store, and
 // the chat's session, which outlives the Insights screen.
 
 const fetchMock = vi.fn<typeof fetch>();
+const testKey = "sk-test-0000a1b2";
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
-  // The app as run locally, where AI features can be on (FR-106).
-  vi.stubGlobal("location", { hostname: "localhost" });
   // Only the clock is fake, so IndexedDB's own timers still run.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-16T12:00:00"));
@@ -59,7 +58,7 @@ async function setUp(aiFeatures = true) {
       ],
     },
   }));
-  if (aiFeatures) await setAiFeatures(store, true);
+  if (aiFeatures) await turnOnWithKey(store, testKey);
   return { db, store };
 }
 
@@ -101,9 +100,10 @@ describe("askChat: who may ask (FR-061, FR-100, FR-106)", () => {
     expect(chatSession(store).asking).toBeNull();
   });
 
-  test("on a copy not served from the user's computer, gives ai-features-off and sends nothing, even with AI features on (FR-106)", async () => {
+  test("with the switch on but no key stored, as a v1.5 database leaves it, gives ai-features-off and sends nothing (FR-126)", async () => {
     const { store } = await setUp();
-    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    await removeKey(store);
+    await setAiFeatures(store, true);
     const before = store.getState();
 
     expect(await askChat(store, question)).toEqual({ code: "ai-features-off" });
@@ -315,6 +315,24 @@ describe("stopChat, and turning AI features off (FR-108)", () => {
     expect(conversationOf(store)).toEqual([
       { question, answer: "You could", stopped: true, sources: [] },
     ]);
+  });
+
+  test("Remove key stops the answer in the same way, and deletes the key (FR-126)", async () => {
+    const { db, store } = await setUp();
+    const stream = feeding();
+
+    const asked = askChat(store, question);
+    stream.send(deltaEvent('{"inScope":true,"answer":"You could'));
+    await vi.waitFor(() => expect(chatSession(store).asking?.answer).toBe("You could"));
+    await removeKey(store);
+
+    expect(await asked).toBeNull();
+    expect(fetchMock.mock.calls[0]![1]?.signal?.aborted).toBe(true);
+    expect(store.getState().apiKey).toBeNull();
+    expect(store.getState().settings.aiFeatures).toBeUndefined();
+    const stopped: ChatTurn = { question, answer: "You could", stopped: true, sources: [] };
+    expect(conversationOf(store)).toEqual([stopped]);
+    expect((await loadState(db)).conversation).toEqual([stopped]);
   });
 });
 

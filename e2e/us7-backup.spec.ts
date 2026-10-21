@@ -1,11 +1,13 @@
 import type { Page } from "@playwright/test";
-import type { Account } from "../src/domain/types";
+import type { Account, Settings } from "../src/domain/types";
 import { messageFor, notifications } from "../src/ui/messages";
 import {
   addAccount,
   addTransaction,
   choose,
+  putRecord,
   reconcileAccount,
+  storedRecord,
   setBudgetLimit,
   storedRecords,
 } from "./support/app";
@@ -28,9 +30,17 @@ import { expect, guardNetwork, setToday, test } from "./support/test";
 // It fills every entity type through the UI, including a pending batch with review progress, a
 // category the AI suggested and a conversation of the finance chat, saves a backup, and restores it over changed data. Then it restores the
 // file into a fresh browser context with empty storage, saves again there, and compares the two
-// files' `data`.
+// files' `data`. An OpenAI key and a chosen model are stored first: the model goes with the
+// backup, the key never does, and a restore keeps the key stored on this computer (FR-126, FR-130).
 
 const main = (page: Page) => page.getByRole("main");
+
+/** A test key, and its last 4 characters, which the masked key shows (FR-126). */
+const KEY = "sk-proj-e2eTestKey0000wxyz";
+const LAST_4 = KEY.slice(-4);
+
+/** True when `text` holds the key or any part of it the app ever shows. */
+const holdsKey = (text: string) => text.includes(KEY) || text.includes(LAST_4);
 const ledgerRows = (page: Page) =>
   page.getByRole("list", { name: "Transactions" }).getByRole("listitem");
 
@@ -77,6 +87,14 @@ test("saves everything to one file and restores exactly that, also into a fresh 
 }) => {
   test.setTimeout(300_000);
   await setToday(page, "2026-09-20");
+
+  // A key stored on this computer and a chosen model (FR-126, FR-129).
+  await page.goto("/");
+  await expect(main(page).getByRole("heading", { name: "Transactions" })).toBeVisible();
+  const seeded = await storedRecord<Settings>(page, "settings", "settings");
+  await putRecord(page, "settings", "settings", { ...seeded, model: "gpt-5.6-luna" });
+  await putRecord(page, "settings", "openaiKey", KEY);
+  await page.reload();
 
   // Every entity type, through the UI.
   await addAccount(page, "Giro", "1000.00");
@@ -153,6 +171,7 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   const filled = await storedData(page);
   const giro = (await storedRecords<Account>(page, "accounts")).find((a) => a.name === "Giro")!;
   expect(filled.settings.manualEntryAccountId).toBe(giro.id);
+  expect(filled.settings.model).toBe("gpt-5.6-luna");
   expect(filled.profiles).toHaveLength(1);
   expect(filled.budgets).toHaveLength(1);
   expect(
@@ -176,6 +195,8 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   expect(backup.fileName).toBe("financial-copilot-backup-2026-09-20.json");
   expect(byKey(backup.json.data)).toEqual(byKey(filled));
   expect(await storedData(page)).toEqual(filled);
+  expect(backup.json.data.settings.model).toBe("gpt-5.6-luna");
+  expect(holdsKey(backup.text)).toBe(false);
 
   // 3. A file that is not a valid backup is refused at once, and the data stays as it was.
   await chooseBackupFile(page, backup.text.slice(0, -20), "cut-off.json");
@@ -197,6 +218,7 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await expect(page.getByText(notifications.restored(backup.fileName))).toBeVisible();
   await expect(ledgerRows(page).filter({ hasText: "After the backup" })).toHaveCount(0);
   expect(byKey(await storedData(page))).toEqual(byKey(backup.json.data));
+  expect(await storedRecord(page, "settings", "openaiKey")).toBe(KEY);
   const balances = await accountsShown(page);
 
   // SC-014: restored into a fresh browser with empty storage and saved again, the data is equal.
@@ -212,6 +234,10 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   const again = await saveBackup(freshPage);
 
   expect(again.json.data).toEqual(backup.json.data);
+  expect(again.json.data.settings.model).toBe("gpt-5.6-luna");
+  expect(holdsKey(again.text)).toBe(false);
+  // The fresh browser never had a key, and the backup brings none.
+  expect(await storedRecord(freshPage, "settings", "openaiKey")).toBeUndefined();
   expect(await accountsShown(freshPage)).toEqual(balances);
   await checkNetwork();
   await fresh.close();

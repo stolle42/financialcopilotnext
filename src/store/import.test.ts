@@ -17,17 +17,16 @@ import {
   saveProfile,
   suggestCategories,
 } from "./import";
-import { setAiFeatures } from "./settings";
+import { removeKey, setAiFeatures, turnOnWithKey } from "./settings";
 import { createStore } from "./store";
 
 const fetchMock = vi.fn<typeof fetch>();
+const testKey = "sk-test-0000a1b2";
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
-  // The app as run locally, where AI features can be on (FR-106).
-  vi.stubGlobal("location", { hostname: "localhost" });
 });
 
 afterEach(() => {
@@ -282,7 +281,7 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
   async function withBatch(aiFeatures = true) {
     const setup = await setUp();
     await importInto(setup.store, setup.cash, setup.profile);
-    if (aiFeatures) await setAiFeatures(setup.store, true);
+    if (aiFeatures) await turnOnWithKey(setup.store, testKey);
     return setup;
   }
 
@@ -299,9 +298,10 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(store.getState()).toBe(before);
   });
 
-  test("on a copy not served from the user's computer, gives ai-features-off and sends nothing, even with AI features on (FR-106)", async () => {
+  test("with the switch on but no key stored, as a v1.5 database leaves it, gives ai-features-off and sends nothing (FR-126)", async () => {
     const { store } = await withBatch();
-    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    await removeKey(store);
+    await setAiFeatures(store, true);
     const before = store.getState();
 
     expect(await ask(store)).toEqual({ code: "ai-features-off" });

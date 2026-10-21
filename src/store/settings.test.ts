@@ -2,10 +2,10 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loadState, openDatabase } from "@/persistence/db";
-import { aiFeaturesOn, chooseModel, setAiFeatures } from "./settings";
+import { aiFeaturesOn, chooseModel, removeKey, setAiFeatures, turnOnWithKey } from "./settings";
 import { createStore } from "./store";
 
-// FR-095: the AI features switch saves at once.
+// FR-095, FR-126: the AI features switch and the key save at once.
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -85,20 +85,95 @@ describe("chooseModel (FR-129, FR-130)", () => {
   });
 });
 
-describe("aiFeaturesOn (FR-095, FR-106)", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+const key = "sk-proj-abcdefa1b2";
 
-  test("is true only with AI features on, in the app run on the user's own computer", async () => {
+describe("aiFeaturesOn (FR-095, FR-106, FR-126)", () => {
+  test("is true only with the switch on and a key stored, wherever the app is served", async () => {
     const { store } = await setUp();
-    vi.stubGlobal("location", { hostname: "localhost" });
     expect(aiFeaturesOn(store.getState())).toBe(false);
 
-    await setAiFeatures(store, true);
+    await turnOnWithKey(store, key);
     expect(aiFeaturesOn(store.getState())).toBe(true);
 
-    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    await setAiFeatures(store, false);
     expect(aiFeaturesOn(store.getState())).toBe(false);
+  });
+
+  test("reads as off with the switch on but no key, as a v1.5 database leaves it", async () => {
+    const { store } = await setUp();
+
+    await setAiFeatures(store, true);
+
+    expect(store.getState().settings.aiFeatures).toBe(true);
+    expect(store.getState().apiKey).toBeNull();
+    expect(aiFeaturesOn(store.getState())).toBe(false);
+  });
+});
+
+describe("turnOnWithKey and removeKey (FR-126)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("turnOnWithKey stores the trimmed key and the switch together, surviving closing the app", async () => {
+    const { db, store } = await setUp();
+
+    expect(
+      await turnOnWithKey(
+        store,
+        ` ${key}
+`,
+      ),
+    ).toBeNull();
+
+    expect(store.getState().apiKey).toBe(key);
+    expect(store.getState().settings.aiFeatures).toBe(true);
+    db.close();
+    const loaded = await reopened();
+    expect(loaded.apiKey).toBe(key);
+    expect(loaded.settings.aiFeatures).toBe(true);
+  });
+
+  test("a failed write stores neither the key nor the switch", async () => {
+    const { db, store } = await setUp();
+    failSettingsPuts();
+
+    expect(await turnOnWithKey(store, key)).toEqual({
+      code: "save-failed",
+      details: { reason: "QuotaExceededError" },
+    });
+
+    expect(store.getState().apiKey).toBeNull();
+    expect(store.getState().settings).not.toHaveProperty("aiFeatures");
+    vi.restoreAllMocks();
+    db.close();
+    const loaded = await reopened();
+    expect(loaded.apiKey).toBeNull();
+    expect(loaded.settings).not.toHaveProperty("aiFeatures");
+  });
+
+  test("removeKey deletes the key and turns AI features off, surviving closing the app", async () => {
+    const { db, store } = await setUp();
+    await turnOnWithKey(store, key);
+
+    expect(await removeKey(store)).toBeNull();
+
+    expect(store.getState().apiKey).toBeNull();
+    expect(store.getState().settings).not.toHaveProperty("aiFeatures");
+    db.close();
+    const loaded = await reopened();
+    expect(loaded.apiKey).toBeNull();
+    expect(loaded.settings).not.toHaveProperty("aiFeatures");
+  });
+
+  test("turning AI features off keeps the key stored", async () => {
+    const { db, store } = await setUp();
+    await turnOnWithKey(store, key);
+
+    await setAiFeatures(store, false);
+
+    expect(store.getState().apiKey).toBe(key);
+    db.close();
+    expect((await reopened()).apiKey).toBe(key);
   });
 });

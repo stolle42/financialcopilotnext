@@ -168,6 +168,7 @@ function validState(): State {
     profiles: [headerProfile, positionProfile],
     pendingBatch: batch,
     settings: { manualEntryAccountId: "cash" },
+    apiKey: "sk-proj-abcdefa1b2",
     conversation,
   };
 }
@@ -224,6 +225,18 @@ describe("checkInvariants", () => {
     expect(checkInvariants({ ...validState(), settings })).toEqual({
       code: "settings-model-invalid",
       details: { model: "" },
+    });
+  });
+
+  test("passes a state without a key (FR-126)", () => {
+    expect(checkInvariants({ ...validState(), apiKey: null })).toBeNull();
+  });
+
+  test("names the field when the settings hold the key, which lives beside them (FR-126)", () => {
+    const settings = { manualEntryAccountId: "cash", apiKey: "sk-proj-abcdefa1b2" } as never;
+    expect(checkInvariants({ ...validState(), settings })).toEqual({
+      code: "settings-key-present",
+      details: { field: "apiKey" },
     });
   });
 
@@ -496,6 +509,14 @@ describe("checkInvariants", () => {
       "8: an empty model",
       () => ({ ...validState(), settings: { manualEntryAccountId: "cash", model: "" } }),
       "settings-model-invalid",
+    ],
+    [
+      "8: a field for the key in the settings",
+      () => ({
+        ...validState(),
+        settings: { manualEntryAccountId: "cash", apiKey: "sk-proj-abcdefa1b2" } as never,
+      }),
+      "settings-key-present",
     ],
     // 9. The conversation.
     ["9: an empty question", () => withTurn({ question: "" }), "conversation-question-missing"],

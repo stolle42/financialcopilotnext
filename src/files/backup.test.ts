@@ -87,7 +87,24 @@ describe("serializeBackup (FR-070)", () => {
       "settings",
       "transactions",
     ]);
-    expect(byKey(json.data)).toEqual(byKey(state));
+    // The key stays on this computer, so the file has no place for it (FR-126).
+    expect(byKey(json.data)).toEqual(byKey({ ...state, apiKey: undefined } as unknown as State));
+  });
+
+  test("holds neither the key nor its last 4 characters, whatever the state holds (FR-126, R-31)", () => {
+    const state: State = {
+      ...everyEntityState(),
+      settings: { ...everyEntityState().settings, aiFeatures: true, model: "gpt-5.6-luna" },
+      apiKey: "sk-proj-abcdefa1b2",
+    };
+
+    const text = serializeBackup(state, EXPORTED_AT);
+
+    expect(text).not.toContain("sk-proj");
+    expect(text).not.toContain("a1b2");
+    const json = JSON.parse(text) as { data: Json };
+    expect(json.data).not.toHaveProperty("apiKey");
+    expect(json.data.settings).toStrictEqual(state.settings);
   });
 
   test("writes the conversation's turns in order, and leaves the key out while it is empty (R-26)", () => {
@@ -224,6 +241,11 @@ describe("parseBackup: a round trip (SC-014)", () => {
     const text = JSON.stringify(json);
 
     expect(JSON.parse(serializeBackup(parseBackup(text) as State, EXPORTED_AT))).toEqual(json);
+  });
+
+  test("gives back a state without a key, which restoring takes from this computer (FR-126)", () => {
+    const state: State = { ...everyEntityState(), apiKey: "sk-proj-abcdefa1b2" };
+    expect((parseBackup(serializeBackup(state, EXPORTED_AT)) as State).apiKey).toBeNull();
   });
 
   test("saves the loaded state as the same file", () => {

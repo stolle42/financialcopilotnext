@@ -128,6 +128,30 @@ export function putRecords(page: Page, store: string, records: unknown[]): Promi
 }
 
 /**
+ * Writes `value` under `key` into one store of the app's database, as the settings store holds its
+ * records. The app reads storage only at start-up, so the page must reload to use it.
+ */
+export function putRecord(page: Page, store: string, key: string, value: unknown): Promise<void> {
+  return page.evaluate(
+    ([storeName, recordKey, item]) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("financial-copilot");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const transaction = open.result.transaction(storeName, "readwrite");
+          transaction.objectStore(storeName).put(item, recordKey);
+          transaction.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    [store, key, value] as const,
+  );
+}
+
+/**
  * The transaction booked last, by `seq`. Storage lists records by their random ids, so the last
  * record listed is not the newest one.
  */
