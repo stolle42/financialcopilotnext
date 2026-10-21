@@ -295,6 +295,9 @@ export const financeChat = {
 export const updateNotice = (available: string, running: string) =>
   `Version ${available} is available (you have ${running}). Make a backup first.`;
 
+/** Added to the Backup note on persistent storage while the header offers Install app (FR-075). */
+export const installHint = "Installing the app helps the browser keep the data.";
+
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
 

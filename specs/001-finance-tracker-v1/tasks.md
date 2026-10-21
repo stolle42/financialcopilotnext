@@ -1587,7 +1587,7 @@ Playwright project `offline` for [SC-018](spec.md#sc-018)
     version, without the notice, and with every store's records as before; a build of the same
     MAJOR.MINOR with other files shows no notice; and with two newer versions published, the
     notice names the newest and Update goes to it.
-- [ ] T134 [P] [US9] Install app: a new `src/pwa/install.ts`, imported first in `src/main.tsx`,
+- [X] T134 [P] [US9] Install app: a new `src/pwa/install.ts`, imported first in `src/main.tsx`,
   keeps `beforeinstallprompt`, calling `preventDefault()`, and forgets it on `appinstalled` and
   once its `prompt()` was used, telling subscribers each time; the header in `src/ui/app/App.tsx` shows an
   outline **Install app** with a download icon before Add transaction while an event is kept; and

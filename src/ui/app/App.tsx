@@ -1,7 +1,9 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { cn } from "cn";
+import { DownloadIcon } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Transaction } from "@/domain/types";
+import { appInstall, useInstallable } from "@/pwa/install";
 import { runningVersion } from "@/pwa/updates";
 import { Button } from "@/ui/components/ui/button";
 import { Toaster } from "@/ui/components/ui/toast";
@@ -85,6 +87,7 @@ function screenFor(route: Route): ReactNode {
 export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }) {
   const route = useRoute();
   const currentEntry = sidebarEntryOf(route);
+  const installable = useInstallable();
   // The one transaction form: `transaction: null` adds a new one.
   const [form, setForm] = useState<{ transaction: Transaction | null } | null>(null);
   // The same function on every render, so the memoised transaction rows need not render again.
@@ -106,8 +109,16 @@ export function App({ storagePersisted }: { storagePersisted: Promise<boolean> }
                     <span className="font-heading text-xl font-semibold">Financial Copilot</span>
                     <span className="text-xs text-muted-foreground">Version {runningVersion}</span>
                   </div>
-                  {/* The primary action, reachable from every screen (FR-066). */}
-                  <Button onClick={() => openForm(null)}>Add transaction</Button>
+                  <div className="flex items-center gap-2">
+                    {installable && (
+                      <Button variant="outline" onClick={() => void appInstall?.install()}>
+                        <DownloadIcon aria-hidden />
+                        Install app
+                      </Button>
+                    )}
+                    {/* The primary action, reachable from every screen (FR-066). */}
+                    <Button onClick={() => openForm(null)}>Add transaction</Button>
+                  </div>
                 </header>
                 <div className="flex flex-1">
                   <nav

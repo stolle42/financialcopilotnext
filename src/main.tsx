@@ -1,3 +1,5 @@
+// First, so it listens before the browser offers to install the app (FR-122).
+import "@/pwa/install";
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import "@/ui/index.css";
