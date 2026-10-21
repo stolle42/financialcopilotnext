@@ -303,6 +303,21 @@ describe("messages", () => {
     expect(messageFor({ code: "suggestions-outdated" })).toMatch(/no suggestion was used/i);
   });
 
+  test("words ai-key-not-accepted exactly as the catalogue does (FR-127)", () => {
+    expect(messageFor({ code: "ai-key-not-accepted" })).toBe(
+      "OpenAI didn't accept this key. Check that you copied all of it.",
+    );
+  });
+
+  test("words ai-key-check-unreachable: try again once connected, and nothing was stored (FR-127)", () => {
+    const message = messageFor({ code: "ai-key-check-unreachable" });
+    expect(message).toMatch(/OpenAI/);
+    expect(message).toMatch(/try again/i);
+    expect(message).toMatch(/connected/i);
+    expect(message).toMatch(/nothing was stored/i);
+    expect(message).not.toContain("ai-key-check-unreachable");
+  });
+
   test("adds to the Backup note that installing the app helps the browser keep the data (FR-075)", () => {
     expect(catalogue.installHint).toMatch(/install/i);
     expect(catalogue.installHint).toMatch(/keep/i);

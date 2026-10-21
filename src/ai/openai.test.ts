@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { z } from "@/files/zod";
-import { AI_TIMEOUT_MS, OPENAI_MODEL, askOpenAi, type AiRequest } from "./openai";
+import {
+  AI_TIMEOUT_MS,
+  KEY_CHECK_TIMEOUT_MS,
+  OPENAI_MODEL,
+  askOpenAi,
+  checkKey,
+  type AiRequest,
+} from "./openai";
 import { AI_PATH } from "./path";
 import {
   completedEvent,
@@ -19,7 +26,7 @@ import {
   type PostedRequest,
 } from "./testing";
 
-// contracts/ai.md: request, answer and failures; FR-094, FR-107, R-24, R-26.
+// contracts/ai.md: key check, request, answer and failures; FR-094, FR-107, FR-127, R-24, R-26.
 
 const request: AiRequest<{ value: string }> = {
   name: "test_answer",
@@ -335,5 +342,89 @@ describe("askOpenAi: failures (contracts/ai.md, failures)", () => {
       throw new TypeError("Invalid URL");
     });
     await expect(ask()).resolves.toEqual({ code: "ai-unreachable" });
+  });
+});
+
+describe("checkKey (FR-127, contracts/ai.md, key check)", () => {
+  const key = "sk-proj-abcdefa1b2";
+  const check = (signal = new AbortController().signal) => checkKey(key, signal);
+
+  test("asks OpenAI for its models with the key, and sends nothing else", async () => {
+    fetchMock.mockResolvedValue(json({ data: [] }));
+
+    await check();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.openai.com/v1/models");
+    expect(init?.method ?? "GET").toBe("GET");
+    expect(init?.body).toBeUndefined();
+    expect(init?.credentials).toBe("omit");
+    expect(new Headers(init?.headers)).toEqual(new Headers({ Authorization: `Bearer ${key}` }));
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  test.each([200, 204, 299, 403])("accepts the key on a %i", async (status) => {
+    fetchMock.mockResolvedValue(new Response(null, { status }));
+    expect(await check()).toBe("accepted");
+  });
+
+  test("gives ai-key-not-accepted on a 401", async () => {
+    fetchMock.mockResolvedValue(json({ error: { code: "invalid_api_key" } }, 401));
+    expect(await check()).toEqual({ code: "ai-key-not-accepted" });
+  });
+
+  test.each([400, 404, 429, 500, 503])("gives ai-key-check-unreachable on a %i", async (status) => {
+    fetchMock.mockResolvedValue(new Response(null, { status }));
+    expect(await check()).toEqual({ code: "ai-key-check-unreachable" });
+  });
+
+  test("gives ai-key-check-unreachable when no answer comes, such as when offline", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    expect(await check()).toEqual({ code: "ai-key-check-unreachable" });
+  });
+
+  test("gives ai-key-check-unreachable when fetch throws at once, and never rejects", async () => {
+    fetchMock.mockImplementation(() => {
+      throw new TypeError("Invalid URL");
+    });
+    await expect(check()).resolves.toEqual({ code: "ai-key-check-unreachable" });
+  });
+
+  test("stops after 10 seconds with ai-key-check-unreachable", async () => {
+    vi.useFakeTimers();
+    hangingFetch();
+
+    const result = check();
+    await vi.advanceTimersByTimeAsync(KEY_CHECK_TIMEOUT_MS - 1);
+    expect(fetchMock.mock.calls[0]![1]?.signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(await result).toEqual({ code: "ai-key-check-unreachable" });
+    expect(fetchMock.mock.calls[0]![1]?.signal?.aborted).toBe(true);
+  });
+
+  test("waits 10 seconds (SC-021)", () => {
+    expect(KEY_CHECK_TIMEOUT_MS).toBe(10_000);
+  });
+
+  test("gives cancelled, not a failure, when the caller aborts", async () => {
+    hangingFetch();
+    const controller = new AbortController();
+    const result = check(controller.signal);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+    controller.abort();
+
+    expect(await result).toBe("cancelled");
+    expect(fetchMock.mock.calls[0]![1]?.signal?.aborted).toBe(true);
+  });
+
+  test("never sends when the caller aborted before the check", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    expect(await check(controller.signal)).toBe("cancelled");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

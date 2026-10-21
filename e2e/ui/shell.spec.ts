@@ -57,7 +57,7 @@ test("carries a Content-Security-Policy that keeps everything on the app's origi
   expect(policy).not.toContain("unsafe-inline");
 });
 
-test("lets the page connect only to the app's own origin, where the AI route is (R-19, R-24)", async ({
+test("lets the page connect only to the app's own origin and to OpenAI, which the user's key reaches (R-19, R-31)", async ({
   page,
 }) => {
   await page.goto("/");
@@ -66,7 +66,7 @@ test("lets the page connect only to the app's own origin, where the AI route is 
     .getAttribute("content");
   const directives = (policy ?? "").split(";").map((directive) => directive.trim());
   expect(directives.filter((directive) => directive.startsWith("connect-src"))).toEqual([
-    "connect-src 'self'",
+    "connect-src 'self' https://api.openai.com",
   ]);
 });
 
