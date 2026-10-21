@@ -1329,9 +1329,9 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **The service worker**, `sw.js` at the root, is ours: about 100 lines in
     `worker/serviceWorker.js`, with no dependency. A Vite plugin of our own, `worker/plugin.ts`,
     emits it at build time with a header that names the build: its version, MAJOR.MINOR from
-    `package.json`, its build id, a hash of the names of the build's files, which hold their
-    content's hash, and the list of those files. The plugin also writes the build id into
-    `index.html` as `<meta name="app-build">`.
+    `package.json`, its build id, a hash of the build's files other than `index.html`, names and
+    content, and the list of those files. The plugin also writes the build id into `index.html`
+    as `<meta name="app-build">`.
     - **Install**: the worker downloads every file of its build, with `cache: "reload"`, into a
       cache of its own, `build-<id>`. `index.html` is the one file whose name has no hash, so the
       worker checks that the copy it got names its own build in `app-build`. Otherwise a newer
