@@ -81,8 +81,16 @@ export const test = base.extend<{ networkGuard: void; offlineCheck: void }>({
   // In the project `offline`, every page the test opens must be controlled by the worker, with the
   // network cut, from the first to the last (SC-018, R-30).
   offlineCheck: [
-    async ({ page }, use, testInfo) => {
+    async ({ context, page }, use, testInfo) => {
       if (testInfo.project.name !== "offline") return use();
+
+      // The first visit, online: the worker installs and takes control. Then the network goes.
+      await page.goto("/");
+      await page.waitForFunction(async () => {
+        await navigator.serviceWorker.ready;
+        return !!navigator.serviceWorker.controller;
+      });
+      await context.setOffline(true);
 
       const states: { url: string; controlled: boolean; online: boolean }[] = [];
       await page.exposeFunction("reportOfflineState", (state: (typeof states)[number]) => {

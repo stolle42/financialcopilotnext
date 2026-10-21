@@ -1605,7 +1605,7 @@ Playwright project `offline` for [SC-018](spec.md#sc-018)
     dispatches: Install app shows before Add transaction, selecting it calls `prompt()`, and it
     goes once `appinstalled` fires; and the Backup note, with persistent storage not granted,
     holds the hint and Install app ([SC-017](spec.md#sc-017)).
-- [ ] T135 [US9] Every story offline ([SC-018](spec.md#sc-018)): a Playwright project `offline` in
+- [X] T135 [US9] Every story offline ([SC-018](spec.md#sc-018)): a Playwright project `offline` in
   `playwright.config.ts` runs the specs of US1 – US7 in Chromium with service workers allowed; in
   that project the fixture of `e2e/support/test.ts` opens the app, waits until the worker controls
   the page, and cuts the network before the test begins ([R-30](research.md#r-30),
