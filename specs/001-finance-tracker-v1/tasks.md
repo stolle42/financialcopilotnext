@@ -18,15 +18,16 @@ test commits stay on the phase branch: `main` gets each finished phase as one sq
 every commit on `main` stays green.
 
 **Organization**: Phases 1 and 2 build the shared base. Phases 3–9 follow the user stories in
-priority order, and Phase 13 adds User Story 8. Each story phase ends with that story's end-to-end
-journey from [quickstart.md](quickstart.md#validation-scenarios).
+priority order, Phase 13 adds User Story 8, and Phases 15 and 16 add User Stories 9 and 10. Each
+story phase ends with that story's end-to-end journey from
+[quickstart.md](quickstart.md#validation-scenarios).
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: can run in parallel with the neighbouring [P] tasks, because it touches different files
   and depends on no unfinished task. A task that installs a package changes `package.json`, so run
   only one such task at a time.
-- **[Story]**: US1 … US8, the [user stories](spec.md#user-scenarios) of the spec.
+- **[Story]**: US1 … US10, the [user stories](spec.md#user-scenarios) of the spec.
 - Paths are relative to the repository root ([plan.md](plan.md#project-structure)).
 
 ## Conventions for every task
@@ -1471,6 +1472,359 @@ post-push check.
 
 ---
 
+## Phase 15: Installable app
+
+**Purpose**: the app of [User Story 9](spec.md#user-story-9), used at its web address by people who
+are not IT experts: it opens there with nothing to set up, Chrome and Edge can install it, it works
+offline after the first visit, and a newer version waits until the user selects Update in Settings
+([FR-121](spec.md#fr-121) – [FR-125](spec.md#fr-125), [FR-075](spec.md#fr-075),
+[R-30](research.md#r-30), [app-updates.md](contracts/app-updates.md)). The owner asked for it on
+2026-10-21, after v1.4. A manifest, a service worker of about 100 lines and a Vite plugin, all of
+our own, and no dependency ([plan.md](plan.md#constitution-check)). The spec, contracts, research
+and plan change first, in the commits marked "P15, P16". The AI features stay as Phase 13 made them
+until Phase 16. IDs start at T130, since T124 – T129 named the reverted local AI
+([R-29](research.md#r-29)).
+
+**Independent Test**: User Story 9's, automated as `e2e/us9-installable.spec.ts`, with the
+Playwright project `offline` for [SC-018](spec.md#sc-018)
+([quickstart.md](quickstart.md#us9-installable-app)), and the
+[installable app checks](quickstart.md#installable-app-checks) by a person.
+
+- [ ] T130 [P] [US9] The manifest and icons: `public/manifest.webmanifest` with the fields of
+  [app-updates.md](contracts/app-updates.md#files-the-build-emits): `name` and `short_name`
+  "Financial Copilot", `start_url` and `scope` `./`, `display` `standalone`, `background_color` the
+  canvas and `theme_color` the primary colour of [ui.md](contracts/ui.md#look), and the three icons;
+  `public/icons/icon-192.png`, `icon-512.png` and `icon-maskable-512.png`, PNGs of those sizes in
+  the primary and canvas colours, the maskable one with `purpose` `maskable` and its mark inside the
+  central 80%; and `index.html` linking the manifest with a relative `href`
+  ([FR-122](spec.md#fr-122), [R-30](research.md#r-30), [R-20](research.md#r-20)). Test first in
+  `e2e/ui/shell.spec.ts`:
+  - the page links `manifest.webmanifest`, which loads from the app's own origin as JSON with
+    exactly those fields, its colours the canvas and primary colours the page shows;
+  - each icon the manifest lists loads from the app's origin as a PNG of its stated size, and one
+    of 512 pixels has `purpose` `maskable`;
+  - every path in the manifest is relative, so the app installs from any address
+    ([R-20](research.md#r-20)).
+- [ ] T131 [P] [US9] The build's header in a new `worker/plugin.ts`: a Vite plugin, applied at
+  build, that in `closeBundle` reads every file written to `outDir`, the copied `public/` files
+  included, and writes `sw.js`: the one line
+  `self.BUILD = {"id","version","files"};` of [app-updates.md](contracts/app-updates.md#the-build),
+  then the code of `worker/serviceWorker.js`; and that writes
+  `<meta name="app-build" content="<id>">` into the built `index.html`. `id` is "the first 12
+  hexadecimal characters of a SHA-256 over the path and content of each emitted file other than
+  `index.html` and `sw.js`, in path order"; `version` is "MAJOR.MINOR of `package.json`"; `files`
+  is "every emitted file other than `sw.js`, `index.html` included", as paths relative to the app's
+  address with `/` on every system. The same module exports `appVersion()`: `TEST_APP_VERSION`
+  when it is set, otherwise `package.json`'s `version`, and it throws when `TEST_APP_VERSION` is
+  set while `VERCEL` is, so every published build reads `package.json` (constitution IX).
+  `vite.config.ts` adds the plugin, defines `__APP_VERSION__` as that full version, declared in a
+  new `src/env.d.ts`, and adds `worker/**/*.test.ts` to `test.include`; `src/ui/app/App.tsx` shows the
+  MAJOR.MINOR of `__APP_VERSION__` in place of its import of `package.json`; `tsconfig.node.json`
+  includes `worker`; `eslint.config.js` gives `worker/serviceWorker.js` the service worker's
+  globals; and `worker/serviceWorker.js` starts as its header comment alone, which T132 fills
+  ([R-30](research.md#r-30), [FR-088](spec.md#fr-088), [FR-124](spec.md#fr-124)). Test first:
+  - in `worker/plugin.test.ts`, on a temporary output folder: `sw.js` is the header line, then the
+    worker's code; `files` lists every file but `sw.js`, in path order, `index.html` and nested
+    paths such as `icons/icon-192.png` included; the id is 12 hexadecimal characters; changing
+    only `index.html` keeps the id and gives a byte-identical `sw.js`, while changing the content
+    of any other file, or renaming one, changes the id; `index.html` gains exactly one `app-build`
+    meta naming the id; and `appVersion()` gives `package.json`'s version, `TEST_APP_VERSION` when
+    set, and throws with `TEST_APP_VERSION` and `VERCEL` both set;
+  - in `e2e/ui/shell.spec.ts`: the built page's `app-build` names the id that `sw.js`, fetched from
+    the app's origin, starts with, and `sw.js` names the version the header shows.
+- [ ] T132 [US9] The service worker: `worker/serviceWorker.js` as
+  [app-updates.md](contracts/app-updates.md#the-workers-lifecycle) describes it: install with
+  `cache: "reload"` into `build-<id>` and the `app-build` check of the downloaded `index.html`, then
+  `skipWaiting()`; activate, which writes `in-use` to `app-state` when it has none, claims the
+  windows and deletes every other `build-` cache but the one in use; fetch, which answers a GET to
+  the app's own origin from the build in use, a navigation with its `index.html`, and leaves
+  everything else to the browser; the missing cache, after which the worker writes its own build as
+  in use; and the `versions` and `update` messages on a `MessagePort`, with no answer to an unknown
+  `type` ([app-updates.md](contracts/app-updates.md#messages)). `registerWorker()` in a new
+  `src/pwa/updates.ts` registers `./sw.js` with scope `./` in the production build only, called
+  from `src/main.tsx`. `playwright.config.ts` sets `serviceWorkers: "block"` for every spec, which
+  `e2e/us9-installable.spec.ts` alone overrides ([FR-121](spec.md#fr-121),
+  [FR-123](spec.md#fr-123), [FR-124](spec.md#fr-124), [R-30](research.md#r-30)). Test first in
+  `e2e/us9-installable.spec.ts`, with service workers allowed, in Chromium and Firefox:
+  - scenario 1: a browser that never opened the app shows the transaction list, and nothing asks
+    to install or set up anything ([SC-016](spec.md#sc-016));
+  - after the first visit, `sw.js` controls the page; `build-<id>` holds every file of `files`;
+    and `in-use` names that build and its version;
+  - scenario 4: with the network cut and the page reloaded, the app opens with its data, records
+    an expense, shows Insights and saves a backup ([SC-018](spec.md#sc-018));
+  - the worker answers no request to another origin: a stand-in's `page.route` still sees it;
+  - `versions` answers `inUse` and `own`, and a message of an unknown type gets no answer within
+    5 seconds;
+  - with the build's cache deleted, a reload opens the app, and `in-use` names the worker's build;
+  - with `e2e/support/versions.ts` serving an `index.html` of another build, the install fails and
+    leaves no `build-` cache of its own;
+  - in every other spec, and on the dev server, no worker controls the page.
+
+  The test commit adds `e2e/support/versions.ts`: a static server of the build on port 4174, which
+  builds the next versions once with `TEST_APP_VERSION` into `tmp/`, and which a test switches
+  between them. The scenarios that switch builds skip when `BASE_URL` is set, since they publish a
+  build of their own ([R-30](research.md#r-30)).
+- [ ] T133 [P] [US9] The update notice: in `src/pwa/updates.ts`, `workerVersions()`, which posts
+  `versions` and waits 5 seconds at most; `isNewer(own, running)`, which compares MAJOR.MINOR
+  strings; and `applyUpdate()`, which posts `update` and reloads the page on `done`; asked when
+  Settings opens and again on `controllerchange`. At the top of `src/ui/screens/settings/SettingsScreen.tsx`, in the info
+  style, the section of [ui.md](contracts/ui.md#settings): "Version 1.6 is available (you have
+  1.5). Make a backup first.", with the versions as the header shows them, **Backup**, which saves a
+  backup as Save backup on the Backup screen does, and **Update**; `update-failed` in
+  `src/ui/messages.ts` when the worker does not answer ([FR-124](spec.md#fr-124),
+  [app-updates.md](contracts/app-updates.md#the-pages-side)). Test first:
+  - in `src/pwa/updates.test.ts`, with a stand-in worker on a `MessageChannel` and fake timers:
+    `1.6` is newer than `1.5`, `1.10` than `1.9`, and the same version with another id is not;
+    `workerVersions()` gives the answer, or absent after 5 seconds; and `applyUpdate()` reloads on
+    `done`, and gives `update-failed` without an answer within 5 seconds;
+  - in `src/ui/messages.test.ts`, the notice names both versions and asks for a backup, and
+    `update-failed` says what to do and that the data is unchanged;
+  - in `e2e/ui/settings.spec.ts`, without a worker Settings shows no update section;
+  - in `e2e/us9-installable.spec.ts`, scenarios 5 – 7 against `e2e/support/versions.ts`, in one
+    persistent browser profile: with the next MINOR published, the header keeps the old version
+    and Settings shows the notice, through three closings and openings of the browser
+    ([SC-019](spec.md#sc-019)); Backup downloads a backup file; Update opens the app on the new
+    version, without the notice, and with every store's records as before; a build of the same
+    MAJOR.MINOR with other files shows no notice; and with two newer versions published, the
+    notice names the newest and Update goes to it.
+- [ ] T134 [P] [US9] Install app: a new `src/pwa/install.ts`, imported first in `src/main.tsx`,
+  keeps `beforeinstallprompt`, calling `preventDefault()`, and forgets it on `appinstalled` and
+  once its `prompt()` was used, telling subscribers each time; the header in `src/ui/app/App.tsx` shows an
+  outline **Install app** with a download icon before Add transaction while an event is kept; and
+  the note of `src/ui/screens/backup/BackupScreen.tsx` on persistent storage adds that installing the app helps the
+  browser keep the data, with Install app, while the header offers it
+  ([FR-122](spec.md#fr-122), [FR-075](spec.md#fr-075), [ui.md](contracts/ui.md#shell-and-navigation),
+  [ui.md](contracts/ui.md#backup), [R-30](research.md#r-30)). Test first:
+  - in `src/pwa/install.test.ts`, with an `EventTarget` in the window's place: a kept event makes
+    the app installable and was prevented; `install()` calls the event's `prompt()` once and
+    forgets it; `appinstalled` forgets it; and subscribers hear each change;
+  - in `src/ui/messages.test.ts`, the install hint of the Backup note;
+  - in `e2e/ui/shell.spec.ts`, no Install app without an event, and none in Firefox;
+  - in `e2e/ui/backup.spec.ts`, the note without the hint while no event is kept;
+  - in `e2e/us9-installable.spec.ts`, scenarios 2, 3 and 8 with a `beforeinstallprompt` the test
+    dispatches: Install app shows before Add transaction, selecting it calls `prompt()`, and it
+    goes once `appinstalled` fires; and the Backup note, with persistent storage not granted,
+    holds the hint and Install app ([SC-017](spec.md#sc-017)).
+- [ ] T135 [US9] Every story offline ([SC-018](spec.md#sc-018)): a Playwright project `offline` in
+  `playwright.config.ts` runs the specs of US1 – US7 in Chromium with service workers allowed; in
+  that project the fixture of `e2e/support/test.ts` opens the app, waits until the worker controls
+  the page, and cuts the network before the test begins ([R-30](research.md#r-30),
+  [quickstart.md](quickstart.md#us9-installable-app)). Test first: the test commit adds the project
+  and, in `e2e/support/test.ts`, a check after each test of that project that fails it unless the
+  page was controlled by the worker and offline throughout; the specs of US1 – US7 stay unchanged.
+- [ ] T136 (Project owner, manual) Walk the [installable app checks](quickstart.md#installable-app-checks)
+  at the web address with a fresh browser profile, in Chrome, Edge and Firefox. Its commit sets
+  the version to `1.5.0`, after T122's `1.4.0`, and the tag `v1.5` goes on the phase's squash commit
+  on `main` (constitution IX). The first real Update, from v1.5 to v1.6, is checked in T145.
+
+**Checkpoint**: every task of the phase is done. The phase is a release, v1.5 (constitution IX),
+MINOR because it adds installing, offline use and the update notice, removes no feature, and
+leaves storage and backups as they were: the worker's caches live outside the database, which no
+step touches ([app-updates.md](contracts/app-updates.md#caches)). From v1.5 on, the worker's
+caches and messages are a contract kept from version to version
+([app-updates.md](contracts/app-updates.md#compatibility)). Push and run the post-push check.
+
+---
+
+## Phase 16: Own OpenAI key and model choice
+
+**Purpose**: the AI features of [User Story 10](spec.md#user-story-10) for every user of the app
+at its web address: each turns them on with their own OpenAI API key, which the app checks with
+OpenAI, stores on this computer and keeps out of every backup, and chooses the model that answers;
+the app asks `api.openai.com` itself, and the local route, `server/` and `.env` go
+([FR-126](spec.md#fr-126) – [FR-131](spec.md#fr-131), [FR-095](spec.md#fr-095),
+[FR-105](spec.md#fr-105), [FR-106](spec.md#fr-106), [R-31](research.md#r-31),
+[R-32](research.md#r-32), [ai.md](contracts/ai.md), [backup-file.md](contracts/backup-file.md)).
+The owner asked for it on 2026-10-21, with Phase 15. The spec, contracts, research and plan change
+first, in the commits marked "P15, P16". No new dependency, and storage stays at schema version 1.
+
+**Independent Test**: User Story 10's, automated as `e2e/us10-own-key.spec.ts`
+([quickstart.md](quickstart.md#us10-own-openai-key-and-model-choice)), and the manual checks of
+[AI features](quickstart.md#ai-features) at the web address.
+
+- [ ] T137 [US10] The models: a new `src/ai/models.ts` with `AI_MODELS`, in the order Settings shows
+  them, each with its hint (gpt-5.4-mini "default", gpt-6.1-sol "better answers, costs more",
+  gpt-5.6-luna "cheaper"), `DEFAULT_MODEL`, and `modelInUse(settings)`, which gives
+  `{ model, noLongerOffered }`; `model` in `Settings` of `src/domain/types.ts`, "model id, or
+  absent", where "Absent means the default. Any non-empty string is kept, also one no longer in the
+  list"; `setModel(state, model)` in `src/domain/settings.ts`, which "changes nothing else";
+  invariant 8 in `src/domain/invariants.ts`: "`settings.model`, when present, is a non-empty
+  string"; `chooseModel` in `src/store/settings.ts`; and in `src/files/backup.ts` an optional
+  `model` in the settings' schema ([FR-129](spec.md#fr-129), [FR-130](spec.md#fr-130),
+  [R-32](research.md#r-32), [data-model.md](data-model.md#settings),
+  [backup-file.md](contracts/backup-file.md#compatibility)). Test first:
+  - in `src/ai/models.test.ts`: the three models in that order with their hints, the default
+    gpt-5.4-mini; `modelInUse` gives the default for no model, a listed model as it is, and the
+    default with `noLongerOffered` for a model not listed, such as `gpt-4o`;
+  - in `src/domain/settings.test.ts`: `setModel` stores the model, also the one in use, and
+    changes nothing else; in `src/domain/invariants.test.ts`, an empty `model` breaks invariant 8;
+  - in `src/files/backup.test.ts`: a file's model loads, one not listed is kept, an empty one is
+    refused, and a file without one, as v1.5 saves it, loads without a model;
+  - in `src/store/settings.test.ts`: `chooseModel` writes at once, and a failed write gives
+    `save-failed` and keeps the choice as it was.
+- [ ] T138 [US10] The key in storage: `apiKey: string | null` in `State` of
+  `src/domain/types.ts`, beside `settings` and not inside it, "Trimmed when entered, non-empty.
+  `null` while no key is stored", and `null` in the seed; `apiKey` in `Changes`, a key to write or
+  `null` to delete it; in `src/domain/settings.ts`, `turnOnWithKey(state, key)`, which trims the key
+  and sets it with `aiFeatures: true`, `removeKey(state)`, which deletes it and turns AI features
+  off, and `maskKey(key)`, "`sk-…` and its last 4 characters"; invariant 8 also checks that
+  "Settings holds no field for the key"; in `src/persistence/db.ts`, the record `openaiKey` of the
+  `settings` store, "absent while no key is stored", read by `loadState`, written and deleted by
+  `applyChanges` in the same transaction as the settings, and written back by `replaceAll` after it
+  clears the stores; and in `src/store/settings.ts`, `aiFeaturesOn` as "`settings.aiFeatures` is
+  present and `apiKey` is not `null`", `turnOnWithKey` and `removeKey`, which stops an answer being
+  written as turning off does, with `servedLocally`, `src/ai/local.ts` and `src/ai/local.test.ts`
+  gone ([FR-126](spec.md#fr-126), [FR-095](spec.md#fr-095), [FR-106](spec.md#fr-106),
+  [FR-108](spec.md#fr-108), [R-31](research.md#r-31),
+  [data-model.md](data-model.md#openai-key), [data-model.md](data-model.md#state-transitions)).
+  Test first:
+  - in `src/domain/settings.test.ts`: the key is trimmed of spaces and line breaks;
+    `turnOnWithKey` changes the key and the switch together, and `removeKey` both;
+    `maskKey("sk-proj-abcdefa1b2")` is `sk-…a1b2`;
+  - in `src/persistence/db.test.ts`, with `fake-indexeddb`: a database without `openaiKey`, as
+    v1.5 leaves it, loads with `apiKey` `null`; a failed write of either leaves neither; and
+    `replaceAll` keeps the stored key, and keeps none when there was none;
+  - in `src/store/settings.test.ts`: `aiFeatures: true` without a key reads as off; Remove key
+    stops an answer being written; and the switch off keeps the key;
+  - in `src/files/backup.test.ts`: a backup of a state with a key holds neither the key nor its
+    last 4 characters;
+  - in `e2e/us7-backup.spec.ts`, with a key put into storage: the round trip of
+    [SC-014](spec.md#sc-014) with a chosen model, neither file holding the key or its last 4
+    characters, and a restore that keeps the key stored on this computer.
+- [ ] T139 [P] [US10] The key check: `checkKey(apiKey, signal)` in `src/ai/openai.ts` sends
+  `GET https://api.openai.com/v1/models` with `Authorization: Bearer <key>`, no body,
+  `credentials: "omit"` and nothing else, stops after 10 seconds, and gives accepted for 200 – 299
+  and 403, `ai-key-not-accepted` for 401, and `ai-key-check-unreachable` for any other status, no
+  response or the 10 seconds; aborting the signal gives cancelled, and it never rejects.
+  `vite.config.ts` allows `https://api.openai.com` in `connect-src`, and `src/ui/messages.ts` words
+  both codes, `ai-key-not-accepted` exactly as the catalogue says
+  ([FR-127](spec.md#fr-127), [FR-128](spec.md#fr-128), [SC-021](spec.md#sc-021),
+  [ai.md](contracts/ai.md#key-check), [R-31](research.md#r-31), [R-19](research.md#r-19)). Test
+  first:
+  - in `src/ai/openai.test.ts`, with `fetch` stubbed and fake timers: the address, method,
+    headers and absent body; each status of the table; a rejected fetch; no answer within 10
+    seconds; and an aborted check;
+  - in `src/ui/messages.test.ts`: `ai-key-not-accepted` reads "OpenAI didn't accept this key.
+    Check that you copied all of it.", and `ai-key-check-unreachable` says to try again once
+    connected and that nothing was stored;
+  - in `e2e/ui/shell.spec.ts`, the production CSP's `connect-src` is `'self'
+    https://api.openai.com`, in place of `'self'` alone.
+- [ ] T140 [US10] Settings for the key and the model, as [ui.md](contracts/ui.md#settings)
+  describes them, in `src/ui/screens/settings/SettingsScreen.tsx`: the dialog "Turn on AI features?" with the warning,
+  the lines about the key, the link "Create an API key at OpenAI" to
+  `https://platform.openai.com/api-keys` in a new tab, the password field "OpenAI API key" with
+  autocomplete and spellcheck off, or "Your key: sk-…a1b2" when a key is stored, and Cancel and
+  Turn on, unavailable while the field is empty after trimming; Turn on reading **Checking key…**
+  with the field read-only during `checkKey`, then `turnOnWithKey`, `ai-key-not-accepted` and
+  `ai-key-check-unreachable` as form errors keeping what was entered, and `save-failed`; Cancel or
+  Escape aborting the check; the masked key and **Remove key**, with the confirmation "Remove
+  key?"; and the radio group "Model" of `AI_MODELS` with its hints, saving at once, with the line
+  "The model you chose is no longer offered; now using gpt-5.4-mini." while
+  `noLongerOffered` ([FR-126](spec.md#fr-126), [FR-127](spec.md#fr-127),
+  [FR-129](spec.md#fr-129), [FR-130](spec.md#fr-130), [FR-069](spec.md#fr-069)). The wording lives
+  in `src/ui/messages.ts`. Test first:
+  - in `src/ui/messages.test.ts`: the lines about the key say that OpenAI charges the user's own
+    account and that a monthly limit is wise; the confirmation says that AI features turn off and
+    the key must be entered again; and the note names the default;
+  - `e2e/support/ai.ts` gains `standInKeyCheck(page, answer)`, which answers at
+    `https://api.openai.com/v1/models` with a status, holds the answer, or fails it, and records
+    each request; `turnOnAiFeatures(page)` enters a test key with the check accepting it;
+  - in `e2e/ui/settings.spec.ts`: the dialog's parts; Turn on unavailable for an empty or blank
+    field; Checking key… while the check is held; each outcome; Cancel during the check sends no
+    second request and stores nothing; the masked key, never the whole one, also after a reload;
+    Remove key with Cancel and with Remove key; the model group in order, available with AI
+    features off, saving the choice across a reload; and the note for a stored model not listed;
+  - in `e2e/us10-own-key.spec.ts`, scenarios 1 – 4 and 6 – 8: the check sends the key and nothing
+    else, and a refused key shows its message within 10 seconds and stores nothing
+    ([SC-021](spec.md#sc-021)); a backup with gpt-5.6-luna and AI features on holds no part of the
+    key and restores in a fresh context with gpt-5.6-luna and the switch off; a database of v1.5
+    with AI features on shows the switch off and asks for a key; and a backup with a model not
+    listed shows the note.
+- [ ] T141 [US10] Straight to OpenAI: `askOpenAi` in `src/ai/openai.ts` posts to
+  `https://api.openai.com/v1/responses` with `Authorization: Bearer <key>`,
+  `Content-Type: application/json` and `credentials: "omit"`, and with the key and model its caller
+  passes in place of `OPENAI_MODEL`; it reads OpenAI's error JSON by `code` and status, never
+  showing `message`, in the order of [ai.md](contracts/ai.md#failures): `ai-unreachable`,
+  `ai-key-rejected`, `ai-no-credit`, `ai-model-unavailable` naming the model, then `ai-failed`.
+  `src/ai/categoriser.ts` and `src/ai/chat.ts` pass them on, and `src/store/import.ts` and
+  `src/store/chat.ts` take `state.apiKey` and `modelInUse(state.settings).model` when a request
+  starts. `src/ui/messages.ts` words the three new codes, `ai-key-rejected` and
+  `ai-model-unavailable` with a link to Settings, and the new wording of `ai-unreachable` and
+  `ai-failed`. Removed: `src/ai/path.ts`; `server/aiRoute.ts` and `server/aiRoute.test.ts`; the
+  `aiRoute()` plugin and `server/**/*.test.ts` in `vite.config.ts`; `server` in
+  `tsconfig.node.json`; `.env.example` and `!.env.example` in `.gitignore`; and the empty
+  `OPENAI_API_KEY` of `playwright.config.ts` ([FR-128](spec.md#fr-128),
+  [FR-094](spec.md#fr-094), [FR-105](spec.md#fr-105), [FR-106](spec.md#fr-106),
+  [FR-129](spec.md#fr-129), [ai.md](contracts/ai.md), [R-31](research.md#r-31)). Test first:
+  - in `src/ai/openai.test.ts`, with `fetch` stubbed: the address, the three headers, `omit`, and
+    the model passed; each row of the failure table, also a 401 with an HTML body as
+    `ai-unreachable`; and no refusal or detail holds the key;
+  - in `src/ai/categoriser.test.ts` and `src/ai/chat.test.ts`, the key and model reach the request;
+  - in `src/store/import.test.ts` and `src/store/chat.test.ts`, each request takes the key and the
+    model in use when it starts, and an answer being written keeps its model when the user chooses
+    another;
+  - in `src/ui/messages.test.ts`, each new code says what to do, and none names the key;
+  - `e2e/support/ai.ts` answers at `https://api.openai.com/v1/responses` in place of `/api/ai`, and
+    the guard of `e2e/support/test.ts` fails any request outside the app's origin that no stand-in
+    answers, without its check of `/api/ai`; `onHostedCopy` and `LOCAL_ONLY` go, and the specs
+    that skipped on a hosted copy run there too ([FR-106](spec.md#fr-106));
+  - in `e2e/network-guard.spec.ts`, a request to `api.openai.com` without a stand-in fails the
+    guard; in `e2e/messages.spec.ts`, `ai-key-rejected`, `ai-no-credit` and
+    `ai-model-unavailable` show once each ([SC-012](spec.md#sc-012));
+  - in `e2e/us10-own-key.spec.ts`, scenario 9: the chat and Suggest categories ask
+    `api.openai.com` with the key and the model in use, only those requests carry the key, and the
+    app's own origin receives nothing for an AI feature.
+- [ ] T142 [US10] The model in the chat: while AI features are on, a line in the muted colour
+  above the question field of `src/ui/screens/chat/FinanceChat.tsx` says "Answers by <model>", the model in use, from
+  `financeChat.answersBy` in `src/ui/messages.ts` ([FR-129](spec.md#fr-129),
+  [ui.md](contracts/ui.md#finance-chat)). Test first:
+  - in `e2e/ui/finance-chat.spec.ts`: the line names gpt-5.4-mini, then gpt-6.1-sol once chosen in
+    Settings, and is absent while AI features are off;
+  - in `e2e/us10-own-key.spec.ts`, scenario 5: after choosing gpt-6.1-sol, the chat says so, and
+    the next question and the next request for suggestions name that model.
+- [ ] T143 [P] [US10] The model check of [FR-131](spec.md#fr-131): `scripts/check-models.ts`, run
+  by `npm run check:models` with Vitest outside `test.include`, so `npm test` and CI never run it.
+  It reads `OPENAI_API_KEY` and `DEMO_BACKUP` from the environment, never writing the key to a
+  file; loads the backup with `src/files/backup.ts`, with today the day after its last
+  transaction; and checks the models in the order gpt-5.4-mini, gpt-5.6-luna, gpt-6.1-sol, each
+  request stopped after 60 seconds and a model's first failure ending its check. Suggestions: the
+  newest 100 categorised expenses and incomes held out, their categories hidden, the examples built
+  from the rest as `suggestionRequest` does, a suggestion right when it names the held-out
+  category by name key, and a pass with the whole answer within 60 seconds and at least 90 right.
+  The chat: each example question and "What is the capital of France?", each answer printed beside
+  the facts the app works out (each budget's spending against its limit, each month's totals by
+  category, the changes in price of each repeated payment), the last passing only with `inScope`
+  false. The pure parts live in `scripts/modelCheck.ts` ([R-32](research.md#r-32),
+  [quickstart.md](quickstart.md#model-check)). Test first in `scripts/modelCheck.test.ts`, added to
+  `test.include`: the hold-out takes the newest 100 categorised expenses and incomes, in order, and
+  hides their categories; scoring compares by name key; a model passes with 90 right and fails
+  with 89; the facts name each budget over and within its limit and each price change; and the
+  check stops at a model's first failure.
+- [ ] T144 (Project owner, with Claude) Run the model check as
+  [quickstart.md](quickstart.md#model-check) says, with the owner's key in the shell for that run
+  only, on a backup of the demonstration data in `tmp/`. The owner and Claude judge each chat
+  answer against the facts. Record in [R-32](research.md#r-32) the table of model, prices of the
+  day, time to the whole answer and suggestions right, and each chat answer with its verdict; set
+  `AI_MODELS` and `DEFAULT_MODEL` in `src/ai/models.ts` to the models that passed, the cheapest
+  passing one the default if gpt-5.4-mini fails, and update the tests, ui.md and the spec where they
+  name a model that failed ([FR-131](spec.md#fr-131), [SC-022](spec.md#sc-022)). A model once
+  checked is not checked again.
+- [ ] T145 (Project owner, manual) Delete `.env` from the project folder, check that `dist/` holds
+  no part of your key, and walk the manual checks of [AI features](quickstart.md#ai-features) at
+  the web address with your own key, then on `localhost`; and the
+  [SC-019 check](quickstart.md#installable-app-checks), the first real Update, from v1.5. Its
+  commit sets the version to `1.6.0`, and the tag `v1.6` goes on the phase's squash commit on
+  `main` (constitution IX).
+
+**Checkpoint**: every task of the phase is done. The phase is a release, v1.6 (constitution IX),
+MINOR because v1.5 reads v1.6 storage and backups: the key is a third record of the settings store,
+which v1.5 does not read, and the model an optional key of the settings, which v1.5 drops
+([R-31](research.md#r-31), [R-32](research.md#r-32)). No feature leaves the app: the AI features,
+which the local route served only on the owner's computer, now work wherever the app is served
+([FR-106](spec.md#fr-106)). Push and run the post-push check.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -1503,6 +1857,16 @@ post-push check.
   chat's tasks, whose store checks `aiFeaturesOn`.
 - **Design (Phase 14)**: depends on every screen, whose look it changes, and follows Phase 13,
   whose version it raises. Order: T119 → T120 → T121 → T123 → T122.
+- **Installable app (Phase 15)**: depends on every screen, which it serves offline, and follows
+  Phase 14, whose version it raises. Order: T130 and T131 → T132 → T133 and T134 → T135 → T136.
+  T132 fills the worker that T131 builds; T133 needs the worker's messages; T135 needs the worker
+  to control the page.
+- **Own OpenAI key and model choice (Phase 16)**: depends on Phase 15, whose worker and update
+  notice deliver it; on US7, whose backup leaves the key out; and on Phase 13, whose AI features it
+  moves to the user's key. Order: T137 → T138 → T139 → T140 → T141 → T142 → T144 → T145, with
+  T143 at any time before T144. T139 can run beside T137 and T138, since it touches
+  `src/ai/openai.ts`, `vite.config.ts` and the messages only. T144 may change `AI_MODELS`, so
+  T145's checks follow it.
 
 ### Within Each Task and Story
 
@@ -1525,6 +1889,11 @@ post-push check.
 - **Polish**: T077 and T078 together.
 - **Phase 13**: T105 and T113 together, alongside T102 – T104; T110 follows T105, because both
   write `src/domain/chat.ts`.
+- **Phase 15**: T130 and T131 together. T133 and T134 together, after T132; both add a test to
+  `src/ui/messages.test.ts`, so its test commit comes from one of them.
+- **Phase 16**: T139 alongside T137 and T138, and T143 alongside any task of the phase before
+  T144. T140 – T142 in order: each changes `src/ui/messages.ts` and the stand-ins of
+  `e2e/support/ai.ts`.
 - **Ahead of their phase**: the domain modules of later stories depend only on Foundational and on
   T024/T025, so another agent can build them early: T034–T039, T053–T054, T058, T063, T068 and T072.
 
@@ -1581,6 +1950,26 @@ Task: "T105 [US8] The chat's data in src/domain/chat.ts"
 Task: "T113 [US8] Transaction filters from the address in src/ui/app/router.ts"
 ```
 
+## Parallel Example: User Story 9
+
+```bash
+# First wave:
+Task: "T130 [US9] Manifest and icons in public/manifest.webmanifest and public/icons/"
+Task: "T131 [US9] The build's header in worker/plugin.ts"
+
+# After T132:
+Task: "T133 [US9] The update notice in src/pwa/updates.ts and the Settings screen"
+Task: "T134 [US9] Install app in src/pwa/install.ts and the header"
+```
+
+## Parallel Example: User Story 10
+
+```bash
+# Beside the models and the key's storage (T137, T138):
+Task: "T139 [US10] The key check in src/ai/openai.ts"
+Task: "T143 [US10] The model check in scripts/check-models.ts and scripts/modelCheck.ts"
+```
+
 ---
 
 ## Implementation Strategy
@@ -1605,6 +1994,11 @@ Task: "T113 [US8] Transaction filters from the address in src/ui/app/router.ts"
 7. US6 brings category management.
 8. US7 brings backup and restore.
 9. Polish: SC-012 messages, performance, and the full manual walkthrough.
+10. US8 brings category suggestions and the finance chat through OpenAI.
+11. US9, v1.5, makes the app installable and usable offline at its web address, with updates
+    the user starts.
+12. US10, v1.6, gives the AI features to every user, with their own key and model, and removes
+    the local route; it arrives through US9's first real Update.
 
 After each story: `npm run verify`, a push to `main`, and the post-push check on localhost and Vercel
 (constitution, quality gates).
