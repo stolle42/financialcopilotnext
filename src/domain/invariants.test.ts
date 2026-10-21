@@ -214,6 +214,19 @@ describe("checkInvariants", () => {
     expect(checkInvariants(withSource({ categoryId: "gone", accountId: "gone" }))).toBeNull();
   });
 
+  test("passes a model no longer offered, which the settings keep (FR-130)", () => {
+    const settings = { manualEntryAccountId: "cash", model: "gpt-4o" };
+    expect(checkInvariants({ ...validState(), settings })).toBeNull();
+  });
+
+  test("names the settings' model when it is empty", () => {
+    const settings = { manualEntryAccountId: "cash", model: "" };
+    expect(checkInvariants({ ...validState(), settings })).toEqual({
+      code: "settings-model-invalid",
+      details: { model: "" },
+    });
+  });
+
   test("names the turn that breaks a rule of the conversation, counting from 1", () => {
     const state = validState();
     const conversation = [...state.conversation, { ...answeredTurn, question: " " }];
@@ -478,6 +491,11 @@ describe("checkInvariants", () => {
       "8: a default account that does not exist",
       () => ({ ...validState(), settings: { manualEntryAccountId: "gone" } }),
       "settings-account-missing",
+    ],
+    [
+      "8: an empty model",
+      () => ({ ...validState(), settings: { manualEntryAccountId: "cash", model: "" } }),
+      "settings-model-invalid",
     ],
     // 9. The conversation.
     ["9: an empty question", () => withTurn({ question: "" }), "conversation-question-missing"],

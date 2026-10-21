@@ -172,6 +172,36 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro" });
   });
 
+  test("keeps the chosen model (FR-130)", () => {
+    const state = everyEntityState();
+    const chosen = { ...state, settings: { ...state.settings, model: "gpt-5.6-luna" } };
+    const json = JSON.parse(serializeBackup(chosen, EXPORTED_AT)) as { data: Json };
+    expect(json.data.settings).toHaveProperty("model", "gpt-5.6-luna");
+    expect((parseBackup(serializeBackup(chosen, EXPORTED_AT)) as State).settings).toStrictEqual(
+      chosen.settings,
+    );
+  });
+
+  test("keeps a model the app no longer lists, which then uses the default (FR-130, R-32)", () => {
+    const json = fileJson();
+    (json.data.settings as Json).model = "gpt-4o";
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.settings.model).toBe("gpt-4o");
+  });
+
+  test("loads a file without a model, as v1.5 saves it, with none chosen", () => {
+    const json = fileJson();
+    delete (json.data.settings as Json).model;
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.settings).not.toHaveProperty("model");
+  });
+
   test("keeps the conversation, every kind of turn, source and follow-up alike (FR-104, FR-111)", () => {
     const state = everyEntityState();
     const loaded = parseBackup(serializeBackup(state, EXPORTED_AT)) as State;
@@ -318,6 +348,19 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     expect(parsed(json)).toMatchObject({
       code: "backup-damaged",
       details: { record: "settings", field: "aiFeatures" },
+    });
+  });
+
+  test.each<[string, unknown]>([
+    ["empty", ""],
+    ["not a string", 7],
+  ])("names settings whose model is %s (FR-130)", (_, model) => {
+    const json = fileJson();
+    (json.data.settings as Json).model = model;
+
+    expect(parsed(json)).toMatchObject({
+      code: "backup-damaged",
+      details: { record: "settings", field: "model" },
     });
   });
 

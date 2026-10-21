@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loadState, openDatabase } from "@/persistence/db";
-import { aiFeaturesOn, setAiFeatures } from "./settings";
+import { aiFeaturesOn, chooseModel, setAiFeatures } from "./settings";
 import { createStore } from "./store";
 
 // FR-095: the AI features switch saves at once.
@@ -40,6 +40,48 @@ describe("setAiFeatures (FR-095)", () => {
     expect(store.getState().settings).not.toHaveProperty("aiFeatures");
     db.close();
     expect((await reopened()).settings).not.toHaveProperty("aiFeatures");
+  });
+});
+
+/** A full disk on every put into the settings store. */
+function failSettingsPuts() {
+  const put = IDBObjectStore.prototype.put;
+  vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(function (
+    this: IDBObjectStore,
+    ...args: Parameters<IDBObjectStore["put"]>
+  ) {
+    if (this.name === "settings") throw new DOMException("The disk is full", "QuotaExceededError");
+    return put.apply(this, args);
+  });
+}
+
+describe("chooseModel (FR-129, FR-130)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("saves the choice at once, so it survives closing the app", async () => {
+    const { db, store } = await setUp();
+
+    expect(await chooseModel(store, "gpt-6.1-sol")).toBeNull();
+
+    expect(store.getState().settings.model).toBe("gpt-6.1-sol");
+    db.close();
+    expect((await reopened()).settings.model).toBe("gpt-6.1-sol");
+  });
+
+  test("a failed write gives save-failed and keeps the choice as it was", async () => {
+    const { db, store } = await setUp();
+    await chooseModel(store, "gpt-5.6-luna");
+    failSettingsPuts();
+
+    const result = await chooseModel(store, "gpt-6.1-sol");
+
+    expect(result).toEqual({ code: "save-failed", details: { reason: "QuotaExceededError" } });
+    expect(store.getState().settings.model).toBe("gpt-5.6-luna");
+    vi.restoreAllMocks();
+    db.close();
+    expect((await reopened()).settings.model).toBe("gpt-5.6-luna");
   });
 });
 

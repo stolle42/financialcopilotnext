@@ -134,6 +134,18 @@ describe("messages", () => {
     expect(messageFor({ code: "backup-damaged" })).toMatch(/incomplete|damaged/i);
   });
 
+  test("words a backup whose settings hold an empty model, naming the model (FR-130)", () => {
+    for (const details of [
+      { record: "settings", field: "model" },
+      { rule: "settings-model-invalid", model: "" },
+    ]) {
+      const message = messageFor({ code: "backup-damaged", details });
+      expect(message).toMatch(/model/i);
+      expect(message).toMatch(/unchanged/i);
+      expect(message).not.toContain("settings-model-invalid");
+    }
+  });
+
   test("words a backup whose pending row holds a protected category as the AI's suggestion (FR-093)", () => {
     const message = messageFor({
       code: "backup-damaged",
