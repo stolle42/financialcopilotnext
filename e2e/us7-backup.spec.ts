@@ -146,6 +146,8 @@ test("saves everything to one file and restores exactly that, also into a fresh 
     await openChat(page);
     await askInChat(page, "Where does my money go?");
     await expect(conversation(page)).toHaveCount(2);
+    // The turn shows while the answer streams, and is stored once it is complete.
+    await expect.poll(async () => (await storedData(page)).conversation?.length ?? 0).toBe(1);
   }
 
   const filled = await storedData(page);
