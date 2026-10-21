@@ -20,11 +20,10 @@ import { TransactionForm } from "@/ui/screens/transactions/TransactionForm";
 import { TransactionsScreen } from "@/ui/screens/transactions/TransactionsScreen";
 import { type Route, transactionsPath, useRoute } from "./router";
 import { StoragePersistedContext } from "./storagePersisted";
-import { version } from "../../../package.json";
 
 // package.json writes MAJOR.MINOR.0, as npm needs three parts; the app shows MAJOR.MINOR
 // (constitution IX, FR-088).
-const appVersion = version.split(".").slice(0, 2).join(".");
+const appVersion = __APP_VERSION__.split(".").slice(0, 2).join(".");
 
 /** The sidebar, one flat list in the order of contracts/ui.md; each screen's task adds its entry. */
 const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = [

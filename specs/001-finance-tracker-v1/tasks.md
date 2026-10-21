@@ -1505,7 +1505,7 @@ Playwright project `offline` for [SC-018](spec.md#sc-018)
     of 512 pixels has `purpose` `maskable`;
   - every path in the manifest is relative, so the app installs from any address
     ([R-20](research.md#r-20)).
-- [ ] T131 [P] [US9] The build's header in a new `worker/plugin.ts`: a Vite plugin, applied at
+- [X] T131 [P] [US9] The build's header in a new `worker/plugin.ts`: a Vite plugin, applied at
   build, that in `closeBundle` reads every file written to `outDir`, the copied `public/` files
   included, and writes `sw.js`: the one line
   `self.BUILD = {"id","version","files"};` of [app-updates.md](contracts/app-updates.md#the-build),
