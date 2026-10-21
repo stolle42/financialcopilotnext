@@ -251,3 +251,34 @@ test.describe("the manifest, for installing the app (contracts/app-updates.md; F
     for (const path of paths) expect(path, path).not.toMatch(/^(\/|[a-z]+:)/i);
   });
 });
+
+test.describe("the service worker's header (contracts/app-updates.md, the build; R-30)", () => {
+  /** The build that sw.js names in its first line. */
+  async function workerBuild(page: Page) {
+    const response = await page.request.get(new URL("sw.js", page.url()).href);
+    expect(response.ok()).toBe(true);
+    const [header = ""] = (await response.text()).split("\n");
+    expect(header).toMatch(/^self\.BUILD = \{.*\};$/);
+    return JSON.parse(header.slice("self.BUILD = ".length, -1)) as {
+      id: string;
+      version: string;
+      files: string[];
+    };
+  }
+
+  test("the page names in app-build the build that sw.js, from the app's origin, starts with", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const id = await page.locator('meta[name="app-build"]').getAttribute("content");
+    expect(id).toMatch(/^[0-9a-f]{12}$/);
+    expect((await workerBuild(page)).id).toBe(id);
+  });
+
+  test("sw.js names the version the header shows (FR-088)", async ({ page }) => {
+    await page.goto("/");
+    const { version } = await workerBuild(page);
+    await expect(page.getByRole("banner")).toContainText(`Version ${version}`);
+    expect(version).toMatch(/^\d+\.\d+$/);
+  });
+});
