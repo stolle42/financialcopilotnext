@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
+import { modelInUse } from "@/ai/models";
 import type { ChatSource, ChatTurn } from "@/domain/types";
 import {
   askChat,
@@ -170,6 +171,7 @@ export function FinanceChat() {
   const store = useStoreApi();
   const on = useStore(aiFeaturesOn);
   const conversation = useStore((state) => state.conversation);
+  const model = useStore((state) => modelInUse(state.settings).model);
   const session = useChatSession();
   const [open, setOpen] = useState(false);
   // A question that failed goes back into the field, also when it failed while the chat was closed
@@ -306,6 +308,7 @@ export function FinanceChat() {
           </div>
           {on && (
             <form onSubmit={submit} className="flex flex-col gap-2 border-t p-4">
+              <p className="text-xs text-muted-foreground">{financeChat.answersBy(model)}</p>
               {(session.failure || clearFailed) && (
                 <p role="alert" className="text-sm text-destructive">
                   <RefusalMessage refusal={session.failure ?? { code: "save-failed" }} />

@@ -323,6 +323,8 @@ export const financeChat = {
   sources: "Sources",
   clear: "Clear conversation",
   clearWarning: "The conversation's questions and answers will be deleted.",
+  /** Above the question field, the model in use (FR-129). */
+  answersBy: (model: string) => `Answers by ${model}`,
 };
 
 /** The notice on Settings while a newer version waits, with the versions as the header shows them (FR-124). */

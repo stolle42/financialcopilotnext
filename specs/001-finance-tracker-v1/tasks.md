@@ -1774,7 +1774,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   - in `e2e/us10-own-key.spec.ts`, scenario 9: the chat and Suggest categories ask
     `api.openai.com` with the key and the model in use, only those requests carry the key, and the
     app's own origin receives nothing for an AI feature.
-- [ ] T142 [US10] The model in the chat: while AI features are on, a line in the muted colour
+- [X] T142 [US10] The model in the chat: while AI features are on, a line in the muted colour
   above the question field of `src/ui/screens/chat/FinanceChat.tsx` says "Answers by <model>", the model in use, from
   `financeChat.answersBy` in `src/ui/messages.ts` ([FR-129](spec.md#fr-129),
   [ui.md](contracts/ui.md#finance-chat)). Test first:
