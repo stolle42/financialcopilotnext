@@ -174,6 +174,16 @@ test.describe("persistent storage (FR-075)", () => {
     await expect(notice(page)).toContainText(/backup/i);
   });
 
+  test("while the browser offers no install, the note holds no install hint (FR-075)", async ({
+    page,
+  }) => {
+    await persistAnswers(page, false);
+    await page.goto("/#/backup");
+    await expect(notice(page)).toBeVisible();
+    await expect(notice(page)).not.toContainText(/install/i);
+    await expect(main(page).getByRole("button", { name: "Install app" })).toHaveCount(0);
+  });
+
   test("when the browser agreed, shows no such notice", async ({ page }) => {
     await persistAnswers(page, true);
     await page.goto("/#/backup");

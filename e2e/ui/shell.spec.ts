@@ -133,6 +133,30 @@ test.describe("the finance chat's button (contracts/ui.md, finance chat; FR-100)
   });
 });
 
+test.describe("Install app (FR-122)", () => {
+  const installApp = (page: Page) =>
+    page.getByRole("banner").getByRole("button", { name: "Install app" });
+
+  async function openApp(page: Page) {
+    await page.goto("/");
+    await expect(
+      page.getByRole("banner").getByRole("button", { name: "Add transaction" }),
+    ).toBeVisible();
+  }
+
+  test("shows no Install app while the browser offers no install", async ({ page }) => {
+    await openApp(page);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+
+  test("shows none in Firefox, which never offers an install", async ({ page, browserName }) => {
+    test.skip(browserName !== "firefox", "Firefox only");
+    await openApp(page);
+    await page.waitForTimeout(2000);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+});
+
 test.describe("the manifest, for installing the app (contracts/app-updates.md; FR-122, R-30)", () => {
   interface Icon {
     src: string;

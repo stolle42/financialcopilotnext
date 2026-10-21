@@ -66,6 +66,98 @@ test("scenario 1: a browser that never opened the app shows the transaction list
   await expect(banner(page).getByRole("button", { name: "Install app" })).toHaveCount(0);
 });
 
+test.describe("Install app (FR-122, FR-075)", () => {
+  const installApp = (page: Page) => banner(page).getByRole("button", { name: "Install app" });
+
+  /**
+   * Fires a `beforeinstallprompt` as Chrome and Edge do, whose `prompt()` counts its calls in
+   * `window.promptCalls`, and gives whether the app prevented the browser's own offer.
+   */
+  function offerInstall(page: Page): Promise<boolean> {
+    return page.evaluate(() => {
+      const counter = window as unknown as { promptCalls: number };
+      counter.promptCalls = 0;
+      const event = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
+        prompt: () => {
+          counter.promptCalls++;
+          return Promise.resolve();
+        },
+        userChoice: Promise.resolve({ outcome: "accepted", platform: "web" }),
+      });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+  }
+
+  const promptCalls = (page: Page) =>
+    page.evaluate(() => (window as unknown as { promptCalls: number }).promptCalls);
+
+  async function openApp(page: Page, path = "/") {
+    await page.goto(path);
+    await expect(banner(page).getByRole("button", { name: "Add transaction" })).toBeVisible();
+  }
+
+  test("scenario 2: while the browser offers it, Install app shows before Add transaction, and selecting it asks the browser's question once", async ({
+    page,
+  }) => {
+    await openApp(page);
+    expect(await offerInstall(page)).toBe(true);
+
+    await expect(installApp(page)).toBeVisible();
+    const names = await banner(page).getByRole("button").allTextContents();
+    const install = names.findIndex((name) => name.includes("Install app"));
+    const add = names.findIndex((name) => name.includes("Add transaction"));
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(install).toBeLessThan(add);
+
+    await installApp(page).click();
+    await expect.poll(() => promptCalls(page)).toBe(1);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+
+  test("scenario 2: once the app is installed, Install app goes", async ({ page }) => {
+    await openApp(page);
+    await offerInstall(page);
+    await expect(installApp(page)).toBeVisible();
+
+    await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
+    await expect(installApp(page)).toHaveCount(0);
+    expect(await promptCalls(page)).toBe(0);
+  });
+
+  test("scenario 3: Firefox offers no Install app, and the app works as in Chrome", async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(browserName !== "firefox", "Firefox only");
+    await openApp(page);
+    await addTransaction(page, { amount: "5.00", category: "Groceries", description: "Firefox" });
+    await expect(ledgerRows(page).filter({ hasText: "Firefox" })).toHaveCount(1);
+    await page.waitForTimeout(2000);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+
+  test("scenario 8: with persistent storage not granted, the Backup note says installing helps keep the data, and offers Install app (SC-017)", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      StorageManager.prototype.persist = () => Promise.resolve(false);
+    });
+    await openApp(page, "/#/backup");
+    await offerInstall(page);
+
+    await expect(main(page).getByText(/browser may (clear|delete)/i)).toBeVisible();
+    await expect(main(page)).toContainText(/installing the app/i);
+    const noteInstall = main(page).getByRole("button", { name: "Install app" });
+    await expect(noteInstall).toBeVisible();
+
+    await noteInstall.click();
+    await expect.poll(() => promptCalls(page)).toBe(1);
+    await expect(noteInstall).toHaveCount(0);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+});
+
 test.describe("the service worker (contracts/app-updates.md, the worker's lifecycle)", () => {
   test("after the first visit, sw.js controls the page, its build's cache holds every file, and in-use names the build", async ({
     page,

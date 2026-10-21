@@ -291,6 +291,12 @@ describe("messages", () => {
     expect(messageFor({ code: "suggestions-outdated" })).toMatch(/no suggestion was used/i);
   });
 
+  test("adds to the Backup note that installing the app helps the browser keep the data (FR-075)", () => {
+    expect(catalogue.installHint).toMatch(/install/i);
+    expect(catalogue.installHint).toMatch(/keep/i);
+    expect(catalogue.installHint).toMatch(/data/i);
+  });
+
   test("words the update notice with both versions as the header shows them, asking for a backup first (FR-124)", () => {
     expect(catalogue.updateNotice("1.6", "1.5")).toBe(
       "Version 1.6 is available (you have 1.5). Make a backup first.",
