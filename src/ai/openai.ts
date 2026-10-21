@@ -15,6 +15,42 @@ export type AiRefusalCode = "ai-unreachable" | "ai-failed" | "ai-timeout" | "ai-
 
 export type AiFailure = Refusal<AiRefusalCode>;
 
+/** How long the key check waits for OpenAI's answer (SC-021). */
+export const KEY_CHECK_TIMEOUT_MS = 10_000;
+
+export type KeyCheckFailureCode = "ai-key-not-accepted" | "ai-key-check-unreachable";
+
+/**
+ * Asks OpenAI whether it accepts `apiKey`, with a request that carries the key and nothing else
+ * (FR-127, contracts/ai.md, key check). A 403 still accepts the key: OpenAI knows it, and only
+ * this listing is out of its reach. Gives `cancelled` when `signal` aborts; never rejects.
+ */
+export async function checkKey(
+  apiKey: string,
+  signal: AbortSignal,
+): Promise<"accepted" | "cancelled" | Refusal<KeyCheckFailureCode>> {
+  if (signal.aborted) return "cancelled";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), KEY_CHECK_TIMEOUT_MS);
+  const cancel = () => controller.abort();
+  signal.addEventListener("abort", cancel);
+  try {
+    const response = await fetch("https://api.openai.com/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      credentials: "omit",
+      signal: controller.signal,
+    });
+    if (signal.aborted) return "cancelled";
+    if (response.ok || response.status === 403) return "accepted";
+    return { code: response.status === 401 ? "ai-key-not-accepted" : "ai-key-check-unreachable" };
+  } catch {
+    return signal.aborted ? "cancelled" : { code: "ai-key-check-unreachable" };
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", cancel);
+  }
+}
+
 export interface AiMessage {
   role: "user" | "assistant";
   content: string;

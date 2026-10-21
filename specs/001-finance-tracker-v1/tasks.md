@@ -1691,7 +1691,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   - in `e2e/us7-backup.spec.ts`, with a key put into storage: the round trip of
     [SC-014](spec.md#sc-014) with a chosen model, neither file holding the key or its last 4
     characters, and a restore that keeps the key stored on this computer.
-- [ ] T139 [P] [US10] The key check: `checkKey(apiKey, signal)` in `src/ai/openai.ts` sends
+- [X] T139 [P] [US10] The key check: `checkKey(apiKey, signal)` in `src/ai/openai.ts` sends
   `GET https://api.openai.com/v1/models` with `Authorization: Bearer <key>`, no body,
   `credentials: "omit"` and nothing else, stops after 10 seconds, and gives accepted for 200 – 299
   and 403, `ai-key-not-accepted` for 401, and `ai-key-check-unreachable` for any other status, no

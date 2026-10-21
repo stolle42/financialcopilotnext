@@ -24,15 +24,15 @@ function appCommit(): Plugin {
 
 // Limits scripts, styles, images, fonts and connections to the app's own origin, with no exception
 // for inline styles (R-19). Only the production build carries it, because the dev server's hot
-// reload needs inline scripts and a WebSocket. The AI features reach OpenAI through a route on the
-// app's own origin, so they need no exception either (R-24).
+// reload needs inline scripts and a WebSocket. The one exception is OpenAI's API, which the AI
+// features reach with the user's own key (R-31).
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self'",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://api.openai.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

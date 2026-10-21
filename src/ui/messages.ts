@@ -1,4 +1,4 @@
-import type { AiRefusalCode } from "@/ai/openai";
+import type { AiRefusalCode, KeyCheckFailureCode } from "@/ai/openai";
 import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { CategoryRefusalCode } from "@/domain/categories";
@@ -40,6 +40,7 @@ export type MessageCode =
   | BatchRefusalCode
   | SuggestionRefusalCode
   | AiRefusalCode
+  | KeyCheckFailureCode
   | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
@@ -230,6 +231,10 @@ export const messages: Record<MessageCode, Wording> = {
     "OpenAI refused the request, for example because of the key or the project's credit. Check " +
     "them on OpenAI's platform, then try again. Nothing changed.",
   "ai-answer-invalid": "The AI's answer could not be read. Try again. Nothing changed.",
+  "ai-key-not-accepted": "OpenAI didn't accept this key. Check that you copied all of it.",
+  "ai-key-check-unreachable":
+    "OpenAI could not be reached, so the key was not checked. Try again once you are connected " +
+    "to the internet. Nothing was stored.",
   "suggestions-outdated":
     "The import changed while the AI was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
