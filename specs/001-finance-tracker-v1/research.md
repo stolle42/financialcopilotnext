@@ -1395,7 +1395,9 @@ mark, concurrency, zod and the untrusted answer still holds.
     sees each request in `page.route` and runs as before. `e2e/us9-installable.spec.ts` allows
     them.
     - **Offline**: after a first visit, `context.setOffline(true)` and a reload open the app with
-      its data, in Chromium and Firefox ([SC-018](spec.md#sc-018)).
+      its data, in Chromium and Firefox ([SC-018](spec.md#sc-018)). A Playwright project
+      `offline` runs the specs of US1–US7 in Chromium with service workers allowed and the
+      network cut once the worker controls the page.
     - **Update**: a small static server of the spec's own, `e2e/support/versions.ts`, serves
       `dist/`. When the test switches it, it serves a second build made with `TEST_APP_VERSION`.
       That variable sets the version of that one build, and the build refuses it on Vercel, so

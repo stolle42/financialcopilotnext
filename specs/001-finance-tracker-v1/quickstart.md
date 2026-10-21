@@ -14,8 +14,8 @@ defined during implementation ([plan.md](plan.md#project-structure)).
 - Git
 - For the post-push check only: a Vercel project for this repository
   ([Vercel setup](#vercel-setup))
-- For AI features only: an OpenAI API key, of a project with a monthly budget or prepaid credit
-  ([AI features](#ai-features))
+- For AI features only: an OpenAI API key of your own, of a project with a monthly budget or
+  prepaid credit, entered in the app ([AI features](#ai-features))
 
 ## Setup
 
@@ -28,12 +28,21 @@ npx playwright install --with-deps chromium firefox   # once per machine, for en
 
 ## Run
 
+**Users** open the app at `https://financialcopilot-three.vercel.app`, in Chrome, Edge or Firefox,
+and keep their real data there ([FR-121](spec.md#fr-121)). Nothing needs installing first; in
+Chrome and Edge, **Install app** in the header installs it ([FR-122](spec.md#fr-122)). After the
+first visit it works offline, and a newer version waits until the user selects Update in Settings
+([FR-123](spec.md#fr-123), [FR-124](spec.md#fr-124)).
+
+**Developers** run it from the project folder:
+
 | Command | Serves | Use |
 |---|---|---|
-| `npm start` | Production build at `http://localhost:4173` | Daily use with real data |
-| `npm run dev` | Dev server with hot reload at `http://localhost:5173` | Development, with its own test data |
+| `npm start` | Production build at `http://localhost:4173`, with its service worker | Checking the production build before a push, with its own data |
+| `npm run dev` | Dev server with hot reload at `http://localhost:5173`, without a service worker | Development, with its own test data |
 
-The two ports keep real data and development data apart. A browser keeps data per origin, meaning
+Each address holds data of its own, apart from the web address's; a backup moves data between
+them ([FR-121](spec.md#fr-121)). The two ports keep the build's data and development data apart. A browser keeps data per origin, meaning
 scheme, host and port. Both ports are fixed and fail instead of moving if they are taken, so the
 app never opens empty on another port ([R-20](research.md#r-20)).
 
@@ -58,9 +67,11 @@ Each command must pass locally and in CI ([R-18](research.md#r-18)).
 | `npm run verify` | All of the above, in the order CI runs them |
 
 Every end-to-end test runs behind a network guard that fails the test on any request outside the
-app's own origin. That guard is the regression test for [FR-061](spec.md#fr-061). The tests of
-the AI features answer at `/api/ai` in OpenAI's place, and the guard also fails a request there
-that no test answers, so the checks need no key ([R-24](research.md#r-24)).
+app's own origin that no stand-in answers. That guard is the regression test for
+[FR-061](spec.md#fr-061). The tests of the AI features answer at `https://api.openai.com/v1/responses`
+and `/v1/models` in OpenAI's place, so no request reaches OpenAI and the checks need no key
+([R-31](research.md#r-31)). Playwright blocks service workers, so that the guard and the stand-ins
+see every request, except in the specs of [US9](#us9-installable-app) ([R-30](research.md#r-30)).
 
 ## Validation scenarios
 
@@ -128,21 +139,51 @@ committed. Tests that need existing data load it through the backup restore
 - **Run**: `e2e/us7-backup.spec.ts`
 - **Covers**: [User Story 7](spec.md#user-story-7) scenarios 1–3
 - **Round trip** ([SC-014](spec.md#sc-014)):
-  1. Fill every entity type, including a pending batch with review progress and, where AI
-     features can be on, a conversation of the finance chat.
+  1. Fill every entity type, including a pending batch with review progress, a conversation of
+     the finance chat, and a chosen model, with AI features on and a key stored.
   2. Save a backup.
   3. Open a fresh browser context with empty storage and restore the backup there.
   4. Save again.
 - **Expected**: the two files' `data` objects are deep-equal
-  ([contracts/backup-file.md](contracts/backup-file.md#exactness-sc-014)).
+  ([contracts/backup-file.md](contracts/backup-file.md#exactness-sc-014)), and neither file holds
+  the key or its last 4 characters ([FR-126](spec.md#fr-126)).
 
 ### US8: Finance chat
 
-- **Run**: `e2e/us8-finance-chat.spec.ts`, with a stand-in answering at `/api/ai` in OpenAI's place
-  ([R-26](research.md#r-26)). On a hosted copy only scenario 1 runs ([FR-106](spec.md#fr-106)).
+- **Run**: `e2e/us8-finance-chat.spec.ts`, with a stand-in answering at
+  `https://api.openai.com/v1/responses` in OpenAI's place ([R-26](research.md#r-26),
+  [R-31](research.md#r-31)). It runs at the web address too.
 - **Covers**: [User Story 8](spec.md#user-story-8) scenarios 1–11
 - **Expected**: a source closes the chat and opens the transaction list with its filters, the chat
   opened again there shows the conversation, and it survives a reload.
+
+<a id="us9-installable-app"></a>
+### US9: Installable app
+
+- **Run**: `e2e/us9-installable.spec.ts`, with service workers allowed, against the local build
+  only, since it publishes a second version ([R-30](research.md#r-30)).
+- **Covers**: [User Story 9](spec.md#user-story-9) scenarios 1–8. Of scenario 2, the browser's
+  question and the app's own window are [manual checks](#installable-app-checks).
+- **Offline** ([SC-018](spec.md#sc-018)): after a first visit, the test cuts the network and
+  reloads, in Chromium and Firefox. The Playwright project `offline` runs the specs of US1–US7 in
+  Chromium the same way, with the network cut once the service worker controls the page.
+- **Update** ([SC-019](spec.md#sc-019)): `e2e/support/versions.ts` serves `dist/`, then a second
+  build made with `TEST_APP_VERSION`. With one persistent browser profile, the test closes and opens
+  the browser three times, checking the header and the notice each time, then selects Backup and
+  Update.
+- **Expected**: the header shows the old version until Update, and the new one after it, with
+  every record as before; Install app shows only while a `beforeinstallprompt` is kept, and never
+  in Firefox.
+
+### US10: Own OpenAI key and model choice
+
+- **Run**: `e2e/us10-own-key.spec.ts`, with stand-ins answering at `/v1/models` and
+  `/v1/responses` ([R-31](research.md#r-31)).
+- **Covers**: [User Story 10](spec.md#user-story-10) scenarios 1–9.
+- **Expected**: the key check sends nothing but the key; every request to OpenAI carries the key
+  and the model in use and goes to `https://api.openai.com`; the app's own origin receives nothing
+  for an AI feature ([FR-128](spec.md#fr-128)); a refused key shows its message within 10 s and
+  stores nothing ([SC-021](spec.md#sc-021)).
 
 ### Messages
 
@@ -159,13 +200,13 @@ committed. Tests that need existing data load it through the backup restore
 |---|---|---|
 | [SC-009](spec.md#sc-009) | Restore a generated backup with 5,000 transactions in one period, then choose that period | All Insights sections render within 2 s |
 | [SC-010](spec.md#sc-010) | Import a generated 5,000-row CSV | The review is shown within 10 s |
-| [SC-015](spec.md#sc-015) | Restore a generated backup with 5,000 transactions in the last 13 months, turn on AI features, and ask the chat with the stand-in holding its answer; then select Stop | The question and "Thinking…" show within 1 s of sending, and Stop ends the answer within 1 s. Skipped on a hosted copy |
+| [SC-015](spec.md#sc-015) | Restore a generated backup with 5,000 transactions in the last 13 months, turn on AI features, and ask the chat with the stand-in holding its answer; then select Stop | The question and "Thinking…" show within 1 s of sending, and Stop ends the answer within 1 s |
 | List render ([R-21](research.md#r-21)) | Restore a generated backup with 10,000 transactions, then open the app | The transaction list shows within 1 s. Skipped: Firefox takes longer ([R-21](research.md#r-21)), and the fix is listed under Not in v1 ([Out of Scope](spec.md#out-of-scope)) |
 
 ## Manual checks
 
 These criteria measure a person's time or impression, so a person runs them, with a stopwatch where
-noted. Use `npm start` with a fresh browser profile.
+noted. Use the app at its web address, or `npm start` before a push, with a fresh browser profile.
 
 | Criterion | Procedure | Pass |
 |---|---|---|
@@ -173,57 +214,85 @@ noted. Use `npm start` with a fresh browser profile.
 | [SC-002](spec.md#sc-002) | Open the form, then record a categorised cash expense | Under 15 s from opening the form |
 | [SC-001](spec.md#sc-001) | With a saved profile that maps a counterparty column, import a generated file of about 300 rows from about 40 vendors and review it until no row is in "Uncategorised" | Under 5 min from choosing the file to confirming |
 | [FR-064](spec.md#fr-064), [FR-065](spec.md#fr-065) | Walk every screen at default zoom on a desktop viewport | Clear hierarchy, comfortable spacing, and categories that look the same everywhere |
-| [FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116) | Walk every screen, a dialog, the chat and a notification, on `localhost` and on the hosted copy, beside the reference design at `financialcopilot4you.lovable.app` | The reference's canvas, cards, ink, periwinkle and fonts, as [ui.md](contracts/ui.md#look) lists them; each screen keeps its layout, labels and flows; the browser's network log shows the fonts coming from the app's own origin |
+| [FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116) | Walk every screen, a dialog, the chat and a notification, on `localhost` and at the web address, beside the reference design at `financialcopilot4you.lovable.app` | The reference's canvas, cards, ink, periwinkle and fonts, as [ui.md](contracts/ui.md#look) lists them; each screen keeps its layout, labels and flows; the browser's network log shows the fonts coming from the app's own origin |
 | [FR-117](spec.md#fr-117) | Open the chat, drag its left edge toward the screen and back, then move it with the arrow keys | The edge follows the pointer without lag and stops at 320px and at three quarters of the window; closed and opened again, the chat keeps its width |
 
 `npm run fixtures:sc001` writes the SC-001 file to `tmp/` ([plan.md](plan.md#project-structure)).
+
+<a id="installable-app-checks"></a>
+**Installable app**, at the web address with a fresh browser profile:
+
+| Criterion | Procedure | Pass |
+|---|---|---|
+| [SC-016](spec.md#sc-016) | Give a person who has never used a terminal the address, in Chrome, Edge or Firefox | They are recording a transaction within 1 min, without downloading or setting up anything |
+| [SC-017](spec.md#sc-017), [FR-122](spec.md#fr-122) | In Chrome, then in Edge, select Install app and confirm the browser's question | Two selections; the app opens in a window of its own under its name and icon, is listed with the computer's programs, holds the same data as the tab, and offers no Install app |
+| [FR-122](spec.md#fr-122) | Open the app in Firefox | No Install app, and the app works as in Chrome |
+| [FR-075](spec.md#fr-075) | In Chrome, not installed, open Backup while the browser has not granted persistent storage | The note says that installing the app helps keep the data, with Install app |
+| [SC-018](spec.md#sc-018) | Open the installed app once, disconnect the network, close it and open it again; record an expense and save a backup | The app opens with all data, and both work |
+| [SC-019](spec.md#sc-019), at each release from v1.6 on | Before publishing, open the app on the old version. Publish, open the app, then close and open it three times, once after restarting the computer; then select Backup, then Update | The header shows the old version and Settings the notice each time; Backup downloads a file; after Update the header shows the new version, the notice is gone, and every record is as before |
 
 <a id="ai-features"></a>
 ## AI features
 
 **Suggest categories** in review ([FR-090](spec.md#fr-090)) and the **finance chat**
-([FR-100](spec.md#fr-100)) ask OpenAI through the route `/api/ai` that the local server adds
-([R-24](research.md#r-24), [contracts/ai.md](contracts/ai.md#route)). They need an OpenAI key in
-`.env` and AI features turned on in Settings ([FR-095](spec.md#fr-095)). Everything else works
-without them. A hosted copy has no such route, so there AI features cannot be turned on
-([FR-106](spec.md#fr-106)).
+([FR-100](spec.md#fr-100)) ask OpenAI straight from the app, with the user's own key
+([R-31](research.md#r-31), [contracts/ai.md](contracts/ai.md)). They need AI features turned on in
+Settings with a key that OpenAI accepts ([FR-095](spec.md#fr-095), [FR-127](spec.md#fr-127)).
+Everything else works without them. They work wherever the app runs: at the web address,
+installed, and on `localhost` ([FR-128](spec.md#fr-128)).
 
-**Once**:
+**Once, for each user**:
 
-1. On OpenAI's platform, create a project for Financial Copilot and an API key in it. Give the
-   project a monthly budget, or prepaid credit without automatic recharge
-   ([R-24](research.md#r-24)).
-2. Copy `.env.example` to `.env` in the project folder and put the key after `OPENAI_API_KEY=`.
-   Git ignores `.env`: `git status` must not list it.
-3. Restart `npm start` or `npm run dev`. The server reads the key when it starts.
-4. After updating from v1.2 with AI features on, turn them off and on once in Settings, and read
-   the warning: v1.3 sends to OpenAI, and the chat sends amounts and dates
-   ([FR-095](spec.md#fr-095)).
+1. On OpenAI's platform, create an API key. Give its project a monthly budget, or prepaid credit
+   without automatic recharge: OpenAI charges the user's own account for every request.
+2. In the app, open Settings, turn on AI features, paste the key into the dialog and select
+   Turn on. The key stays on this computer and never goes into a backup ([FR-126](spec.md#fr-126)).
+3. Each computer, and each address, needs the key entered once.
 
-**Smoke test**, with `npm start` running:
+**Developers updating from v1.5**: delete `.env` from the project folder. Nothing reads it any
+more, and no OpenAI key belongs in the project ([FR-128](spec.md#fr-128)). Searching `dist/` for
+the first 12 characters of your key finds nothing.
+
+**Key smoke test**, to tell a key problem from an app problem, with the key in the shell for this
+command only:
 
 ```bash
-curl -s -X POST http://localhost:4173/api/ai \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gpt-6.1-sol","store":false,"input":"Answer with OK."}'
+curl -s -o /dev/null -w "%{http_code}\n" https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"
 ```
 
 ```powershell
-$body = '{"model":"gpt-6.1-sol","store":false,"input":"Answer with OK."}'
-Invoke-RestMethod -Method Post -ContentType application/json -Body $body -Uri http://localhost:4173/api/ai
+(Invoke-WebRequest -Uri https://api.openai.com/v1/models -Headers @{ Authorization = "Bearer $env:OPENAI_API_KEY" }).StatusCode
 ```
 
-Expected: OpenAI's answer, with `"status": "completed"`. The same request with
-`-H "Origin: https://example.com"` gets 403, and without a key in `.env` an empty 404. The key is
-not in the build: searching `dist/` for its first characters finds nothing.
+Expected: `200`. A `401` means OpenAI does not accept the key, as the app's dialog would say.
 
-**Manual checks**, with `npm start` and the key in `.env`:
+<a id="model-check"></a>
+**Model check**, by the owner, once per model, before a release that lists it
+([FR-131](spec.md#fr-131), [R-32](research.md#r-32)):
+
+```bash
+OPENAI_API_KEY=<key> DEMO_BACKUP=tmp/demo-backup.json npm run check:models
+```
+
+```powershell
+$env:OPENAI_API_KEY = "<key>"; $env:DEMO_BACKUP = "tmp/demo-backup.json"; npm run check:models; Remove-Item Env:OPENAI_API_KEY
+```
+
+`DEMO_BACKUP` is a backup of the demonstration data. The script prints, per model, the suggestions
+right out of 100 and each chat answer beside the facts the app works out. The owner and Claude
+judge the answers, and the results and the day's prices go into
+[R-32](research.md#r-32). It is not part of `npm test` and never runs in CI.
+
+**Manual checks**, at the web address with your own key, and again on `localhost` before a push:
 
 | Check | Procedure | Pass |
 |---|---|---|
 | AI features off | Open review, then the chat, with AI features off | Suggest categories is unavailable, and review says it needs AI features, with a link to Settings; the chat says the same and offers nothing to send |
-| Warning | In Settings, turn on AI features, then Cancel | The data-sharing warning names OpenAI and says what each feature sends; Cancel leaves the switch off |
-| AI features on | Turn on AI features again and select Turn on; reload | The switch stays on, and nothing was sent |
+| Dialog | In Settings, turn on AI features, then Cancel | One dialog: the data-sharing warning names OpenAI and says what each feature sends; two or three lines on the key and its cost; a link to OpenAI's API keys page, which opens in a new tab; an empty key field, with Turn on unavailable. Cancel leaves the switch off |
+| [SC-021](spec.md#sc-021) | Turn on AI features with the key `sk-not-a-real-key` | Within 10 s: "OpenAI didn't accept this key. Check that you copied all of it.", the field keeps the text, and the switch stays off; reloaded, no key shows |
+| [SC-020](spec.md#sc-020) | A person with a key at hand, who has not seen the dialog, turns AI features on | Done within 2 min of opening Settings, guided only by the dialog |
+| AI features on | Turn on AI features with your key; reload | The switch stays on, Settings shows `sk-…` and the key's last 4 characters, Remove key and gpt-5.4-mini; the browser's network log shows one request, to `api.openai.com/v1/models` |
+| Model | Choose gpt-6.1-sol, open the chat and ask a question | The chat says "Answers by gpt-6.1-sol", and the request in the network log names that model |
 | Suggestions | Import a bank file with a counterparty column, then select Suggest categories in review | Rows get categories marked "Suggested", transfers such as a standing order to savings stay "Uncategorised", and the status line counts the rows |
 | [SC-001](spec.md#sc-001) file | The same with the SC-001 file of about 300 rows | The answer arrives within 2 minutes |
 | Mark | Change one suggested row, reload, then confirm | The changed row loses its mark, the other marks survive the reload, and the ledger holds the categories |
@@ -242,8 +311,8 @@ not in the build: searching `dist/` for its first characters finds nothing.
 | Chat kept | Close the chat and open it again; then open Budgets, open the chat there, and reload | The conversation is still there each time |
 | Clear | Select Clear conversation, then Cancel; then again, and confirm | Cancel keeps the conversation; confirming empties it and shows the example questions |
 | Offline | Disconnect from the internet, then ask the chat and select Suggest categories | `ai-unreachable` in both, and nothing changes |
-| No key | Empty `OPENAI_API_KEY` in `.env`, restart `npm start`, then ask the chat | `ai-unreachable` |
-| Hosted copy | On the Vercel production domain, open Settings | The AI features switch is off and unavailable, and the line beside it says to run the app locally |
+| Remove key | Select Remove key, then Cancel; then again, and confirm | Cancel keeps the key; confirming turns AI features off, shows no key, and turning them on asks for one |
+| Web address | At the web address, ask the chat and select Suggest categories | Answers as on `localhost`; the network log shows requests only to the app's address and to `api.openai.com`, and the key only in requests to `api.openai.com` |
 | Leaving | Select Suggest categories, then leave review before the answer; ask the chat, close it and open another screen before the answer, then open the chat again | No row changes, and no message appears later; the chat's answer is there when it is complete |
 
 ## After pushing to main
@@ -255,7 +324,7 @@ against the user stories after every push to `main` ([R-18](research.md#r-18)).
 |---|---|---|
 | Local build | CI's `test` job runs every end-to-end journey on the production build, served on `localhost` | The `test` job is green |
 | Vercel deployment | Once Vercel reports a production deployment, CI's `deployed` job waits until the production domain serves the pushed commit, then runs the same journeys there | The `deployed` job is green |
-| User experience | A person walks the [manual checks](#manual-checks) on `http://localhost:4173` (`npm start`) and on the Vercel production domain | Every row passes on both |
+| User experience | A person walks the [manual checks](#manual-checks) on `http://localhost:4173` (`npm start`) and on the Vercel production domain | Every row passes on both; the [installable app checks](#installable-app-checks) at the web address only |
 
 To run the journeys against the production domain by hand, set `BASE_URL`:
 
@@ -272,7 +341,7 @@ $env:BASE_URL = "https://<production-domain>"; npx playwright test
 The project owner does this once ([R-20](research.md#r-20)):
 
 1. In the Vercel dashboard, import the GitHub repository. Vercel detects Vite, and the production
-   branch is `main`.
+   branch is `main`. The production domain is `financialcopilot-three.vercel.app`.
 2. Under Settings → General → Vercel Toolbar, set **Preview** to Off.
 3. Under Settings → Deployment Protection, keep Standard Protection or turn protection off. Do not
    choose All Deployments, which would put the production domain behind a login
@@ -284,5 +353,10 @@ The project owner does this once ([R-20](research.md#r-20)):
 6. In the GitHub repository, under Settings → Secrets and variables → Actions → Variables, add
    `VERCEL_PRODUCTION_URL`, holding the production domain with `https://`.
 
-Use the Vercel copy for checks and demonstrations only, and keep real data in the local build
-([FR-061](spec.md#fr-061)).
+**Never rename the Vercel project or change its production domain.** The production domain is
+where users keep their real data, and a browser keeps data per address: at a new address the app
+would open empty for every user, and their installed apps would stop updating
+([FR-121](spec.md#fr-121), [R-20](research.md#r-20)). Every push to `main` reaches users, so a
+change that is not ready stays on a branch; a version takes effect for a user only when they select
+Update ([FR-124](spec.md#fr-124)). No environment variable holds an OpenAI key
+([FR-128](spec.md#fr-128)).
