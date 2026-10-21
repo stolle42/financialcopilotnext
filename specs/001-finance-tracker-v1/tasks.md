@@ -1809,19 +1809,24 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   passing one the default if gpt-5.4-mini fails, and update the tests, ui.md and the spec where they
   name a model that failed ([FR-131](spec.md#fr-131), [SC-022](spec.md#sc-022)). A model once
   checked is not checked again.
-- [ ] T145 (Project owner, manual) Delete `.env` from the project folder, check that `dist/` holds
-  no part of your key, and walk the manual checks of [AI features](quickstart.md#ai-features) at
-  the web address with your own key, then on `localhost`; and the
-  [SC-019 check](quickstart.md#installable-app-checks), the first real Update, from v1.5. Its
-  commit sets the version to `1.6.0`, and the tag `v1.6` goes on the phase's squash commit on
-  `main` (constitution IX).
+- [ ] T146 (Project owner, with Claude) Check that every step of v1.5's
+  [release checklist](quickstart.md#release-checklist) was done: v1.5 on `main` with its tag
+  pushed, CI green, and its checks walked at the web address. Each step not done is done now, so
+  v1.5 is served before v1.6's Update check starts from it.
+- [ ] T145 (Project owner, manual) On the branch, before the merge: delete `.env` from the project
+  folder, check that `dist/` holds no part of your key, and walk the manual checks of
+  [AI features](quickstart.md#ai-features) on `localhost` with your own key. Its commit sets the
+  version to `1.6.0` (constitution IX). What follows the merge, the tag `v1.6` on the phase's
+  squash commit on `main`, the AI features at the web address and the
+  [SC-019 check](quickstart.md#installable-app-checks), the first real Update, from v1.5, is the
+  [release checklist](quickstart.md#release-checklist), which the next phase's first task checks.
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.6 (constitution IX),
 MINOR because v1.5 reads v1.6 storage and backups: the key is a third record of the settings store,
 which v1.5 does not read, and the model an optional key of the settings, which v1.5 drops
 ([R-31](research.md#r-31), [R-32](research.md#r-32)). No feature leaves the app: the AI features,
 which the local route served only on the owner's computer, now work wherever the app is served
-([FR-106](spec.md#fr-106)). Push and run the post-push check.
+([FR-106](spec.md#fr-106)). Merge, then walk the [release checklist](quickstart.md#release-checklist).
 
 ---
 
@@ -1863,8 +1868,8 @@ which the local route served only on the owner's computer, now work wherever the
   to control the page.
 - **Own OpenAI key and model choice (Phase 16)**: depends on Phase 15, whose worker and update
   notice deliver it; on US7, whose backup leaves the key out; and on Phase 13, whose AI features it
-  moves to the user's key. Order: T137 → T138 → T139 → T140 → T141 → T142 → T144 → T145, with
-  T143 at any time before T144. T139 can run beside T137 and T138, since it touches
+  moves to the user's key. Order: T137 → T138 → T139 → T140 → T141 → T142 → T144 → T146 → T145,
+  with T143 at any time before T144. T139 can run beside T137 and T138, since it touches
   `src/ai/openai.ts`, `vite.config.ts` and the messages only. T144 may change `AI_MODELS`, so
   T145's checks follow it.
 
