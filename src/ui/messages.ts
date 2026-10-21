@@ -255,9 +255,10 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
-/** What AI features do and where their data goes, on the Settings screen (FR-095). */
+/** What AI features do, where their data goes and who pays, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
-  "Suggest categories in review, and the finance chat. AI features send data to OpenAI.";
+  "Suggest categories in review, and the finance chat. AI features send data to OpenAI, which " +
+  "charges your own OpenAI account.";
 
 /** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
 export const sharingWarning =
@@ -268,9 +269,29 @@ export const sharingWarning =
   "descriptions, amounts and categories, their monthly totals, this month's budgets, and each " +
   "account's name, type and balance.";
 
-/** Beside the AI features switch in a copy not served from the user's computer (FR-106). */
-export const aiFeaturesLocalOnly =
-  "AI features need the app running on your computer. Run it locally to use them.";
+/** The user's OpenAI key in Settings (contracts/ui.md, settings; FR-126, FR-127). */
+export const aiKey = {
+  about:
+    "An OpenAI API key lets the app ask OpenAI for you. OpenAI charges your own OpenAI account " +
+    "for every question and every request for suggestions, so setting a monthly limit there is " +
+    "wise.",
+  createLink: "Create an API key at OpenAI",
+  createUrl: "https://platform.openai.com/api-keys",
+  field: "OpenAI API key",
+  checking: "Checking key…",
+  /** A stored key, only ever shown masked. */
+  stored: (masked: string) => `Your key: ${masked}`,
+  remove: "Remove key",
+  removeTitle: "Remove key?",
+  removeWarning: "AI features turn off, and you need to enter the key again to use them.",
+};
+
+/** The choice of model in Settings (FR-129, FR-130). */
+export const modelChoice = {
+  label: "Model",
+  noLongerOffered: (model: string) =>
+    `The model you chose is no longer offered; now using ${model}.`,
+};
 
 /** The finance chat's wording (contracts/ui.md, finance chat; FR-100 – FR-111). */
 export const financeChat = {

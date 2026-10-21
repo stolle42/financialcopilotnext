@@ -1709,7 +1709,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     connected and that nothing was stored;
   - in `e2e/ui/shell.spec.ts`, the production CSP's `connect-src` is `'self'
     https://api.openai.com`, in place of `'self'` alone.
-- [ ] T140 [US10] Settings for the key and the model, as [ui.md](contracts/ui.md#settings)
+- [X] T140 [US10] Settings for the key and the model, as [ui.md](contracts/ui.md#settings)
   describes them, in `src/ui/screens/settings/SettingsScreen.tsx`: the dialog "Turn on AI features?" with the warning,
   the lines about the key, the link "Create an API key at OpenAI" to
   `https://platform.openai.com/api-keys` in a new tab, the password field "OpenAI API key" with
