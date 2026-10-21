@@ -50,12 +50,61 @@ export async function guardNetwork(
  * the app's origin, or a Content-Security-Policy violation, fails the test (FR-061, R-19). A test
  * that opens a context of its own guards it with `guardNetwork`.
  */
-export const test = base.extend<{ networkGuard: void }>({
+export const test = base.extend<{ networkGuard: void; offlineCheck: void }>({
   networkGuard: [
     async ({ context, page, baseURL }, use) => {
       const check = await guardNetwork(context, page, baseURL);
       await use();
       await check();
+    },
+    { auto: true },
+  ],
+  // In the project `offline`, every page the test opens must be controlled by the worker, with the
+  // network cut, from the first to the last (SC-018, R-30).
+  offlineCheck: [
+    async ({ page }, use, testInfo) => {
+      if (testInfo.project.name !== "offline") return use();
+
+      const states: { url: string; controlled: boolean; online: boolean }[] = [];
+      await page.exposeFunction("reportOfflineState", (state: (typeof states)[number]) => {
+        states.push(state);
+      });
+      await page.addInitScript(() => {
+        const report = () =>
+          (
+            window as unknown as {
+              reportOfflineState(state: {
+                url: string;
+                controlled: boolean;
+                online: boolean;
+              }): void;
+            }
+          ).reportOfflineState({
+            url: location.href,
+            controlled: !!navigator.serviceWorker?.controller,
+            online: navigator.onLine,
+          });
+        report();
+        window.addEventListener("online", report);
+        navigator.serviceWorker?.addEventListener("controllerchange", report);
+      });
+
+      await use();
+
+      if (!page.isClosed()) {
+        states.push(
+          await page.evaluate(() => ({
+            url: location.href,
+            controlled: !!navigator.serviceWorker?.controller,
+            online: navigator.onLine,
+          })),
+        );
+      }
+      expect(states.length, "the test opened no page").toBeGreaterThan(0);
+      expect(
+        states.filter((state) => !state.controlled || state.online),
+        "every page must be controlled by the worker and offline throughout (SC-018)",
+      ).toEqual([]);
     },
     { auto: true },
   ],
