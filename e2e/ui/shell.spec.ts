@@ -282,3 +282,13 @@ test.describe("the service worker's header (contracts/app-updates.md, the build;
     expect(version).toMatch(/^\d+\.\d+$/);
   });
 });
+
+test("runs without a service worker, as every spec but the installable app's (R-30)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+  expect(await page.evaluate(() => !!navigator.serviceWorker?.controller)).toBe(false);
+});
