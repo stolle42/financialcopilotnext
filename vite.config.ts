@@ -55,13 +55,7 @@ function contentSecurityPolicyTag(): Plugin {
 export default defineConfig({
   // Relative asset URLs let the build load from any path or from local files (R-20).
   base: "./",
-  plugins: [
-    react(),
-    tailwindcss(),
-    appCommit(),
-    contentSecurityPolicyTag(),
-    serviceWorkerBuild(),
-  ],
+  plugins: [react(), tailwindcss(), appCommit(), contentSecurityPolicyTag(), serviceWorkerBuild()],
   // The header shows the version the build's worker names (FR-088, R-30).
   define: { __APP_VERSION__: JSON.stringify(appVersion()) },
   resolve: {
@@ -73,11 +67,7 @@ export default defineConfig({
   // Domain and store tests run in Node; the browser is Playwright's job (R-17).
   test: {
     environment: "node",
-    include: [
-      "src/**/*.test.ts",
-      "worker/**/*.test.ts",
-      "scripts/**/*.test.ts",
-    ],
+    include: ["src/**/*.test.ts", "worker/**/*.test.ts", "scripts/**/*.test.ts"],
     passWithNoTests: true,
     // A zone west of UTC, where a date read as UTC midnight shows as the day before, so tests
     // catch that mistake on every machine.
