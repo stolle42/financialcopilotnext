@@ -1,4 +1,4 @@
-import type { Locator } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { chatButton } from "../support/ai";
 import { expect, test } from "../support/test";
@@ -131,4 +131,188 @@ test.describe("the finance chat's button (contracts/ui.md, finance chat; FR-100)
     const button = (await chatButton(page).boundingBox())!;
     expect(contentEnd).toBeLessThanOrEqual(button.y);
   });
+});
+
+test.describe("Install app (FR-122)", () => {
+  const installApp = (page: Page) =>
+    page.getByRole("banner").getByRole("button", { name: "Install app" });
+
+  async function openApp(page: Page) {
+    await page.goto("/");
+    await expect(
+      page.getByRole("banner").getByRole("button", { name: "Add transaction" }),
+    ).toBeVisible();
+  }
+
+  test("shows no Install app while the browser offers no install", async ({ page }) => {
+    await openApp(page);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+
+  test("shows none in Firefox, which never offers an install", async ({ page, browserName }) => {
+    test.skip(browserName !== "firefox", "Firefox only");
+    await openApp(page);
+    await page.waitForTimeout(2000);
+    await expect(installApp(page)).toHaveCount(0);
+  });
+});
+
+test.describe("the manifest, for installing the app (contracts/app-updates.md; FR-122, R-30)", () => {
+  interface Icon {
+    src: string;
+    sizes: string;
+    type?: string;
+    purpose?: string;
+  }
+  interface Manifest {
+    name: string;
+    short_name: string;
+    start_url: string;
+    scope: string;
+    display: string;
+    background_color: string;
+    theme_color: string;
+    icons: Icon[];
+  }
+
+  /** The manifest the page links, and its address. */
+  async function linkedManifest(page: Page): Promise<{ url: URL; manifest: Manifest }> {
+    await page.goto("/");
+    const link = page.locator('link[rel="manifest"]');
+    await expect(link).toHaveCount(1);
+    const href = (await link.getAttribute("href"))!;
+    const url = new URL(href, page.url());
+    const response = await page.request.get(url.href);
+    expect(response.ok()).toBe(true);
+    return { url, manifest: (await response.json()) as Manifest };
+  }
+
+  /** "#5a70ad" as the browser resolves a colour, "rgb(90, 112, 173)". */
+  function rgb(hex: string): string {
+    const [r, g, b] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  /** The width and height a PNG states in its header, or undefined for any other file. */
+  function pngSize(bytes: Buffer): { width: number; height: number } | undefined {
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    if (bytes.length < 24 || !bytes.subarray(0, 8).equals(signature)) return undefined;
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  }
+
+  test("is linked with a relative address and loads from the app's origin as JSON with exactly the contract's fields", async ({
+    page,
+    baseURL,
+  }) => {
+    const { url, manifest } = await linkedManifest(page);
+    expect(await page.locator('link[rel="manifest"]').getAttribute("href")).not.toMatch(
+      /^(\/|[a-z]+:)/i,
+    );
+    expect(url.origin).toBe(new URL(baseURL!).origin);
+    expect(url.pathname).toMatch(/\/manifest\.webmanifest$/);
+
+    expect(Object.keys(manifest).sort()).toEqual(
+      [
+        "background_color",
+        "display",
+        "icons",
+        "name",
+        "scope",
+        "short_name",
+        "start_url",
+        "theme_color",
+      ].sort(),
+    );
+    expect(manifest).toMatchObject({
+      name: "Financial Copilot",
+      short_name: "Financial Copilot",
+      start_url: "./",
+      scope: "./",
+      display: "standalone",
+    });
+  });
+
+  test("names the canvas as background and the primary colour as theme, as the page shows them (R-27)", async ({
+    page,
+  }) => {
+    const { manifest } = await linkedManifest(page);
+    const canvas = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const primary = await page
+      .getByRole("banner")
+      .getByRole("button", { name: "Add transaction" })
+      .evaluate((button) => getComputedStyle(button).backgroundColor);
+    expect(rgb(manifest.background_color)).toBe(canvas);
+    expect(rgb(manifest.theme_color)).toBe(primary);
+  });
+
+  test("lists icons of 192 and 512 pixels that load from the app's origin as PNGs of their stated size, one of 512 maskable", async ({
+    page,
+    baseURL,
+  }) => {
+    const { url, manifest } = await linkedManifest(page);
+    expect(manifest.icons.map((icon) => icon.sizes).sort()).toEqual(
+      ["192x192", "512x512", "512x512"].sort(),
+    );
+    for (const icon of manifest.icons) {
+      const iconUrl = new URL(icon.src, url);
+      expect(iconUrl.origin, icon.src).toBe(new URL(baseURL!).origin);
+      const response = await page.request.get(iconUrl.href);
+      expect(response.ok(), icon.src).toBe(true);
+      expect(response.headers()["content-type"], icon.src).toMatch(/^image\/png/);
+      const [width, height] = icon.sizes.split("x").map(Number);
+      expect(pngSize(await response.body()), icon.src).toEqual({ width, height });
+    }
+    expect(
+      manifest.icons.filter((icon) => icon.sizes === "512x512" && icon.purpose === "maskable"),
+    ).toHaveLength(1);
+  });
+
+  test("holds only relative paths, so the app installs from any address (R-20)", async ({
+    page,
+  }) => {
+    const { manifest } = await linkedManifest(page);
+    const paths = [manifest.start_url, manifest.scope, ...manifest.icons.map((icon) => icon.src)];
+    for (const path of paths) expect(path, path).not.toMatch(/^(\/|[a-z]+:)/i);
+  });
+});
+
+test.describe("the service worker's header (contracts/app-updates.md, the build; R-30)", () => {
+  /** The build that sw.js names in its first line. */
+  async function workerBuild(page: Page) {
+    const response = await page.request.get(new URL("sw.js", page.url()).href);
+    expect(response.ok()).toBe(true);
+    const [header = ""] = (await response.text()).split("\n");
+    expect(header).toMatch(/^self\.BUILD = \{.*\};$/);
+    return JSON.parse(header.slice("self.BUILD = ".length, -1)) as {
+      id: string;
+      version: string;
+      files: string[];
+    };
+  }
+
+  test("the page names in app-build the build that sw.js, from the app's origin, starts with", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const id = await page.locator('meta[name="app-build"]').getAttribute("content");
+    expect(id).toMatch(/^[0-9a-f]{12}$/);
+    expect((await workerBuild(page)).id).toBe(id);
+  });
+
+  test("sw.js names the version the header shows (FR-088)", async ({ page }) => {
+    await page.goto("/");
+    const { version } = await workerBuild(page);
+    await expect(page.getByRole("banner")).toContainText(`Version ${version}`);
+    expect(version).toMatch(/^\d+\.\d+$/);
+  });
+});
+
+test("runs without a service worker, as every spec but the installable app's (R-30)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
+  expect(await page.evaluate(() => !!navigator.serviceWorker?.controller)).toBe(false);
 });

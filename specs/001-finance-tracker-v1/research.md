@@ -16,15 +16,21 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 <a id="r-01"></a>
 ### R-01 · A client-only web app that keeps its data in the browser
 
-- **Decision**: v1 is a single-page application that runs entirely in the browser and is served
-  locally as static files. All data lives in IndexedDB in the user's browser profile. There is no
-  backend and no network traffic, except the requests of the AI features the user starts with AI
-  features on. Their one piece of server-side code is a route that the local server adds, which
-  passes them on to OpenAI ([R-24](#r-24)).
+- **Decision**: v1 is a single-page application that runs entirely in the browser, served as
+  static files. All data lives in IndexedDB in the user's browser profile. There is no backend and
+  no server-side code. Since v1.5 users keep their real data in the app at its web address, which
+  Vercel serves; after the first visit, a service worker of the app's own serves it from the
+  browser, offline too ([R-30](#r-30)). The only traffic that leaves the browser is fetching the
+  app itself from its address, and the requests of the AI features the user starts with AI features
+  on, which since v1.6 go straight to OpenAI with the user's own key ([R-31](#r-31)). From v1.3 to
+  v1.5, a route of the local server passed them on to OpenAI ([R-24](#r-24)).
 - **Rationale**:
-  - The spec describes this shape. v1 is "a local web app". Losing "the browser data" loses
-    everything ([User Story 7](spec.md#user-story-7)). No capability may need a network
-    ([FR-061](spec.md#fr-061)). The target is a desktop browser ([Out of Scope](spec.md#out-of-scope)).
+  - The spec describes this shape. v1 was "a local web app"; since v1.5 it is a web app at one
+    address that can be installed and works offline ([FR-121](spec.md#fr-121) –
+    [FR-123](spec.md#fr-123)). Losing "the browser data" loses everything
+    ([User Story 7](spec.md#user-story-7)). After the first visit, no capability other than the AI
+    features and getting a newer version may need a network ([FR-061](spec.md#fr-061)). The target
+    is a desktop browser ([Out of Scope](spec.md#out-of-scope)).
   - A static client app meets all of this with the fewest moving parts: no API layer, no HTTP
     error paths, and no server process to start or secure.
   - A static bundle also leaves both later delivery options open. Any static server can run it in a
@@ -241,7 +247,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     risk where the browser grants it, but each browser decides by its own rules:
     - **Chrome and Edge** never ask the user. They grant persistence only to installed web apps and
       frequently used sites. The browser source shows that a plain `localhost` tab does not
-      qualify, so the request returns `false`.
+      qualify, so the request returns `false`. Since v1.5 the app can be installed
+      ([R-30](#r-30)), and asks again at each start, so an installed app is granted it.
     - **Firefox** asks the user once.
     - When storage is blocked, the request rejects. The app then treats the data as not persistent.
 
@@ -251,12 +258,14 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     copy. A restore or a category deletion in one tab would leave the other writing references to
     records that no longer exist, and both tabs could create a pending batch
     ([FR-022](spec.md#fr-022)). A single lock call prevents that whole class of corruption.
-  - Both APIs work on `http://localhost`, which browsers treat as a secure context. Web Locks are in
-    every supported browser (Chrome 69, Edge 79, Firefox 96).
+  - Both APIs work on `http://localhost`, which browsers treat as a secure context, and on the
+    app's `https` address. Web Locks are in every supported browser (Chrome 69, Edge 79,
+    Firefox 96). An installed app and a browser tab share one origin, so they share the lock too,
+    and the second to open shows `open-in-another-tab`.
 - **Alternatives considered**:
   - **Making the app installable**, as a web app manifest, so that Chrome and Edge would grant
-    persistence. It is a delivery feature the spec does not ask for, and is noted for later
-    ([R-22](#r-22)).
+    persistence. Rejected for v1.0 as a delivery feature the spec did not ask for; built in v1.5
+    ([R-30](#r-30)).
   - **Keeping tabs in sync with a `BroadcastChannel`**, by reloading on every write elsewhere, is
     more code and opens new races.
   - **Ignoring multiple tabs** risks silent corruption, against constitution VIII.
@@ -568,6 +577,9 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     `deployment_status` event ([R-20](#r-20)).
     - It runs the end-to-end suite against the Vercel production domain, passed to Playwright as
       `BASE_URL`. The domain is the GitHub Actions repository variable `VERCEL_PRODUCTION_URL`.
+      Since v1.6 that includes the AI specs, whose stand-ins answer in OpenAI's place in the test
+      browser ([R-31](#r-31)); from v1.3 to v1.5 the job skipped them, since the hosted copy had
+      no AI features. Its test browsers keep their own data, so the suite never touches a user's.
     - The production domain is public under Vercel's default Standard Protection, so the job needs
       no login and no secret. The decision was made on 2026-10-02.
     - Before testing, the job waits until the domain serves the commit that triggered the event,
@@ -604,32 +616,42 @@ in the spec, so that the spec stays the single source of behaviour (constitution
     size.
 
 <a id="r-19"></a>
-### R-19 · No request leaves the machine
+### R-19 · No request leaves the machine, other than for the app itself and OpenAI
 
 - **Decision**:
   - The production build carries a Content-Security-Policy that limits scripts, styles, images,
-    fonts and connections to the app's own origin, with no exception for inline styles. Three
-    measures keep the components inside that policy ([R-03](#r-03)):
+    fonts, the manifest, the service worker and connections to the app's own origin, with no
+    exception for inline styles. Since v1.6, `connect-src` also allows `https://api.openai.com`.
+    Three measures keep the components inside that policy ([R-03](#r-03)):
     - Base UI runs inside its `CSPProvider` with style elements disabled.
     - Our copy of shadcn's chart component sets its colour variables through React style props
       instead of the `<style>` element it injects by default. React applies style props through the
       DOM's style API, which CSP does not restrict, so per-category colours work the same way.
     - Notifications use Base UI's toast, not Sonner.
-  - **No exception**: the AI features post to `/api/ai` on the app's own origin, and the local
-    server passes their requests on to OpenAI ([R-24](#r-24)). `connect-src` therefore allows the
-    app's own origin alone. In v1.2, it also listed the origin of the hosted n8n workflow
-    ([R-23](#r-23)).
+  - **One exception, OpenAI**: since v1.6 the AI features and the key check go straight to
+    `https://api.openai.com` with the user's key ([R-31](#r-31)). `connect-src` allows that origin
+    and the app's own, nothing else. The link to OpenAI's page for creating API keys is a plain
+    link that opens in the browser, not a request of the app's, so it needs no exception. In v1.2,
+    `connect-src` listed the origin of the hosted n8n workflow instead ([R-23](#r-23)); from v1.3
+    to v1.5 it allowed the app's own origin alone, since the local server passed the requests on
+    ([R-24](#r-24)).
+  - **Requests to the app's own origin** fetch only the app's own files: when it opens, and when
+    the browser looks for a newer service worker and that worker downloads its version
+    ([R-30](#r-30)). None carries user data.
   - No CDN assets: the app bundles its icons and its fonts, and serves them from its own origin
     ([R-27](#r-27)). Before v1.4, it used the system font stack and no web fonts.
   - No analytics and no error-reporting SDK.
   - **Regression test**: the browser-test guard ([R-17](#r-17)) fails on any request outside the
-    app's origin, on a request to `/api/ai` that no test answers in OpenAI's place, and on any CSP
-    violation the page reports.
+    app's origin that no test answers, so a request to OpenAI fails unless a stand-in answers it
+    in OpenAI's place, and on any CSP violation the page reports. From v1.3 to v1.5 it also failed
+    a request to `/api/ai` that no stand-in answered.
 - **Rationale**:
   - [FR-061](spec.md#fr-061) is a MUST, and telemetry is on the spec's "Never" list
     ([Out of Scope](spec.md#out-of-scope)).
   - The same policy meets [FR-062](spec.md#fr-062) by construction: an app that cannot reach any
-    other host cannot instruct a payment.
+    host other than its own and OpenAI's cannot instruct a payment.
+  - Allowing OpenAI's origin lets any script of the app's reach it, but only the app's own bundled
+    scripts run: `script-src 'self'` and no third-party code ([R-31](#r-31)).
   - With the policy in place, a dependency that tries to call out fails loudly instead of leaking
     quietly.
   - The dev server is exempt because hot reload needs inline scripts and a WebSocket.
@@ -637,10 +659,16 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   - **The test guard alone** only catches violations on the paths the tests take.
 
 <a id="r-20"></a>
-### R-20 · Serving locally and on Vercel; later packaging
+### R-20 · The app at its web address on Vercel, local serving for development; later packaging
 
 - **Decision**:
-  - `npm start` builds the app and serves it with `vite preview` on port 4173.
+  - **The app's address** (owner, v1.5, [FR-121](spec.md#fr-121)): users keep their real data in
+    the app at `https://financialcopilot-three.vercel.app`, Vercel's production domain of the
+    project. The Vercel project MUST NOT be renamed, and no other domain may become the app's,
+    since a new address would open empty for every user. The warning is in
+    [quickstart.md](quickstart.md#vercel-setup).
+  - `npm start` builds the app and serves it with `vite preview` on port 4173. Since v1.5 it is
+    for developers only.
   - The dev server uses port 5173.
   - Both ports are strict: if a port is taken, the server fails instead of moving to another.
   - Vite builds with `base: "./"`, so asset URLs are relative.
@@ -657,23 +685,31 @@ in the spec, so that the spec stays the single source of behaviour (constitution
       - System Environment Variables available to builds, so a build can name its commit
         ([R-18](#r-18));
       - Web Analytics and Speed Insights never enabled.
-  - **Purpose of the Vercel copy** (confirmed 2026-10-01, now in [FR-061](spec.md#fr-061)): it
-    exists for the constitution's post-push check and for showing the app to others. Daily use with
-    real data stays on the local build. Using a hosted copy for real data is
-    [out of scope](spec.md#out-of-scope).
+  - **Every push to `main` reaches users** since v1.5. It does not change what they run until they
+    select Update, and a change without a new version number shows no notice
+    ([R-30](#r-30)). Pull request previews have addresses of their own, so they hold data of their
+    own and never touch a user's.
+  - **Purpose of the Vercel copy until v1.4** (confirmed 2026-10-01): it existed for the
+    constitution's post-push check and for showing the app to others, and daily use with real data
+    stayed on the local build. Superseded in v1.5 (owner): the app at its web address is the real
+    app ([FR-061](spec.md#fr-061), [FR-121](spec.md#fr-121)).
 - **Rationale**:
-  - **Real data stays local** because only the local build fully meets [FR-061](spec.md#fr-061).
-    - The hosted copy needs a network to load.
+  - **Real data at the web address** (owner, v1.5): running the local build needs Node, git and a
+    terminal, which only an IT expert would set up. Until v1.4, only the local build fully met
+    FR-061, because the hosted copy needed a network to load. Since v1.5 the service worker serves
+    the app from the browser after the first visit ([R-30](#r-30)), so it needs a network only to
+    get a newer version.
     - Vercel sees each request for the app's files, as any host does.
     - It never sees ledger data. That data stays in the visitor's browser, under the Vercel origin,
-      apart from the local build's data.
+      apart from a local build's data.
   - **The toolbar is off** because Vercel injects its toolbar script into preview deployments by
     default. That third-party script runs against FR-061. The CSP ([R-19](#r-19)) would block it,
     but switching it off avoids the blocked request altogether.
   - A browser keeps data per origin, meaning scheme, host and port. If the port silently changed,
     the app would open empty on a new origin and look as if all data were lost.
   - The host name is part of the origin too: `127.0.0.1` reaches the same server but holds separate,
-    empty data. The documented address is therefore always `http://localhost:4173`.
+    empty data. The documented local address is therefore always `http://localhost:4173`. For the
+    same reason, the Vercel address must never change.
   - Listening on `localhost` only keeps the app off the local network. It also guarantees a secure
     context, which Web Locks, persistent storage and `crypto.randomUUID` all need ([R-07](#r-07)).
     A LAN address would not provide one.
@@ -733,10 +769,11 @@ in the spec, so that the spec stays the single source of behaviour (constitution
   ([contracts/csv-import.md](contracts/csv-import.md#amount-grammar)).
 - **Data location**: data belongs to one browser profile and origin. Another browser, port or host
   name starts empty, and a backup is how data moves.
-- **Best-effort storage in Chrome and Edge**: on `localhost`, these browsers do not grant persistent
-  storage ([R-07](#r-07)). If the disk runs low, they may delete the data, and the Backup screen says
-  so. Making the app installable would likely change this, and is the first thing to try if it
-  matters.
+- **Best-effort storage in Chrome and Edge**: in a plain tab, these browsers do not grant persistent
+  storage to a site that is rarely used ([R-07](#r-07)). If the disk runs low, they may delete the
+  data, and the Backup screen says so. Since v1.5 the app can be installed, which makes the grant
+  likely, and the Backup screen offers Install app ([FR-075](spec.md#fr-075), [R-30](#r-30)).
+  Firefox decides on its own, and asks the user.
 - **Private windows**: a private window keeps data only until it closes. The app cannot reliably
   detect a private window.
 - **Delimiter detection**: detection can guess wrong on a file with a single column. The preview
@@ -750,7 +787,8 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 **Superseded in part by [R-24](#r-24)** (owner, 2026-10-15), in v1.3. The n8n
 workflow, Claude, the address in the code, the CSP exception and `src/categoriser/` are gone: both
 AI features now ask OpenAI through a route of the local server, and the hosted copy has no AI
-features. What this entry decides about the AI features switch, the store's check, data
+features. Since v1.6 they ask OpenAI directly with the user's own key, wherever the app is served
+([R-31](#r-31)). What this entry decides about the AI features switch, the store's check, data
 minimisation, names rather than ids, one suggestion per row, the size and time of a request, the
 mark, concurrency, zod and the untrusted answer still holds.
 
@@ -848,7 +886,13 @@ mark, concurrency, zod and the untrusted answer still holds.
 ## AI through OpenAI, and the finance chat (v1.3)
 
 <a id="r-24"></a>
-### R-24 · AI requests through a route of the local server to OpenAI
+### R-24 · AI requests through a route of the local server to OpenAI (v1.3 – v1.5)
+
+> **Superseded in v1.6** by [R-31](#r-31): the app asks OpenAI directly with the user's own key,
+> and the route, `server/aiRoute.ts`, `src/ai/path.ts`, `src/ai/local.ts` and `.env.example` are
+> removed. The entry below records v1.3's decision. What still holds: `src/ai/openai.ts` as the
+> only requester, the request body, failures read by body rather than status, the 4-minute
+> timeout, `store: false`, and the consent of v1.2 carried over into v1.3.
 
 - **Decision** (owner, 2026-10-15), for [FR-105](spec.md#fr-105):
   - Both AI features post to `POST /api/ai` on the app's own origin
@@ -941,6 +985,8 @@ mark, concurrency, zod and the untrusted answer still holds.
     spends the owner's credit.
   - **The `openai` package**: a dependency for one POST, which in a browser needs
     `dangerouslyAllowBrowser`.
+  - **A model on the user's own computer through Ollama**: measured on the owner's laptop on
+    2026-10-20, and too slow or too often wrong there ([R-29](#r-29)).
 
 <a id="r-25"></a>
 ### R-25 · The finance chat: what a question sends and how it answers
@@ -970,7 +1016,7 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **Size**: about 20 tokens per row. The owner's demonstration data has about 650 rows in 13
     months, about 15,000 tokens per question, or about 5 cents with gpt-6.1-sol at $2 and $10 per
     million input and output tokens. A ledger of 10,000 transactions a year sends about ten times
-    as much.
+    as much. Since v1.6 the user pays, with the model they choose ([R-32](#r-32)).
   - **The fixed answer out of scope**: only a model can read what a question needs, so the model
     decides; the fixed text makes the refusal the same every time, and testable.
   - **A guide to the app** (owner, 2026-10-16): the chat answers how the app works, and how to make
@@ -1003,7 +1049,9 @@ mark, concurrency, zod and the untrusted answer still holds.
     server-sent events ([contracts/ai.md](contracts/ai.md#answer)). It adds up the text of each
     `response.output_text.delta`, reports the text so far to an optional callback, and returns the
     whole text on `response.completed`. Category suggestions pass no callback and wait for the
-    whole text. The route passes the events on as they arrive.
+    whole text. OpenAI sends the events as they are written; from v1.3 to v1.5 the route passed
+    them on as they arrived, and since v1.6 the app reads them from OpenAI directly
+    ([R-31](#r-31)).
   - **The answer streams as JSON.** The chat's strict schema is `{ inScope, answer, sources }`,
     and OpenAI writes the keys in the schema's order. `answerSoFar` in `src/ai/chat.ts` reads the
     partial JSON: `inScope` once it is complete, and the `answer` string as far as it has arrived,
@@ -1167,3 +1215,382 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **CSS `resize: horizontal`**: its grip sits at the corner on the window's edge, which does not
     move, and the keyboard cannot reach it.
   - **Storing the width in settings**: see the rationale. The owner may ask for it later.
+
+## AI on the user's own computer (measured 2026-10-20, not built)
+
+<a id="r-29"></a>
+### R-29 · A model through Ollama on the owner's laptop: too slow or too often wrong
+
+- **Decision** (owner, 2026-10-20): local AI is not built. A spec, then planned as v1.5, would have
+  answered both AI features with a model that Ollama runs on the user's own computer and removed
+  OpenAI, so that no ledger data leaves the computer (FR-118 – FR-120 and tasks T124 – T129,
+  written in commit `1837fa0` and reverted). T124 measured models on the owner's laptop first, and
+  none served both features usefully within a minute. The AI features stayed with OpenAI as
+  [R-24](#r-24) describes them, and since v1.6 ask it with the user's own key
+  ([R-31](#r-31)). v1.5 became the installable app ([R-30](#r-30)). The measurements are kept here
+  for a later attempt.
+- **Rationale**:
+  - **The owner's limit is one minute** (owner, 2026-10-20): a request still running after 60
+    seconds is "well beyond anything a user could bear", whatever the 4 minutes of
+    [FR-094](spec.md#fr-094) allow.
+  - **The model that was right was far too slow.** `qwen3:8b` suggested 99 of 100 categories
+    correctly, but needed 2.7 to 9 minutes for one batch of review and wrote no word of a chat answer
+    within 5 minutes.
+  - **The models fast enough were too often wrong.** Below 2B parameters, suggestions dropped to
+    between none and 16 of 20 right, and chat answers stated wrong conclusions about the user's
+    money, such as budgets exceeded that were not. That is the failure [FR-109](spec.md#fr-109)
+    rules out, and one a user would believe.
+- **Computer**: Intel Core i7-1255U (10 cores, 12 threads), 16 GB DDR4-3200, Intel Iris Xe graphics
+  sharing that memory, Windows 11, Ollama 0.40.6. Ollama leaves an integrated GPU unused unless
+  `OLLAMA_IGPU_ENABLE=1` is set; with it, all runs below except the first used the Iris Xe through
+  Vulkan.
+- **Method**:
+  - The requests were the ones the app builds, from the demonstration data with today as
+    2026-10-20, sent to Ollama's `POST /api/chat` with the feature's instructions as the system
+    message, the schema as `format`, `think: false` and `temperature: 0`.
+  - For review, the newest 300 categorised expenses and incomes were held out as rows to suggest,
+    with their categories hidden, and the examples were built from the rest as
+    `suggestionRequest` does. "Known" rows have a description the examples hold; "new" rows do not.
+  - Each model was loaded before timing. From `qwen3:1.7b` on, each request was stopped after 60
+    seconds, and the first request over the limit ended that model's run (owner, 2026-10-20).
+- **Suggest categories**:
+
+  | Model, memory | Rows | First words | Whole answer | Right |
+  |---|---|---|---|---|
+  | `qwen3:8b`, processor only | 20 | 278 s | 372 s | 20 of 20 |
+  | `qwen3:8b` | 20 | 83 s | 162 s | 20 of 20 |
+  | `qwen3:8b` | 50 | 78 s | 279 s | 49 of 50 |
+  | `qwen3:8b` | 100 | 82 s | 547 s | 99 of 100 |
+  | `qwen3:1.7b`, 2.2 GB | 20 | 10 s | 34 s | 16 of 20: 13 of 13 known, 3 of 7 new |
+  | `qwen3:0.6b`, 1.4 GB | 50 | 14 s | 44 s | 36 of 50, one category invented |
+  | `qwen3.5:0.8b`, 642 MB | 20 | 14 s | 31 s | 11 of 20, and 21 rows answered |
+  | `gemma3:1b`, 962 MB | 20 | 10 s | 11 s | no suggestion at all |
+  | `llama3.2:1b`, 1.7 GB | 20 | 10 s | stopped at 60 s | 33 rows answered by then |
+
+- **The finance chat**, first as v1.4 sends it, then with less data:
+  - **All rows of 13 months** (about 19,800 tokens): `qwen3:8b` with `num_ctx` 20,480 needed
+    8.4 GB, held 30 of its 37 layers on the GPU, and had written no word after 300 seconds.
+    `qwen3:0.6b` began after 468 s and called "How can I reduce my spending?" out of scope.
+  - **Rows since 1 September only** (66 rows, about 5,800 tokens), stopped at 60 s: `qwen3:1.7b`
+    began after 49 s and was stopped; `qwen3.5:0.8b` began after 20 s, wrongly out of scope, and
+    was stopped still writing; `gemma3:1b` answered in 22 s but wrongly out of scope, and its next
+    answer was stopped at 60 s, repeating itself.
+  - **No rows** (about 3,000 tokens): totals per month and category, budgets and accounts, and a
+    guide cut to 1,000 characters, read once in advance as the chat could on opening (13 s), with
+    `qwen3:1.7b`. Every question then began within a second and ended within the minute, but only
+    the off-topic one was answered well:
+
+    | Question | Whole answer | Answer |
+    |---|---|---|
+    | How can I reduce my spending? | 53 s | Cut Eating out and Groceries, both far under budget; Shopping, over budget at €355.92 of €250, not named |
+    | Which of my subscriptions have become more expensive? | 21 s | An invented rise of €1.00, written twice, with the budget in dollars |
+    | Am I on track with my budgets this month? | 39 s | All six budgets' figures right, then "exceeds your budget for most categories"; only Shopping does |
+    | Where did I spend more this month than last month? | 25 s | Shopping the same €355.92 both months; it was €94.17 in September |
+    | What is the capital of France? | 5 s | Out of scope, correctly |
+
+  - **No rows, with each recurring payment and its prices** (about 3,400 tokens, read in 17 s):
+    the subscriptions question named Spotify's rise from €10.99 to €11.99 in January 2026
+    correctly, but added an invented rise of the newspaper and listed iCloud+ and bouldering, whose
+    prices never changed.
+  - Nearly every answer named the Cash account as a source, which none rested on.
+- **Other findings**:
+  - **Reading and writing.** The Iris Xe read prompts 4 to 6 times faster than the processor
+    (`qwen3:8b`: 9.7 against 43 – 61 tokens a second) but wrote barely faster (2.3 against 2.7).
+    Writing set the time: about 2.5 tokens a second for `qwen3:8b`, 9 – 11 for `qwen3:1.7b`, and
+    10 – 18 for the models of 1B and less.
+  - **Ollama sends no headers before the first words.** Node's `fetch` gave up after 300 seconds
+    without headers, so a route waiting longer needs `node:http`.
+  - **A repeated system message is read from Ollama's cache**: 3,000 tokens in under a second
+    instead of 13 s. Reading the data once when the chat opens makes later questions start at once.
+  - **Memory.** `qwen3:8b` needs about 147 KB per token of context, so 15,000 tokens take about
+    2.2 GB beside the model's 5 GB; on the processor alone, `num_ctx` 8,192 already failed to
+    allocate. During the long runs, Windows grew its page file to 18 GB and left 628 MB of the disk
+    free until a restart.
+- **Not tried**, for a later attempt:
+  - A computer with a dedicated GPU or Apple silicon, where `qwen3:8b` writes many times faster.
+  - Models between 2B and 8B, such as `qwen3:4b`, and Gemma 4 E4B and 12B.
+  - Ready-made facts: the app works out the budgets over their limit, the changes since last month
+    and the price rises itself, and the model only words them, since `qwen3:1.7b` copied figures
+    correctly but drew wrong conclusions from them.
+  - Local AI for suggestions only, with the chat kept on OpenAI or off.
+
+## Installable app (v1.5)
+
+<a id="r-30"></a>
+### R-30 · A manifest and a service worker of our own, which changes version only on Update
+
+- **Decision** (owner, 2026-10-21), for [FR-121](spec.md#fr-121) – [FR-125](spec.md#fr-125) and
+  [FR-075](spec.md#fr-075):
+  - **The manifest**: `public/manifest.webmanifest`, linked from `index.html`, names the app
+    Financial Copilot, with `start_url` and `scope` `./`, `display: standalone`, the canvas as
+    background colour and the primary colour as theme colour ([R-27](#r-27)), and PNG icons of
+    192 and 512 pixels, one of them maskable, in `public/icons/`. That is what Chrome and Edge
+    need to offer installing the app.
+  - **The service worker**, `sw.js` at the root, is ours: about 100 lines in
+    `worker/serviceWorker.js`, with no dependency. A Vite plugin of our own, `worker/plugin.ts`,
+    emits it at build time with a header that names the build: its version, MAJOR.MINOR from
+    `package.json`, its build id, a hash of the build's files other than `index.html`, names and
+    content, and the list of those files. The plugin also writes the build id into `index.html`
+    as `<meta name="app-build">`.
+    - **Install**: the worker downloads every file of its build, with `cache: "reload"`, into a
+      cache of its own, `build-<id>`. `index.html` is the one file whose name has no hash, so the
+      worker checks that the copy it got names its own build in `app-build`. Otherwise a newer
+      build was published during the download, and the install fails, to be tried again at the
+      next check. It then calls `skipWaiting()`.
+    - **The build in use**: one small record in a cache `app-state` names the build that runs. The
+      first worker to install sets it to its own build. Every later worker leaves it alone.
+    - **Serving**: for a GET to the app's own origin, the worker answers from the cache of the
+      build in use: a navigation with that build's `index.html`, any other file by its path. A
+      file the cache does not hold goes to the network. Requests to OpenAI are not the worker's.
+    - **Activate**: the worker claims the open windows and deletes every `build-` cache other than
+      the one in use and its own. A version published in between is therefore never kept, and
+      Update goes straight to the newest ([FR-124](spec.md#fr-124)).
+    - **Messages** ([contracts/app-updates.md](contracts/app-updates.md)): `versions` answers the
+      build in use and the worker's own build, each as id and version. `update` makes the worker's
+      own build the one in use, deletes the other cache, and answers once that is done.
+  - **The page's side**, in `src/pwa/`:
+    - `updates.ts` registers `./sw.js` in the production build only. It asks the worker for its
+      versions when Settings opens and when a new worker takes control (`controllerchange`). The
+      notice shows when the worker's own version differs from the version the page runs, compared
+      as MAJOR.MINOR strings ([FR-124](spec.md#fr-124)). Update posts `update`, then reloads the
+      page.
+    - `install.ts` keeps the browser's `beforeinstallprompt` event, which Chrome and Edge fire
+      while the app can be installed and is not, and drops it on `appinstalled`. Install app shows
+      while the event is kept, and calls its `prompt()`. Firefox fires no such event, and neither
+      browser fires it in an installed app, so Install app never shows there
+      ([FR-122](spec.md#fr-122)). The module is imported first in `src/main.tsx`, since the event
+      can fire before React renders.
+  - **Persistent storage**: the app keeps asking for it at each start ([R-07](#r-07)). The Backup
+    screen's note adds the install hint and Install app while Install app is offered
+    ([FR-075](spec.md#fr-075)).
+  - **The CSP** needs no new source: the manifest and the worker come from the app's own origin,
+    which `default-src` and `script-src` allow ([R-19](#r-19)).
+  - **Vercel** needs no `vercel.json`. It serves `sw.js` with `max-age=0`, and the browser looks
+    for a newer worker past its HTTP cache anyway, on every navigation, which is every opening of
+    the app ([FR-124](spec.md#fr-124)). Its production domain must stay the app's address
+    ([R-20](#r-20)).
+- **Rationale**:
+  - **The build in use as a record, not as the active worker**: in the standard lifecycle, a new
+    worker waits while a window of the app is open, but takes over once every window is closed. A
+    restart would then run the new version without Update, against [FR-124](spec.md#fr-124). With
+    a record, the newest worker can take control at once and still serve the old build's files,
+    which stay in their cache, until the user selects Update. Its code serves older builds too, so
+    the worker's caches and messages are a contract kept from version to version
+    ([contracts/app-updates.md](contracts/app-updates.md)).
+  - **Notice by version number, update by build**: every push to `main` reaches the address
+    ([R-20](#r-20)), but a change without a new number must show no notice
+    ([FR-124](spec.md#fr-124)). The worker of such a build downloads it and waits, and the next
+    numbered build replaces it.
+  - **The `index.html` check** is the defensive part (constitution VIII): an `index.html` from
+    another build would point at files the cache does not hold, and the app would not open offline.
+  - **A user of v1.4** has no worker. The first opening after v1.5 is published loads v1.5 from
+    the network, and its worker records v1.5 as the build in use, as the spec's edge case says.
+  - **Updating keeps the data**: the data lives in IndexedDB, which no cache operation touches, and
+    an update reloads the page, which reads it again ([FR-073](spec.md#fr-073)). A backup saved by
+    the newer version is refused by an older one, as before ([FR-072](spec.md#fr-072)).
+  - **One tab at a time**: an installed window and a tab share the origin, so the Web Lock keeps
+    them apart ([R-07](#r-07)).
+- **Testing**:
+  - `playwright.config.ts` blocks service workers (`serviceWorkers: "block"`), so every other spec
+    sees each request in `page.route` and runs as before. `e2e/us9-installable.spec.ts` allows
+    them.
+    - **Offline**: after a first visit, `context.setOffline(true)` and a reload open the app with
+      its data, in Chromium and Firefox ([SC-018](spec.md#sc-018)). A Playwright project
+      `offline` runs the specs of US1–US7 in Chromium with service workers allowed and the
+      network cut once the worker controls the page.
+    - **Update**: a small static server of the spec's own, `e2e/support/versions.ts`, serves
+      `dist/`. When the test switches it, it serves a second build made with `TEST_APP_VERSION`.
+      That variable sets the version of that one build, and the build refuses it on Vercel, so
+      every published build reads `package.json` (constitution IX). With a persistent browser
+      context, the test closes and opens the browser three times, checks the header and the
+      notice, and then selects Update ([SC-019](spec.md#sc-019)). It runs against the local build
+      only.
+    - **Install app**: Chromium cannot show its install question to a test. The test therefore
+      dispatches a `beforeinstallprompt` of its own, and checks that Install app shows, calls
+      `prompt()`, and goes on `appinstalled`. A person installs the real app
+      ([quickstart.md](quickstart.md#manual-checks)).
+  - Vitest covers the plugin's header and build id, and comparing versions.
+- **Alternatives considered**:
+  - **`vite-plugin-pwa` with `registerType: "prompt"`**: version 2.0 supports Vite 8. But its
+    worker waits and takes over once every window is closed, as above, and it brings Workbox's
+    build tools. Its `injectManifest` mode would leave the worker to us anyway, and the file list
+    takes the plugin a few lines.
+  - **A waiting worker, activated by Update**: the standard pattern, with the same problem.
+  - **A `version.json` the page fetches**: tells that a new version exists, but the files still
+    need a worker to work offline.
+  - **Comparing builds, not version numbers**: a notice for every push, against
+    [FR-124](spec.md#fr-124).
+  - **An Electron or Tauri package**: a download and an installer per system, and an update
+    service of its own, for what the browser installs ([Out of Scope](spec.md#out-of-scope)).
+  - **Updating on the next start, or by itself**: out of scope ([FR-124](spec.md#fr-124)).
+
+## The user's own OpenAI key and model choice (v1.6)
+
+<a id="r-31"></a>
+### R-31 · Requests straight from the browser to OpenAI, with the user's key
+
+- **Decision** (owner, 2026-10-21), for [FR-126](spec.md#fr-126) – [FR-128](spec.md#fr-128),
+  [FR-094](spec.md#fr-094), [FR-095](spec.md#fr-095), [FR-105](spec.md#fr-105) and
+  [FR-106](spec.md#fr-106):
+  - **Straight to OpenAI**: `src/ai/openai.ts` stays the only code that asks OpenAI. It posts the
+    request of [R-24](#r-24) to `https://api.openai.com/v1/responses` with the headers
+    `Authorization: Bearer <key>` and `Content-Type: application/json`, and `credentials: "omit"`.
+    It reads the streamed events as before ([R-26](#r-26)). The model is the user's choice
+    ([R-32](#r-32)).
+  - **The key check**: Turn on sends `GET https://api.openai.com/v1/models` with the key and
+    nothing else, and stops waiting after 10 seconds ([SC-021](spec.md#sc-021)).
+    - A 2xx answer accepts the key. So does a 403, which means that OpenAI knows the key but the
+      key may not list models.
+    - 401 rejects it.
+    - Anything else, a network failure, or the 10 seconds means that OpenAI cannot be reached
+      ([contracts/ai.md](contracts/ai.md#key-check)).
+  - **Measured on 2026-10-21**, with a made-up key and the app's address as `Origin`:
+    - OpenAI answers the preflight of a POST to `/v1/responses` with
+      `access-control-allow-origin: *`, and allows the `authorization` and `content-type` headers.
+    - It answers `GET /v1/models` with 401, `"code": "invalid_api_key"`, and the same CORS header.
+    - The page can therefore read both.
+  - **Storage**: the key is the value of a third record of the `settings` store, under the key
+    `openaiKey`, trimmed of spaces and line breaks ([data-model.md](data-model.md#openai-key)). In
+    memory it is `state.apiKey`, outside `state.settings`, so the backup, which writes
+    `state.settings`, cannot carry it ([contracts/backup-file.md](contracts/backup-file.md)).
+    - Turning on writes the key and `aiFeatures: true` in one transaction ([R-06](#r-06)).
+    - Remove key deletes the record and writes AI features off in one transaction. It stops an
+      answer being written, as turning off does ([R-26](#r-26)).
+    - Loading a backup clears every store, as before, and writes the stored key back in the same
+      transaction, so the key stays ([FR-126](spec.md#fr-126)).
+    - `aiFeaturesOn` in `src/store/settings.ts` is `aiFeatures === true` with a key stored.
+      `servedLocally` and `src/ai/local.ts` go: AI features work wherever the app is served
+      ([FR-106](spec.md#fr-106)).
+  - **Masking**: Settings and the dialog show `sk-…` and the key's last 4 characters. No screen
+    shows more.
+  - **Failures** ([contracts/ai.md](contracts/ai.md#failures)): OpenAI's error JSON names what
+    went wrong.
+    - A 401 becomes `ai-key-rejected`.
+    - `insufficient_quota` becomes `ai-no-credit`, which covers both no credit and the monthly
+      limit.
+    - `model_not_found` becomes `ai-model-unavailable`.
+    - Each of these messages says what to do. Every other OpenAI error stays `ai-failed`. A network
+      failure, or an answer that is not OpenAI's, stays `ai-unreachable`.
+  - **Removed**: `server/aiRoute.ts` and its test, the plugin in `vite.config.ts`, `src/ai/path.ts`,
+    `src/ai/local.ts` and its test, `.env.example`, and the empty key that `playwright.config.ts`
+    gives its preview. `.gitignore` keeps ignoring `.env*`, so an old `.env` on a developer's
+    computer stays out of git; the quickstart says to delete it.
+  - **The CSP** allows `https://api.openai.com` in `connect-src` ([R-19](#r-19)).
+- **Rationale**:
+  - **No server of the project's** ([FR-128](spec.md#fr-128)): the project then holds no key and
+    sees no request, and the app at its web address needs nothing but files. OpenAI accepts
+    requests from web pages, as measured above.
+  - **The key beside the data**: it must survive closing the app ([FR-126](spec.md#fr-126)). A
+    record of the store that already holds the settings keeps the database at schema version 1, as
+    the conversation's record did ([R-26](#r-26)). v1.5 reads only the `settings` and
+    `conversation` records, so going back does no harm, and v1.6 stays a MINOR release
+    (constitution IX).
+  - **Outside `state.settings`**: the backup writes the settings as they are, so a key among them
+    would need a rule to leave it out, which a later change could forget. Kept apart, it cannot get
+    in, and a test checks that a backup holds no part of it ([SC-014](spec.md#sc-014)).
+  - **The key's safety**: it is as safe as the rest of the data in the browser profile, as the
+    spec assumes.
+    - Only the app's own bundled scripts run on its origin: `script-src 'self'`, and no
+      third-party code ([R-19](#r-19)).
+    - Answers show as plain text ([R-25](#r-25)).
+    - No message, log or failure code holds the key, and only requests to `api.openai.com` carry
+      it.
+  - **`/v1/models` for the check**: it costs nothing, sends no data, and answers 401 to a key
+    OpenAI does not know. It cannot tell whether the key may use the chosen model, so that shows
+    at the first request, as `ai-model-unavailable` ([FR-129](spec.md#fr-129)).
+  - **The consent of v1.5 does not carry over**: v1.6 changes who pays and needs a key, so the
+    switch shows off until a key is entered, under v1.6's warning ([FR-095](spec.md#fr-095)).
+    Nothing needs migrating: the stored `aiFeatures: true` without a key reads as off.
+- **Testing**:
+  - Vitest stubs `fetch` and checks:
+    - each request's address and headers;
+    - the check's answers and the failure codes;
+    - the masking and the trimming;
+    - the single transactions;
+    - that restoring keeps the key, and that a backup holds none of it.
+  - Playwright's stand-ins answer at `https://api.openai.com/v1/responses` and `/v1/models` in
+    OpenAI's place (`e2e/support/ai.ts`). The network guard fails any request there that no
+    stand-in answers, so no test reaches OpenAI. The `deployed` job runs them too ([R-18](#r-18)).
+- **Alternatives considered**:
+  - **Keeping the route, with the user's key**: it needs the server that only a developer runs.
+    At the web address it would need a Vercel Function, a server of the project's that would see
+    every key and every request, against [FR-128](spec.md#fr-128).
+  - **The `openai` package**: a dependency for two requests, which in a browser needs
+    `dangerouslyAllowBrowser`.
+  - **The key in `localStorage`**: a second kind of storage, outside the transactions that write
+    the settings.
+  - **Encrypting the stored key**: the key to decrypt it would sit beside it, unless the user
+    typed a passphrase at every start.
+  - **Keeping the key only for the session**: the user would type it at every start, against
+    [FR-126](spec.md#fr-126).
+  - **OpenAI's short-lived client keys**: they serve the Realtime API, and a server must make
+    them.
+
+<a id="r-32"></a>
+### R-32 · Three models to choose from, each checked on the demonstration data first
+
+- **Decision** (owner, 2026-10-21), for [FR-129](spec.md#fr-129) – [FR-131](spec.md#fr-131):
+  - **The list** is one constant, `AI_MODELS` in `src/ai/models.ts`, in the order Settings shows
+    it, each with its hint:
+    - gpt-5.4-mini, the default;
+    - gpt-6.1-sol, "better answers, costs more";
+    - gpt-5.6-luna, "cheaper".
+
+    `DEFAULT_MODEL` names the default. Together they replace `OPENAI_MODEL`.
+  - **The choice** is `settings.model`, a model's id, absent until the user chooses
+    ([data-model.md](data-model.md#settings)). `modelInUse(settings)` returns the listed model. When
+    the stored id is not in the list, it returns the default with `noLongerOffered`
+    ([FR-130](spec.md#fr-130)). The stored id stays until the user chooses, so the note stays too.
+  - Each request takes the model in use when it starts, so an answer being written keeps its
+    model ([FR-129](spec.md#fr-129)).
+  - **The check of [FR-131](spec.md#fr-131)** runs once per model, before v1.6 is released, in
+    the order gpt-5.4-mini, gpt-5.6-luna, gpt-6.1-sol:
+    - **The script**: `scripts/check-models.ts`, run with Vitest so it resolves `@/` as the app's
+      tests do (`npm run check:models`, not part of `npm test`).
+      - It builds each request from the app's own modules, from a backup of the demonstration data
+        that the owner gives it. Today is the day after its last transaction.
+      - The owner's key comes from the shell's environment for that run, `OPENAI_API_KEY`, and is
+        never written to a file.
+    - **Suggestions**: as in [R-29](#r-29), the newest 100 categorised expenses and incomes are held
+      out with their categories hidden, and the examples are built from the rest as
+      `suggestionRequest` does. A suggestion is right when it names the held-out category, compared
+      by name key ([R-08](#r-08)). To pass, the whole answer must arrive within 60 seconds, with at
+      least 90 right.
+    - **The finance chat**: each example question of [FR-101](spec.md#fr-101), and "What is the
+      capital of France?".
+      - The script prints each answer beside the facts the app works out: each budget's spending
+        against its limit, each month's totals by category, and the changes in the price of each
+        repeated payment.
+      - The owner and Claude check every amount, date, payment and category the answer names
+        against those facts.
+      - To pass, every answer must be complete within 60 seconds, with nothing in it that the data
+        does not hold. No budget may be called exceeded that is within its limit, and no price rise
+        named that did not happen. The question out of scope must get `inScope` false.
+    - Each request is stopped after 60 seconds, and a model's first failure ends its check. A model
+      once checked is not checked again.
+    - The prices per million input and output tokens are copied from OpenAI's pricing page on the
+      day of the check. If gpt-5.4-mini fails, they decide the default: the cheapest model that
+      passes.
+  - **Results**: pending.
+    - The task that runs the check records them here, in a table of model, prices, time to the
+      whole answer and suggestions right, and each chat answer with its verdict.
+    - That task sets `AI_MODELS` and `DEFAULT_MODEL` to match.
+    - v1.6 is not released before that.
+- **Rationale**:
+  - **One list, in code**: the models change with OpenAI's offer, and each version lists the
+    models it was checked with ([FR-131](spec.md#fr-131)). A list fetched from OpenAI would offer
+    models nobody checked.
+  - **The default when nothing is chosen**: absent means the default. A backup of v1.5, or one
+    without a model, therefore restores the default ([FR-130](spec.md#fr-130)), and the backup
+    format stays version 1 ([contracts/backup-file.md](contracts/backup-file.md#compatibility)).
+  - **Reading the chat's answers**: whether an answer is true to the data is a judgement no rule of
+    ours makes reliably, while the facts beside it make it quick. The script alone checks the
+    suggestions and the scope.
+  - **The order and the one-minute cap**: the default is checked first, and the owner's limit of one
+    minute holds, as in [R-29](#r-29).
+- **Alternatives considered**:
+  - **Letting the user type any model's id**: a model nobody checked, and failures the user cannot
+    tell from a wrong key.
+  - **Fetching OpenAI's model list**: as above.
+  - **An automatic judge of the chat's answers, such as another model**: a second thing to check,
+    with its own mistakes.

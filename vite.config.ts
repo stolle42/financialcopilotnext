@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 import { aiRoute } from "./server/aiRoute.ts";
+import { appVersion, serviceWorkerBuild } from "./worker/plugin.ts";
 
 // Names the commit in the built page, so CI's `deployed` job can wait until the production domain
 // serves the commit it was triggered for (R-18). Vercel provides the id to its builds.
@@ -55,7 +56,16 @@ function contentSecurityPolicyTag(): Plugin {
 export default defineConfig({
   // Relative asset URLs let the build load from any path or from local files (R-20).
   base: "./",
-  plugins: [react(), tailwindcss(), appCommit(), contentSecurityPolicyTag(), aiRoute()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    appCommit(),
+    contentSecurityPolicyTag(),
+    aiRoute(),
+    serviceWorkerBuild(),
+  ],
+  // The header shows the version the build's worker names (FR-088, R-30).
+  define: { __APP_VERSION__: JSON.stringify(appVersion()) },
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
@@ -65,7 +75,7 @@ export default defineConfig({
   // Domain and store tests run in Node; the browser is Playwright's job (R-17).
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "server/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "server/**/*.test.ts", "worker/**/*.test.ts"],
     passWithNoTests: true,
     // A zone west of UTC, where a date read as UTC midnight shows as the day before, so tests
     // catch that mistake on every machine.

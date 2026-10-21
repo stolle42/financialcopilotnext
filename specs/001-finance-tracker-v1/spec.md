@@ -25,7 +25,8 @@ source for what v1 contains. Nothing here is optional; nothing not here is in v1
 - Q: May the copy of the app hosted on Vercel be used for real financial data, or only for checks
   and demonstrations? → A: Only for checks and demonstrations; real data stays in the app as run
   locally ([FR-061](#fr-061)). Using a hosted copy for real data is out of scope for v1
-  ([Out of Scope](#out-of-scope)).
+  ([Out of Scope](#out-of-scope)). Superseded in v1.5: the app at its web address is where real
+  data lives ([FR-121](#fr-121)).
 - Q: If the user changes a category's monthly limit, should Insights measure earlier months against
   the new limit, or against the limit that applied in those months? → A: Against the new limit. A
   category has one limit at a time, and it applies to every month, past and present
@@ -45,7 +46,8 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
   The warning [FR-071](#fr-071) requires is the protection ([Out of Scope](#out-of-scope)).
 - Q: Must a hosted copy show in the app that it serves only checks and demonstrations? → A: No.
   The project's documentation says so, and the app shows no notice
-  ([Out of Scope](#out-of-scope)).
+  ([Out of Scope](#out-of-scope)). Superseded in v1.5: the app at its web address is the real app,
+  not a copy for checks ([FR-121](#fr-121)).
 - The design's decisions on atomic changes, failed saves, a second tab, browser storage that may be
   cleared, outgoing requests, backup validity and versions, review progress, and confirmations
   are now requirements: [FR-022](#fr-022), [FR-061](#fr-061), [FR-069](#fr-069),
@@ -377,6 +379,101 @@ was.
 
 ---
 
+<a id="user-story-9"></a>
+### User Story 9 - Open the app from its web address and install it (Priority: P9)
+
+Someone who has never used a terminal gets the app's address, opens it in Chrome, Edge or Firefox,
+and starts recording their money at once, with nothing to download or set up. In Chrome and Edge
+they can install it, so it opens in a window of its own like any other program. After the first
+visit it works without a network connection. A new version never replaces the one they use until
+they choose to update, after a hint to save a backup first. Added in v1.5.
+
+**Why this priority**: Until v1.5, using the app with real data meant installing developer tools
+and running it from a terminal, which only an IT expert would do. It comes after the stories it
+makes reachable.
+
+**Independent Test**: In a browser that never opened the app, open its address, record an
+expense, install the app, disconnect the network and open it again; then publish a new version and
+verify that the app keeps the old one through a restart, until Update is selected.
+
+**Acceptance Scenarios**:
+
+1. **Given** a browser that never opened the app, **When** the user opens its address, **Then**
+   the transaction list shows ([FR-063](#fr-063)) and nothing asks them to install or set up
+   anything first ([FR-121](#fr-121)).
+2. **Given** Chrome or Edge and the app not installed, **Then** the header offers **Install app**;
+   **When** the user selects it and confirms the browser's question, **Then** the app opens in a
+   window of its own, with the same data, and no longer offers Install app ([FR-122](#fr-122)).
+3. **Given** Firefox, **Then** the app offers no Install app, and works as in a tab of Chrome
+   ([FR-122](#fr-122), [FR-125](#fr-125)).
+4. **Given** the app opened once, **When** the network is disconnected and the user opens the app,
+   **Then** it opens with all their data, and every capability other than the AI features works
+   ([FR-123](#fr-123)).
+5. **Given** the user runs version 1.5 and version 1.6 is published, **When** they open the app,
+   **Then** it still runs 1.5, and Settings says "Version 1.6 is available (you have 1.5). Make a
+   backup first." with **Backup** and **Update** ([FR-124](#fr-124)).
+6. **Given** that notice, **When** the user closes and opens the app again, also after restarting
+   the computer, **Then** it still runs 1.5 and still shows the notice ([FR-124](#fr-124)).
+7. **Given** that notice, **When** the user selects Backup, **Then** they receive a backup file as
+   on the Backup screen ([FR-070](#fr-070)); **When** they select Update, **Then** the app opens
+   again on 1.6 with exactly the data it had, the header shows "Version 1.6", and the notice is gone
+   ([FR-124](#fr-124)).
+8. **Given** the browser has not agreed to keep the app's data, **When** the user opens the Backup
+   screen in Chrome or Edge with the app not installed, **Then** it says so, that a saved backup is
+   the safeguard, and that installing the app helps the browser keep the data, and offers Install
+   app ([FR-075](#fr-075)).
+
+---
+
+<a id="user-story-10"></a>
+### User Story 10 - Use the AI features with my own OpenAI key (Priority: P10)
+
+The user turns AI features on in Settings with their own OpenAI API key, which pays for what they
+ask, and can choose which OpenAI model answers. The app then asks OpenAI directly, wherever it
+runs. The key stays on their computer and never goes into a backup. Added in v1.6.
+
+**Why this priority**: Until v1.6, the AI features asked OpenAI through a server on the owner's
+computer, with the owner's key, so no one using the app at its web address could use them
+([User Story 9](#user-story-9)). It builds on the stories the AI features serve
+([User Story 2](#user-story-2), [User Story 8](#user-story-8)).
+
+**Independent Test**: In the app at its web address, turn AI features on with a wrong key and then
+with a working one, choose another model, ask the finance chat and suggest categories, save a
+backup and load it into a fresh install, and verify that AI features are off there until a key is
+entered.
+
+**Acceptance Scenarios**:
+
+1. **Given** AI features are off and no key is stored, **When** the user turns them on, **Then** one
+   dialog shows the warning, two or three lines on what a key is and costs, a link to OpenAI's page
+   for API keys, and an empty key field, and Turn on is unavailable until the field holds something
+   ([FR-127](#fr-127)).
+2. **Given** that dialog, **When** the user enters a key OpenAI does not accept and selects Turn on,
+   **Then** the dialog says "OpenAI didn't accept this key. Check that you copied all of it.", AI
+   features stay off, and no key is stored ([FR-127](#fr-127)).
+3. **When** the user enters a key OpenAI accepts and selects Turn on, **Then** AI features are on,
+   and Settings shows the key as `sk-…` with its last 4 characters, Remove key, and the model
+   gpt-5.4-mini ([FR-126](#fr-126), [FR-129](#fr-129)).
+4. **Given** AI features on, **When** the user selects Remove key and confirms, **Then** the key is
+   gone and AI features are off ([FR-126](#fr-126)).
+5. **Given** AI features on, **When** the user chooses gpt-6.1-sol in Settings, **Then** the finance
+   chat says "Answers by gpt-6.1-sol", and the next question and the next request for suggestions
+   ask that model ([FR-129](#fr-129)).
+6. **Given** AI features on with gpt-5.6-luna chosen, **When** the user saves a backup, **Then** the
+   file holds the model and AI features on, and no part of the key; **When** they load it into a
+   fresh install, **Then** Settings shows gpt-5.6-luna and the switch off, until the user turns AI
+   features on with a key ([FR-070](#fr-070), [FR-126](#fr-126), [FR-130](#fr-130)).
+7. **Given** AI features were on in v1.5, **When** the app updates to v1.6, **Then** Settings shows
+   the switch off, and turning it on asks for a key ([FR-095](#fr-095)).
+8. **Given** a backup whose model the app no longer lists, **When** the user loads it, **Then** the
+   app uses gpt-5.4-mini, and Settings says "The model you chose is no longer offered; now using
+   gpt-5.4-mini." ([FR-130](#fr-130)).
+9. **Given** AI features on in the app at its web address, **When** the user asks the finance chat
+   or selects Suggest categories, **Then** the request goes to OpenAI directly and the answer
+   arrives as on the owner's computer before v1.6 ([FR-128](#fr-128)).
+
+---
+
 <a id="edge-cases"></a>
 ### Edge Cases
 
@@ -428,6 +525,44 @@ was.
   and the answer says that the chat cannot and how to do it in the app ([FR-103](#fr-103)).
 - The AI suggests no follow-up questions, or more than three: the chat shows none, or the first
   three ([FR-111](#fr-111)).
+- The user opens the app in a browser tab while the installed app is open, or the other way round:
+  both use the same data, so the second shows that the app is already open elsewhere
+  ([FR-074](#fr-074)).
+- The user opens the app for the first time without a network connection: it cannot open, since
+  it has never been downloaded ([FR-123](#fr-123)).
+- The browser's data for the app's address is cleared, by the user or by the browser
+  ([FR-075](#fr-075)): the app and its data are both gone. The next visit opens the newest version,
+  empty, and loading a backup brings the data back.
+- The user never selects Update: the app keeps working on its version, and the notice stays
+  ([FR-124](#fr-124)). A backup saved by the newer version, for example on another computer, is
+  refused with a message saying so ([FR-072](#fr-072)), and updating solves it.
+- Several versions are published before the user updates: the notice names the newest, and Update
+  goes straight to it ([FR-124](#fr-124)).
+- A change reaches the app's address without a new version number, such as a change to the
+  project's documentation: no notice shows, and the user gets it with the next version
+  ([FR-124](#fr-124)).
+- A user of v1.4 opens the app after v1.5 is published: it opens on v1.5 at once, since v1.4 holds
+  back no version. From v1.5 on, every newer version waits for Update ([FR-124](#fr-124)).
+- A developer runs the app from their own computer: that copy has its own address, so it holds
+  data of its own. A backup saved in one and loaded into the other moves the data
+  ([FR-121](#fr-121)).
+- The user removes the key while an answer is being written: the answer stops, as when AI
+  features are turned off ([FR-108](#fr-108), [FR-126](#fr-126)).
+- OpenAI stops accepting a stored key, for example because the user deleted it at OpenAI, or the
+  account has no credit left or reached its monthly limit: AI features stay on, and each request
+  fails with a message that says so and what to do ([FR-094](#fr-094)). The user removes the key
+  and turns AI features on with a new one ([FR-126](#fr-126)).
+- The key the user entered is accepted, but may not use the chosen model: requests fail with a
+  message that says so, and the user chooses another model ([FR-094](#fr-094),
+  [FR-129](#fr-129)).
+- The user turns AI features on without a network connection: the dialog says that OpenAI cannot be
+  reached, and they stay off ([FR-127](#fr-127)).
+- The user pastes a key with spaces or a line break around it: they are ignored
+  ([FR-126](#fr-126)).
+- The user loads a backup on the computer where their key is stored: the key stays, and AI
+  features are on if the backup holds them on ([FR-126](#fr-126)).
+- The user uses the app on two computers: each has its own key entry, since no backup carries the
+  key ([FR-126](#fr-126)).
 
 ## Requirements *(mandatory)*
 
@@ -612,18 +747,19 @@ was.
   ([FR-090](#fr-090), [FR-091](#fr-091), [FR-095](#fr-095), [FR-100](#fr-100),
   [FR-102](#fr-102)). They are on only once the user turned them on in Settings and agreed to
   their warning.
-  No flow may make a request to any host other than the one serving the app: no analytics, no
-  error reports, no update checks, and no fonts, scripts or other files from third parties. An AI
-  feature's request goes to the server that serves the app on the user's own computer, which
-  passes it on to OpenAI with the owner's API key. The key stays on that computer, outside the
-  app's code, storage and backups. No capability may require a network connection, except the AI
-  features; everything else works without one. Serving the app from the user's own computer
-  (`localhost`) is not a network connection. Real data lives only in the app as run locally. A copy
-  hosted on the web, such as the one the project's post-push check deploys, needs a network
-  connection to open, so it serves only checks and demonstrations
-  ([Out of Scope](#out-of-scope)). It cannot pass requests on to OpenAI, so there AI features
-  cannot be turned on ([FR-106](#fr-106)). Changed in v1.2: [FR-090](#fr-090), [FR-095](#fr-095).
-  Changed in v1.3: [FR-100](#fr-100), [FR-105](#fr-105), [FR-106](#fr-106).
+  No flow may make a request to any host other than the one serving the app, except to OpenAI for
+  an AI feature's request and for the check of a key ([FR-127](#fr-127), [FR-128](#fr-128)): no
+  analytics, no error reports, and no fonts, scripts or other files from third parties. Requests
+  to the app's own address fetch only the app itself: when it opens, and when it looks for a newer
+  version, which it downloads but does not use until the user selects Update ([FR-124](#fr-124)).
+  These requests carry no user data. An AI feature's request and a key check go straight from the
+  app to OpenAI with the user's own API key; no server of the project's sees them
+  ([FR-126](#fr-126), [FR-128](#fr-128)). After the app has opened once, no capability may require
+  a network connection, except the AI features and getting a newer version; everything else works
+  without one ([FR-123](#fr-123)). Real data lives in the app at its web address
+  ([FR-121](#fr-121)). Changed in v1.2: [FR-090](#fr-090), [FR-095](#fr-095). Changed in v1.3:
+  [FR-100](#fr-100), [FR-105](#fr-105), [FR-106](#fr-106). Changed in v1.5: [FR-121](#fr-121),
+  [FR-123](#fr-123), [FR-124](#fr-124). Changed in v1.6: [FR-126](#fr-126), [FR-128](#fr-128).
 - <a id="fr-062"></a>**FR-062**: The application MUST NOT initiate, schedule, or instruct any movement of real money.
 - <a id="fr-063"></a>**FR-063**: The application MUST open on the transaction list ([FR-016](#fr-016)). Accounts are deliberately
   low-prominence: they exist to make the numbers trustworthy and are not the app's home.
@@ -654,18 +790,21 @@ testable for v1.
 - <a id="fr-069"></a>**FR-069**: Every action that deletes or replaces data MUST ask the user to confirm,
   and the request MUST state the consequence. These actions are: deleting a transaction, a
   category, or a mapping profile; discarding a pending batch; changing an opening balance;
-  clearing the finance chat's conversation ([FR-104](#fr-104)); and loading a backup. Changing an
+  clearing the finance chat's conversation ([FR-104](#fr-104)); removing the OpenAI API key
+  ([FR-126](#fr-126)); and loading a backup. Changing an
   opening balance and loading a backup MUST use a severe warning ([FR-001](#fr-001),
   [FR-071](#fr-071)). Confirming a batch first states its row count ([FR-027](#fr-027)). Changed
-  in v1.3: [FR-104](#fr-104).
+  in v1.3: [FR-104](#fr-104). Changed in v1.6: [FR-126](#fr-126).
 
 **Backup**
 
 - <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
   app holds, including accounts, transactions, categories, budgets, mapping profiles, the pending
   batch, the manual-entry default account ([FR-006](#fr-006)), whether AI features are on
-  ([FR-095](#fr-095)) and the finance chat's conversation ([FR-104](#fr-104)). Changed in v1.2:
-  [FR-095](#fr-095). Changed in v1.3: [FR-104](#fr-104).
+  ([FR-095](#fr-095)), the chosen model ([FR-130](#fr-130)) and the finance chat's conversation
+  ([FR-104](#fr-104)). The OpenAI API key MUST NOT be part of a backup ([FR-126](#fr-126)).
+  Changed in v1.2: [FR-095](#fr-095). Changed in v1.3: [FR-104](#fr-104). Changed in v1.6:
+  [FR-126](#fr-126), [FR-130](#fr-130).
 - <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
@@ -688,7 +827,9 @@ testable for v1.
   or window MUST load no data, and MUST tell the user that the app is already open elsewhere.
 - <a id="fr-075"></a>**FR-075**: The browser may clear the app's data when disk space runs low, unless
   the browser has agreed to keep it. The backup screen MUST say when the browser has not agreed,
-  and that a saved backup is the safeguard ([User Story 7](#user-story-7)).
+  and that a saved backup is the safeguard ([User Story 7](#user-story-7)). While the app offers
+  Install app ([FR-122](#fr-122)), it MUST also say there that installing the app helps the browser
+  keep the data, and offer Install app. Changed in v1.5: [FR-122](#fr-122).
 
 **UI improvements (v1.1)**
 
@@ -730,12 +871,14 @@ them changes states the new behaviour and names the change.
 A change the owner asked for after v1.1, released as v1.2. A requirement of an earlier version that
 it changes states the new behaviour and names the change.
 
-- <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks an AI model of
-  OpenAI to suggest a category for the rows under review that still hold their side's
-  "Uncategorised" ([FR-029](#fr-029)). Only selecting it sends a request; importing, opening
-  review, turning AI features on and every other action send nothing ([FR-061](#fr-061)). While AI
+- <a id="fr-090"></a>**FR-090**: Review MUST offer **Suggest categories**, which asks the OpenAI
+  model the user chose ([FR-129](#fr-129)) to suggest a category for the rows under review that
+  still hold their side's "Uncategorised" ([FR-029](#fr-029)). Only selecting it sends a request;
+  importing, opening review and every other action send nothing, and turning AI features on sends
+  only the key check ([FR-061](#fr-061), [FR-127](#fr-127)). While AI
   features are off ([FR-095](#fr-095)), Suggest categories MUST be unavailable, and review MUST say
-  that it needs AI features, which Settings turns on. Changed in v1.3: [FR-105](#fr-105).
+  that it needs AI features, which Settings turns on. Changed in v1.3: [FR-105](#fr-105). Changed
+  in v1.6: [FR-127](#fr-127), [FR-129](#fr-129).
   - A row is sent only when it has a description or a counterparty, and its side has a category
     other than "Uncategorised" and "Unaccounted".
   - One request sends at most 300 rows, the first in review order ([FR-026](#fr-026)); the user
@@ -748,9 +891,10 @@ it changes states the new behaviour and names the change.
   - as examples of the user's own decisions, the description and category name of at most 100
     earlier expenses and incomes in such categories, the most recent for each description.
 
-  It MUST NOT hold amounts, dates, account names or the file name. It goes through the server
-  that serves the app to OpenAI ([FR-061](#fr-061)). The warning shown when the user turns AI
-  features on says so ([FR-095](#fr-095)). Changed in v1.3: [FR-105](#fr-105).
+  It MUST NOT hold amounts, dates, account names or the file name. It goes straight to OpenAI
+  ([FR-061](#fr-061), [FR-128](#fr-128)). The warning shown when the user turns AI
+  features on says so ([FR-095](#fr-095)). Changed in v1.3: [FR-105](#fr-105). Changed in v1.6:
+  [FR-128](#fr-128).
 - <a id="fr-092"></a>**FR-092**: A suggestion MUST fill a row only if, when the answer arrives, the
   row is still under review and still holds its side's "Uncategorised", and the suggested name is
   that of a category of the row's side other than "Uncategorised" and "Unaccounted", compared as
@@ -765,37 +909,39 @@ it changes states the new behaviour and names the change.
 - <a id="fr-094"></a>**FR-094**: After an answer, review MUST say how many of the rows sent got a
   suggestion. Review MUST say which of these happened and what the user can do, and MUST leave
   every row as it was ([FR-067](#fr-067)), when:
-  - the AI cannot be reached: the server that serves the app holds no OpenAI key, or OpenAI cannot
-    be reached;
+  - the AI cannot be reached: OpenAI cannot be reached, for example without a network connection;
   - no answer arrives within 4 minutes;
-  - OpenAI reports a failure, such as a rejected key or no credit left;
+  - OpenAI reports a failure, such as a key it no longer accepts, no credit left, the account's
+    monthly limit reached, or a model the key may not use ([FR-126](#fr-126),
+    [FR-129](#fr-129));
   - the answer is not in the expected form.
 
-  Changed in v1.3: [FR-105](#fr-105).
+  Changed in v1.3: [FR-105](#fr-105). Changed in v1.6: [FR-128](#fr-128).
 - <a id="fr-095"></a>**FR-095**: A **Settings** screen MUST offer an **AI features** switch, off
   until the user turns it on. The one switch covers every feature that sends data off the
-  computer; in v1.3 these are Suggest categories and the finance chat ([FR-090](#fr-090),
-  [FR-100](#fr-100)). Outside the user's own computer the switch is unavailable
-  ([FR-106](#fr-106)). Changed in v1.3: [FR-100](#fr-100), [FR-102](#fr-102),
-  [FR-106](#fr-106).
-  - Turning it on MUST first show a warning that data will now be shared: what each AI feature
-    sends and to whom ([FR-091](#fr-091), [FR-102](#fr-102)). AI features MUST turn on only when
-    the user agrees; cancelling leaves them off and changes nothing. Turning them on sends nothing
-    by itself.
-  - Turning it off MUST take effect at once, without a warning.
+  computer; these are Suggest categories and the finance chat ([FR-090](#fr-090),
+  [FR-100](#fr-100)). AI features are on only while the switch is on and the user's OpenAI API key
+  is stored on this computer ([FR-126](#fr-126)); without a key, Settings shows the switch off.
+  Changed in v1.3: [FR-100](#fr-100), [FR-102](#fr-102), [FR-106](#fr-106). Changed in v1.6:
+  [FR-126](#fr-126), [FR-127](#fr-127).
+  - Turning it on MUST first show the dialog of [FR-127](#fr-127), with a warning that data will
+    now be shared: what each AI feature sends and to whom ([FR-091](#fr-091), [FR-102](#fr-102)).
+    AI features MUST turn on only when the user agrees and OpenAI accepts the key; cancelling
+    leaves them off and changes nothing. Turning them on sends nothing but the key check.
+  - Turning it off MUST take effect at once, without a warning. The key stays stored.
   - Using an AI feature MUST NOT show a further warning, and no other screen shows a notice while
     AI features are on; Settings shows whether they are.
   - The setting MUST survive closing the app and MUST be part of a backup ([FR-070](#fr-070)); a
-    backup without it restores AI features off.
-  - A setting turned on in v1.2, under v1.2's warning, stays on after the update to v1.3. The
-    owner, the app's one user, agrees to v1.3's warning by turning AI features off and on once
-    ([quickstart.md](quickstart.md#ai-features)).
+    backup without it restores AI features off. A backup that holds them on turns them on only
+    where a key is stored ([FR-126](#fr-126)).
+  - AI features turned on before v1.6 have no key stored, so after the update to v1.6 Settings
+    shows the switch off, and turning it on asks for a key, under v1.6's warning.
 
 **Finance chat, through OpenAI (v1.3)**
 
 A change the owner asked for after v1.2, released as v1.3. With it, both AI features ask OpenAI
 through the server that serves the app, in place of v1.2's n8n workflow and Claude
-([FR-105](#fr-105)). [User Story 8](#user-story-8) describes the chat. A requirement of an earlier
+([FR-105](#fr-105)); since v1.6 they ask OpenAI directly ([FR-128](#fr-128)). [User Story 8](#user-story-8) describes the chat. A requirement of an earlier
 version that it changes states the new behaviour and names the change.
 
 - <a id="fr-100"></a>**FR-100**: Every screen MUST offer the **finance chat** through a button
@@ -824,9 +970,9 @@ version that it changes states the new behaviour and names the change.
 
   It MUST NOT hold transfers, ids, colours, mapping profiles, the pending import or the settings.
   With it go the chat's rules and a guide to the app, which hold no user data
-  ([FR-103](#fr-103)). It goes through the server that serves the app to OpenAI
-  ([FR-061](#fr-061)). The warning shown when the user turns AI features on says so
-  ([FR-095](#fr-095)).
+  ([FR-103](#fr-103)). It goes straight to OpenAI ([FR-061](#fr-061), [FR-128](#fr-128)). The
+  warning shown when the user turns AI features on says so ([FR-095](#fr-095)). Changed in v1.6:
+  [FR-128](#fr-128).
 - <a id="fr-103"></a>**FR-103**: The chat MUST answer:
   - questions about the user's own finances, such as where the money goes, how spending changes,
     whether budgets hold, which payments recur and whether their price rose, and where the user
@@ -855,16 +1001,20 @@ version that it changes states the new behaviour and names the change.
     answer showed, the chat MUST say which and what the user can do, MUST keep the conversation as
     it was before the question, and MUST put the question back in the field. For the chat, the 4
     minutes of FR-094 run until the answer is complete.
-- <a id="fr-105"></a>**FR-105**: Both AI features MUST ask OpenAI through the server that serves
-  the app on the user's own computer, which holds the owner's OpenAI API key. The key MUST NOT
-  reach the app's code, its storage or a backup. A copy hosted on the web has no such server
-  ([FR-061](#fr-061), [FR-106](#fr-106)). This replaces v1.2's n8n workflow and Claude.
-- <a id="fr-106"></a>**FR-106**: A copy of the app not served from the user's own computer, such as
-  the hosted copy, MUST NOT let AI features be turned on. There, Settings MUST show the AI features
-  switch off and unavailable, also when a restored backup holds them on, and MUST say beside it
-  that AI features need the app run locally. Review and the finance chat MUST then behave as with
-  AI features off, and such a copy MUST send nothing for an AI feature, not even to the server
-  that serves it ([FR-061](#fr-061), [FR-095](#fr-095)).
+- <a id="fr-105"></a>**FR-105**: Both AI features MUST ask OpenAI directly, with the user's own
+  OpenAI API key and the model the user chose ([FR-126](#fr-126), [FR-128](#fr-128),
+  [FR-129](#fr-129)). No server of the project's takes part, and the project holds no OpenAI key.
+  This replaces v1.3's route through the server that served the app on the user's own computer
+  with the owner's key, which replaced v1.2's n8n workflow and Claude. Changed in v1.5:
+  [FR-121](#fr-121). Changed in v1.6: [FR-126](#fr-126), [FR-128](#fr-128), [FR-129](#fr-129).
+- <a id="fr-106"></a>**FR-106**: Wherever the app is served, at its web address, installed or from
+  a developer's own computer, AI features MUST turn on only with a key the user entered
+  ([FR-121](#fr-121), [FR-126](#fr-126), [FR-127](#fr-127)). Without a key stored, Settings MUST
+  show the AI features switch off, also when a restored backup holds them on; review and the
+  finance chat MUST then behave as with AI features off, and the app MUST send nothing for an AI
+  feature ([FR-061](#fr-061), [FR-095](#fr-095)). Changed in v1.5: [FR-121](#fr-121). Changed in
+  v1.6: [FR-128](#fr-128), which lets AI features be turned on wherever the app is served, in
+  place of only on the user's own computer.
 - <a id="fr-107"></a>**FR-107**: An answer MUST show as it is written, after its question, so the
   user can read its start while the rest follows. From sending until the answer's first words
   arrive, its place MUST say "Thinking…". A question out of scope MUST show the fixed answer of
@@ -954,6 +1104,131 @@ the design, it changes what the app does: the user can change how wide the finan
   closes and opens again, and when another screen opens. Reloading or opening the app again starts
   it at 384px. Changing the width sends nothing and stores nothing.
 
+**Installable app (v1.5)**
+
+A change the owner asked for after v1.4, released as v1.5, so that people who are not IT experts
+can use the app: they open its web address, may install it, and keep their real data there, with
+nothing to download or set up. [User Story 9](#user-story-9) describes it. A requirement of an
+earlier version that it changes states the new behaviour and names the change. The AI features
+stay as v1.3 made them until v1.6.
+
+- <a id="fr-121"></a>**FR-121**: The app MUST be used at one web address, the one each release is
+  published to: `financialcopilot-three.vercel.app`. That is where users keep their real data. The
+  address MUST NOT change: a browser keeps the app's data per address, so the app at a new address
+  would open empty for every user ([quickstart.md](quickstart.md)). Opening the address MUST be
+  all a user needs to start; nothing asks them to install or set up anything first. Running the
+  app from a developer's own computer serves development only; it holds data of its own, and a
+  backup moves data between the two ([FR-070](#fr-070), [FR-071](#fr-071)).
+- <a id="fr-122"></a>**FR-122**: Where the browser can install the app, as Chrome and Edge can, the
+  user MUST be able to install it from the app: while it is not installed, the header MUST offer
+  **Install app**, which asks the browser's own question to install it. Installed, the app MUST
+  open in a window of its own, under its name and icon, from where the computer keeps its programs,
+  with the same data as in the browser. Installed, and where the browser cannot install it, as in
+  Firefox, the app MUST NOT offer Install app.
+- <a id="fr-123"></a>**FR-123**: After the app has opened once with a network connection, it MUST
+  open and work without one, in a browser tab and installed: every capability except the AI
+  features and getting a newer version ([FR-124](#fr-124)). Without a connection the AI features
+  fail as [FR-094](#fr-094) says.
+- <a id="fr-124"></a>**FR-124**: A newer version MUST take effect only when the user selects
+  Update.
+  - When the app opens with a network connection, it MUST look at its own address for a newer
+    version and download it in the background, without asking and without changing what runs
+    ([FR-061](#fr-061)).
+  - Until the user selects Update, the app MUST keep running the version it runs, also after it is
+    closed and opened again and after the computer restarts.
+  - Once a newer version is fully downloaded, Settings MUST say "Version 1.6 is available (you have
+    1.5). Make a backup first.", with the two versions as the header shows them
+    ([FR-088](#fr-088)), and offer **Backup**, which saves a backup as the Backup screen does
+    ([FR-070](#fr-070)), and **Update**, which opens the app again on the newer version. No other
+    screen shows the notice, and it holds no list of changes.
+  - A version is newer only when its number differs from the one running. A change published
+    without a new number shows no notice.
+  - When several newer versions were published, the notice MUST name the newest, and Update MUST
+    go to it.
+  - Updating MUST keep every piece of data exactly as it was ([FR-073](#fr-073)).
+- <a id="fr-125"></a>**FR-125**: The app MUST work in the current versions of Chrome, Edge and
+  Firefox on a desktop computer, in a browser tab and, in Chrome and Edge, installed. Safari is not
+  supported ([Out of Scope](#out-of-scope)).
+
+**Own OpenAI key and model choice (v1.6)**
+
+A change the owner asked for after v1.5, released as v1.6, so that every user of the app at its web
+address can use the AI features ([FR-121](#fr-121)): each brings their own OpenAI API key, which
+pays for what they ask, and chooses the model that answers. The app asks OpenAI directly; no server
+of the project's takes part, and the project holds no key. [User Story 10](#user-story-10)
+describes it. A requirement of an earlier version that it changes states the new behaviour and
+names the change.
+
+- <a id="fr-126"></a>**FR-126**: AI features MUST need the user's own OpenAI API key, which the user
+  enters when turning them on ([FR-127](#fr-127)).
+  - The app MUST store the key on this computer with its other data, so that it survives closing
+    the app, and MUST send it only to OpenAI, with an AI feature's request and the key check
+    ([FR-128](#fr-128)). Spaces and line breaks around an entered key MUST be ignored.
+  - The key MUST NOT be part of a backup ([FR-070](#fr-070)). Loading a backup MUST keep the key
+    stored on this computer; on a computer without one, AI features stay off until the user enters
+    a key ([FR-095](#fr-095)).
+  - Settings MUST show a stored key only masked, as `sk-…` and its last 4 characters, such as
+    `sk-…a1b2`. The app MUST NOT show the whole key again.
+  - Settings MUST offer **Remove key**, which asks the user to confirm and says that the key must
+    be entered again to use AI features ([FR-069](#fr-069)), then deletes the key and turns AI
+    features off at once, as turning them off does ([FR-095](#fr-095), [FR-108](#fr-108)). To use
+    another key, the user removes the stored one and turns AI features on with the new one.
+- <a id="fr-127"></a>**FR-127**: Turning AI features on MUST show one dialog that holds:
+  - the warning of [FR-095](#fr-095);
+  - in two or three lines: that an API key lets the app ask OpenAI for the user, that OpenAI
+    charges the user's own OpenAI account for every question and every request for suggestions,
+    and that setting a monthly limit there is wise;
+  - a link to OpenAI's page for creating API keys, which opens in the browser and is no request of
+    the app's ([FR-061](#fr-061));
+  - a field for the key, or, when a key is stored, the masked key in its place
+    ([FR-126](#fr-126));
+  - **Turn on**, unavailable while the field is empty, and **Cancel**.
+
+  Selecting Turn on MUST first check the key with OpenAI, sending nothing but the key, and the
+  dialog MUST say that it is checking. When OpenAI accepts the key, the app MUST store it and turn
+  AI features on. When OpenAI does not accept it, the dialog MUST say "OpenAI didn't accept this
+  key. Check that you copied all of it.", keep what the user entered, and store nothing. When
+  OpenAI cannot be reached, the dialog MUST say so, and that the user can try again once connected.
+  In both cases AI features stay off. Cancel, also while the key is checked, leaves everything as
+  it was.
+- <a id="fr-128"></a>**FR-128**: An AI feature's request and the key check MUST go straight from the
+  app to OpenAI, with the user's key. No server of the project's takes part: the app's own address
+  receives nothing for an AI feature, and the project holds no OpenAI key, in its code, its files
+  or where it is published. The server that served the app on the user's own computer no longer
+  passes requests on to OpenAI ([FR-105](#fr-105)). AI features therefore work wherever the app is
+  served: at its web address, installed, and from a developer's own computer
+  ([FR-106](#fr-106)).
+- <a id="fr-129"></a>**FR-129**: Settings MUST offer, beside the AI features switch, a choice of
+  the model that answers both AI features, from a short list, each with a plain hint:
+  - gpt-5.4-mini, the default;
+  - gpt-6.1-sol, "better answers, costs more";
+  - gpt-5.6-luna, "cheaper".
+
+  Settings MUST show the model in use, whether AI features are on or off. While AI features are
+  on, the finance chat MUST say in a small line which model answers, such as "Answers by
+  gpt-5.4-mini". Choosing a model sends nothing; the next request uses it, and an answer being
+  written keeps the model it started with. The list holds only models that passed
+  [FR-131](#fr-131)'s check.
+- <a id="fr-130"></a>**FR-130**: The chosen model MUST survive closing the app and MUST be part of a
+  backup ([FR-070](#fr-070)); a backup without one restores the default. When the stored model is
+  not in the list, for example after a later version drops it, the app MUST use the default, and
+  Settings MUST say "The model you chose is no longer offered; now using gpt-5.4-mini.", naming
+  the default, until the user chooses a model.
+- <a id="fr-131"></a>**FR-131**: A model MUST be listed only after it passed a check on the
+  demonstration data, made with the owner's key before the release. Each request is stopped after
+  60 seconds, and a model once checked is not checked again. To pass:
+  - Category suggestions: one request for the newest 100 categorised expenses and incomes, their
+    categories hidden, MUST be answered within 60 seconds, with the right category for at least 90
+    of them ([FR-090](#fr-090)).
+  - The finance chat: each example question ([FR-101](#fr-101)) and one question out of scope MUST
+    be answered completely within 60 seconds. Every amount, date, payment and category an answer
+    names MUST come from the data; no budget may be called exceeded that is within its limit, and
+    no price rise named that did not happen ([FR-109](#fr-109)); the question out of scope MUST get
+    the fixed answer ([FR-103](#fr-103)).
+
+  A model that fails MUST NOT be listed. When gpt-5.4-mini fails, the cheapest model that passes
+  MUST be the default. The results are recorded in [research.md](research.md).
+
 <a id="key-entities"></a>
 ### Key Entities
 
@@ -982,6 +1257,15 @@ the design, it changes what the app does: the user can change how wide the finan
   has a name, a range of
   dates, and a category, an account, both or neither. There is one conversation; it is stored and
   is part of a backup ([FR-104](#fr-104), [FR-110](#fr-110)).
+- **Waiting version**: A newer version of the app, downloaded and kept until the user selects
+  Update. It has a version number; there is at most one, the newest ([FR-124](#fr-124)). It is not
+  the user's data and is not part of a backup.
+- **OpenAI API key**: The user's own key, which OpenAI charges for what the AI features ask. At most
+  one is stored, on this computer only; it is never part of a backup and is shown only masked
+  ([FR-126](#fr-126)).
+- **Chosen model**: The OpenAI model that answers both AI features, one of a short list, the
+  default until the user chooses another. It is stored and is part of a backup
+  ([FR-129](#fr-129), [FR-130](#fr-130)).
 
 ## Success Criteria *(mandatory)*
 
@@ -1008,19 +1292,67 @@ the design, it changes what the app does: the user can change how wide the finan
   profile, or category name; protected category deletion; import file with no transactions;
   reconciliation when balances already match; unparsable import rows; an import while a batch is
   pending; an invalid backup file; an AI feature that gets no usable answer ([FR-094](#fr-094),
-  [FR-104](#fr-104)); and validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
+  [FR-104](#fr-104)); an OpenAI API key that OpenAI does not accept ([FR-127](#fr-127)); and
+  validation on manual entry), exercising the scenario once MUST surface a plain-language message that states the reason,
   in line with [FR-067](#fr-067).
 - <a id="sc-013"></a>**SC-013**: A new user who follows only on-screen labels and defaults can complete [User Story
   1](#user-story-1) acceptance scenario 3 (record a categorised expense) without opening help or
   settings, in line with [FR-066](#fr-066).
 - <a id="sc-014"></a>**SC-014**: Saving a backup and loading it into a fresh install reproduces every
   account balance, transaction, category, budget, mapping profile, the pending batch, the
-  manual-entry default account, whether AI features are on, and the finance chat's conversation,
-  exactly.
+  manual-entry default account, whether AI features are on, the chosen model, and the finance
+  chat's conversation, exactly. The file holds no part of the OpenAI API key.
 - <a id="sc-015"></a>**SC-015**: With 5,000 transactions in the months a question sends, the finance
   chat shows the question and "Thinking…" within 1 second of sending, and selecting Stop ends the
   answer within 1 second, after which no further text appears ([FR-107](#fr-107),
   [FR-108](#fr-108)).
+- <a id="sc-016"></a>**SC-016**: A person who has never used a terminal starts using the app within
+  1 minute of receiving its address, in Chrome, Edge or Firefox, without downloading or setting up
+  anything ([FR-121](#fr-121)).
+- <a id="sc-017"></a>**SC-017**: In Chrome and Edge, installing the app takes at most two selections
+  from the app: Install app and the browser's own confirmation ([FR-122](#fr-122)).
+- <a id="sc-018"></a>**SC-018**: After one visit, with the network disconnected, the app opens and
+  the independent tests of User Stories 1 to 7 pass ([FR-123](#fr-123)).
+- <a id="sc-019"></a>**SC-019**: After a newer version is published, the app runs the version it
+  ran through three closings and openings, until the user selects Update. After Update, the app
+  holds every account balance, transaction, category, budget, mapping profile, the pending batch,
+  the settings and the conversation exactly as before ([FR-124](#fr-124)).
+- <a id="sc-020"></a>**SC-020**: A user with an OpenAI API key at hand turns AI features on within
+  2 minutes of opening Settings, guided only by the dialog ([FR-127](#fr-127)).
+- <a id="sc-021"></a>**SC-021**: A key that OpenAI does not accept never turns AI features on: in
+  every attempt, the dialog says so within 10 seconds of Turn on, and AI features stay off
+  ([FR-127](#fr-127)).
+- <a id="sc-022"></a>**SC-022**: Every model the app lists passed [FR-131](#fr-131)'s check: at least
+  90 of 100 suggestions right, and every chat answer complete within 60 seconds and true to the
+  data.
+
+<a id="assumptions"></a>
+## Assumptions
+
+- **v1.5**:
+  - Every change that reaches the project's main line is published to the app's address
+    ([FR-121](#fr-121)), as before v1.5. Each release that changes the app carries a new version
+    number ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)), so the notice
+    of [FR-124](#fr-124) shows for every release and for nothing else.
+  - The app looks for a newer version only when it opens. A user who keeps it open for days sees
+    the notice the next time they open it.
+  - Chrome and Edge are more likely to keep an installed app's data ([FR-075](#fr-075)); Firefox
+    decides on its own.
+  - A user moves their data between computers or browsers with a backup, as before.
+- **v1.6**:
+  - OpenAI accepts requests sent straight from a web page, and answers a key it does not accept in
+    a way the page can read ([FR-127](#fr-127)). It has stopped accepting such requests for a while
+    before; while it does, the AI features fail as unreachable ([FR-094](#fr-094)), and turning
+    them on says that OpenAI cannot be reached.
+  - A user who wants the AI features has, or creates, an OpenAI account with credit. The app helps
+    only with the link and the lines of [FR-127](#fr-127).
+  - The stored key is as safe as the rest of the app's data: as safe as the computer's user
+    account ([Out of Scope](#out-of-scope)).
+  - The models OpenAI offers and their prices change. Each version lists the models it was checked
+    with ([FR-131](#fr-131)); a later version may change the list ([FR-130](#fr-130)).
+  - The pass marks of [FR-131](#fr-131), 90 of 100 suggestions and every chat answer true to the
+    data, are set for v1.6 by this spec, not taken from a measurement; the owner may change them
+    before the check runs.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -1050,8 +1382,8 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Offering to save a backup during a restore. The warning that [FR-071](#fr-071) requires is the
   protection; the user can save a backup first, on the same screen.
 - Protecting data from other people using the same computer, such as encryption or a passcode for
-  stored data or backup files. The data is as safe as the computer's user account, and anyone who
-  has a backup file can read it.
+  stored data, the stored OpenAI API key or backup files. The data is as safe as the computer's
+  user account, and anyone who has a backup file can read it.
 - Small-viewport responsive layout: completing every flow in a narrow browser window (for example
   360 pixels wide) without horizontal scrolling. v1 targets a normal desktop browser; phone-sized
   polish is later.
@@ -1079,12 +1411,17 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   ([FR-103](#fr-103)). The name Financial Copilot anticipates these features.
 - AI features that send nothing off the computer and so need no consent to data sharing
   ([FR-095](#fr-095)), such as a local model through Ollama in place of OpenAI. v1.3 uses OpenAI,
-  because a local model needs a large download and answers worse ([R-24](research.md#r-24)).
-- AI features in a hosted copy. It has no server of its own to hold the key, and a public address
-  that passes requests on to OpenAI would let anyone spend the owner's credit
-  ([R-24](research.md#r-24)). There, the switch is unavailable ([FR-106](#fr-106)).
-- For category suggestions ([FR-090](#fr-090)): choosing in the app which model or AI provider
-  answers; suggesting transfers, suggesting for rows that already hold a
+  because a local model needs a large download and answers worse ([R-24](research.md#r-24)), and
+  no model measured on the owner's laptop answered fast enough and right ([R-29](research.md#r-29)).
+- AI vendors other than OpenAI, such as Anthropic, Google or Mistral, so that users are not bound
+  to OpenAI. Maybe later; v1.6 asks OpenAI only ([FR-128](#fr-128)).
+- A key provided by the project, so that users without an OpenAI account can use the AI features.
+  Every user brings their own key, which pays for what they ask ([FR-126](#fr-126)).
+- Choosing a model that is not on the app's list, or more than one model at a time, such as one
+  per AI feature ([FR-129](#fr-129)).
+- Showing what a request costs or what the user has spent. The user's OpenAI account shows it, and
+  a monthly limit set there caps it ([FR-127](#fr-127)).
+- For category suggestions ([FR-090](#fr-090)): suggesting transfers, suggesting for rows that already hold a
   category, or suggesting without being asked, for example during import; stopping a request other
   than by leaving review, and sending more than 300 rows at once; learning from the user's
   corrections; and keeping the counterparty in the ledger to give the AI better examples.
@@ -1097,11 +1434,17 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - A switch per AI feature, a notice on every screen while AI features are on, and a warning each
   time an AI feature sends. Since v1.2, the app warns once, when the user turns AI features on in
   Settings ([FR-095](#fr-095)), and Settings shows whether they are on.
-- Docker images and desktop packaging. v1 is a local web app; these are later delivery options and
-  v1 must not foreclose them.
-- Using a hosted copy of the app for real data. A hosted copy needs a network connection to open,
-  which [FR-061](#fr-061) rules out for v1, so it serves only checks and demonstrations. The
-  project's documentation says so; the app itself shows no notice in a hosted copy.
+- Docker images and desktop packaging. Since v1.5 the app is a web app that can be installed from
+  the browser ([FR-122](#fr-122)); these are later delivery options and it must not foreclose
+  them.
+- Safari, on the Mac and on iPhone and iPad. The app is made and checked for Chrome, Edge and
+  Firefox ([FR-125](#fr-125)); Safari is a later step.
+- Updating without the user: automatic updates, and asking the user to update anywhere but
+  Settings. A newer version waits for Update ([FR-124](#fr-124)).
+- Release notes, in the update notice or elsewhere in the app ([FR-124](#fr-124)).
+- An address of the app's own name, such as a domain bought for it. Moving away from
+  [FR-121](#fr-121)'s address would leave every user's data behind at the old one.
+- Moving data between computers or browsers other than by a backup ([FR-121](#fr-121)).
 - Drill-down from a chart into its transactions. Desirable, to be considered in UX design, not a v1
   commitment.
 - Searching the transaction list, paginating it, and editing several transactions at once. v1 has

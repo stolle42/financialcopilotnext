@@ -2,29 +2,46 @@ import { test as base, expect, type BrowserContext, type Page } from "@playwrigh
 import { AI_PATH } from "../../src/ai/path";
 
 /**
+ * Whether the guard must watch requests instead of routing them: in Firefox, a routed context's
+ * requests pass the service worker by, so the app would never run from its caches (R-30).
+ */
+export function guardWatchesOnly(browserName: string, serviceWorkers: string | undefined): boolean {
+  return browserName === "firefox" && serviceWorkers === "allow";
+}
+
+/**
  * Watches `page` in `context` for a request outside the app's origin, for a request to the AI
  * route that no stand-in answers, and for any Content-Security-Policy violation (FR-061, R-19,
- * R-24). Returns the check that fails the test on any.
+ * R-24). Returns the check that fails the test on any. With `watchOnly`, see `guardWatchesOnly`,
+ * such a request still fails the test, but is not stopped.
  */
 export async function guardNetwork(
   context: BrowserContext,
   page: Page,
   baseURL: string | undefined,
+  { watchOnly = false }: { watchOnly?: boolean } = {},
 ): Promise<() => Promise<void>> {
   if (!baseURL) throw new Error("playwright.config.ts sets no baseURL");
   const appOrigin = new URL(baseURL).origin;
   const violations: string[] = [];
+  const forbidden = (url: URL) => url.origin !== appOrigin || url.pathname === AI_PATH;
 
-  // Abort instead of letting the request through, so a test never reaches the outside world.
-  // data: and blob: URLs never reach a route handler, so they stay allowed. The AI route is on the
-  // app's origin, but a local server that holds a key would pass the request on to OpenAI.
-  await context.route(
-    (url) => url.origin !== appOrigin || url.pathname === AI_PATH,
-    (route) => {
+  if (watchOnly) {
+    context.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.protocol.startsWith("http") && forbidden(url)) {
+        violations.push(`request to ${request.url()}`);
+      }
+    });
+  } else {
+    // Abort instead of letting the request through, so a test never reaches the outside world.
+    // data: and blob: URLs never reach a route handler, so they stay allowed. The AI route is on
+    // the app's origin, but a local server that holds a key would pass the request on to OpenAI.
+    await context.route(forbidden, (route) => {
       violations.push(`request to ${route.request().url()}`);
       return route.abort();
-    },
-  );
+    });
+  }
 
   await page.exposeFunction("reportCspViolation", (violation: string) => {
     violations.push(`CSP violation: ${violation}`);
@@ -50,12 +67,71 @@ export async function guardNetwork(
  * the app's origin, or a Content-Security-Policy violation, fails the test (FR-061, R-19). A test
  * that opens a context of its own guards it with `guardNetwork`.
  */
-export const test = base.extend<{ networkGuard: void }>({
+export const test = base.extend<{ networkGuard: void; offlineCheck: void }>({
   networkGuard: [
-    async ({ context, page, baseURL }, use) => {
-      const check = await guardNetwork(context, page, baseURL);
+    async ({ context, page, baseURL, browserName, serviceWorkers }, use) => {
+      const check = await guardNetwork(context, page, baseURL, {
+        watchOnly: guardWatchesOnly(browserName, serviceWorkers),
+      });
       await use();
       await check();
+    },
+    { auto: true },
+  ],
+  // In the project `offline`, every page the test opens must be controlled by the worker, with the
+  // network cut, from the first to the last (SC-018, R-30).
+  offlineCheck: [
+    async ({ context, page }, use, testInfo) => {
+      if (testInfo.project.name !== "offline") return use();
+
+      // The first visit, online: the worker installs and takes control. Then the network goes.
+      await page.goto("/");
+      await page.waitForFunction(async () => {
+        await navigator.serviceWorker.ready;
+        return !!navigator.serviceWorker.controller;
+      });
+      await context.setOffline(true);
+
+      const states: { url: string; controlled: boolean; online: boolean }[] = [];
+      await page.exposeFunction("reportOfflineState", (state: (typeof states)[number]) => {
+        states.push(state);
+      });
+      await page.addInitScript(() => {
+        const report = () =>
+          (
+            window as unknown as {
+              reportOfflineState(state: {
+                url: string;
+                controlled: boolean;
+                online: boolean;
+              }): void;
+            }
+          ).reportOfflineState({
+            url: location.href,
+            controlled: !!navigator.serviceWorker?.controller,
+            online: navigator.onLine,
+          });
+        report();
+        window.addEventListener("online", report);
+        navigator.serviceWorker?.addEventListener("controllerchange", report);
+      });
+
+      await use();
+
+      if (!page.isClosed()) {
+        states.push(
+          await page.evaluate(() => ({
+            url: location.href,
+            controlled: !!navigator.serviceWorker?.controller,
+            online: navigator.onLine,
+          })),
+        );
+      }
+      expect(states.length, "the test opened no page").toBeGreaterThan(0);
+      expect(
+        states.filter((state) => !state.controlled || state.online),
+        "every page must be controlled by the worker and offline throughout (SC-018)",
+      ).toEqual([]);
     },
     { auto: true },
   ],

@@ -1,26 +1,16 @@
+import { DownloadIcon } from "lucide-react";
 import { useContext, useEffect, useRef, useState } from "react";
 import type { Refusal, State } from "@/domain/types";
-import { createBackup, prepareRestore, restore } from "@/store/backup";
+import { appInstall, useInstallable } from "@/pwa/install";
+import { prepareRestore, restore } from "@/store/backup";
 import { useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
 import { StoragePersistedContext } from "@/ui/app/storagePersisted";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Button } from "@/ui/components/ui/button";
 import { toast } from "@/ui/components/ui/toast";
-import { messageFor, notifications, type MessageCode } from "@/ui/messages";
-
-/** Hands `text` to the browser as a download named `fileName` (FR-070). */
-function download(text: string, fileName: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // The browser starts the download from the link before this runs.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+import { installHint, messageFor, notifications, type MessageCode } from "@/ui/messages";
+import { saveBackup } from "./saveBackup";
 
 /** A state that passed validation, waiting for the user to agree to replace everything. */
 interface Pending {
@@ -34,6 +24,7 @@ export function BackupScreen() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const installable = useInstallable();
 
   // Whether the browser agreed to keep the data, which it answers some time after start-up (R-07).
   const storagePersisted = useContext(StoragePersistedContext);
@@ -48,8 +39,7 @@ export function BackupScreen() {
 
   function save() {
     setRefusal(null);
-    const backup = createBackup(store);
-    download(backup.text, backup.fileName);
+    saveBackup(store);
   }
 
   async function chooseFile(file: File | undefined) {
@@ -83,10 +73,19 @@ export function BackupScreen() {
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Backup</h1>
       {persisted === false && (
-        <p className="surface p-6 text-sm">
-          Your browser may clear this app&apos;s data when disk space runs low, because it did not
-          agree to keep it. A backup is the safeguard, so save one now and then.
-        </p>
+        <div className="surface flex flex-col items-start gap-3 p-6">
+          <p className="text-sm">
+            Your browser may clear this app&apos;s data when disk space runs low, because it did not
+            agree to keep it. A backup is the safeguard, so save one now and then.
+            {installable && ` ${installHint}`}
+          </p>
+          {installable && (
+            <Button variant="outline" onClick={() => void appInstall?.install()}>
+              <DownloadIcon aria-hidden />
+              Install app
+            </Button>
+          )}
+        </div>
       )}
       {refusal && (
         <p role="alert" className="text-sm text-destructive">

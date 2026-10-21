@@ -38,6 +38,13 @@ test("is the last entry in the sidebar (FR-084)", async ({ page }) => {
   await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
 });
 
+test("without a worker, shows no update section (FR-124)", async ({ page }) => {
+  await page.goto("/#/settings");
+  await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+  await expect(main(page)).not.toContainText(/is available/);
+  await expect(main(page).getByRole("button", { name: "Update", exact: true })).toHaveCount(0);
+});
+
 test.describe("AI features (FR-095)", () => {
   test("start off, and the screen says what they do and where data goes", async ({ page }) => {
     await page.goto("/#/settings");

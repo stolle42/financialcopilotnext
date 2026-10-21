@@ -1,7 +1,7 @@
 # Contract: Backup file, format version 1
 
 **Spec**: [FR-070 – FR-072](../spec.md#fr-070), [FR-104](../spec.md#fr-104),
-[SC-014](../spec.md#sc-014) ·
+[FR-126](../spec.md#fr-126), [FR-130](../spec.md#fr-130), [SC-014](../spec.md#sc-014) ·
 **Entities**: [data-model.md](../data-model.md)
 
 The backup file is the one artifact of the app that outlives the browser. It is the user's only
@@ -22,8 +22,9 @@ app must still be able to read version 1.
 | `exportedAt` | Timestamp of saving; informational only |
 | `data` | Object holding the whole state, below |
 
-- `data` holds every record of every store in [the storage layout](../data-model.md#storage-layout),
-  with the field names and representations of [data-model.md](../data-model.md):
+- `data` holds every record of every store in [the storage layout](../data-model.md#storage-layout)
+  but the OpenAI key, with the field names and representations of
+  [data-model.md](../data-model.md):
 
 | Key | Value |
 |---|---|
@@ -33,8 +34,12 @@ app must still be able to read version 1.
 | `budgets` | Budget list |
 | `profiles` | Mapping profile list |
 | `pendingBatch` | Pending batch, or `null` |
-| `settings` | Settings object |
+| `settings` | Settings object, with the chosen model when there is one ([data-model.md](../data-model.md#settings)) |
 | `conversation` | The finance chat's turn list ([data-model.md](../data-model.md#conversation)); present only while it holds a turn |
+
+The file never holds the OpenAI key, nor any part of it ([FR-126](../spec.md#fr-126)). The key is
+kept outside the settings, in `state.apiKey`, so saving cannot reach it
+([data-model.md](../data-model.md#openai-key)).
 
 Amounts are integer cents and dates are `YYYY-MM-DD` strings, exactly as stored, so a value never
 passes through a locale format on its way into or out of the file.
@@ -60,9 +65,11 @@ nothing to storage and changes nothing in the app.
       backup".
 3. **Confirm**: a warning that all current data will be replaced ([FR-071](../spec.md#fr-071)).
    Cancelling changes nothing.
-4. **Replace**: one storage transaction clears every store and writes every record from the file.
-   If that transaction fails, the stored data stays as it was ([FR-072](../spec.md#fr-072)). Then the
-   in-memory state is reloaded from storage.
+4. **Replace**: one storage transaction clears every store, writes every record from the file, and
+   writes the stored OpenAI key back, when there is one ([FR-126](../spec.md#fr-126)). If that
+   transaction fails, the stored data stays as it was ([FR-072](../spec.md#fr-072)). Then the
+   in-memory state is reloaded from storage. AI features are on afterwards only when the file's
+   settings hold them on and a key is stored ([data-model.md](../data-model.md#state-transitions)).
 
 Validating before confirming means an invalid file is refused at once, without the user first
 agreeing to lose their data ([User Story 7](../spec.md#user-story-7) scenario 3).
@@ -70,7 +77,8 @@ agreeing to lose their data ([User Story 7](../spec.md#user-story-7) scenario 3)
 ## Exactness ([SC-014](../spec.md#sc-014))
 
 Loading a backup and saving again produces a `data` object deep-equal to the original. Only
-`exportedAt` differs. The end-to-end test for SC-014 asserts this round trip
+`exportedAt` differs. A file saved while a key is stored holds no part of it: the end-to-end test
+searches the file for the key and its last 4 characters. The end-to-end test for SC-014 asserts this round trip
 ([quickstart.md](../quickstart.md#us7-backup-and-restore)).
 
 ## Compatibility
@@ -87,3 +95,10 @@ Loading a backup and saving again produces a `data` object deep-equal to the ori
 - v1.3 added the optional key `conversation` to `data` ([FR-104](../spec.md#fr-104)). A file
   without it is complete and restores an empty conversation, and v1.2 drops it on loading, so the
   format stays version 1 ([R-26](../research.md#r-26)).
+- v1.6 added the optional key `model` to the settings ([FR-130](../spec.md#fr-130)). A file
+  without it is complete and restores the default model, and v1.5 drops it on loading, so the
+  format stays version 1 ([R-32](../research.md#r-32)). A model the app no longer lists is kept as
+  it is, and the app uses the default.
+- From v1.6, `aiFeatures` restores the switch only, since AI features also need a stored key. A
+  file with AI features on, also one saved by v1.5, restores them off on a computer that has no key,
+  until the user enters one ([FR-095](../spec.md#fr-095), [R-31](../research.md#r-31)).

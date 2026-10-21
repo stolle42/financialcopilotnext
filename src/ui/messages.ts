@@ -20,6 +20,9 @@ import { formatAmount } from "./format";
 /** Failures the app shell raises while starting or running (R-07, R-15). */
 export type ShellFailureCode = "storage-unavailable" | "open-in-another-tab" | "unexpected-error";
 
+/** The worker did not confirm Update (contracts/app-updates.md, messages). */
+export type UpdateFailureCode = "update-failed";
+
 /** Input the form itself cannot read, before any rule is checked. */
 export type FieldInputCode =
   "balance-invalid" | "import-file-unreadable" | "period-invalid" | "date-range-invalid";
@@ -27,6 +30,7 @@ export type FieldInputCode =
 export type MessageCode =
   | StoreRefusalCode
   | ShellFailureCode
+  | UpdateFailureCode
   | AccountRefusalCode
   | DraftFieldCode
   | FieldInputCode
@@ -141,6 +145,8 @@ export const messages: Record<MessageCode, Wording> = {
     "Financial Copilot is already open in another tab or window. Use that one, or close it and " +
     "reload this page.",
   "unexpected-error": "Something went wrong. Your saved data is safe. Reload the page to continue.",
+  "update-failed":
+    "The update could not start; close the app, open it again and try again. Your data is unchanged.",
   "account-name-empty": "The account needs a name.",
   "account-name-taken": "An account with this name already exists. Choose another name.",
   "balance-invalid": "The balance must be a number with at most two decimals.",
@@ -284,6 +290,13 @@ export const financeChat = {
   clear: "Clear conversation",
   clearWarning: "The conversation's questions and answers will be deleted.",
 };
+
+/** The notice on Settings while a newer version waits, with the versions as the header shows them (FR-124). */
+export const updateNotice = (available: string, running: string) =>
+  `Version ${available} is available (you have ${running}). Make a backup first.`;
+
+/** Added to the Backup note on persistent storage while the header offers Install app (FR-075). */
+export const installHint = "Installing the app helps the browser keep the data.";
 
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
