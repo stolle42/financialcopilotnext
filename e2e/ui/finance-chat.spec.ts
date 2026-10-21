@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { chat, chatButton } from "../support/ai";
+import { aiFeaturesSwitch, chat, chatButton, questionField, turnOnAiFeatures } from "../support/ai";
 import { expect, test } from "../support/test";
 
 // contracts/ui.md, finance chat, width (FR-117, R-28). The window is 1280px wide, so the chat's
@@ -164,4 +164,51 @@ test("keeps its width when closed and opened again and when another screen opens
   ).toBeVisible();
   await openChat(page);
   expect(await width(page)).toBe(START);
+});
+
+test.describe("the model that answers (contracts/ui.md, finance chat; FR-129)", () => {
+  const answersBy = (page: Page) => chat(page).getByText(/^Answers by /);
+
+  test("a muted line above the question field names the model in use, gpt-5.4-mini by default", async ({
+    page,
+  }) => {
+    await turnOnAiFeatures(page);
+    await openChat(page);
+
+    await expect(answersBy(page)).toHaveText("Answers by gpt-5.4-mini");
+    const line = (await answersBy(page).boundingBox())!;
+    const field = (await questionField(page).boundingBox())!;
+    expect(line.y + line.height).toBeLessThanOrEqual(field.y);
+    // The muted colour: not the colour of the conversation's text.
+    const colour = await answersBy(page).evaluate((element) => getComputedStyle(element).color);
+    const text = await chat(page).evaluate((element) => getComputedStyle(element).color);
+    expect(colour).not.toBe(text);
+  });
+
+  test("names gpt-6.1-sol once chosen in Settings", async ({ page }) => {
+    await turnOnAiFeatures(page);
+    await page.goto("/#/settings");
+    await page
+      .getByRole("main")
+      .getByRole("radiogroup", { name: "Model" })
+      .getByRole("radio", { name: /^gpt-6\.1-sol(?![\w.-])/ })
+      .check();
+
+    await openChat(page);
+
+    await expect(answersBy(page)).toHaveText("Answers by gpt-6.1-sol");
+  });
+
+  test("is absent while AI features are off", async ({ page }) => {
+    await openChat(page);
+    await expect(chat(page)).toBeVisible();
+    await expect(answersBy(page)).toHaveCount(0);
+
+    await turnOnAiFeatures(page);
+    await page.goto("/#/settings");
+    await aiFeaturesSwitch(page).click();
+    await expect(aiFeaturesSwitch(page)).not.toBeChecked();
+    await openChat(page);
+    await expect(answersBy(page)).toHaveCount(0);
+  });
 });

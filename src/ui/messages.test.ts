@@ -241,6 +241,10 @@ describe("messages", () => {
     expect(chat.clearWarning).toMatch(/deleted/i);
   });
 
+  test("names the model that answers in the chat (FR-129)", () => {
+    expect(catalogue.financeChat.answersBy("gpt-5.4-mini")).toBe("Answers by gpt-5.4-mini");
+  });
+
   test("names OpenAI as the one recipient, and neither n8n, Anthropic nor Claude (R-24)", () => {
     const texts = [
       catalogue.sharingWarning,

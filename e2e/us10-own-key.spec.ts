@@ -7,6 +7,7 @@ import {
   aiFeaturesSwitch,
   answer,
   askInChat,
+  chat,
   conversation,
   keyDialog,
   keyField,
@@ -124,6 +125,35 @@ test("4. Remove key, confirmed, deletes the key and turns AI features off", asyn
   await expect(aiFeaturesSwitch(page)).not.toBeChecked();
   await expect(main(page)).not.toContainText("Your key:");
   await expect.poll(() => storedKey(page)).toBeUndefined();
+});
+
+test("5. after choosing gpt-6.1-sol, the chat says so, and the next question and the next request for suggestions name it (FR-129)", async ({
+  page,
+}) => {
+  const categoriser = await standInCategoriser(page);
+  const chatStandIn = await standInChat(page, answer("Mostly groceries."));
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await turnOnAiFeatures(page);
+  await openChat(page);
+  await expect(chat(page).getByText(/^Answers by /)).toHaveText("Answers by gpt-5.4-mini");
+  await page.keyboard.press("Escape");
+
+  await page.goto("/#/settings");
+  await model(page, "gpt-6.1-sol").check();
+  await expect.poll(async () => (await storedSettings(page))?.model).toBe("gpt-6.1-sol");
+
+  await openChat(page);
+  await expect(chat(page).getByText(/^Answers by /)).toHaveText("Answers by gpt-6.1-sol");
+  await askInChat(page, "Where does my money go?");
+  await expect(conversation(page)).toHaveCount(2);
+  await page.keyboard.press("Escape");
+  await page.goto("/#/import");
+  await suggestCategories(page);
+  await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toBeVisible();
+
+  expect(chatStandIn.sent.map((sent) => sent.posted.model)).toEqual(["gpt-6.1-sol"]);
+  expect(categoriser.sent.map((sent) => sent.posted.model)).toEqual(["gpt-6.1-sol"]);
 });
 
 test("6. a backup holds the model and AI features on but no part of the key, and restores in a fresh install with the switch off", async ({
