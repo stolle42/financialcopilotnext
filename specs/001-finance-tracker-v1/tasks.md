@@ -1814,7 +1814,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   passing one the default if gpt-5.4-mini fails, and update the tests, ui.md and the spec where they
   name a model that failed ([FR-131](spec.md#fr-131), [SC-022](spec.md#sc-022)). A model once
   checked is not checked again.
-- [ ] T146 (Project owner, with Claude) Check that every step of v1.5's
+- [x] T146 (Project owner, with Claude) Check that every step of v1.5's
   [release checklist](quickstart.md#release-checklist) was done: v1.5 on `main` with its tag
   pushed, CI green, and its checks walked at the web address. Each step not done is done now, so
   v1.5 is served before v1.6's Update check starts from it.
