@@ -1818,7 +1818,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   [release checklist](quickstart.md#release-checklist) was done: v1.5 on `main` with its tag
   pushed, CI green, and its checks walked at the web address. Each step not done is done now, so
   v1.5 is served before v1.6's Update check starts from it.
-- [ ] T145 (Project owner, manual) On the branch, before the merge: delete `.env` from the project
+- [X] T145 (Project owner, manual) On the branch, before the merge: delete `.env` from the project
   folder, check that `dist/` holds no part of your key, and walk the manual checks of
   [AI features](quickstart.md#ai-features) on `localhost` with your own key. Its commit sets the
   version to `1.6.0` (constitution IX). What follows the merge, the tag `v1.6` on the phase's
