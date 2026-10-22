@@ -490,7 +490,8 @@ appear. They import their first bank file without first finding the Accounts scr
 knowing what an encoding or a decimal separator is: they create the bank account right on Import,
 and the app reads the file's layout and proposes it, so they only check the preview and name it.
 The finance chat, whose button is on every screen, says what it can do and lets them turn it on
-where they are. Added in v1.7.
+where they are. When they wonder how to save work, why a balance is off or whether their data is
+safe, a screen FAQ answers, with links to where to do it. Added in v1.7.
 
 **Why this priority**: Every earlier story works, but a new user meets them all at once in an empty
 app. The first bank import asks for an account that does not exist yet and for six settings of the
@@ -501,8 +502,8 @@ easier to reach ([User Story 1](#user-story-1), [User Story 2](#user-story-2),
 
 **Independent Test**: In a browser that never opened the app, read what each screen says it is
 for; import a demonstration bank file into a bank account created on Import, typing nothing in
-the profile editor but a name; then open the chat, turn AI features on from it with a key, and
-ask how to set a budget.
+the profile editor but a name; open FAQ and follow the link of the answer on importing; then open
+the chat, turn AI features on from it with a key, and ask how to set a budget.
 
 **Acceptance Scenarios**:
 
@@ -551,6 +552,18 @@ ask how to set a budget.
 13. **Given** Import, **Then** it calls a mapping profile a bank CSV format, offers **Create new
     bank CSV format**, lists the saved ones under **Bank CSV formats**, and says beside the choice
     what a bank CSV format is ([FR-138](#fr-138)).
+14. **Given** any screen, **Then** the sidebar lists FAQ last; **When** the user opens it, **Then**
+    it shows its questions grouped by topic, every answer hidden ([FR-084](#fr-084),
+    [FR-139](#fr-139)).
+15. **Given** FAQ, **When** the user selects "Entering every bank transaction by hand is a lot of
+    work. How can I make it easier?", **Then** its answer shows the steps of a CSV import, with a
+    link to Import; **When** they follow the link, **Then** Import opens ([FR-139](#fr-139),
+    [FR-140](#fr-140)).
+16. **Given** no network connection, **When** the user opens FAQ, **Then** every question and
+    answer shows ([FR-139](#fr-139)).
+17. **Given** AI features are off, **When** the user opens the chat, **Then** it links to FAQ
+    ([FR-135](#fr-135)); **given** AI features are on, **when** the user asks the chat a question
+    of FAQ, **then** the answer agrees with FAQ's ([FR-141](#fr-141)).
 
 ---
 
@@ -662,6 +675,10 @@ ask how to set a budget.
   the next question continues it ([FR-104](#fr-104), [FR-135](#fr-135)).
 - OpenAI does not accept the key entered in the dialog opened from the chat: the dialog says so,
   as in Settings, and the chat stays as it was ([FR-127](#fr-127), [FR-135](#fr-135)).
+- A later version changes something an FAQ answer describes: the answer changes in that version,
+  as the guide to the app does ([FR-139](#fr-139), [FR-141](#fr-141)).
+- An FAQ answer links to Import while an import waits for review: Import shows the waiting import,
+  as it always does ([FR-022](#fr-022)).
 
 ## Requirements *(mandatory)*
 
@@ -952,8 +969,8 @@ them changes states the new behaviour and names the change.
   and category filters ([FR-016](#fr-016)). A start after the end MUST be refused with a message
   at the fields ([FR-068](#fr-068)).
 - <a id="fr-084"></a>**FR-084**: The sidebar MUST list the screens in this order: Transactions,
-  Categories, Accounts, Budgets, Backup, Insights, Settings. Changed in v1.2: Settings
-  ([FR-095](#fr-095)).
+  Categories, Accounts, Budgets, Backup, Insights, Settings, FAQ. Changed in v1.2: Settings
+  ([FR-095](#fr-095)). Changed in v1.7: FAQ ([FR-139](#fr-139)).
 - <a id="fr-085"></a>**FR-085**: Import MUST NOT have its own sidebar entry. It MUST open from a
   button on the transaction list, since an import feeds that list. On Import and the screens
   reached from it, the sidebar MUST mark Transactions as the current screen.
@@ -1337,8 +1354,9 @@ names the change.
 
 A change the owner asked for after v1.6, released as v1.7, so that a new user does not give up
 before the app is of use to them: the first bank import needs no trip to another screen and no
-knowledge of file formats, the finance chat explains itself and turns on where it is offered, and
-each screen and each new word says what it means. [User Story 11](#user-story-11) describes it. A
+knowledge of file formats, the finance chat explains itself and turns on where it is offered, each
+screen and each new word says what it means, and a screen FAQ answers the questions users often
+have. [User Story 11](#user-story-11) describes it. A
 requirement of an earlier version that it changes states the new behaviour and names the change.
 It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#fr-061),
 [FR-070](#fr-070)).
@@ -1391,7 +1409,8 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   - offer **Turn on AI features**, which opens the dialog of [FR-127](#fr-127), as the Settings
     switch does ([FR-095](#fr-095)). When AI features turn on there, the chat MUST take a question
     at once, without the user leaving it, and Settings shows them on. Cancelling, and a key OpenAI
-    does not accept, leave the chat as it was.
+    does not accept, leave the chat as it was;
+  - link to the [FAQ](#fr-139), which answers questions about the app without AI features.
 
   A stored conversation still shows ([FR-104](#fr-104)), and opening the chat still sends nothing.
   Review's line for Suggest categories keeps sending the user to Settings ([FR-090](#fr-090)).
@@ -1404,9 +1423,9 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   new profile starts from ([FR-133](#fr-133)).
 - <a id="fr-137"></a>**FR-137**: Under its heading, each screen MUST say in one or two plain
   sentences what it is for and, where that helps, when to use it: Transactions, Import, Review,
-  the profile editor, Categories, Accounts, Budgets, Backup, Insights and Settings. A screen that
-  already says so, such as Budgets, keeps its text. The sentences MUST always show, with nothing to
-  open and nothing to dismiss, and MUST NOT replace an empty state ([FR-065](#fr-065)).
+  the profile editor, Categories, Accounts, Budgets, Backup, Insights, Settings and FAQ. A screen
+  that already says so, such as Budgets, keeps its text. The sentences MUST always show, with
+  nothing to open and nothing to dismiss, and MUST NOT replace an empty state ([FR-065](#fr-065)).
 - <a id="fr-138"></a>**FR-138**: The terms a new user is unlikely to know MUST be explained in one
   plain sentence where they appear, with nothing to open and nothing to dismiss:
   - **Uncategorised** and **Unaccounted**: on Categories, beside each of them, what it holds:
@@ -1427,6 +1446,134 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   the app ([FR-136](#fr-136)), the screens MUST call it a **bank CSV format**, such as **Create new
   bank CSV format** on Import and **Bank CSV formats** for the list of saved ones. This spec keeps
   the name mapping profile.
+- <a id="fr-139"></a>**FR-139**: A screen **FAQ** MUST answer the questions that users of the app
+  often have ([FR-140](#fr-140)). The sidebar MUST list it last ([FR-084](#fr-084)).
+  - The questions MUST be grouped by topic, each topic under its heading, in the order of
+    [FR-140](#fr-140). Each question MUST show its answer when selected and hide it when selected
+    again. Every answer starts hidden, so the questions show at a glance, and several answers MAY
+    show at once.
+  - Where an answer names a screen or an action, it MUST link to that screen, such as Import,
+    Accounts, Backup or Settings; following a link opens it. The one link outside the app is
+    OpenAI's page for API keys, which opens in the browser and is no request of the app's, as in
+    [FR-127](#fr-127).
+  - The answers MUST describe the version they ship with, in the words its screens use
+    ([FR-138](#fr-138)), and the steps of an answer MUST work as written.
+  - Opening FAQ sends nothing, and it works without a network connection ([FR-061](#fr-061),
+    [FR-123](#fr-123)).
+- <a id="fr-140"></a>**FR-140**: FAQ MUST hold at least the questions below, each with an answer
+  in plain words that says at least what follows the question. An answer agrees with the
+  requirements it names.
+  - **Getting started**
+    - "Where do I start?": the account Cash and the categories are ready; Add transaction records
+      one by hand; Import CSV brings in a bank's file; a bank account is created on Accounts or
+      right on Import ([FR-006](#fr-006), [FR-031](#fr-031), [FR-132](#fr-132)).
+    - "Entering every bank transaction by hand is a lot of work. How can I make it easier?":
+      import the bank's CSV file instead, step by step: download it from online banking; on
+      Transactions, select Import CSV; choose the account, or New account…; choose the file; the
+      first time, Create new bank CSV format, check the settings the app proposes in the preview,
+      name the format and save; in review, give each vendor group a category at once and mark
+      payments to the user's own accounts as transfers; select Confirm. The next file of the same
+      bank uses the saved format, with nothing to set, and rows imported before are skipped as
+      duplicates ([User Story 2](#user-story-2), [FR-133](#fr-133)).
+    - "Do I need to sign up?": no; there is no login, and the app is ready when it opens
+      ([FR-121](#fr-121)).
+    - "Where is my data, and who can see it?": only in this browser on this computer; the app sends
+      nothing unless AI features are on; anyone who can use this computer's user account can open
+      it, since the app has no passcode ([FR-061](#fr-061), [Out of Scope](#out-of-scope)).
+    - "Which currency does the app use?": euro only ([FR-060](#fr-060)).
+  - **Importing bank files**
+    - "How do I get a CSV file from my bank?": in online banking, open the account's transactions,
+      choose the period, and export or download them as CSV; the wording differs from bank to bank.
+    - "The preview shows wrong dates, wrong amounts or strange letters. What do I do?": change the
+      date format, the decimal separator or the encoding until the preview reads right; when every
+      row shows as an income, turn on Invert the sign ([FR-021](#fr-021), [FR-134](#fr-134)).
+    - "My bank's file used to import, and now it doesn't. Why?": the bank changed its file, and the
+      message names the columns that are missing; edit the bank CSV format, or create a new one
+      ([FR-021](#fr-021)).
+    - "What are unparsable rows?": rows the bank CSV format cannot read; review shows why each
+      failed; they cannot be imported, so fix the format and import again, or add them by hand
+      ([FR-028](#fr-028)).
+    - "Why are some rows marked as duplicates?": they match a transaction already in the account, or
+      an earlier row of the same file, on date, amount and direction; they are left out unless the
+      user includes them, as for two coffees of the same price on the same day ([FR-024](#fr-024),
+      [FR-025](#fr-025)).
+    - "I imported the same months twice. Is everything in there twice now?": no, rows already in
+      the ledger are skipped as duplicates; only transactions added by hand while the import waited
+      can slip through, and are deleted by hand ([FR-024](#fr-024), [Edge Cases](#edge-cases)).
+    - "Why can't I start a new import?": one import waits for review at a time; review and confirm
+      it, or discard it ([FR-022](#fr-022)).
+    - "Can I undo an import?": before Confirm, Discard leaves everything as it was; after, an import
+      cannot be undone as a whole, so delete its transactions one by one or load a backup saved
+      before; saving a backup before a large import is wise ([FR-027](#fr-027),
+      [FR-071](#fr-071)).
+    - "A payment to my credit card or savings account counts as spending. How do I fix it?": make it
+      a transfer, in review or by editing the transaction; a transfer counts as neither spending nor
+      income; when the other account's file is imported later, its side of the transfer shows as a
+      duplicate ([FR-012](#fr-012), [FR-023](#fr-023), [Edge Cases](#edge-cases)).
+    - "Can the app connect to my bank directly?": no, on purpose: the app never holds bank logins,
+      and the bank's CSV file is the way in ([Out of Scope](#out-of-scope)).
+    - "Can the app sort my transactions into categories for me?": review gives a whole vendor group
+      its category at once; with AI features on, Suggest categories proposes categories, which the
+      user checks before Confirm ([FR-026](#fr-026), [FR-090](#fr-090)).
+  - **Accounts and balances**
+    - "Why does an account's balance differ from my bank's?": check the opening balance and look
+      for missing or doubled transactions; then Reconcile states what the account holds and books
+      the difference to Unaccounted ([FR-001](#fr-001), [FR-005](#fr-005)).
+    - "What is the opening balance?": what the account held before its first transaction in the
+      app; after importing older history, it needs changing to fit ([FR-001](#fr-001),
+      [Edge Cases](#edge-cases)).
+    - "How do I record moving money between my accounts, or taking out cash?": a transfer from one
+      account to the other, such as to Cash ([FR-011](#fr-011)).
+    - "Can I delete an account?": not in this version; rename it instead
+      ([Out of Scope](#out-of-scope)).
+  - **Categories and budgets**
+    - "What do Uncategorised and Unaccounted mean?": as [FR-138](#fr-138) explains them.
+    - "Can I change the categories?": add, rename, recolour and delete them on Categories; deleting
+      one moves its transactions to Uncategorised and removes its limit; Uncategorised and
+      Unaccounted cannot be deleted ([FR-032](#fr-032) – [FR-034](#fr-034)).
+    - "How do budgets work? Does money I don't spend carry over?": a monthly limit per expense
+      category; each month starts at zero, and nothing carries over; Insights shows which
+      categories are over their limit ([FR-040](#fr-040) – [FR-042](#fr-042)).
+    - "Why don't my transfers show in Insights or budgets?": moving money between the user's own
+      accounts is neither spending nor income ([FR-012](#fr-012)).
+  - **Your data and your computer**
+    - "Can I lose my data?": the browser may clear it when disk space runs low, and clearing the
+      browser's data for the app deletes it; save a backup now and then; installing the app helps
+      Chrome and Edge keep the data ([FR-075](#fr-075)).
+    - "How do I move my data to another computer or browser?": save a backup, open the app there,
+      and restore it, which replaces everything there; the OpenAI API key does not move with it
+      ([FR-070](#fr-070), [FR-071](#fr-071), [FR-126](#fr-126)).
+    - "Can I use the app on my phone, or in Safari?": it is made for Chrome, Edge and Firefox on a
+      desktop computer; phones and Safari are not supported yet ([FR-125](#fr-125)).
+    - "Does the app work offline?": yes, once it has opened with a connection, except the AI
+      features and updates ([FR-123](#fr-123)).
+    - "The app says it is already open elsewhere. What now?": it runs in one tab or window at a
+      time; close the other one and reload this one ([FR-074](#fr-074)).
+    - "How do I install or update the app?": Install app in the header, in Chrome and Edge;
+      Settings says when a newer version is ready, offers Backup first, then Update
+      ([FR-122](#fr-122), [FR-124](#fr-124)).
+  - **AI features**
+    - "What do the AI features do, and what do they cost?": Suggest categories in review and the
+      finance chat; they need the user's own OpenAI API key, and OpenAI charges that account for
+      each request, so setting a monthly limit there is wise; Settings chooses the model
+      ([FR-126](#fr-126) – [FR-129](#fr-129)).
+    - "How do I get an OpenAI API key?": create an OpenAI account with credit, create a key on
+      OpenAI's page for API keys, copy all of it, and paste it in the dialog that Turn on AI features
+      opens, in Settings or in the chat ([FR-127](#fr-127), [FR-135](#fr-135)).
+    - "What does the app send to OpenAI?": only what an AI feature the user starts needs. Suggest
+      categories sends descriptions, counterparties and category names, with no amounts, dates or
+      account names. A question to the chat sends the conversation, the expenses and incomes of the
+      current month and the 12 months before it with their amounts, the budgets, and the accounts'
+      names and balances. The key is never part of a backup ([FR-091](#fr-091), [FR-102](#fr-102),
+      [FR-126](#fr-126)).
+    - "My key doesn't work, or the AI says a request failed. What can I do?": check that the whole
+      key was copied, that the OpenAI account has credit and has not reached its limit, and that
+      the computer is online; a model the key may not use needs another model in Settings; Remove
+      key, then turn AI features on with a new key ([FR-094](#fr-094), [FR-126](#fr-126),
+      [FR-127](#fr-127)).
+    - "Can the chat change my data?": no; it explains how to do it in the app ([FR-103](#fr-103)).
+- <a id="fr-141"></a>**FR-141**: The guide to the app ([FR-136](#fr-136)) MUST hold FAQ's
+  questions and answers, so the finance chat answers them as FAQ does, and the two never differ.
 
 <a id="key-entities"></a>
 ### Key Entities
@@ -1539,6 +1686,11 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   and a transfer are, a new user who has only opened each screen once, at default zoom in a
   1280 × 800 window, answers each from what the screens say ([FR-137](#fr-137),
   [FR-138](#fr-138)).
+- <a id="sc-027"></a>**SC-027**: A new user given any question of [FR-140](#fr-140) finds its
+  answer on FAQ within 30 seconds of opening it, and can follow its steps in the app without
+  other help ([FR-139](#fr-139)).
+- <a id="sc-028"></a>**SC-028**: In each release, every step that an FAQ answer describes works in
+  the app as written, and every link of FAQ opens the screen it names ([FR-139](#fr-139)).
 
 <a id="assumptions"></a>
 ## Assumptions
@@ -1575,7 +1727,10 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
     every row as the import will read it before any batch exists.
   - The exports of five widely used banks that [SC-023](#sc-023) needs can be rebuilt from their
     published layouts with made-up transactions, so no one's real data enters the project.
-  - The explanations are in English, as is the rest of the app.
+  - The explanations and FAQ are in English, as is the rest of the app.
+  - FAQ's questions and answers make the guide that every question to the chat sends longer
+    ([FR-141](#fr-141)). The guide is the same for every question, which OpenAI charges less for
+    when it is sent again, so the cost per question rises only a little.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -1686,5 +1841,6 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   profile editor, even when every setting was proposed.
 - Turning AI features on from review's Suggest categories, which keeps its line to Settings
   ([FR-090](#fr-090), [FR-135](#fr-135)).
-- Help pages, tooltips, and explanations that can be hidden or turned off ([FR-137](#fr-137),
-  [FR-138](#fr-138)).
+- Help pages other than FAQ, tooltips, and explanations that can be hidden or turned off
+  ([FR-137](#fr-137), [FR-138](#fr-138)). For FAQ ([FR-139](#fr-139)): searching it, linking to a
+  single question, questions the user adds, and languages other than English.
