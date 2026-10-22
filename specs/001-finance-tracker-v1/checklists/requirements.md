@@ -34,6 +34,15 @@
 
 - Clarified 2026-10-22: the screens call a mapping profile a "bank CSV format"
   ([FR-138](../spec.md#fr-138)); the spec keeps the name mapping profile.
+- Clarified 2026-10-22, during planning: research found that ING, DKB, comdirect, Deutsche Bank
+  and Postbank put account details above the column names, which no import could read. The owner
+  chose to handle them in v1.7: every import finds the column names within the file's first 20
+  lines ([FR-021](../spec.md#fr-021), [R-34](../research.md#r-34)). Stored data stays as it is.
+  [FR-133](../spec.md#fr-133) now also lets a named amount column win over debit and credit
+  columns that repeat it, and [SC-023](../spec.md#sc-023) allows a closing balance and a row not
+  yet booked to show as unparsable.
+- Changed during planning: [FR-138](../spec.md#fr-138) explains a transfer once above review's
+  rows, not beside every Transfer switch, which would repeat it dozens of times.
 - The spec names encodings, date formats and example column names. These are facts of the bank
   files the app reads, already part of [FR-021](../spec.md#fr-021) and
   [csv-import.md](../contracts/csv-import.md), not implementation. How the app reads a file's
@@ -54,5 +63,6 @@
   are off, the sign hint, each screen's sentence, every label and message renamed from profile
   to bank CSV format, and the FAQ screen with its route and sidebar entry; csv-import.md needs the
   rules of [FR-133](../spec.md#fr-133) and the column names; ai.md and `appGuide.ts` need the
-  corrected guide, which holds FAQ; [SC-023](../spec.md#sc-023) needs five bank exports rebuilt
-  with made-up data.
+  corrected guide, which holds FAQ; [SC-023](../spec.md#sc-023) needs bank exports rebuilt with
+  made-up data. All of this is done in the plan ([R-33](../research.md#r-33) –
+  [R-38](../research.md#r-38)).

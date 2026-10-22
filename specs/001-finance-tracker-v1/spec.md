@@ -63,6 +63,12 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: Should the screens keep the word "profile" for a mapping profile, or call it something
   plainer? → A: Call it a "bank CSV format" wherever the user sees it, such as "Create new bank
   CSV format"; the spec keeps the name mapping profile ([FR-138](#fr-138)).
+- Q: Of the banks widely used in Germany, ING, DKB, comdirect, Deutsche Bank and Postbank put
+  account details above the column names, which no import could read ([R-22](research.md#r-22)).
+  Should v1.7 handle them? → A: Yes. Every import looks for the line of column names within the
+  file's first 20 lines and skips the lines above it, so a bank whose number of such lines
+  changes still imports; nothing new is stored ([FR-021](#fr-021), [FR-133](#fr-133),
+  [R-34](research.md#r-34)).
 
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
@@ -564,6 +570,13 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
 17. **Given** AI features are off, **When** the user opens the chat, **Then** it links to FAQ
     ([FR-135](#fr-135)); **given** AI features are on, **when** the user asks the chat a question
     of FAQ, **then** the answer agrees with FAQ's ([FR-141](#fr-141)).
+18. **Given** a file with 12 lines of account details above the column names Buchung,
+    Wertstellungsdatum, Auftraggeber/Empfänger, Buchungstext, Verwendungszweck, Betrag and Währung,
+    **When** the editor opens for it, **Then** it takes the 13th line as the column names and
+    proposes Buchung as the date, Betrag as the amount, Verwendungszweck as the description and
+    Auftraggeber/Empfänger as the counterparty, and the preview reads every row; **When** the
+    saved format imports the bank's next file, which has 14 such lines, **Then** that file imports
+    too ([FR-021](#fr-021), [FR-133](#fr-133)).
 
 ---
 
@@ -665,6 +678,19 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
   booking date, not the value date ([FR-133](#fr-133)).
 - A new file is not valid UTF-8: the app proposes Windows-1252. If the preview shows wrong
   letters, the user chooses another encoding ([FR-133](#fr-133)).
+- A bank puts account details above the column names and a closing balance under the rows: the
+  import skips the lines above the column names, and the closing balance shows as one unparsable
+  row ([FR-021](#fr-021), [FR-028](#fr-028)).
+- A bank exports rows it has not booked yet with a word, such as `offen`, in place of the date:
+  they show as unparsable, and the next file brings them in once booked ([FR-028](#fr-028)).
+- A bank's file has a signed amount column and also debit and credit columns that repeat it: the
+  app proposes the signed column ([FR-133](#fr-133)).
+- A bank puts a different number of lines of account details above the column names in its next
+  file: the import still finds the column names, within the file's first 20 lines
+  ([FR-021](#fr-021)).
+- A file without column names has lines of account details above its rows: they show as
+  unparsable rows, and the user deletes them from the file or leaves them out of the import
+  ([FR-028](#fr-028)).
 - Nothing in a new file can be placed, such as a file of one column: the editor opens with the
   usual settings and no column assigned, as before v1.7, and Save says which columns are missing
   ([FR-021](#fr-021), [FR-133](#fr-133)).
@@ -746,10 +772,17 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
   separator; and the file encoding. Profile names MUST be unique, compared as account names are
   ([FR-001](#fr-001)); a duplicate name MUST be refused with an explanation. Changed in v1.7: a
   new profile starts from the settings the app reads from the file ([FR-133](#fr-133),
-  [FR-134](#fr-134)).
+  [FR-134](#fr-134)), and the column names may come below lines of account details.
   - Columns MUST be identified by their header text. A file missing a mapped header MUST create no
     batch, and the message MUST name the missing columns. A profile MAY instead be flagged "no header
     row", in which case columns are identified by position and no layout check is made.
+  - With column names, the import and the preview MUST take as them the first of the file's first
+    20 lines that holds every column name the profile maps, and MUST skip the lines above it. Such
+    lines hold account details that some banks put above their rows, such as the account, the
+    period and the balance, and their number may change from one file of the bank to the next.
+    When no such line exists, the missing columns are those the line holding most of the mapped
+    names lacks. Rows keep the numbers they have in the file. Changed in v1.7: before, the column
+    names had to be the first line.
   - While defining a profile, the app MUST preview how the first rows of the file parse (date,
     signed amount, description), so a wrong date format or decimal separator is visible before any
     batch exists.
@@ -1372,9 +1405,14 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   them:
   - **encoding**: UTF-16LE when the file starts with its byte-order mark; UTF-8 when the file is
     valid UTF-8; Windows-1252 otherwise;
-  - **column names**: whether the first row holds column names rather than a transaction;
-  - **amount mode**: separate debit and credit columns when the file has a column named as a debit
-    and one named as a credit, such as Soll and Haben; one signed column otherwise;
+  - **column names**: the first of the file's first 20 lines that names both a date column and an
+    amount column (or a debit and a credit column) holds the column names, and the lines above it
+    are skipped ([FR-021](#fr-021)). Without such a line, the first line holds column names when
+    it does not read as a transaction while the lines under it do;
+  - **amount mode**: one signed column when the file has a column named as an amount; otherwise
+    separate debit and credit columns when it has a column named as a debit and one named as a
+    credit, such as Soll and Haben; one signed column otherwise. A named amount wins because some
+    banks add debit and credit columns that repeat it with its sign;
   - **columns**: the date, the amount (or the debit and the credit), the description and the
     counterparty, recognised by the column names common in English and German bank exports, such
     as Date, Buchungstag, Amount, Betrag, Description, Verwendungszweck, Payee and Empfänger. Where
@@ -1436,9 +1474,9 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
     ([FR-005](#fr-005));
   - **Opening balance**: in the account dialog, under the field, that it is what the account held
     before its first transaction in the app ([FR-001](#fr-001));
-  - **Transfer**: in the transaction form while Transfer is chosen, and beside review's Transfer
-    switch, that a transfer moves money between two of the user's own accounts and counts as
-    neither spending nor income ([FR-012](#fr-012));
+  - **Transfer**: in the transaction form while Transfer is chosen, and on Review once, above the
+    rows whose Transfer switches it explains, that a transfer moves money between two of the
+    user's own accounts and counts as neither spending nor income ([FR-012](#fr-012));
   - **Mapping profile**: on Import, beside its choice, that it tells the app how one bank's files
     are laid out, and is set up once per bank ([FR-021](#fr-021)).
 
@@ -1489,9 +1527,9 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
       wrong amounts or strange letters, change the date format, the decimal separator or the
       encoding until the preview reads right; when every row shows as an income, turn on Invert the
       sign; when a message names missing columns, the bank changed its file, so edit the bank CSV
-      format or create a new one; unparsable rows are rows the format cannot read, review says why
-      each failed, and they are fixed in the format or added by hand ([FR-021](#fr-021),
-      [FR-028](#fr-028), [FR-134](#fr-134)).
+      format or create a new one; unparsable rows are rows the format cannot read, such as a
+      closing balance under the rows, review says why each failed, and they are fixed in the
+      format or added by hand ([FR-021](#fr-021), [FR-028](#fr-028), [FR-134](#fr-134)).
     - "Why are some rows marked as duplicates?": they match a transaction already in the account, or
       an earlier row of the same file, on date, amount and direction, so importing the same months
       twice adds nothing twice; they are left out unless the user includes them, as for two
@@ -1546,7 +1584,8 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
 - **Budget**: A monthly spending limit attached to one non-protected expense category. There is one
   limit at a time, and it applies to every month ([FR-041](#fr-041)).
 - **Mapping profile**: A named, reusable description of one bank's CSV layout: column roles, date
-  format, decimal separator, encoding.
+  format, decimal separator, encoding. The screens call it a bank CSV format
+  ([FR-138](#fr-138)).
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or
   discarded. Belongs to one account and one profile. At most one exists at a time.
 - **Pending row**: One parsed line in a pending batch: its parsed fields, its vendor group, its
@@ -1627,10 +1666,13 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   90 of 100 suggestions right, and every chat answer complete within 60 seconds and true to the
   data, but for at most one wrong conclusion drawn from amounts the data holds.
 - <a id="sc-023"></a>**SC-023**: For every bank file the project keeps for checks, the
-  demonstration files and the exports of at least five banks widely used in Germany, defining a new
-  profile proposes settings under which the preview reads every transaction row, so the user types
-  only a name before Save. The one exception is a file that lists purchases as positive amounts,
-  for which the editor says to invert the sign ([FR-133](#fr-133), [FR-134](#fr-134)).
+  demonstration files and the exports of at least five banks widely used in Germany, among them
+  banks that put account details above the column names, defining a new profile proposes settings
+  under which the preview reads every booked transaction, so the user types only a name before
+  Save. Lines that hold no booked transaction, such as a closing balance under the rows or a row a
+  bank marks as not yet booked instead of giving its date, may show as unparsable. A file that
+  lists purchases as positive amounts makes the editor say to invert the sign
+  ([FR-133](#fr-133), [FR-134](#fr-134)).
 - <a id="sc-024"></a>**SC-024**: A new user with a bank's CSV file at hand and only the account
   Cash reaches the review of that file within 2 minutes of opening Import, without opening another
   screen ([FR-132](#fr-132), [FR-133](#fr-133)).
@@ -1791,9 +1833,10 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Further help for new users, considered for v1.7 and left for later: a getting-started checklist,
   sample data to try the app with, a guided tour, and a reminder to save a backup.
 - For a new profile ([FR-133](#fr-133)): proposing its name or sign inversion; recognising a bank
-  by its file; column names in languages other than English and German; files with lines before
-  the column names; proposing settings for a profile being edited; and importing without the
-  profile editor, even when every setting was proposed.
+  by its file; column names in languages other than English and German; column names below the
+  file's first 20 lines; skipping lines after the rows, or lines above the rows of a file without
+  column names; proposing settings for a profile being edited; and importing without the profile
+  editor, even when every setting was proposed.
 - Turning AI features on from review's Suggest categories, which keeps its line to Settings
   ([FR-090](#fr-090), [FR-135](#fr-135)).
 - Help pages other than FAQ, tooltips, and explanations that can be hidden or turned off
