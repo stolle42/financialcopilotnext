@@ -42,10 +42,10 @@
   FR-084, FR-095 and FR-100. [User Story 8](../spec.md#user-story-8) scenario 1 now leads to
   [FR-135](../spec.md#fr-135).
 - Added 2026-10-22 at the owner's request: the screen FAQ ([FR-139](../spec.md#fr-139) –
-  [FR-141](../spec.md#fr-141)). [FR-140](../spec.md#fr-140) lists the questions FAQ must hold
-  and what each answer must say, each tied to the requirements it explains; the wording of the
-  answers is left to the plan. The guide to the app holds FAQ, so the chat and FAQ cannot
-  disagree.
+  [FR-141](../spec.md#fr-141)). [FR-140](../spec.md#fr-140) fixes FAQ at twelve questions in four
+  topics, the owner's limit, and says what each answer must say, tied to the requirements it
+  explains; the wording of the answers is left to the plan. Terms the screens explain in place
+  get no question. The guide to the app holds FAQ, so the chat and FAQ cannot disagree.
 - [FR-136](../spec.md#fr-136) corrects the guide to the app, which through v1.6 said that AI
   features work only on the user's own computer, against [FR-128](../spec.md#fr-128).
 - Of the ideas weighed for v1.7, a getting-started checklist, sample data, a backup reminder and a

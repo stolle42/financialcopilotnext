@@ -1460,118 +1460,73 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
     ([FR-138](#fr-138)), and the steps of an answer MUST work as written.
   - Opening FAQ sends nothing, and it works without a network connection ([FR-061](#fr-061),
     [FR-123](#fr-123)).
-- <a id="fr-140"></a>**FR-140**: FAQ MUST hold at least the questions below, each with an answer
-  in plain words that says at least what follows the question. An answer agrees with the
-  requirements it names.
+- <a id="fr-140"></a>**FR-140**: FAQ MUST hold these twelve questions, and no others, each with an
+  answer in plain words that says at least what follows the question. An answer agrees with the
+  requirements it names. A term that the screens explain where it appears, such as Unaccounted,
+  gets no question of its own ([FR-138](#fr-138)).
   - **Getting started**
-    - "Where do I start?": the account Cash and the categories are ready; Add transaction records
-      one by hand; Import CSV brings in a bank's file; a bank account is created on Accounts or
-      right on Import ([FR-006](#fr-006), [FR-031](#fr-031), [FR-132](#fr-132)).
+    - "Where do I start?": there is nothing to sign up for, and the app is ready when it opens; the
+      account Cash and the categories are ready; Add transaction records one by hand; Import CSV
+      brings in a bank's file; a bank account is created on Accounts or right on Import
+      ([FR-006](#fr-006), [FR-031](#fr-031), [FR-121](#fr-121), [FR-132](#fr-132)).
     - "Entering every bank transaction by hand is a lot of work. How can I make it easier?":
-      import the bank's CSV file instead, step by step: download it from online banking; on
-      Transactions, select Import CSV; choose the account, or New account…; choose the file; the
-      first time, Create new bank CSV format, check the settings the app proposes in the preview,
-      name the format and save; in review, give each vendor group a category at once and mark
-      payments to the user's own accounts as transfers; select Confirm. The next file of the same
-      bank uses the saved format, with nothing to set, and rows imported before are skipped as
+      import the bank's CSV file instead, step by step: in online banking, open the account's
+      transactions, choose the period and export them as CSV, in words that differ from bank to
+      bank; on Transactions, select Import CSV; choose the account, or New account…; choose the
+      file; the first time, Create new bank CSV format, check the settings the app proposes in the
+      preview, name the format and save; in review, give each vendor group a category at once, and
+      mark payments to the user's own accounts as transfers; select Confirm. The next file of the
+      same bank uses the saved format, with nothing to set, and rows imported before are skipped as
       duplicates ([User Story 2](#user-story-2), [FR-133](#fr-133)).
-    - "Do I need to sign up?": no; there is no login, and the app is ready when it opens
-      ([FR-121](#fr-121)).
+    - "Can the app connect to my bank directly?": no, on purpose: the app never holds bank logins,
+      and the bank's CSV file is the way in, which takes a few minutes a month
+      ([SC-001](#sc-001), [Out of Scope](#out-of-scope)).
     - "Where is my data, and who can see it?": only in this browser on this computer; the app sends
       nothing unless AI features are on; anyone who can use this computer's user account can open
       it, since the app has no passcode ([FR-061](#fr-061), [Out of Scope](#out-of-scope)).
-    - "Which currency does the app use?": euro only ([FR-060](#fr-060)).
   - **Importing bank files**
-    - "How do I get a CSV file from my bank?": in online banking, open the account's transactions,
-      choose the period, and export or download them as CSV; the wording differs from bank to bank.
-    - "The preview shows wrong dates, wrong amounts or strange letters. What do I do?": change the
-      date format, the decimal separator or the encoding until the preview reads right; when every
-      row shows as an income, turn on Invert the sign ([FR-021](#fr-021), [FR-134](#fr-134)).
-    - "My bank's file used to import, and now it doesn't. Why?": the bank changed its file, and the
-      message names the columns that are missing; edit the bank CSV format, or create a new one
-      ([FR-021](#fr-021)).
-    - "What are unparsable rows?": rows the bank CSV format cannot read; review shows why each
-      failed; they cannot be imported, so fix the format and import again, or add them by hand
-      ([FR-028](#fr-028)).
+    - "My bank's file doesn't import, or the preview looks wrong. What do I do?": for wrong dates,
+      wrong amounts or strange letters, change the date format, the decimal separator or the
+      encoding until the preview reads right; when every row shows as an income, turn on Invert the
+      sign; when a message names missing columns, the bank changed its file, so edit the bank CSV
+      format or create a new one; unparsable rows are rows the format cannot read, review says why
+      each failed, and they are fixed in the format or added by hand ([FR-021](#fr-021),
+      [FR-028](#fr-028), [FR-134](#fr-134)).
     - "Why are some rows marked as duplicates?": they match a transaction already in the account, or
-      an earlier row of the same file, on date, amount and direction; they are left out unless the
-      user includes them, as for two coffees of the same price on the same day ([FR-024](#fr-024),
-      [FR-025](#fr-025)).
-    - "I imported the same months twice. Is everything in there twice now?": no, rows already in
-      the ledger are skipped as duplicates; only transactions added by hand while the import waited
-      can slip through, and are deleted by hand ([FR-024](#fr-024), [Edge Cases](#edge-cases)).
-    - "Why can't I start a new import?": one import waits for review at a time; review and confirm
-      it, or discard it ([FR-022](#fr-022)).
+      an earlier row of the same file, on date, amount and direction, so importing the same months
+      twice adds nothing twice; they are left out unless the user includes them, as for two
+      coffees of the same price on the same day ([FR-024](#fr-024), [FR-025](#fr-025)).
     - "Can I undo an import?": before Confirm, Discard leaves everything as it was; after, an import
       cannot be undone as a whole, so delete its transactions one by one or load a backup saved
       before; saving a backup before a large import is wise ([FR-027](#fr-027),
       [FR-071](#fr-071)).
+  - **Accounts and budgets**
     - "A payment to my credit card or savings account counts as spending. How do I fix it?": make it
-      a transfer, in review or by editing the transaction; a transfer counts as neither spending nor
-      income; when the other account's file is imported later, its side of the transfer shows as a
-      duplicate ([FR-012](#fr-012), [FR-023](#fr-023), [Edge Cases](#edge-cases)).
-    - "Can the app connect to my bank directly?": no, on purpose: the app never holds bank logins,
-      and the bank's CSV file is the way in ([Out of Scope](#out-of-scope)).
-    - "Can the app sort my transactions into categories for me?": review gives a whole vendor group
-      its category at once; with AI features on, Suggest categories proposes categories, which the
-      user checks before Confirm ([FR-026](#fr-026), [FR-090](#fr-090)).
-  - **Accounts and balances**
-    - "Why does an account's balance differ from my bank's?": check the opening balance and look
-      for missing or doubled transactions; then Reconcile states what the account holds and books
-      the difference to Unaccounted ([FR-001](#fr-001), [FR-005](#fr-005)).
-    - "What is the opening balance?": what the account held before its first transaction in the
-      app; after importing older history, it needs changing to fit ([FR-001](#fr-001),
+      a transfer, in review or by editing the transaction, as for taking out cash into Cash; a
+      transfer counts as neither spending nor income, so no Insights figure or budget shows it;
+      when the other account's file is imported later, its side of the transfer shows as a
+      duplicate ([FR-011](#fr-011), [FR-012](#fr-012), [FR-023](#fr-023),
       [Edge Cases](#edge-cases)).
-    - "How do I record moving money between my accounts, or taking out cash?": a transfer from one
-      account to the other, such as to Cash ([FR-011](#fr-011)).
-    - "Can I delete an account?": not in this version; rename it instead
-      ([Out of Scope](#out-of-scope)).
-  - **Categories and budgets**
-    - "What do Uncategorised and Unaccounted mean?": as [FR-138](#fr-138) explains them.
-    - "Can I change the categories?": add, rename, recolour and delete them on Categories; deleting
-      one moves its transactions to Uncategorised and removes its limit; Uncategorised and
-      Unaccounted cannot be deleted ([FR-032](#fr-032) – [FR-034](#fr-034)).
+    - "Why does an account's balance differ from my bank's?": check the opening balance, which is
+      what the account held before its first transaction in the app, and look for missing or
+      doubled transactions; then Reconcile states what the account holds and books the difference
+      to Unaccounted ([FR-001](#fr-001), [FR-005](#fr-005)).
     - "How do budgets work? Does money I don't spend carry over?": a monthly limit per expense
-      category; each month starts at zero, and nothing carries over; Insights shows which
-      categories are over their limit ([FR-040](#fr-040) – [FR-042](#fr-042)).
-    - "Why don't my transfers show in Insights or budgets?": moving money between the user's own
-      accounts is neither spending nor income ([FR-012](#fr-012)).
-  - **Your data and your computer**
+      category, set on Budgets; each month starts at zero, and nothing carries over; Insights shows
+      which categories are over their limit ([FR-040](#fr-040) – [FR-042](#fr-042)).
+  - **Your data and AI features**
     - "Can I lose my data?": the browser may clear it when disk space runs low, and clearing the
-      browser's data for the app deletes it; save a backup now and then; installing the app helps
-      Chrome and Edge keep the data ([FR-075](#fr-075)).
-    - "How do I move my data to another computer or browser?": save a backup, open the app there,
-      and restore it, which replaces everything there; the OpenAI API key does not move with it
-      ([FR-070](#fr-070), [FR-071](#fr-071), [FR-126](#fr-126)).
-    - "Can I use the app on my phone, or in Safari?": it is made for Chrome, Edge and Firefox on a
-      desktop computer; phones and Safari are not supported yet ([FR-125](#fr-125)).
-    - "Does the app work offline?": yes, once it has opened with a connection, except the AI
-      features and updates ([FR-123](#fr-123)).
-    - "The app says it is already open elsewhere. What now?": it runs in one tab or window at a
-      time; close the other one and reload this one ([FR-074](#fr-074)).
-    - "How do I install or update the app?": Install app in the header, in Chrome and Edge;
-      Settings says when a newer version is ready, offers Backup first, then Update
-      ([FR-122](#fr-122), [FR-124](#fr-124)).
-  - **AI features**
+      browser's data for the app deletes it; save a backup now and then, which also moves the data
+      to another computer or browser; installing the app helps Chrome and Edge keep the data
+      ([FR-070](#fr-070), [FR-071](#fr-071), [FR-075](#fr-075)).
     - "What do the AI features do, and what do they cost?": Suggest categories in review and the
-      finance chat; they need the user's own OpenAI API key, and OpenAI charges that account for
-      each request, so setting a monthly limit there is wise; Settings chooses the model
-      ([FR-126](#fr-126) – [FR-129](#fr-129)).
-    - "How do I get an OpenAI API key?": create an OpenAI account with credit, create a key on
-      OpenAI's page for API keys, copy all of it, and paste it in the dialog that Turn on AI features
-      opens, in Settings or in the chat ([FR-127](#fr-127), [FR-135](#fr-135)).
-    - "What does the app send to OpenAI?": only what an AI feature the user starts needs. Suggest
-      categories sends descriptions, counterparties and category names, with no amounts, dates or
-      account names. A question to the chat sends the conversation, the expenses and incomes of the
-      current month and the 12 months before it with their amounts, the budgets, and the accounts'
-      names and balances. The key is never part of a backup ([FR-091](#fr-091), [FR-102](#fr-102),
-      [FR-126](#fr-126)).
-    - "My key doesn't work, or the AI says a request failed. What can I do?": check that the whole
-      key was copied, that the OpenAI account has credit and has not reached its limit, and that
-      the computer is online; a model the key may not use needs another model in Settings; Remove
-      key, then turn AI features on with a new key ([FR-094](#fr-094), [FR-126](#fr-126),
-      [FR-127](#fr-127)).
-    - "Can the chat change my data?": no; it explains how to do it in the app ([FR-103](#fr-103)).
+      finance chat; they need the user's own OpenAI API key, created on OpenAI's page for API keys
+      and entered with Turn on AI features, in Settings or in the chat; OpenAI charges that account
+      for each request, so a monthly limit there is wise; they send data to OpenAI only when the
+      user uses them: Suggest categories sends no amounts, dates or account names, and a question
+      to the chat sends the expenses and incomes of the current month and the 12 months before it
+      ([FR-091](#fr-091), [FR-102](#fr-102), [FR-126](#fr-126) – [FR-129](#fr-129),
+      [FR-135](#fr-135)).
 - <a id="fr-141"></a>**FR-141**: The guide to the app ([FR-136](#fr-136)) MUST hold FAQ's
   questions and answers, so the finance chat answers them as FAQ does, and the two never differ.
 
@@ -1842,5 +1797,6 @@ Listed so that "should we add…?" has an answer that does not require a meeting
 - Turning AI features on from review's Suggest categories, which keeps its line to Settings
   ([FR-090](#fr-090), [FR-135](#fr-135)).
 - Help pages other than FAQ, tooltips, and explanations that can be hidden or turned off
-  ([FR-137](#fr-137), [FR-138](#fr-138)). For FAQ ([FR-139](#fr-139)): searching it, linking to a
-  single question, questions the user adds, and languages other than English.
+  ([FR-137](#fr-137), [FR-138](#fr-138)). For FAQ ([FR-139](#fr-139)): questions beyond the
+  twelve of [FR-140](#fr-140), searching it, linking to a single question, questions the user
+  adds, and languages other than English.
