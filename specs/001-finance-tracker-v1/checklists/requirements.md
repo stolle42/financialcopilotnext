@@ -1,9 +1,9 @@
-# Specification Quality Checklist: Installable app (v1.5) and own OpenAI key and model choice (v1.6)
+# Specification Quality Checklist: Getting started (v1.7)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-10-21
-**Feature**: [spec.md](../spec.md), [User Story 9](../spec.md#user-story-9),
-[User Story 10](../spec.md#user-story-10), [FR-121](../spec.md#fr-121) – [FR-131](../spec.md#fr-131)
+**Created**: 2026-10-22
+**Feature**: [spec.md](../spec.md), [User Story 11](../spec.md#user-story-11),
+[FR-132](../spec.md#fr-132) – [FR-138](../spec.md#fr-138)
 
 ## Content Quality
 
@@ -32,18 +32,21 @@
 
 ## Notes
 
-- The spec names OpenAI, its models, the browsers and the app's web address. These are product
-  decisions the owner made, not implementation. How the app installs, works offline, holds back a
-  new version, stores the key and reaches OpenAI is left to the plan.
-- Existing requirements that the two versions change are updated in place and name the change:
-  FR-061, FR-075, FR-105 and FR-106 (v1.5); FR-061, FR-069, FR-070, FR-090, FR-091, FR-094, FR-095,
-  FR-102, FR-105 and FR-106 (v1.6). SC-012 and SC-014 now also cover the key and the model. The two
-  clarifications about the hosted copy are marked as superseded.
-- FR-118 – FR-120 are skipped: [R-29](../research.md#r-29) names them for the reverted local-AI
-  spec.
-- The pass marks of [FR-131](../spec.md#fr-131) (90 of 100 suggestions right, every chat answer
-  true to the data) were set by the spec, not by the owner; the
-  [Assumptions](../spec.md#assumptions) say so.
-- For the plan: R-01, R-07, R-19, R-20 and R-24 in research.md need rewording, the quickstart needs
-  the warning against renaming the Vercel project, and the ai.md and ui.md contracts need the key,
-  the dialog, the model and the update notice.
+- Clarified 2026-10-22: the screens call a mapping profile a "bank CSV format"
+  ([FR-138](../spec.md#fr-138)); the spec keeps the name mapping profile.
+- The spec names encodings, date formats and example column names. These are facts of the bank
+  files the app reads, already part of [FR-021](../spec.md#fr-021) and
+  [csv-import.md](../contracts/csv-import.md), not implementation. How the app reads a file's
+  layout, and the full list of column names it recognises, are left to the plan.
+- Existing requirements that v1.7 changes are updated in place and name the change: FR-021,
+  FR-095 and FR-100. [User Story 8](../spec.md#user-story-8) scenario 1 now leads to
+  [FR-135](../spec.md#fr-135).
+- [FR-136](../spec.md#fr-136) corrects the guide to the app, which through v1.6 said that AI
+  features work only on the user's own computer, against [FR-128](../spec.md#fr-128).
+- Of the ideas weighed for v1.7, a getting-started checklist, sample data, a backup reminder and a
+  layout for narrow windows were left out; [Out of Scope](../spec.md#out-of-scope) lists them.
+- For the plan: the ui.md contract needs New account on Import, the chat's state while AI features
+  are off, the sign hint, each screen's sentence, and every label and message renamed from profile
+  to bank CSV format; csv-import.md needs the rules of
+  [FR-133](../spec.md#fr-133) and the column names; ai.md and `appGuide.ts` need the corrected
+  guide; [SC-023](../spec.md#sc-023) needs five bank exports rebuilt with made-up data.
