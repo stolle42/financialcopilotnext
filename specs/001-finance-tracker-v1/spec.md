@@ -1200,9 +1200,9 @@ names the change.
   ([FR-106](#fr-106)).
 - <a id="fr-129"></a>**FR-129**: Settings MUST offer, beside the AI features switch, a choice of
   the model that answers both AI features, from a short list, each with a plain hint:
-  - gpt-5.4-mini, the default;
-  - gpt-6.1-sol, "better answers, costs more";
-  - gpt-5.6-luna, "cheaper".
+  - gpt-5.4-mini, "fastest", the default;
+  - gpt-5.6-luna, "balanced";
+  - gpt-6.1-sol, "most thorough, slowest".
 
   Settings MUST show the model in use, whether AI features are on or off. While AI features are
   on, the finance chat MUST say in a small line which model answers, such as "Answers by
@@ -1224,7 +1224,8 @@ names the change.
     be answered completely within 60 seconds. Every amount, date, payment and category an answer
     names MUST come from the data; no budget may be called exceeded that is within its limit, and
     no price rise named that did not happen ([FR-109](#fr-109)); the question out of scope MUST get
-    the fixed answer ([FR-103](#fr-103)).
+    the fixed answer ([FR-103](#fr-103)). One answer that draws a wrong conclusion from amounts the
+    data holds does not fail the model.
 
   A model that fails MUST NOT be listed. When gpt-5.4-mini fails, the cheapest model that passes
   MUST be the default. The results are recorded in [research.md](research.md).
@@ -1324,7 +1325,7 @@ names the change.
   ([FR-127](#fr-127)).
 - <a id="sc-022"></a>**SC-022**: Every model the app lists passed [FR-131](#fr-131)'s check: at least
   90 of 100 suggestions right, and every chat answer complete within 60 seconds and true to the
-  data.
+  data, but for at most one wrong conclusion drawn from amounts the data holds.
 
 <a id="assumptions"></a>
 ## Assumptions

@@ -3,7 +3,6 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { aiRoute } from "./server/aiRoute.ts";
 import { appVersion, serviceWorkerBuild } from "./worker/plugin.ts";
 
 // Names the commit in the built page, so CI's `deployed` job can wait until the production domain
@@ -24,15 +23,15 @@ function appCommit(): Plugin {
 
 // Limits scripts, styles, images, fonts and connections to the app's own origin, with no exception
 // for inline styles (R-19). Only the production build carries it, because the dev server's hot
-// reload needs inline scripts and a WebSocket. The AI features reach OpenAI through a route on the
-// app's own origin, so they need no exception either (R-24).
+// reload needs inline scripts and a WebSocket. The one exception is OpenAI's API, which the AI
+// features reach with the user's own key (R-31).
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self'",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://api.openai.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -56,14 +55,7 @@ function contentSecurityPolicyTag(): Plugin {
 export default defineConfig({
   // Relative asset URLs let the build load from any path or from local files (R-20).
   base: "./",
-  plugins: [
-    react(),
-    tailwindcss(),
-    appCommit(),
-    contentSecurityPolicyTag(),
-    aiRoute(),
-    serviceWorkerBuild(),
-  ],
+  plugins: [react(), tailwindcss(), appCommit(), contentSecurityPolicyTag(), serviceWorkerBuild()],
   // The header shows the version the build's worker names (FR-088, R-30).
   define: { __APP_VERSION__: JSON.stringify(appVersion()) },
   resolve: {
@@ -75,7 +67,7 @@ export default defineConfig({
   // Domain and store tests run in Node; the browser is Playwright's job (R-17).
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "server/**/*.test.ts", "worker/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "worker/**/*.test.ts", "scripts/**/*.test.ts"],
     passWithNoTests: true,
     // A zone west of UTC, where a date read as UTC midnight shows as the day before, so tests
     // catch that mistake on every machine.

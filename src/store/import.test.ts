@@ -17,17 +17,16 @@ import {
   saveProfile,
   suggestCategories,
 } from "./import";
-import { setAiFeatures } from "./settings";
+import { chooseModel, removeKey, setAiFeatures, turnOnWithKey } from "./settings";
 import { createStore } from "./store";
 
 const fetchMock = vi.fn<typeof fetch>();
+const testKey = "sk-test-0000a1b2";
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
-  // The app as run locally, where AI features can be on (FR-106).
-  vi.stubGlobal("location", { hostname: "localhost" });
 });
 
 afterEach(() => {
@@ -282,7 +281,7 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
   async function withBatch(aiFeatures = true) {
     const setup = await setUp();
     await importInto(setup.store, setup.cash, setup.profile);
-    if (aiFeatures) await setAiFeatures(setup.store, true);
+    if (aiFeatures) await turnOnWithKey(setup.store, testKey);
     return setup;
   }
 
@@ -299,9 +298,10 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(store.getState()).toBe(before);
   });
 
-  test("on a copy not served from the user's computer, gives ai-features-off and sends nothing, even with AI features on (FR-106)", async () => {
+  test("with the switch on but no key stored, as a v1.5 database leaves it, gives ai-features-off and sends nothing (FR-126)", async () => {
     const { store } = await withBatch();
-    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    await removeKey(store);
+    await setAiFeatures(store, true);
     const before = store.getState();
 
     expect(await ask(store)).toEqual({ code: "ai-features-off" });
@@ -320,6 +320,54 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(body.text.format.name).toBe("category_suggestions");
     expect(body.input).toHaveLength(1);
     expect(JSON.parse(body.input[0]!.content)).toEqual(suggestionRequest(store.getState()));
+  });
+
+  test("asks OpenAI with the stored key and the default model when none is chosen (FR-128, FR-129)", async () => {
+    const { store } = await withBatch();
+    fetchMock.mockResolvedValue(suggesting({ suggestions: [] }));
+
+    await ask(store);
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.openai.com/v1/responses");
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${testKey}`);
+    expect((JSON.parse(String(init?.body)) as PostedRequest).model).toBe("gpt-5.4-mini");
+  });
+
+  test("asks the model chosen when the request starts, and keeps it while the user chooses another (FR-129)", async () => {
+    const { store } = await withBatch();
+    await chooseModel(store, "gpt-6.1-sol");
+    const answer = heldAnswer();
+
+    const asked = ask(store);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await chooseModel(store, "gpt-5.6-luna");
+    await answer({ suggestions: [] });
+    await asked;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)) as PostedRequest;
+    expect(body.model).toBe("gpt-6.1-sol");
+
+    fetchMock.mockResolvedValue(suggesting({ suggestions: [] }));
+    await ask(store);
+    const next = JSON.parse(String(fetchMock.mock.calls[1]![1]?.body)) as PostedRequest;
+    expect(next.model).toBe("gpt-5.6-luna");
+  });
+
+  test("gives ai-model-unavailable naming the model in use when the key may not use it (FR-129)", async () => {
+    const { store } = await withBatch();
+    await chooseModel(store, "gpt-6.1-sol");
+    fetchMock.mockResolvedValue(
+      json(openAiError("The model does not exist.", "model_not_found"), 404),
+    );
+    const before = store.getState();
+
+    expect(await ask(store)).toEqual({
+      code: "ai-model-unavailable",
+      details: { model: "gpt-6.1-sol" },
+    });
+    expect(store.getState()).toBe(before);
   });
 
   test("fills rows with marks that survive reopening, and counts the rows sent and filled", async () => {
@@ -355,8 +403,27 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
       "ai-unreachable",
     ],
     [
-      "OpenAI reports a failure",
-      () => fetchMock.mockResolvedValue(json(openAiError("Incorrect API key provided."), 401)),
+      "OpenAI no longer accepts the key",
+      () =>
+        fetchMock.mockResolvedValue(
+          json(openAiError("Incorrect API key provided.", "invalid_api_key"), 401),
+        ),
+      "ai-key-rejected",
+    ],
+    [
+      "the account has no credit left",
+      () =>
+        fetchMock.mockResolvedValue(
+          json(openAiError("You exceeded your current quota.", "insufficient_quota"), 429),
+        ),
+      "ai-no-credit",
+    ],
+    [
+      "OpenAI reports another failure",
+      () =>
+        fetchMock.mockResolvedValue(
+          json(openAiError("Rate limit reached.", "rate_limit_exceeded"), 429),
+        ),
       "ai-failed",
     ],
     [

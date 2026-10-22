@@ -134,6 +134,19 @@ describe("messages", () => {
     expect(messageFor({ code: "backup-damaged" })).toMatch(/incomplete|damaged/i);
   });
 
+  test("words a backup whose settings hold an empty model, naming the model (FR-130)", () => {
+    const damaged: Record<string, string>[] = [
+      { record: "settings", field: "model" },
+      { rule: "settings-model-invalid", model: "" },
+    ];
+    for (const details of damaged) {
+      const message = messageFor({ code: "backup-damaged", details });
+      expect(message).toMatch(/model/i);
+      expect(message).toMatch(/unchanged/i);
+      expect(message).not.toContain("settings-model-invalid");
+    }
+  });
+
   test("words a backup whose pending row holds a protected category as the AI's suggestion (FR-093)", () => {
     const message = messageFor({
       code: "backup-damaged",
@@ -229,11 +242,17 @@ describe("messages", () => {
     expect(chat.clearWarning).toMatch(/deleted/i);
   });
 
+  test("names the model that answers in the chat (FR-129)", () => {
+    expect(catalogue.financeChat.answersBy("gpt-5.4-mini")).toBe("Answers by gpt-5.4-mini");
+  });
+
   test("names OpenAI as the one recipient, and neither n8n, Anthropic nor Claude (R-24)", () => {
     const texts = [
       catalogue.sharingWarning,
       catalogue.aiFeaturesDescription,
       catalogue.aiFeaturesNeeded,
+      catalogue.aiKey.about,
+      catalogue.aiKey.removeWarning,
       ...(Object.keys(messages) as MessageCode[]).map((code) => messageFor({ code })),
       messageFor({
         code: "backup-damaged",
@@ -260,9 +279,41 @@ describe("messages", () => {
     );
   });
 
-  test("says beside an unavailable switch that AI features need the app run locally (FR-106)", () => {
-    expect(catalogue.aiFeaturesLocalOnly).toMatch(/AI features/);
-    expect(catalogue.aiFeaturesLocalOnly).toMatch(/locally/);
+  test("says under the switch that OpenAI charges the user's own OpenAI account (FR-126)", () => {
+    expect(catalogue.aiFeaturesDescription).toMatch(/OpenAI/);
+    expect(catalogue.aiFeaturesDescription).toMatch(/your own OpenAI account/);
+    expect(catalogue.aiFeaturesDescription).toMatch(/charges/);
+  });
+
+  test("words the lines about the key: OpenAI charges the user's own account, and a monthly limit is wise (FR-127)", () => {
+    expect(catalogue.aiKey.about).toBe(
+      "An OpenAI API key lets the app ask OpenAI for you. OpenAI charges your own OpenAI " +
+        "account for every question and every request for suggestions, so setting a monthly " +
+        "limit there is wise.",
+    );
+    expect(catalogue.aiKey.createLink).toBe("Create an API key at OpenAI");
+    expect(catalogue.aiKey.createUrl).toBe("https://platform.openai.com/api-keys");
+    expect(catalogue.aiKey.field).toBe("OpenAI API key");
+    expect(catalogue.aiKey.checking).toBe("Checking key…");
+  });
+
+  test("shows a stored key only masked (FR-126)", () => {
+    expect(catalogue.aiKey.stored("sk-…a1b2")).toBe("Your key: sk-…a1b2");
+  });
+
+  test("words the confirmation of Remove key: AI features turn off and the key must be entered again (FR-126, FR-069)", () => {
+    expect(catalogue.aiKey.removeTitle).toBe("Remove key?");
+    expect(catalogue.aiKey.remove).toBe("Remove key");
+    expect(catalogue.aiKey.removeWarning).toMatch(/AI features/);
+    expect(catalogue.aiKey.removeWarning).toMatch(/off/);
+    expect(catalogue.aiKey.removeWarning).toMatch(/enter .*key again/i);
+  });
+
+  test("names the default in the note for a model no longer offered (FR-130)", () => {
+    expect(catalogue.modelChoice.label).toBe("Model");
+    expect(catalogue.modelChoice.noLongerOffered("gpt-5.4-mini")).toBe(
+      "The model you chose is no longer offered; now using gpt-5.4-mini.",
+    );
   });
 
   test("says that suggestions need AI features, and where to turn them on (FR-090)", () => {
@@ -284,11 +335,76 @@ describe("messages", () => {
       expect(messageFor({ code })).toMatch(/nothing changed/i);
       expect(messageFor({ code })).toMatch(/try again/i);
     }
-    expect(messageFor({ code: "ai-unreachable" })).toContain(".env");
-    expect(messageFor({ code: "ai-unreachable" })).toMatch(/OpenAI key/);
-    expect(messageFor({ code: "ai-failed" })).toMatch(/OpenAI/);
-    expect(messageFor({ code: "ai-failed" })).toMatch(/key/);
+    // Straight to OpenAI, no app started on this computer or .env any more (FR-128).
+    expect(messageFor({ code: "ai-unreachable" })).toMatch(/OpenAI could not be reached/);
+    expect(messageFor({ code: "ai-unreachable" })).toMatch(/internet connection/);
+    expect(messageFor({ code: "ai-unreachable" })).not.toMatch(/\.env|this computer|key/);
+    expect(messageFor({ code: "ai-failed" })).toMatch(/OpenAI refused the request/);
+    expect(messageFor({ code: "ai-failed" })).toMatch(/in a moment/);
+    expect(messageFor({ code: "ai-failed" })).not.toMatch(/key|credit/);
     expect(messageFor({ code: "suggestions-outdated" })).toMatch(/no suggestion was used/i);
+  });
+
+  test("words ai-key-rejected: remove the key in Settings and turn AI features on with a new one (FR-126)", () => {
+    const message = messageFor({ code: "ai-key-rejected" });
+    expect(message).toMatch(/OpenAI no longer accepts your key/);
+    expect(message).toMatch(/remove it in Settings/i);
+    expect(message).toMatch(/new one/);
+    expect(message).toMatch(/nothing changed/i);
+  });
+
+  test("words ai-no-credit: add credit or raise the limit on OpenAI's platform, then try again", () => {
+    const message = messageFor({ code: "ai-no-credit" });
+    expect(message).toMatch(/no credit left/);
+    expect(message).toMatch(/monthly limit/);
+    expect(message).toMatch(/add credit or raise the limit/i);
+    expect(message).toMatch(/OpenAI's platform/);
+    expect(message).toMatch(/try again/i);
+    expect(message).toMatch(/nothing changed/i);
+  });
+
+  test("words ai-model-unavailable naming the model, and to choose another in Settings (FR-129)", () => {
+    const message = messageFor({ code: "ai-model-unavailable", details: { model: "gpt-6.1-sol" } });
+    expect(message).toContain("gpt-6.1-sol");
+    expect(message).toMatch(/choose another model in Settings/i);
+    expect(message).toMatch(/try again/i);
+    expect(message).toMatch(/nothing changed/i);
+    // Without the detail, still plain words, not "undefined".
+    const bare = messageFor({ code: "ai-model-unavailable" });
+    expect(bare).toMatch(/model/);
+    expect(bare).not.toMatch(/undefined/);
+  });
+
+  test("no AI message names the key or shows a code (FR-126)", () => {
+    const codes = [
+      "ai-unreachable",
+      "ai-key-rejected",
+      "ai-no-credit",
+      "ai-model-unavailable",
+      "ai-failed",
+      "ai-timeout",
+      "ai-answer-invalid",
+    ] as const;
+    for (const code of codes) {
+      const message = messageFor({ code, details: { model: "gpt-5.4-mini" } });
+      expect(message).not.toMatch(/sk-|Bearer|API key/);
+      expect(message).not.toContain(code);
+    }
+  });
+
+  test("words ai-key-not-accepted exactly as the catalogue does (FR-127)", () => {
+    expect(messageFor({ code: "ai-key-not-accepted" })).toBe(
+      "OpenAI didn't accept this key. Check that you copied all of it.",
+    );
+  });
+
+  test("words ai-key-check-unreachable: try again once connected, and nothing was stored (FR-127)", () => {
+    const message = messageFor({ code: "ai-key-check-unreachable" });
+    expect(message).toMatch(/OpenAI/);
+    expect(message).toMatch(/try again/i);
+    expect(message).toMatch(/connected/i);
+    expect(message).toMatch(/nothing was stored/i);
+    expect(message).not.toContain("ai-key-check-unreachable");
   });
 
   test("adds to the Backup note that installing the app helps the browser keep the data (FR-075)", () => {

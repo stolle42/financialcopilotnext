@@ -87,7 +87,24 @@ describe("serializeBackup (FR-070)", () => {
       "settings",
       "transactions",
     ]);
-    expect(byKey(json.data)).toEqual(byKey(state));
+    // The key stays on this computer, so the file has no place for it (FR-126).
+    expect(byKey(json.data)).toEqual(byKey({ ...state, apiKey: undefined } as unknown as State));
+  });
+
+  test("holds neither the key nor its last 4 characters, whatever the state holds (FR-126, R-31)", () => {
+    const state: State = {
+      ...everyEntityState(),
+      settings: { ...everyEntityState().settings, aiFeatures: true, model: "gpt-5.6-luna" },
+      apiKey: "sk-proj-abcdefa1b2",
+    };
+
+    const text = serializeBackup(state, EXPORTED_AT);
+
+    expect(text).not.toContain("sk-proj");
+    expect(text).not.toContain("a1b2");
+    const json = JSON.parse(text) as { data: Json };
+    expect(json.data).not.toHaveProperty("apiKey");
+    expect(json.data.settings).toStrictEqual(state.settings);
   });
 
   test("writes the conversation's turns in order, and leaves the key out while it is empty (R-26)", () => {
@@ -172,6 +189,36 @@ describe("parseBackup: a round trip (SC-014)", () => {
     expect(loaded.settings).toStrictEqual({ manualEntryAccountId: "giro" });
   });
 
+  test("keeps the chosen model (FR-130)", () => {
+    const state = everyEntityState();
+    const chosen = { ...state, settings: { ...state.settings, model: "gpt-5.6-luna" } };
+    const json = JSON.parse(serializeBackup(chosen, EXPORTED_AT)) as { data: Json };
+    expect(json.data.settings).toHaveProperty("model", "gpt-5.6-luna");
+    expect((parseBackup(serializeBackup(chosen, EXPORTED_AT)) as State).settings).toStrictEqual(
+      chosen.settings,
+    );
+  });
+
+  test("keeps a model the app no longer lists, which then uses the default (FR-130, R-32)", () => {
+    const json = fileJson();
+    (json.data.settings as Json).model = "gpt-4o";
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.settings.model).toBe("gpt-4o");
+  });
+
+  test("loads a file without a model, as v1.5 saves it, with none chosen", () => {
+    const json = fileJson();
+    delete (json.data.settings as Json).model;
+
+    const loaded = parsed(json) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.settings).not.toHaveProperty("model");
+  });
+
   test("keeps the conversation, every kind of turn, source and follow-up alike (FR-104, FR-111)", () => {
     const state = everyEntityState();
     const loaded = parseBackup(serializeBackup(state, EXPORTED_AT)) as State;
@@ -194,6 +241,11 @@ describe("parseBackup: a round trip (SC-014)", () => {
     const text = JSON.stringify(json);
 
     expect(JSON.parse(serializeBackup(parseBackup(text) as State, EXPORTED_AT))).toEqual(json);
+  });
+
+  test("gives back a state without a key, which restoring takes from this computer (FR-126)", () => {
+    const state: State = { ...everyEntityState(), apiKey: "sk-proj-abcdefa1b2" };
+    expect((parseBackup(serializeBackup(state, EXPORTED_AT)) as State).apiKey).toBeNull();
   });
 
   test("saves the loaded state as the same file", () => {
@@ -318,6 +370,19 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     expect(parsed(json)).toMatchObject({
       code: "backup-damaged",
       details: { record: "settings", field: "aiFeatures" },
+    });
+  });
+
+  test.each<[string, unknown]>([
+    ["empty", ""],
+    ["not a string", 7],
+  ])("names settings whose model is %s (FR-130)", (_, model) => {
+    const json = fileJson();
+    (json.data.settings as Json).model = model;
+
+    expect(parsed(json)).toMatchObject({
+      code: "backup-damaged",
+      details: { record: "settings", field: "model" },
     });
   });
 

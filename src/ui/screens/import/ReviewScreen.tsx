@@ -5,6 +5,7 @@ import { confirmBatch, discardBatch, includeDuplicate } from "@/store/import";
 import { useStore, useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
+import { RefusalMessage } from "@/ui/components/RefusalMessage";
 import { Button } from "@/ui/components/ui/button";
 import {
   Sheet,
@@ -203,7 +204,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
       <SuggestCategories view={view} onRefusal={setRefusal} onAskingChange={setAskingAi} />
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
-          {messageFor(refusal)}
+          <RefusalMessage refusal={refusal} />
         </p>
       )}
       <ReviewGroups view={view} batchAccountId={batch.accountId} onRefusal={setRefusal} />

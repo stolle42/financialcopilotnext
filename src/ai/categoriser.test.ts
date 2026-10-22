@@ -24,7 +24,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const ask = (signal = new AbortController().signal) => askCategoriser(request, signal);
+/** The user's key and the model in use (FR-128, FR-129). */
+const access = { apiKey: "sk-proj-categoriserKey9z8y", model: "gpt-6.1-sol" };
+
+const ask = (signal = new AbortController().signal) => askCategoriser(request, access, signal);
 
 async function posted(): Promise<PostedRequest> {
   fetchMock.mockResolvedValue(streamed(responseWith({ suggestions: [] })));
@@ -42,6 +45,15 @@ interface Schema {
 }
 
 describe("askCategoriser: the request (contracts/ai.md, category suggestions)", () => {
+  test("asks OpenAI with the key and the model it is given (FR-128, FR-129)", async () => {
+    const { model } = await posted();
+
+    expect(model).toBe("gpt-6.1-sol");
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.openai.com/v1/responses");
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${access.apiKey}`);
+  });
+
   test("sends the suggestion request as JSON text, the one input", async () => {
     const { input } = await posted();
 

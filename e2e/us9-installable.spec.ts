@@ -335,6 +335,8 @@ test.describe("publishing a build (e2e/support/versions.ts)", () => {
     server.publish("current");
   });
 
+  // Possibly flaky: failed once in a full local run on a busy machine (2026-10-21), passed alone
+  // and in CI. Not fixed; if it fails again, find the cause before rerunning.
   test("scenarios 5 – 7: with the next MINOR published, the old version stays through three openings, Backup saves a backup, and Update opens the new version with every record as before (FR-124, SC-019)", async ({
     playwright,
     browserName,

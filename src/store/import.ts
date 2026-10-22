@@ -1,4 +1,5 @@
 import { askCategoriser } from "@/ai/categoriser";
+import { modelInUse } from "@/ai/models";
 import { canStartImport, createBatch } from "@/domain/import/batch";
 import {
   confirmBatch as decideConfirm,
@@ -101,8 +102,8 @@ export interface SuggestOutcome {
 }
 
 /**
- * Asks the AI, through the local route to OpenAI, to suggest categories for the pending batch, and fills the
- * rows the answer may fill (FR-090 – FR-094). Resolves to the outcome, a refusal, or `null` when
+ * Asks OpenAI, with the stored key and the model in use, to suggest categories for the pending
+ * batch, and fills the rows the answer may fill (FR-090 – FR-094, FR-128, FR-129). Resolves to the outcome, a refusal, or `null` when
  * `signal` aborts first; nothing is written then, even if the answer had arrived. Never rejects.
  */
 export async function suggestCategories(store: Store, signal: AbortSignal) {
@@ -113,7 +114,10 @@ export async function suggestCategories(store: Store, signal: AbortSignal) {
   const request = suggestionRequest(state);
   const sent = { batchId: state.pendingBatch.id, rowNumbers: request.rows.map((r) => r.rowNumber) };
 
-  const answer = await askCategoriser(request, signal);
+  // aiFeaturesOn holds only with a key stored. The model is read now, so choosing another while
+  // the request runs leaves it as it is.
+  const access = { apiKey: state.apiKey!, model: modelInUse(state.settings).model };
+  const answer = await askCategoriser(request, access, signal);
   if (answer === null || signal.aborted) return null;
   if (!Array.isArray(answer)) return answer;
 

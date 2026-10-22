@@ -49,6 +49,7 @@ function makeState(): State {
     profiles: [],
     pendingBatch: null,
     settings: { manualEntryAccountId: "cash" },
+    apiKey: null,
     conversation: [turn],
   });
 }

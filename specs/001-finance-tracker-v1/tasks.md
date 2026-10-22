@@ -1379,11 +1379,16 @@ this phase. The test commits of T102 – T107, written before that last request,
   - in `src/ui/messages.test.ts`, the fixed answer names the user's finances, finance in general
     and the app;
   - in `e2e/us8-finance-chat.spec.ts`, scenario 11.
-- [ ] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
+- [X] T108 (Project owner, manual) Set up the key as [AI features](quickstart.md#ai-features)
   describes, turn AI features off and on once to agree to the new warning, check that
   `git status` does not list `.env` and that `dist/` holds no part of the key, and walk the manual
   checks there, including the SC-001 file and the chat. Its commit sets the version to `1.3.0`, and
   the tag `v1.3` goes on the phase's squash commit on `main` (constitution IX).
+  - *Closed in Phase 16*: the tag `v1.3` is on `360d9a6`, pushed on 2026-10-22. The version change
+    was missed, so v1.3 shows `1.1.0`, as v1.2 does; main is not rewritten to fix it. No `.env` and
+    no real key is in any commit. The key in `.env`, its warning and the manual checks were
+    overtaken: Phase 16 moves the key into Settings, and v1.5's and v1.6's checks run on the
+    versions now served (T146, T145).
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.3 (constitution IX),
 MINOR because v1.2 reads v1.3 storage and backups: the conversation is a second record of the
@@ -1642,9 +1647,9 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
 ([quickstart.md](quickstart.md#us10-own-openai-key-and-model-choice)), and the manual checks of
 [AI features](quickstart.md#ai-features) at the web address.
 
-- [ ] T137 [US10] The models: a new `src/ai/models.ts` with `AI_MODELS`, in the order Settings shows
-  them, each with its hint (gpt-5.4-mini "default", gpt-6.1-sol "better answers, costs more",
-  gpt-5.6-luna "cheaper"), `DEFAULT_MODEL`, and `modelInUse(settings)`, which gives
+- [X] T137 [US10] The models: a new `src/ai/models.ts` with `AI_MODELS`, in the order Settings shows
+  them, each with its hint (gpt-5.4-mini "fastest", gpt-5.6-luna "balanced", gpt-6.1-sol "most
+  thorough, slowest"), `DEFAULT_MODEL`, and `modelInUse(settings)`, which gives
   `{ model, noLongerOffered }`; `model` in `Settings` of `src/domain/types.ts`, "model id, or
   absent", where "Absent means the default. Any non-empty string is kept, also one no longer in the
   list"; `setModel(state, model)` in `src/domain/settings.ts`, which "changes nothing else";
@@ -1662,7 +1667,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     refused, and a file without one, as v1.5 saves it, loads without a model;
   - in `src/store/settings.test.ts`: `chooseModel` writes at once, and a failed write gives
     `save-failed` and keeps the choice as it was.
-- [ ] T138 [US10] The key in storage: `apiKey: string | null` in `State` of
+- [X] T138 [US10] The key in storage: `apiKey: string | null` in `State` of
   `src/domain/types.ts`, beside `settings` and not inside it, "Trimmed when entered, non-empty.
   `null` while no key is stored", and `null` in the seed; `apiKey` in `Changes`, a key to write or
   `null` to delete it; in `src/domain/settings.ts`, `turnOnWithKey(state, key)`, which trims the key
@@ -1691,7 +1696,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   - in `e2e/us7-backup.spec.ts`, with a key put into storage: the round trip of
     [SC-014](spec.md#sc-014) with a chosen model, neither file holding the key or its last 4
     characters, and a restore that keeps the key stored on this computer.
-- [ ] T139 [P] [US10] The key check: `checkKey(apiKey, signal)` in `src/ai/openai.ts` sends
+- [X] T139 [P] [US10] The key check: `checkKey(apiKey, signal)` in `src/ai/openai.ts` sends
   `GET https://api.openai.com/v1/models` with `Authorization: Bearer <key>`, no body,
   `credentials: "omit"` and nothing else, stops after 10 seconds, and gives accepted for 200 – 299
   and 403, `ai-key-not-accepted` for 401, and `ai-key-check-unreachable` for any other status, no
@@ -1709,7 +1714,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     connected and that nothing was stored;
   - in `e2e/ui/shell.spec.ts`, the production CSP's `connect-src` is `'self'
     https://api.openai.com`, in place of `'self'` alone.
-- [ ] T140 [US10] Settings for the key and the model, as [ui.md](contracts/ui.md#settings)
+- [X] T140 [US10] Settings for the key and the model, as [ui.md](contracts/ui.md#settings)
   describes them, in `src/ui/screens/settings/SettingsScreen.tsx`: the dialog "Turn on AI features?" with the warning,
   the lines about the key, the link "Create an API key at OpenAI" to
   `https://platform.openai.com/api-keys` in a new tab, the password field "OpenAI API key" with
@@ -1740,7 +1745,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     key and restores in a fresh context with gpt-5.6-luna and the switch off; a database of v1.5
     with AI features on shows the switch off and asks for a key; and a backup with a model not
     listed shows the note.
-- [ ] T141 [US10] Straight to OpenAI: `askOpenAi` in `src/ai/openai.ts` posts to
+- [X] T141 [US10] Straight to OpenAI: `askOpenAi` in `src/ai/openai.ts` posts to
   `https://api.openai.com/v1/responses` with `Authorization: Bearer <key>`,
   `Content-Type: application/json` and `credentials: "omit"`, and with the key and model its caller
   passes in place of `OPENAI_MODEL`; it reads OpenAI's error JSON by `code` and status, never
@@ -1774,7 +1779,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   - in `e2e/us10-own-key.spec.ts`, scenario 9: the chat and Suggest categories ask
     `api.openai.com` with the key and the model in use, only those requests carry the key, and the
     app's own origin receives nothing for an AI feature.
-- [ ] T142 [US10] The model in the chat: while AI features are on, a line in the muted colour
+- [X] T142 [US10] The model in the chat: while AI features are on, a line in the muted colour
   above the question field of `src/ui/screens/chat/FinanceChat.tsx` says "Answers by <model>", the model in use, from
   `financeChat.answersBy` in `src/ui/messages.ts` ([FR-129](spec.md#fr-129),
   [ui.md](contracts/ui.md#finance-chat)). Test first:
@@ -1782,7 +1787,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
     Settings, and is absent while AI features are off;
   - in `e2e/us10-own-key.spec.ts`, scenario 5: after choosing gpt-6.1-sol, the chat says so, and
     the next question and the next request for suggestions name that model.
-- [ ] T143 [P] [US10] The model check of [FR-131](spec.md#fr-131): `scripts/check-models.ts`, run
+- [X] T143 [P] [US10] The model check of [FR-131](spec.md#fr-131): `scripts/check-models.ts`, run
   by `npm run check:models` with Vitest outside `test.include`, so `npm test` and CI never run it.
   It reads `OPENAI_API_KEY` and `DEMO_BACKUP` from the environment, never writing the key to a
   file; loads the backup with `src/files/backup.ts`, with today the day after its last
@@ -1800,7 +1805,7 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   hides their categories; scoring compares by name key; a model passes with 90 right and fails
   with 89; the facts name each budget over and within its limit and each price change; and the
   check stops at a model's first failure.
-- [ ] T144 (Project owner, with Claude) Run the model check as
+- [X] T144 (Project owner, with Claude) Run the model check as
   [quickstart.md](quickstart.md#model-check) says, with the owner's key in the shell for that run
   only, on a backup of the demonstration data in `tmp/`. The owner and Claude judge each chat
   answer against the facts. Record in [R-32](research.md#r-32) the table of model, prices of the
@@ -1809,19 +1814,24 @@ first, in the commits marked "P15, P16". No new dependency, and storage stays at
   passing one the default if gpt-5.4-mini fails, and update the tests, ui.md and the spec where they
   name a model that failed ([FR-131](spec.md#fr-131), [SC-022](spec.md#sc-022)). A model once
   checked is not checked again.
-- [ ] T145 (Project owner, manual) Delete `.env` from the project folder, check that `dist/` holds
-  no part of your key, and walk the manual checks of [AI features](quickstart.md#ai-features) at
-  the web address with your own key, then on `localhost`; and the
-  [SC-019 check](quickstart.md#installable-app-checks), the first real Update, from v1.5. Its
-  commit sets the version to `1.6.0`, and the tag `v1.6` goes on the phase's squash commit on
-  `main` (constitution IX).
+- [x] T146 (Project owner, with Claude) Check that every step of v1.5's
+  [release checklist](quickstart.md#release-checklist) was done: v1.5 on `main` with its tag
+  pushed, CI green, and its checks walked at the web address. Each step not done is done now, so
+  v1.5 is served before v1.6's Update check starts from it.
+- [X] T145 (Project owner, manual) On the branch, before the merge: delete `.env` from the project
+  folder, check that `dist/` holds no part of your key, and walk the manual checks of
+  [AI features](quickstart.md#ai-features) on `localhost` with your own key. Its commit sets the
+  version to `1.6.0` (constitution IX). What follows the merge, the tag `v1.6` on the phase's
+  squash commit on `main`, the AI features at the web address and the
+  [SC-019 check](quickstart.md#installable-app-checks), the first real Update, from v1.5, is the
+  [release checklist](quickstart.md#release-checklist), which the next phase's first task checks.
 
 **Checkpoint**: every task of the phase is done. The phase is a release, v1.6 (constitution IX),
 MINOR because v1.5 reads v1.6 storage and backups: the key is a third record of the settings store,
 which v1.5 does not read, and the model an optional key of the settings, which v1.5 drops
 ([R-31](research.md#r-31), [R-32](research.md#r-32)). No feature leaves the app: the AI features,
 which the local route served only on the owner's computer, now work wherever the app is served
-([FR-106](spec.md#fr-106)). Push and run the post-push check.
+([FR-106](spec.md#fr-106)). Merge, then walk the [release checklist](quickstart.md#release-checklist).
 
 ---
 
@@ -1863,8 +1873,8 @@ which the local route served only on the owner's computer, now work wherever the
   to control the page.
 - **Own OpenAI key and model choice (Phase 16)**: depends on Phase 15, whose worker and update
   notice deliver it; on US7, whose backup leaves the key out; and on Phase 13, whose AI features it
-  moves to the user's key. Order: T137 → T138 → T139 → T140 → T141 → T142 → T144 → T145, with
-  T143 at any time before T144. T139 can run beside T137 and T138, since it touches
+  moves to the user's key. Order: T137 → T138 → T139 → T140 → T141 → T142 → T144 → T146 → T145,
+  with T143 at any time before T144. T139 can run beside T137 and T138, since it touches
   `src/ai/openai.ts`, `vite.config.ts` and the messages only. T144 may change `AI_MODELS`, so
   T145's checks follow it.
 

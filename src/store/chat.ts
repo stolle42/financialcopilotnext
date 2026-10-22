@@ -1,4 +1,5 @@
 import { askFinanceChat } from "@/ai/chat";
+import { modelInUse } from "@/ai/models";
 import type { AiRefusalCode } from "@/ai/openai";
 import {
   addTurn,
@@ -6,7 +7,7 @@ import {
   chatSources,
   clearConversation as decideClearConversation,
 } from "@/domain/chat";
-import type { ChatTurn, Refusal } from "@/domain/types";
+import type { ChatTurn, Refusal, RefusalDetails } from "@/domain/types";
 import { todayLocal } from "./clock";
 import { aiFeaturesOn } from "./settings";
 import type { Store, StoreRefusalCode } from "./store";
@@ -21,7 +22,7 @@ export interface ChatSession {
   /** The question being answered, and its answer as far as it has arrived. */
   asking: { question: string; answer: string } | null;
   /** The last failure, with the question it failed on, which goes back into the field. */
-  failure: { code: ChatFailureCode; question: string } | null;
+  failure: { code: ChatFailureCode; details?: RefusalDetails; question: string } | null;
 }
 
 interface Running {
@@ -82,6 +83,8 @@ async function answer(
       chatContext(state, todayLocal()),
       state.conversation,
       question,
+      // The key and the model in use when the question is asked, kept until it is answered.
+      { apiKey: state.apiKey!, model: modelInUse(state.settings).model },
       controller.signal,
       (soFar) => show(running, { ...running.session, asking: { question, answer: soFar.answer } }),
     );
@@ -93,7 +96,7 @@ async function answer(
   if (answered === null) {
     turn = { question, answer: running.session.asking?.answer ?? "", stopped: true, sources: [] };
   } else if ("code" in answered) {
-    show(running, { asking: null, failure: { code: answered.code, question } });
+    show(running, { asking: null, failure: { ...answered, question } });
     return answered;
   } else if (!answered.inScope) {
     turn = { question, answer: "", outOfScope: true, sources: [] };

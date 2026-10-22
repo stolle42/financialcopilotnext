@@ -1,19 +1,67 @@
 import type { Refusal } from "@/domain/types";
 import type { z } from "@/files/zod";
-import { AI_PATH } from "./path";
 
-// The one code that makes a request: both AI features post to the local route, which passes the
-// request on to OpenAI's Responses API, and read the answer as it streams back (contracts/ai.md;
-// R-24, R-26). Every failure becomes a code; nothing rejects.
+// The one code that makes a request: both AI features post straight to OpenAI's Responses API
+// with the user's own key, and read the answer as it streams back (contracts/ai.md; R-26, R-31).
+// Every failure becomes a code; nothing rejects, and no failure holds the key or OpenAI's words.
 
-export const OPENAI_MODEL = "gpt-6.1-sol";
+const RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 /** How long the app waits for a whole answer, below Firefox's own 300 seconds (FR-094). */
 export const AI_TIMEOUT_MS = 4 * 60 * 1000;
 
-export type AiRefusalCode = "ai-unreachable" | "ai-failed" | "ai-timeout" | "ai-answer-invalid";
+export type AiRefusalCode =
+  | "ai-unreachable"
+  | "ai-key-rejected"
+  | "ai-no-credit"
+  | "ai-model-unavailable"
+  | "ai-failed"
+  | "ai-timeout"
+  | "ai-answer-invalid";
 
 export type AiFailure = Refusal<AiRefusalCode>;
+
+/** The user's key and the model in use, read when a request starts (FR-128, FR-129). */
+export interface AiAccess {
+  apiKey: string;
+  model: string;
+}
+
+/** How long the key check waits for OpenAI's answer (SC-021). */
+export const KEY_CHECK_TIMEOUT_MS = 10_000;
+
+export type KeyCheckFailureCode = "ai-key-not-accepted" | "ai-key-check-unreachable";
+
+/**
+ * Asks OpenAI whether it accepts `apiKey`, with a request that carries the key and nothing else
+ * (FR-127, contracts/ai.md, key check). A 403 still accepts the key: OpenAI knows it, and only
+ * this listing is out of its reach. Gives `cancelled` when `signal` aborts; never rejects.
+ */
+export async function checkKey(
+  apiKey: string,
+  signal: AbortSignal,
+): Promise<"accepted" | "cancelled" | Refusal<KeyCheckFailureCode>> {
+  if (signal.aborted) return "cancelled";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), KEY_CHECK_TIMEOUT_MS);
+  const cancel = () => controller.abort();
+  signal.addEventListener("abort", cancel);
+  try {
+    const response = await fetch("https://api.openai.com/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      credentials: "omit",
+      signal: controller.signal,
+    });
+    if (signal.aborted) return "cancelled";
+    if (response.ok || response.status === 403) return "accepted";
+    return { code: response.status === 401 ? "ai-key-not-accepted" : "ai-key-check-unreachable" };
+  } catch {
+    return signal.aborted ? "cancelled" : { code: "ai-key-check-unreachable" };
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", cancel);
+  }
+}
 
 export interface AiMessage {
   role: "user" | "assistant";
@@ -33,14 +81,24 @@ export interface AiRequest<Answer> {
 
 const EVENT_STREAM = "text/event-stream";
 
-/** OpenAI reports its own failures as `{ error: { message } }`, with any status (R-24). */
-async function isOpenAiError(response: Response): Promise<boolean> {
+/**
+ * What a refused request means (contracts/ai.md, failures). OpenAI reports its own failures as
+ * `{ error: { message, code } }`; any other body, as a network's login page, means OpenAI was not
+ * reached. Only the status and the code are read, never the message.
+ */
+async function refusalOf(response: Response, model: string): Promise<AiFailure> {
+  let error: { message?: unknown; code?: unknown } | undefined;
   try {
-    const body = (await response.json()) as { error?: { message?: unknown } } | null;
-    return typeof body?.error?.message === "string";
+    const body = (await response.json()) as { error?: typeof error } | null;
+    error = body?.error;
   } catch {
-    return false;
+    return { code: "ai-unreachable" };
   }
+  if (typeof error?.message !== "string") return { code: "ai-unreachable" };
+  if (response.status === 401) return { code: "ai-key-rejected" };
+  if (error.code === "insufficient_quota") return { code: "ai-no-credit" };
+  if (error.code === "model_not_found") return { code: "ai-model-unavailable", details: { model } };
+  return { code: "ai-failed" };
 }
 
 type Reading = { text: string } | { code: AiRefusalCode };
@@ -123,11 +181,13 @@ async function readAnswer(
 }
 
 /**
- * Posts `request` and gives its answer, checked against the feature's schema, a failure, or
- * `null` when `signal` aborts first. `onText` gets the answer's text so far as it streams.
+ * Posts `request` to OpenAI with the key and the model of `access`, and gives its answer, checked
+ * against the feature's schema, a failure, or `null` when `signal` aborts first. `onText` gets the
+ * answer's text so far as it streams.
  */
 export async function askOpenAi<Answer>(
   request: AiRequest<Answer>,
+  access: AiAccess,
   signal: AbortSignal,
   onText?: (text: string) => void,
 ): Promise<Answer | AiFailure | null> {
@@ -142,17 +202,22 @@ export async function askOpenAi<Answer>(
   signal.addEventListener("abort", cancel);
 
   // A cancelled request is no failure, and a request that ran out of time is a timeout.
-  const failure = (code: AiRefusalCode): AiFailure | null =>
-    signal.aborted ? null : { code: timedOut ? "ai-timeout" : code };
+  const failure = (refusal: AiFailure | AiRefusalCode): AiFailure | null => {
+    if (signal.aborted) return null;
+    if (timedOut) return { code: "ai-timeout" };
+    return typeof refusal === "string" ? { code: refusal } : refusal;
+  };
 
   try {
     let response: Response;
     try {
-      response = await fetch(AI_PATH, {
+      response = await fetch(RESPONSES_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${access.apiKey}`, "Content-Type": "application/json" },
+        // Nothing of the browser's goes along, only the key (FR-128).
+        credentials: "omit",
         body: JSON.stringify({
-          model: OPENAI_MODEL,
+          model: access.model,
           store: false,
           stream: true,
           instructions: request.instructions,
@@ -172,7 +237,7 @@ export async function askOpenAi<Answer>(
       return failure("ai-unreachable");
     }
     if (!response.ok) {
-      return failure((await isOpenAiError(response)) ? "ai-failed" : "ai-unreachable");
+      return failure(await refusalOf(response, access.model));
     }
     if (!response.headers.get("content-type")?.startsWith(EVENT_STREAM)) {
       return failure("ai-answer-invalid");

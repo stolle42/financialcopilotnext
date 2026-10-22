@@ -1,5 +1,4 @@
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
-import { AI_PATH } from "../../src/ai/path";
 
 /**
  * Whether the guard must watch requests instead of routing them: in Firefox, a routed context's
@@ -10,10 +9,10 @@ export function guardWatchesOnly(browserName: string, serviceWorkers: string | u
 }
 
 /**
- * Watches `page` in `context` for a request outside the app's origin, for a request to the AI
- * route that no stand-in answers, and for any Content-Security-Policy violation (FR-061, R-19,
- * R-24). Returns the check that fails the test on any. With `watchOnly`, see `guardWatchesOnly`,
- * such a request still fails the test, but is not stopped.
+ * Watches `page` in `context` for a request outside the app's origin that no stand-in answers,
+ * OpenAI's included, and for any Content-Security-Policy violation (FR-061, R-19, R-24, R-31).
+ * Returns the check that fails the test on any. With `watchOnly`, see `guardWatchesOnly`, such a
+ * request still fails the test, but is not stopped.
  */
 export async function guardNetwork(
   context: BrowserContext,
@@ -24,7 +23,7 @@ export async function guardNetwork(
   if (!baseURL) throw new Error("playwright.config.ts sets no baseURL");
   const appOrigin = new URL(baseURL).origin;
   const violations: string[] = [];
-  const forbidden = (url: URL) => url.origin !== appOrigin || url.pathname === AI_PATH;
+  const forbidden = (url: URL) => url.origin !== appOrigin;
 
   if (watchOnly) {
     context.on("request", (request) => {
@@ -35,8 +34,8 @@ export async function guardNetwork(
     });
   } else {
     // Abort instead of letting the request through, so a test never reaches the outside world.
-    // data: and blob: URLs never reach a route handler, so they stay allowed. The AI route is on
-    // the app's origin, but a local server that holds a key would pass the request on to OpenAI.
+    // data: and blob: URLs never reach a route handler, so they stay allowed. A stand-in's page
+    // route answers before this one, so only a request no stand-in answers lands here.
     await context.route(forbidden, (route) => {
       violations.push(`request to ${route.request().url()}`);
       return route.abort();

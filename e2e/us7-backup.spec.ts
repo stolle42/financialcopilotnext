@@ -1,11 +1,13 @@
 import type { Page } from "@playwright/test";
-import type { Account } from "../src/domain/types";
+import type { Account, Settings } from "../src/domain/types";
 import { messageFor, notifications } from "../src/ui/messages";
 import {
   addAccount,
   addTransaction,
   choose,
+  putRecord,
   reconcileAccount,
+  storedRecord,
   setBudgetLimit,
   storedRecords,
 } from "./support/app";
@@ -14,7 +16,6 @@ import {
   answer,
   askInChat,
   conversation,
-  onHostedCopy,
   openChat,
   standInCategoriser,
   standInChat,
@@ -28,9 +29,17 @@ import { expect, guardNetwork, setToday, test } from "./support/test";
 // It fills every entity type through the UI, including a pending batch with review progress, a
 // category the AI suggested and a conversation of the finance chat, saves a backup, and restores it over changed data. Then it restores the
 // file into a fresh browser context with empty storage, saves again there, and compares the two
-// files' `data`.
+// files' `data`. An OpenAI key and a chosen model are stored first: the model goes with the
+// backup, the key never does, and a restore keeps the key stored on this computer (FR-126, FR-130).
 
 const main = (page: Page) => page.getByRole("main");
+
+/** A test key, and its last 4 characters, which the masked key shows (FR-126). */
+const KEY = "sk-proj-e2eTestKey0000wxyz";
+const LAST_4 = KEY.slice(-4);
+
+/** True when `text` holds the key or any part of it the app ever shows. */
+const holdsKey = (text: string) => text.includes(KEY) || text.includes(LAST_4);
 const ledgerRows = (page: Page) =>
   page.getByRole("list", { name: "Transactions" }).getByRole("listitem");
 
@@ -78,6 +87,14 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   test.setTimeout(300_000);
   await setToday(page, "2026-09-20");
 
+  // A key stored on this computer and a chosen model (FR-126, FR-129).
+  await page.goto("/");
+  await expect(main(page).getByRole("heading", { name: "Transactions" })).toBeVisible();
+  const seeded = await storedRecord<Settings>(page, "settings", "settings");
+  await putRecord(page, "settings", "settings", { ...seeded, model: "gpt-5.6-luna" });
+  await putRecord(page, "settings", "openaiKey", KEY);
+  await page.reload();
+
   // Every entity type, through the UI.
   await addAccount(page, "Giro", "1000.00");
   await renameCategory(page, "Eating out", "Restaurants");
@@ -118,41 +135,38 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await duplicates.getByRole("switch").first().click();
   await expect(duplicates.getByRole("switch").first()).toBeChecked();
   await page.keyboard.press("Escape");
-  // A category the AI suggested, with AI features on (FR-093, FR-095), where they can be on: not in
-  // a hosted copy (FR-106).
-  const local = !onHostedCopy(baseURL);
-  if (local) {
-    await standInCategoriser(page, () => ({
-      json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
-    }));
-    await turnOnAiFeatures(page);
-    await suggestCategories(page);
-    await expect(
-      page.getByRole("region", { name: "Suggestions" }).getByRole("status"),
-    ).toContainText("The AI suggested a category for 1 of");
-    // A conversation of the finance chat, with a source (FR-104, FR-110).
-    await standInChat(
-      page,
-      answer("Mostly groceries.", [
-        {
-          name: "Groceries, September 2026",
-          from: "2026-09-01",
-          to: "2026-09-30",
-          category: { side: "expense", name: "Groceries" },
-          account: "Giro",
-        },
-      ]),
-    );
-    await openChat(page);
-    await askInChat(page, "Where does my money go?");
-    await expect(conversation(page)).toHaveCount(2);
-    // The turn shows while the answer streams, and is stored once it is complete.
-    await expect.poll(async () => (await storedData(page)).conversation?.length ?? 0).toBe(1);
-  }
+  // A category the AI suggested, with AI features on (FR-093, FR-095), on every copy (FR-106).
+  await standInCategoriser(page, () => ({
+    json: { suggestions: [{ rowNumber: 16, category: "Leisure" }] },
+  }));
+  await turnOnAiFeatures(page);
+  await suggestCategories(page);
+  await expect(page.getByRole("region", { name: "Suggestions" }).getByRole("status")).toContainText(
+    "The AI suggested a category for 1 of",
+  );
+  // A conversation of the finance chat, with a source (FR-104, FR-110).
+  await standInChat(
+    page,
+    answer("Mostly groceries.", [
+      {
+        name: "Groceries, September 2026",
+        from: "2026-09-01",
+        to: "2026-09-30",
+        category: { side: "expense", name: "Groceries" },
+        account: "Giro",
+      },
+    ]),
+  );
+  await openChat(page);
+  await askInChat(page, "Where does my money go?");
+  await expect(conversation(page)).toHaveCount(2);
+  // The turn shows while the answer streams, and is stored once it is complete.
+  await expect.poll(async () => (await storedData(page)).conversation?.length ?? 0).toBe(1);
 
   const filled = await storedData(page);
   const giro = (await storedRecords<Account>(page, "accounts")).find((a) => a.name === "Giro")!;
   expect(filled.settings.manualEntryAccountId).toBe(giro.id);
+  expect(filled.settings.model).toBe("gpt-5.6-luna");
   expect(filled.profiles).toHaveLength(1);
   expect(filled.budgets).toHaveLength(1);
   expect(
@@ -162,20 +176,20 @@ test("saves everything to one file and restores exactly that, also into a fresh 
     filled.pendingBatch?.rows.some(
       (r) => r.status === "parsed" && r.assignment.type === "category" && r.assignment.suggested,
     ),
-  ).toBe(local);
-  expect(filled.settings.aiFeatures === true).toBe(local);
-  expect(filled.conversation?.length ?? 0).toBe(local ? 1 : 0);
-  if (local) {
-    expect(filled.conversation![0]!.sources).toEqual([
-      expect.objectContaining({ name: "Groceries, September 2026", accountId: giro.id }),
-    ]);
-  }
+  ).toBe(true);
+  expect(filled.settings.aiFeatures).toBe(true);
+  expect(filled.conversation).toHaveLength(1);
+  expect(filled.conversation![0]!.sources).toEqual([
+    expect.objectContaining({ name: "Groceries, September 2026", accountId: giro.id }),
+  ]);
 
   // 1. Saving gives one file with every record, and changes nothing in the app.
   const backup = await saveBackup(page);
   expect(backup.fileName).toBe("financial-copilot-backup-2026-09-20.json");
   expect(byKey(backup.json.data)).toEqual(byKey(filled));
   expect(await storedData(page)).toEqual(filled);
+  expect(backup.json.data.settings.model).toBe("gpt-5.6-luna");
+  expect(holdsKey(backup.text)).toBe(false);
 
   // 3. A file that is not a valid backup is refused at once, and the data stays as it was.
   await chooseBackupFile(page, backup.text.slice(0, -20), "cut-off.json");
@@ -197,6 +211,7 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   await expect(page.getByText(notifications.restored(backup.fileName))).toBeVisible();
   await expect(ledgerRows(page).filter({ hasText: "After the backup" })).toHaveCount(0);
   expect(byKey(await storedData(page))).toEqual(byKey(backup.json.data));
+  expect(await storedRecord(page, "settings", "openaiKey")).toBe(KEY);
   const balances = await accountsShown(page);
 
   // SC-014: restored into a fresh browser with empty storage and saved again, the data is equal.
@@ -212,6 +227,10 @@ test("saves everything to one file and restores exactly that, also into a fresh 
   const again = await saveBackup(freshPage);
 
   expect(again.json.data).toEqual(backup.json.data);
+  expect(again.json.data.settings.model).toBe("gpt-5.6-luna");
+  expect(holdsKey(again.text)).toBe(false);
+  // The fresh browser never had a key, and the backup brings none.
+  expect(await storedRecord(freshPage, "settings", "openaiKey")).toBeUndefined();
   expect(await accountsShown(freshPage)).toEqual(balances);
   await checkNetwork();
   await fresh.close();

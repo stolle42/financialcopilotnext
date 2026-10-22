@@ -6,6 +6,7 @@ import {
   completedEvent,
   deltaEvent,
   feedStream,
+  openAiError,
   responseWith,
   streamed,
   type PostedRequest,
@@ -14,20 +15,19 @@ import { addTurn, chatContext, type NamedSource } from "@/domain/chat";
 import type { ChatTurn } from "@/domain/types";
 import { loadState, openDatabase } from "@/persistence/db";
 import { askChat, chatSession, clearConversation, stopChat, subscribeChat } from "./chat";
-import { setAiFeatures } from "./settings";
+import { chooseModel, removeKey, setAiFeatures, turnOnWithKey } from "./settings";
 import { createStore, type Store } from "./store";
 
 // FR-061, FR-102 – FR-110, R-25, R-26: a question to the finance chat, asked from the store, and
 // the chat's session, which outlives the Insights screen.
 
 const fetchMock = vi.fn<typeof fetch>();
+const testKey = "sk-test-0000a1b2";
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
-  // The app as run locally, where AI features can be on (FR-106).
-  vi.stubGlobal("location", { hostname: "localhost" });
   // Only the clock is fake, so IndexedDB's own timers still run.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-16T12:00:00"));
@@ -59,7 +59,7 @@ async function setUp(aiFeatures = true) {
       ],
     },
   }));
-  if (aiFeatures) await setAiFeatures(store, true);
+  if (aiFeatures) await turnOnWithKey(store, testKey);
   return { db, store };
 }
 
@@ -101,9 +101,10 @@ describe("askChat: who may ask (FR-061, FR-100, FR-106)", () => {
     expect(chatSession(store).asking).toBeNull();
   });
 
-  test("on a copy not served from the user's computer, gives ai-features-off and sends nothing, even with AI features on (FR-106)", async () => {
+  test("with the switch on but no key stored, as a v1.5 database leaves it, gives ai-features-off and sends nothing (FR-126)", async () => {
     const { store } = await setUp();
-    vi.stubGlobal("location", { hostname: "financialcopilot-three.vercel.app" });
+    await removeKey(store);
+    await setAiFeatures(store, true);
     const before = store.getState();
 
     expect(await askChat(store, question)).toEqual({ code: "ai-features-off" });
@@ -133,6 +134,70 @@ describe("askChat: what a question sends (FR-102)", () => {
     expect(sent).toEqual(chatContext(store.getState(), "2026-10-16"));
     expect(JSON.stringify(sent)).toContain("Spotify Premium");
   });
+});
+
+describe("askChat: the key and the model (FR-128, FR-129)", () => {
+  const posted = (call: number) =>
+    JSON.parse(String(fetchMock.mock.calls[call]![1]?.body)) as PostedRequest;
+
+  test("asks OpenAI with the stored key and the default model when none is chosen", async () => {
+    const { store } = await setUp();
+    fetchMock.mockResolvedValue(answered("None."));
+
+    await askChat(store, question);
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.openai.com/v1/responses");
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${testKey}`);
+    expect(posted(0).model).toBe("gpt-5.4-mini");
+  });
+
+  test("an answer being written keeps the model it started with; the next question asks the new one", async () => {
+    const { store } = await setUp();
+    await chooseModel(store, "gpt-6.1-sol");
+    const stream = feeding();
+
+    const asked = askChat(store, question);
+    stream.send(deltaEvent('{"inScope":true,"answer":"None'));
+    await vi.waitFor(() => expect(chatSession(store).asking?.answer).toBe("None"));
+    await chooseModel(store, "gpt-5.6-luna");
+    stream.send(deltaEvent(' rose.","sources":[],"followUps":[]}'), completedEvent());
+    stream.end();
+    await asked;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(posted(0).model).toBe("gpt-6.1-sol");
+    expect(conversationOf(store).at(-1)?.answer).toBe("None rose.");
+
+    fetchMock.mockResolvedValue(answered("Still none."));
+    await askChat(store, question);
+    expect(posted(1).model).toBe("gpt-5.6-luna");
+  });
+
+  test.each<[string, number, string, unknown]>([
+    ["ai-key-rejected", 401, "invalid_api_key", undefined],
+    ["ai-no-credit", 429, "insufficient_quota", undefined],
+    ["ai-model-unavailable", 404, "model_not_found", { model: "gpt-6.1-sol" }],
+  ])(
+    "gives %s, stores nothing, and the session holds the question",
+    async (code, status, openAiCode, details) => {
+      const { store } = await setUp();
+      await chooseModel(store, "gpt-6.1-sol");
+      fetchMock.mockResolvedValue(
+        new Response(JSON.stringify(openAiError("No.", openAiCode)), {
+          status,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+      const before = store.getState();
+
+      const refusal = details === undefined ? { code } : { code, details };
+      expect(await askChat(store, question)).toEqual(refusal);
+
+      expect(store.getState()).toBe(before);
+      expect(chatSession(store).failure).toEqual({ ...refusal, question });
+    },
+  );
 });
 
 describe("askChat: the answer and the session (FR-104, FR-107, FR-110)", () => {
@@ -315,6 +380,24 @@ describe("stopChat, and turning AI features off (FR-108)", () => {
     expect(conversationOf(store)).toEqual([
       { question, answer: "You could", stopped: true, sources: [] },
     ]);
+  });
+
+  test("Remove key stops the answer in the same way, and deletes the key (FR-126)", async () => {
+    const { db, store } = await setUp();
+    const stream = feeding();
+
+    const asked = askChat(store, question);
+    stream.send(deltaEvent('{"inScope":true,"answer":"You could'));
+    await vi.waitFor(() => expect(chatSession(store).asking?.answer).toBe("You could"));
+    await removeKey(store);
+
+    expect(await asked).toBeNull();
+    expect(fetchMock.mock.calls[0]![1]?.signal?.aborted).toBe(true);
+    expect(store.getState().apiKey).toBeNull();
+    expect(store.getState().settings.aiFeatures).toBeUndefined();
+    const stopped: ChatTurn = { question, answer: "You could", stopped: true, sources: [] };
+    expect(conversationOf(store)).toEqual([stopped]);
+    expect((await loadState(db)).conversation).toEqual([stopped]);
   });
 });
 

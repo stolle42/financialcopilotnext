@@ -30,6 +30,8 @@ export interface Changes {
   profiles?: StoreChanges<MappingProfile>;
   pendingBatch?: StoreChanges<PendingBatch>;
   settings?: { put: Settings };
+  /** A key to write, or `null` to delete the stored one (FR-126). */
+  apiKey?: string | null;
   /** The whole conversation, which replaces the one before; an empty list clears it (R-26). */
   conversation?: { put: readonly ChatTurn[] };
 }
@@ -83,6 +85,7 @@ export function applyChanges(state: State, changes: Changes): State {
     profiles: applyStore(state.profiles, changes.profiles, byId),
     pendingBatch: changes.pendingBatch ? (batchList.at(-1) ?? null) : state.pendingBatch,
     settings: changes.settings?.put ?? state.settings,
+    apiKey: changes.apiKey === undefined ? state.apiKey : changes.apiKey,
     conversation: changes.conversation?.put ?? state.conversation,
   };
 }

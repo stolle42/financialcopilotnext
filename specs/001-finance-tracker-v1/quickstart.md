@@ -315,6 +315,23 @@ judge the answers, and the results and the day's prices go into
 | Web address | At the web address, ask the chat and select Suggest categories | Answers as on `localhost`; the network log shows requests only to the app's address and to `api.openai.com`, and the key only in requests to `api.openai.com` |
 | Leaving | Select Suggest categories, then leave review before the answer; ask the chat, close it and open another screen before the answer, then open the chat again | No row changes, and no message appears later; the chat's answer is there when it is complete |
 
+<a id="release-checklist"></a>
+## Release checklist
+
+The steps of a release that can only happen around the merge to `main`. They live here, not in
+`tasks.md`, so every task of a phase can be ticked on its branch. The first task of the next phase
+checks that each step of this release was done (constitution IX).
+
+| Step | When | Done when |
+|---|---|---|
+| 1. Old version open | Before the merge | In the browser where the app is installed, the web address shows the previous version in the header, for the [SC-019 check](#installable-app-checks) |
+| 2. Merge | When CI is green on the pull request | The phase's pull request is squash-merged into `main` |
+| 3. Tag | Right after the merge | The tag `vMAJOR.MINOR` is on the squash commit on `main`, and pushed with `git push origin vMAJOR.MINOR` |
+| 4. CI | After the merge | The `test` and `deployed` jobs are green, as [after pushing to main](#after-pushing-to-main) says |
+| 5. Checks at the web address | Once the new version is served | The [manual checks](#manual-checks), the [AI features](#ai-features) with the owner's key and the [installable app checks](#installable-app-checks) pass there, with the Update from step 1 |
+| 6. Fixes | When a step fails | Each failure is fixed on a new branch, which is released as its own version |
+
+<a id="after-pushing-to-main"></a>
 ## After pushing to main
 
 The constitution's quality gates ask for both the localhost and the Vercel deployment to be checked

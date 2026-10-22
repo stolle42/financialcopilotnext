@@ -1,4 +1,4 @@
-import type { AiRefusalCode } from "@/ai/openai";
+import type { AiRefusalCode, KeyCheckFailureCode } from "@/ai/openai";
 import type { AccountRefusalCode, ReconcileRefusalCode } from "@/domain/accounts";
 import type { BudgetRefusalCode } from "@/domain/budgets";
 import type { CategoryRefusalCode } from "@/domain/categories";
@@ -40,6 +40,7 @@ export type MessageCode =
   | BatchRefusalCode
   | SuggestionRefusalCode
   | AiRefusalCode
+  | KeyCheckFailureCode
   | SuggestRefusalCode
   | BudgetRefusalCode
   | ReconcileRefusalCode
@@ -103,6 +104,8 @@ const brokenRules: Record<InvariantCode, string> = {
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
   "settings-account-missing": "the settings name an account that is not in the backup",
+  "settings-model-invalid": "the settings name an empty model",
+  "settings-key-present": "the settings hold a key, which no backup may hold",
   "conversation-question-missing": "a question of the finance chat's conversation is empty",
   "conversation-turn-invalid":
     "an answer of the finance chat's conversation does not fit its marks, such as stopped or out of scope",
@@ -219,15 +222,25 @@ export const messages: Record<MessageCode, Wording> = {
     "An import is waiting for review. Confirm or discard it before you import another file.",
   "ai-features-off": "This needs AI features, which you turn on in Settings. Nothing was sent.",
   "ai-unreachable":
-    "The AI could not be asked. AI features need the app started on this computer with an OpenAI " +
-    "key in .env, and an internet connection; then try again. Nothing changed.",
+    "OpenAI could not be reached. Check the internet connection, then try again. Nothing changed.",
+  "ai-key-rejected":
+    "OpenAI no longer accepts your key. Remove it in Settings and turn AI features on with a new " +
+    "one. Nothing changed.",
+  "ai-no-credit":
+    "Your OpenAI account has no credit left or reached its monthly limit. Add credit or raise the " +
+    "limit on OpenAI's platform, then try again. Nothing changed.",
+  "ai-model-unavailable": (details) =>
+    `Your key cannot use ${details.model ? `the model ${text(details.model)}` : "this model"}. ` +
+    "Choose another model in Settings, then try again. Nothing changed.",
   "ai-timeout":
     "The AI took too long to answer. Try again, with fewer rows or a shorter question. Nothing " +
     "changed.",
-  "ai-failed":
-    "OpenAI refused the request, for example because of the key or the project's credit. Check " +
-    "them on OpenAI's platform, then try again. Nothing changed.",
+  "ai-failed": "OpenAI refused the request; try again in a moment. Nothing changed.",
   "ai-answer-invalid": "The AI's answer could not be read. Try again. Nothing changed.",
+  "ai-key-not-accepted": "OpenAI didn't accept this key. Check that you copied all of it.",
+  "ai-key-check-unreachable":
+    "OpenAI could not be reached, so the key was not checked. Try again once you are connected " +
+    "to the internet. Nothing was stored.",
   "suggestions-outdated":
     "The import changed while the AI was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
@@ -248,9 +261,10 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
-/** What AI features do and where their data goes, on the Settings screen (FR-095). */
+/** What AI features do, where their data goes and who pays, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
-  "Suggest categories in review, and the finance chat. AI features send data to OpenAI.";
+  "Suggest categories in review, and the finance chat. AI features send data to OpenAI, which " +
+  "charges your own OpenAI account.";
 
 /** The data-sharing warning, shown before AI features turn on (FR-095, FR-091). */
 export const sharingWarning =
@@ -261,9 +275,29 @@ export const sharingWarning =
   "descriptions, amounts and categories, their monthly totals, this month's budgets, and each " +
   "account's name, type and balance.";
 
-/** Beside the AI features switch in a copy not served from the user's computer (FR-106). */
-export const aiFeaturesLocalOnly =
-  "AI features need the app running on your computer. Run it locally to use them.";
+/** The user's OpenAI key in Settings (contracts/ui.md, settings; FR-126, FR-127). */
+export const aiKey = {
+  about:
+    "An OpenAI API key lets the app ask OpenAI for you. OpenAI charges your own OpenAI account " +
+    "for every question and every request for suggestions, so setting a monthly limit there is " +
+    "wise.",
+  createLink: "Create an API key at OpenAI",
+  createUrl: "https://platform.openai.com/api-keys",
+  field: "OpenAI API key",
+  checking: "Checking key…",
+  /** A stored key, only ever shown masked. */
+  stored: (masked: string) => `Your key: ${masked}`,
+  remove: "Remove key",
+  removeTitle: "Remove key?",
+  removeWarning: "AI features turn off, and you need to enter the key again to use them.",
+};
+
+/** The choice of model in Settings (FR-129, FR-130). */
+export const modelChoice = {
+  label: "Model",
+  noLongerOffered: (model: string) =>
+    `The model you chose is no longer offered; now using ${model}.`,
+};
 
 /** The finance chat's wording (contracts/ui.md, finance chat; FR-100 – FR-111). */
 export const financeChat = {
@@ -289,6 +323,8 @@ export const financeChat = {
   sources: "Sources",
   clear: "Clear conversation",
   clearWarning: "The conversation's questions and answers will be deleted.",
+  /** Above the question field, the model in use (FR-129). */
+  answersBy: (model: string) => `Answers by ${model}`,
 };
 
 /** The notice on Settings while a newer version waits, with the versions as the header shows them (FR-124). */

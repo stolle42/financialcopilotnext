@@ -4,14 +4,13 @@ import { choose, storedRecords } from "./support/app";
 import { backupText, restoreBackup, storedData, type BackupData } from "./support/backup";
 import * as catalogue from "../src/ui/messages";
 import {
-  LOCAL_ONLY,
   answer,
   chat,
   conversation,
-  onHostedCopy,
   openChat,
   questionField,
   standInChat,
+  turnOnAiFeatures,
 } from "./support/ai";
 import { generateBackup, generateBankCsv } from "./support/generate";
 import { saveMyBankProfile } from "./support/import";
@@ -41,17 +40,14 @@ async function freshData(page: Page): Promise<BackupData> {
 
 test("the finance chat shows the question with Thinking…, and Stop ends the answer, each within 1 s, with 5,000 transactions in the months a question sends (SC-015)", async ({
   page,
-  baseURL,
 }) => {
-  test.skip(onHostedCopy(baseURL), LOCAL_ONLY);
   test.setTimeout(180_000);
   await setToday(page, "2026-10-16");
   const base = await freshData(page);
-  const backup = generateBackup(
-    { ...base, settings: { ...base.settings, aiFeatures: true } },
-    { count: 5_000, start: "2025-10-01", end: "2026-10-15" },
-  );
+  const backup = generateBackup(base, { count: 5_000, start: "2025-10-01", end: "2026-10-15" });
   await restoreBackup(page, backupText(backup), undefined, { timeout: RESTORE_TIMEOUT });
+  // A backup holds no key (FR-126), so AI features are turned on with one as a person would.
+  await turnOnAiFeatures(page);
   const standIn = await standInChat(page, answer("Too late."));
   standIn.hold();
   await openChat(page);

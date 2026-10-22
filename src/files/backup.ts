@@ -41,6 +41,7 @@ export function serializeBackup(state: State, exportedAt: string): string {
       budgets: inKeyOrder(state.budgets, (b) => b.categoryId),
       profiles: inKeyOrder(state.profiles, (p) => p.id),
       pendingBatch: state.pendingBatch,
+      // The key lives beside the settings, so the file has no place for it (FR-126, R-31).
       settings: state.settings,
       // Only while it holds a turn, so a file of an earlier version gives the same file back (R-26).
       ...(state.conversation.length > 0 ? { conversation: state.conversation } : {}),
@@ -165,7 +166,7 @@ const turnSchema = z.object({
   followUps: z.array(z.string()).optional(),
 });
 
-const dataSchema: z.ZodType<State> = z.object({
+const dataSchema: z.ZodType<Omit<State, "apiKey">> = z.object({
   accounts: z.array(accountSchema),
   categories: z.array(categorySchema),
   transactions: z.array(transactionSchema),
@@ -175,6 +176,8 @@ const dataSchema: z.ZodType<State> = z.object({
   settings: z.object({
     manualEntryAccountId: z.string(),
     aiFeatures: z.literal(true).optional(),
+    // A file of v1.5 or earlier has none. A model no longer listed is kept (FR-130).
+    model: z.string().min(1).optional(),
   }),
   // A file of an earlier version has none, and restores an empty conversation (R-26).
   conversation: z.array(turnSchema).default([]),
@@ -247,5 +250,6 @@ export function parseBackup(text: string): State | Refusal<BackupRefusalCode> {
 
   const parsed = dataSchema.safeParse(file.data);
   if (!parsed.success) return damageAt(parsed.error.issues[0]!.path);
-  return parsed.data;
+  // The key never travels in a file; restoring keeps the one stored on this computer (FR-126).
+  return { ...parsed.data, apiKey: null };
 }
