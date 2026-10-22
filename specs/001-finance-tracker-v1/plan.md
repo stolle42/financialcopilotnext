@@ -35,6 +35,15 @@ It is built as a client-only TypeScript single-page app.
 - **Installable app** (v1.5): a manifest and a service worker of our own make the app installable
   and let it open offline. A newer version waits until the user selects Update in Settings
   ([contracts/app-updates.md](contracts/app-updates.md), [R-30](research.md#r-30)).
+- **Getting started** (v1.7): Import creates an account in place and proposes a new bank CSV
+  format from the file, by column names and content, in a pure domain function, and every import
+  finds the column names below any lines of account details
+  ([contracts/csv-import.md](contracts/csv-import.md#proposing-a-format), [R-33](research.md#r-33),
+  [R-34](research.md#r-34), [R-35](research.md#r-35)). The finance chat explains itself while AI features are off and opens
+  the key dialog of Settings ([R-36](research.md#r-36)). A screen FAQ shows twelve questions from
+  one constant, which the guide to the app holds too ([R-37](research.md#r-37)). Every screen gets
+  a sentence, new terms an explanation, and "profile" becomes "bank CSV format" in what the user
+  reads ([R-38](research.md#r-38)).
 - **Tests**: Vitest and Playwright, run in the existing GitHub Actions workflow
   ([R-17](research.md#r-17), [R-18](research.md#r-18)).
 - **Deployment**: Vercel deploys every push to `main` as a static site, at
@@ -79,9 +88,10 @@ our own (constitution II; [R-03](research.md#r-03), [R-04](research.md#r-04),
 | Prettier | 3.9 |
 | dependency-cruiser | 18.5 |
 
-These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-17). v1.5 and v1.6
-add no dependency: the service worker and its Vite plugin are code of our own, and the app asks
-OpenAI with `fetch` ([R-30](research.md#r-30), [R-31](research.md#r-31)).
+These dev dependencies serve [R-16](research.md#r-16) and [R-17](research.md#r-17). v1.5, v1.6
+and v1.7 add no dependency: the service worker and its Vite plugin are code of our own, the app
+asks OpenAI with `fetch`, and FAQ uses the browser's own `<details>` ([R-30](research.md#r-30),
+[R-31](research.md#r-31), [R-37](research.md#r-37)).
 
 **Storage**: IndexedDB in the user's browser profile, through `idb`
 ([data-model.md](data-model.md#storage-layout)). The finance chat's conversation is a second
@@ -137,8 +147,8 @@ v1.6 no server of the project's takes part in the AI features ([FR-128](spec.md#
   that origin ([quickstart.md](quickstart.md#vercel-setup)).
 
 **Scale/Scope**: One user in one browser profile. The design point is 10,000 transactions, several
-years of use, with headroom to about 50,000. There are 9 stored entity types and 11 screens
-([data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md)).
+years of use, with headroom to about 50,000. There are 9 stored entity types and 12 screens, FAQ
+(v1.7) included ([data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md)).
 
 Nothing in this context remains marked NEEDS CLARIFICATION: every open technical question is
 resolved in [research.md](research.md).
@@ -170,7 +180,24 @@ quality gate.
 | After a push to `main`, the localhost and Vercel deployments are checked against the user stories | CI's `test` job on the local build, CI's `deployed` job on the Vercel deployment, and a manual walkthrough on both ([R-18](research.md#r-18), [quickstart.md](quickstart.md#after-pushing-to-main)) |
 
 **Result**: the plan passes every principle and gate, both before research and after design, the
-design of v1.5 and v1.6 included. No deviation needs justifying.
+design of v1.5, v1.6 and v1.7 included. No deviation needs justifying.
+
+**v1.7** adds no dependency, process, object store or field, so it is a MINOR release
+([data-model.md](data-model.md#storage-layout)). Each principle holds for it:
+
+- **I**: FAQ's text exists once, in `src/ai/faq.ts`, for both the screen and the guide; the column
+  names of a proposal exist once, in [csv-import.md](contracts/csv-import.md#column-names), which
+  the code follows ([R-33](research.md#r-33), [R-37](research.md#r-37)).
+- **II**: the proposal reads only what the spec lists, with no presets of banks; FAQ is native
+  `<details>` with no Markdown renderer ([R-33](research.md#r-33), [R-37](research.md#r-37)).
+- **III**: the key dialog and the account dialog are each shared because a second screen now
+  uses them, not ahead of it ([R-35](research.md#r-35), [R-36](research.md#r-36)).
+- **V**: the proposal and the sign hint are pure domain functions; only the encoding, a matter of
+  bytes, sits in `src/files` ([R-33](research.md#r-33)).
+- **VII**: the proposal is tested first against fixtures of real layouts with made-up rows
+  ([R-34](research.md#r-34)), and User Story 11 gets its journey ([quickstart.md](quickstart.md#us11-getting-started)).
+- **VIII**: everything v1.7 adds serves this principle, the screens' sentences and FAQ most
+  directly.
 
 **v1.3** added a route of our own to the local server, which passed the AI features' requests on
 to OpenAI with the key from `.env`: a partial deviation from KISS's "no server process"
@@ -197,7 +224,7 @@ None remain. The two that filled gaps in the spec were confirmed on 2026-10-02 a
 recorded there: names unique by name key ([R-08](research.md#r-08)) and zero amounts proposed as
 expenses ([R-12](research.md#r-12) item 1).
 
-The limitations v1 accepts knowingly, such as bank files with lines above the header, are listed
+The limitations v1 accepts knowingly, such as bank files whose date cells hold a time, are listed
 in [R-22](research.md#r-22).
 
 ## Project Structure
@@ -208,7 +235,7 @@ in [R-22](research.md#r-22).
 specs/001-finance-tracker-v1/
 ├── spec.md              # The feature specification
 ├── plan.md              # This file
-├── research.md          # Phase 0: technical decisions R-01 – R-32
+├── research.md          # Phase 0: technical decisions R-01 – R-38
 ├── data-model.md        # Phase 1: entities, invariants, storage layout, seed data
 ├── quickstart.md        # Phase 1: how to run and validate v1
 ├── contracts/
@@ -257,29 +284,35 @@ src/
 │   │                     # and sources (R-25, R-26)
 │   ├── invariants.ts     # The state invariants of data-model.md
 │   └── import/           # Profile checks, date parsing, rows, duplicates, vendor groups,
-│                         # review edits, confirmation
-├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse);
-│                         # backup JSON in and out (zod, configured once in zod.ts)
+│                         # review edits, confirmation; propose.ts proposes a new bank CSV
+│                         # format and the sign hint (v1.7, R-33)
+├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse), and
+│                         # the encoding a file is proposed with (R-33); backup JSON in and out
+│                         # (zod, configured once in zod.ts)
 ├── ai/                   # The one network boundary: talks to api.openai.com with the user's key,
 │                         # the key check, the models (models.ts), and each AI feature's prompt
-│                         # and answer (R-24, R-25, R-31, R-32)
+│                         # and answer (R-24, R-25, R-31, R-32); the guide to the app and FAQ's
+│                         # text (faq.ts), which the guide and the FAQ screen share (v1.7, R-37)
 ├── pwa/                  # The page's side of the worker: updates.ts registers it and compares
 │                         # versions, install.ts keeps the install question (R-30)
 ├── persistence/          # IndexedDB: schema, seeding, loading, atomic writes (idb)
-├── store/                # In-memory state and actions: decide in the domain, write, then apply
+├── store/                # In-memory state and actions: decide in the domain, write, then apply;
+│                         # proposeFormat joins encoding, records and proposal (v1.7, R-33)
 └── ui/                   # React, shadcn/ui and Tailwind CSS
     ├── app/              # Shell, hash router (R-04), CSPProvider (R-19), error boundary
     ├── components/
     │   ├── ui/           # shadcn/ui components, copied in by its CLI; our code from then on
-    │   └── …             # The shared patterns of contracts/ui.md, such as the amount field
+    │   └── …             # The shared patterns of contracts/ui.md, such as the amount field, and
+    │                     # from v1.7 KeyDialog and ScreenIntro (R-36, R-38)
     ├── lib/utils.ts      # shadcn's `cn` class-name helper
     ├── index.css         # Tailwind entry, theme tokens, fonts and the card utility (R-27)
-    ├── screens/          # One folder per screen of contracts/ui.md
+    ├── screens/          # One folder per screen of contracts/ui.md, faq/ included (v1.7)
     ├── format.ts         # The one amount formatter and the one date formatter
     └── messages.ts       # The one message catalogue
 
 e2e/
-├── fixtures/             # Small CSV files (quickstart.md)
+├── fixtures/             # Small CSV files (quickstart.md); banks/ holds the exports of five
+│                         # banks, rebuilt with made-up rows (v1.7, R-34)
 ├── support/              # Network guard, data generators, backup helpers, versions.ts for builds
 │                         # of another version (R-30)
 ├── ui/                   # UI behaviour specs, one per screen of contracts/ui.md (R-17)
@@ -334,6 +367,7 @@ v1.0 and v1.1 had no deviation to justify. v1.2 added one, a hosted n8n workflow
 replaced with a route of its own in the local server, passing the AI features' requests on to
 OpenAI with the key from `.env` ([R-24](research.md#r-24)). v1.6 removes that route: the app asks
 OpenAI itself with the user's key ([R-31](research.md#r-31)). v1.5's service worker is code of our
-own with no dependency and needs no deviation ([Constitution Check](#constitution-check)).
+own with no dependency and needs no deviation ([Constitution Check](#constitution-check)). v1.7
+needs none either.
 
 No deviation remains to justify.

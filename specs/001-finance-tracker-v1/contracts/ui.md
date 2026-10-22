@@ -2,7 +2,7 @@
 
 **Spec**: [User scenarios](../spec.md#user-scenarios), [FR-063 – FR-068](../spec.md#fr-063),
 [FR-112 – FR-116](../spec.md#fr-112), [FR-122](../spec.md#fr-122), [FR-124](../spec.md#fr-124),
-[FR-126 – FR-130](../spec.md#fr-126) ·
+[FR-126 – FR-130](../spec.md#fr-126), [FR-132 – FR-141](../spec.md#fr-132) ·
 **Constitution**: Principle VIII
 
 This contract covers the interface the app exposes to its user: screens, navigation, where each
@@ -40,6 +40,7 @@ as the current entry, since an import feeds its list ([FR-085](../spec.md#fr-085
 | `#/backup` | [Backup](#backup) | 5 |
 | `#/insights` | [Insights](#insights) | 6 |
 | `#/settings` | [Settings](#settings) | 7 |
+| `#/faq` | [FAQ](#faq) (v1.7) | 8 |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 
@@ -106,7 +107,9 @@ Routes use the URL hash so the build works from any static host or local file ([
   shows it as the current value, but it still does not appear among the options.
 - **Destination**: offers every account except the selected Account ([FR-011](../spec.md#fr-011)).
   When the Account is changed to the chosen destination, the destination is cleared. With only one
-  account, choosing Transfer shows `transfer-needs-second-account` with a link to Accounts.
+  account, choosing Transfer shows `transfer-needs-second-account` with a link to Accounts. Its
+  field description says that a transfer moves money between two of the user's own accounts and
+  counts as neither spending nor income ([FR-138](../spec.md#fr-138)).
 - **Kind changes** follow [FR-015](../spec.md#fr-015).
 - **Edit mode** adds Delete, which asks for confirmation.
 
@@ -129,10 +132,22 @@ Routes use the URL hash so the build works from any static host or local file ([
   - The separator's value is the width in pixels, with the bounds as its least and greatest.
   - The width lasts while the app stays open, and is not stored.
 - Opening another screen closes the sheet, so that screen shows: by following a link in the
-  sheet, a source or the link to Settings, or by going back in the browser's history.
-- While AI features are off ([FR-095](../spec.md#fr-095)), the sheet says that the chat needs AI
-  features, with a link to [Settings](#settings), and shows neither suggested questions nor a
-  field. A stored conversation still shows.
+  sheet, a source or the link to FAQ, or by going back in the browser's history.
+- While AI features are off ([FR-095](../spec.md#fr-095), [FR-135](../spec.md#fr-135),
+  [R-36](../research.md#r-36)), the sheet shows, in this order, and shows no field:
+  - two or three lines on what the chat answers: questions about the user's own money, from the
+    data of the current month and the 12 months before it, general questions about money, and
+    questions about the app;
+  - the example questions below, as a plain list under the heading "For example", not as buttons;
+  - a line saying that the chat needs AI features, which send that data to OpenAI and need the
+    user's own OpenAI API key, and that OpenAI charges that account;
+  - **Turn on AI features**, a primary button that opens the dialog of [Settings](#settings).
+    When AI features turn on there, the field and the example questions as buttons show at once,
+    and focus moves to the field. Cancel, and a key that is not accepted, leave the sheet as it was;
+  - a link, "Questions about the app? Read the FAQ", to [FAQ](#faq).
+
+  A stored conversation still shows, above them. Changed in v1.7: v1.6 showed one line with a link
+  to Settings.
 - **Suggested questions**: under the log, a group of buttons named "Suggested questions"
   ([FR-101](../spec.md#fr-101), [FR-111](../spec.md#fr-111)). Selecting one sends it at once.
   - While the conversation is empty, and while its latest question is out of scope, the group
@@ -211,24 +226,43 @@ Routes use the URL hash so the build works from any static host or local file ([
   which includes an **Open pending batch** action ([FR-022](../spec.md#fr-022)).
 - **Otherwise**:
   - Account: required, with no default, because a wrong default would put a whole file into the
-    wrong account.
+    wrong account. After the accounts and a divider, the select ends with **New account…**, which
+    opens the [account dialog](#accounts) for a new account; the account it creates becomes the
+    import's account, and Cancel leaves the choice as it was ([FR-132](../spec.md#fr-132),
+    [R-35](../research.md#r-35)).
   - File: a drop zone or file picker.
-  - Profile: a select that includes **Create new profile**. It is preselected when exactly one
-    profile exists.
-  - **Import** creates the batch and opens [Review](#review). Refusals are listed in
+  - Bank CSV format: a select that includes **Create new bank CSV format**. It is preselected when
+    exactly one format exists. Its field description says that a bank CSV format tells the app how
+    one bank's files are laid out, and is set up once per bank ([FR-138](../spec.md#fr-138)).
+  - **Import** creates the batch and opens [Review](#review). With Create new bank CSV format, it
+    opens the [profile editor](#profile-editor) first. Refusals are listed in
     [csv-import.md](csv-import.md#outcomes).
-- **Mapping profiles**: a list with Edit and Delete. The delete confirmation says that a pending
-  batch is not affected ([FR-021](../spec.md#fr-021)).
+- **Bank CSV formats**: a list with Edit and Delete. The delete confirmation says that a pending
+  batch is not affected ([FR-021](../spec.md#fr-021)). With none saved, it says that the first
+  import of a bank's file sets one up.
+- Every text the user sees says "bank CSV format" where v1.6 said "profile" or "mapping profile"
+  ([FR-138](../spec.md#fr-138), [R-38](../research.md#r-38)).
 
 ### Profile editor
 
-- Holds the profile fields of [data-model.md](../data-model.md#mapping-profile).
+- Titled "New bank CSV format" or "Edit bank CSV format". Holds the profile fields of
+  [data-model.md](../data-model.md#mapping-profile).
   - A header-row switch, "First row contains column names", on by default.
   - An amount mode, either *one signed column* or *separate debit and credit columns*.
   - Column selects that list header texts, or "Column 1…n" with a sample value each when there is no
-    header row.
-- The preview follows [csv-import.md](csv-import.md#preview). A new profile previews the file being
-  imported. An edited profile previews a sample file the user picks.
+    header row. The header texts are those of the record that holds the column names, which may
+    sit below lines of account details ([R-34](../research.md#r-34)).
+- **Proposed settings** (v1.7): opened from an import, the editor starts with the settings
+  proposed from the file being imported ([csv-import.md](csv-import.md#proposing-a-format),
+  [FR-133](../spec.md#fr-133)). A line above the preview says that the app read these settings
+  from the file and that the preview shows how the rows read with them. Every setting can be
+  changed as before.
+- **Sign hint** (v1.7): under Invert the sign, while
+  [csv-import.md](csv-import.md#sign-hint) says so, a line in the info style says that every row
+  would be an income, and that Invert the sign makes them expenses if they are purchases
+  ([FR-134](../spec.md#fr-134)).
+- The preview follows [csv-import.md](csv-import.md#preview). A new format previews the file being
+  imported. An edited format previews a sample file the user picks.
 - **Save** checks the name ([FR-021](../spec.md#fr-021)) and that the date, amount and description
   columns are assigned. When the editor was opened from an import, saving continues that import.
 
@@ -261,6 +295,8 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Body**: vendor groups first, largest first, collapsed. Plain rows follow by date
   ([csv-import.md](csv-import.md#vendor-groups)). Large groups first gets the most rows out of
   "Uncategorised" with the fewest actions ([SC-001](../spec.md#sc-001)).
+  - Above the rows, one line says that the Transfer switch is for money moved between two of the
+    user's own accounts, which counts as neither spending nor income ([FR-138](../spec.md#fr-138)).
   - A group header shows the vendor, side, count, total and the group's assignment control.
     Unfolding the group shows a control for each row ([FR-026](../spec.md#fr-026)).
 - **Assignment control**: a category select of the row's side, with no "Unaccounted"
@@ -297,16 +333,23 @@ Routes use the URL hash so the build works from any static host or local file ([
     move to Uncategorised; its monthly limit is removed" ([FR-034](../spec.md#fr-034)).
 - **New category** asks for a name ([FR-032](../spec.md#fr-032)) and a colour. The colour defaults to
   the first palette colour not yet used on that side.
+- Under the chips of "Uncategorised" and "Unaccounted", on each side, a muted line says what each
+  holds: what is not sorted into a category yet, and the differences Reconcile books
+  ([FR-138](../spec.md#fr-138)). The line refers to the role, so it stays after a rename.
 
 ### Accounts
 
 - **List**: name, type and computed balance ([FR-002](../spec.md#fr-002)).
-- **New account**: name, type and opening balance, which may be negative.
+- **New account**: name, type and opening balance, which may be negative. The opening balance's
+  field description says that it is what the account held before its first transaction in the app
+  ([FR-138](../spec.md#fr-138)). The same dialog opens from [Import](#import).
 - **Edit**: name, type and opening balance. A changed opening balance needs a confirmation in the
   danger style, warning that every balance the account has ever shown will change
   ([FR-001](../spec.md#fr-001)).
 - **Reconcile**, available on every account ([FR-005](../spec.md#fr-005)):
-  - A dialog asks what the account holds right now. Negative amounts are allowed.
+  - A dialog asks what the account holds right now. Negative amounts are allowed. Its description
+    says that Reconcile is for when the account's balance in the app differs from what it really
+    holds, and that the difference is booked to Unaccounted ([FR-138](../spec.md#fr-138)).
   - If a difference is booked, a notification describes it, for example "Booked an expense of
     €15.00 to Unaccounted".
   - If the balance already matches, the dialog shows `reconcile-already-matches`.
@@ -332,7 +375,9 @@ Routes use the URL hash so the build works from any static host or local file ([
   ([data-model.md](../data-model.md#derived-values)). Under it, a line lists what the AI features
   do, "Suggest categories in review" and "the finance chat", and says that they send data to
   OpenAI, which charges the user's own OpenAI account.
-  - Turning the switch on opens a dialog titled "Turn on AI features?" ([FR-127](../spec.md#fr-127)):
+  - Turning the switch on opens a dialog titled "Turn on AI features?" ([FR-127](../spec.md#fr-127)).
+    Since v1.7 the same dialog also opens from the [finance chat](#finance-chat)
+    ([FR-135](../spec.md#fr-135), [R-36](../research.md#r-36)):
     - The **data-sharing warning**: data will now be shared with OpenAI.
       - Suggest categories sends the payee and purpose of the rows under review, the category
         names and up to 100 earlier descriptions, and no amounts, dates or account names
@@ -387,6 +432,22 @@ Routes use the URL hash so the build works from any static host or local file ([
   - The section shows nothing else, such as a list of changes. No other screen shows the notice.
 - Later settings join this screen as sections of their own.
 
+### FAQ
+
+[FR-139](../spec.md#fr-139) – [FR-141](../spec.md#fr-141), [R-37](../research.md#r-37). Added in
+v1.7.
+
+- Under the heading "FAQ" and the screen's sentence, one card per topic of
+  [FR-140](../spec.md#fr-140), in its order, each under its topic as an `h2`.
+- Each question is a disclosure: a `<details>` element, closed at first, whose `<summary>` is the
+  question, with a chevron that turns when it opens. Selecting the question, or Enter or Space on
+  it, opens or closes its answer. Any number can be open at once.
+- An answer is plain paragraphs. The answer on importing has its steps as a numbered list.
+- A link in an answer opens the screen it names, as a hash link in the same tab. The link to
+  OpenAI's page for API keys opens in a new tab, as in [Settings](#settings).
+- The text comes from `FAQ` in `src/ai/faq.ts`, which the guide to the app holds too
+  ([ai.md](ai.md#finance-chat)).
+
 ## Shared patterns
 
 These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
@@ -405,6 +466,24 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 | Form error | Shown above the submit button ([FR-068](../spec.md#fr-068)) |
 | Other refusal | An alert at the top of the region where the action was taken, with a next-step action when there is one ([FR-067](../spec.md#fr-067)) |
 | Empty state | One sentence and one primary action |
+| Screen sentence | One or two sentences under each screen's heading, in the secondary ink, always shown: `ScreenIntro` ([FR-137](../spec.md#fr-137), [R-38](../research.md#r-38)). It never replaces an empty state |
+
+<a id="screen-sentences"></a>
+**Screen sentences** (v1.7). The wording lives in each screen's code; each says at least:
+
+| Screen | What its sentence says |
+|---|---|
+| Transactions | Every expense, income and transfer, newest first; add one by hand, or import a bank's CSV file |
+| Import | Turns a bank's CSV file into transactions, which wait for review before they enter the ledger |
+| Review | Give each vendor group a category, then confirm; nothing enters the ledger before Confirm |
+| Profile editor | Tells the app how this bank's files are laid out; set up once, it serves every later file of the bank |
+| Categories | Sort expenses and income into categories of their own; Insights and budgets use them |
+| Accounts | Where the money is held; when a balance here differs from the bank's, Reconcile it |
+| Budgets | A monthly limit per expense category, which every month starts again from zero (v1.6's text) |
+| Backup | Everything the app holds lives only in this browser; a backup file keeps it safe and moves it to another computer |
+| Insights | Where the money went over a period, by category, and how the budgets stand |
+| Settings | AI features, the model, and updates of the app |
+| FAQ | Answers to questions users often have, with links to where to act |
 
 <a id="look"></a>
 ## Look
@@ -464,7 +543,9 @@ tokens live in `src/ui/index.css`. Layout, controls and labels are those of the 
 Every refusal and failure has a code. Domain and store functions return codes, never text. The UI
 turns a code into plain language in one module, `src/ui/messages.ts`, which holds the exact wording
 ([R-15](../research.md#r-15), [FR-067](../spec.md#fr-067)). The table below records what each message
-must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
+must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it. Since v1.7, a message
+calls a mapping profile a "bank CSV format" ([FR-138](../spec.md#fr-138)); the codes keep
+`profile`.
 
 | Code | Raised when | The message tells the user |
 |---|---|---|
@@ -480,18 +561,18 @@ must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it.
 | `category-name-taken` | [FR-032](../spec.md#fr-032), SC-012 | There is already an expense (or income) category with this name |
 | `category-protected` | [FR-033](../spec.md#fr-033), SC-012 | Why this category cannot be deleted (what the app files there); renaming and recolouring still work |
 | `budget-limit-invalid` | [FR-040](../spec.md#fr-040) | The limit must be an amount above 0.00 |
-| `profile-name-empty` | Saving a profile without a name | The profile needs a name |
-| `profile-name-taken` | [FR-021](../spec.md#fr-021), SC-012 | A profile with this name exists; choose another name |
+| `profile-name-empty` | Saving a bank CSV format without a name | The bank CSV format needs a name |
+| `profile-name-taken` | [FR-021](../spec.md#fr-021), SC-012 | A bank CSV format with this name exists; choose another name |
 | `profile-columns-incomplete` | [FR-021](../spec.md#fr-021) | Which of date, amount and description still need a column |
 | `import-account-missing` | [FR-020](../spec.md#fr-020) | Choose the account to import into |
 | `import-batch-pending` | [FR-022](../spec.md#fr-022), SC-012 | An import is waiting for review and must be confirmed or discarded first; offers to open it |
 | `import-file-unreadable` | The browser cannot read the file | The file could not be read; choose it again |
-| `import-decoding-failed` | [csv-import.md](csv-import.md#pipeline) step 2 | The file is not valid in the profile's encoding; try another encoding in the profile |
-| `import-missing-columns` | [FR-021](../spec.md#fr-021) | Which columns the profile expects that the file lacks |
+| `import-decoding-failed` | [csv-import.md](csv-import.md#pipeline) step 2 | The file is not valid in the bank CSV format's encoding; try another encoding in the format |
+| `import-missing-columns` | [FR-021](../spec.md#fr-021) | Which columns the bank CSV format expects that the file lacks |
 | `import-duplicate-header` | [csv-import.md](csv-import.md#pipeline) step 4 | Which column name appears twice in the file |
 | `import-no-transactions` | [Edge cases](../spec.md#edge-cases), SC-012 | The file contained no transactions |
 | Row failure codes | [FR-028](../spec.md#fr-028), SC-012 | One reason per row, as in [csv-import.md](csv-import.md#unparsable-rows) |
-| `ai-features-off` | [FR-061](../spec.md#fr-061): an AI feature asked for while AI features are off | This needs AI features, which Settings turns on; nothing was sent |
+| `ai-features-off` | [FR-061](../spec.md#fr-061): an AI feature asked for while AI features are off | This needs AI features, which Settings or the chat turns on; nothing was sent |
 | `ai-unreachable` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104), SC-012: OpenAI cannot be reached ([ai.md](ai.md#failures)) | OpenAI could not be reached; check the internet connection, then try again. Nothing changed |
 | `ai-timeout` | [FR-094](../spec.md#fr-094), [FR-104](../spec.md#fr-104): no answer within 4 minutes | The AI took too long; try again, with fewer rows or a shorter question. Nothing changed |
 | `ai-key-rejected` | [FR-094](../spec.md#fr-094), [FR-126](../spec.md#fr-126): OpenAI no longer accepts the stored key | OpenAI no longer accepts your key; remove it in Settings and turn AI features on with a new one. Links to [Settings](#settings). Nothing changed |

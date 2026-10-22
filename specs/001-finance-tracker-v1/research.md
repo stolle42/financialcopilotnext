@@ -761,9 +761,12 @@ in the spec, so that the spec stays the single source of behaviour (constitution
 <a id="r-22"></a>
 ### R-22 · Known limitations accepted for v1
 
-- **Lines before the header**: some banks put account details above the header row. Such a file
-  fails the header check ([FR-021](spec.md#fr-021)) and no batch is created. The workaround is to
-  delete those lines first. A "skip leading lines" profile setting is the likely first addition.
+- **Lines before the header**: some banks put account details above the header row. Until v1.6
+  such a file failed the header check ([FR-021](spec.md#fr-021)) and created no batch, unless the
+  user deleted those lines first. Since v1.7 the import finds the header within the file's first
+  20 lines ([R-34](#r-34)). A file without a header still reads every line as a row.
+- **Dates with a time**: a date cell that also holds a time, as in Revolut's exports, matches no
+  date format and is unparsable ([csv-import.md](contracts/csv-import.md#date-formats)).
 - **Amount notation**: amounts with a currency sign, spaces as thousands separators, or a trailing
   minus are unparsable. [FR-028](spec.md#fr-028) fixes the grammar
   ([contracts/csv-import.md](contracts/csv-import.md#amount-grammar)).
@@ -1623,3 +1626,239 @@ mark, concurrency, zod and the untrusted answer still holds.
   - **Fetching OpenAI's model list**: as above.
   - **An automatic judge of the chat's answers, such as another model**: a second thing to check,
     with its own mistakes.
+
+## Getting started (v1.7)
+
+<a id="r-33"></a>
+### R-33 · Proposing a bank CSV format from the file being imported
+
+- **Decision** (2026-10-22), for [FR-133](spec.md#fr-133) and [FR-134](spec.md#fr-134):
+  - **Bytes to encoding**: `detectEncoding(bytes)` in `src/files/csv.ts` returns UTF-16LE when the
+    bytes start with `FF FE`, UTF-8 when strict UTF-8 decoding succeeds, with or without its
+    byte-order mark, and Windows-1252 otherwise. It never proposes ISO-8859-15.
+  - **Records to settings**: `proposeProfile(records, encoding)` in
+    `src/domain/import/propose.ts` is a pure function. It starts from `newProfileDraft()` and
+    changes only what the records tell, by the rules and the table of column names in
+    [contracts/csv-import.md](contracts/csv-import.md#proposing-a-format). It reuses
+    `parseBankDate`, `parseAmount` and `nameKey`, so a proposal reads cells exactly as the import
+    will.
+  - **The two together**: `proposeFormat(bytes)` in `src/store/import.ts` detects the encoding,
+    decodes, tokenises and proposes. The profile editor calls it once, for its first draft, when it
+    opens for the file being imported. With no file, and for a profile being edited, the editor
+    starts as before v1.7: from `newProfileDraft()` or the saved profile.
+  - **The sign hint**: `suggestsInvertedSign(profile, rows)` in the same domain module is true
+    when the profile has one signed column without sign inversion and the preview's parsed rows
+    hold at least one amount and no negative one. The editor shows the hint under Invert the sign
+    while it is true, from the same rows the preview shows.
+- **Rationale**:
+  - **Names first, content second**: a column's name tells what content cannot, such as the
+    description from the counterparty, or the booking date from the value date. Content serves a
+    file without names, and a column whose name the table lacks.
+  - **Counting, not "every cell"**: a single stray line, such as a closing balance under the rows,
+    would otherwise defeat a whole column. The preview shows what remains unparsable.
+  - **Day first, and the comma, on a tie**: the app is in euro ([FR-060](spec.md#fr-060)), and
+    European banks write the day first and use the decimal comma. The preview shows a wrong guess
+    before any batch exists.
+  - **Windows-1252 as the fallback**: its decoder accepts every byte, so the proposal always
+    decodes, and it holds the umlauts of German banks' older exports. ISO-8859-15 differs from it
+    in eight characters, which the preview shows.
+  - **In the domain**: the rules are business rules over records, tested in Node like the rest of
+    the import ([R-16](#r-16), [R-17](#r-17)). Only the bytes belong to `src/files`.
+  - **Once, at the start**: a proposal that followed later changes would undo the user's choices.
+- **Alternatives considered**:
+  - **Presets of known banks**: exact for the banks on the list and no help for any other, and each
+    one breaks when its bank changes the file. The table of names gets most of the benefit for
+    every bank ([Out of Scope](spec.md#out-of-scope)).
+  - **Asking the AI**: sends the file off the computer, and needs AI features on
+    ([FR-061](spec.md#fr-061)).
+  - **Proposing sign inversion when no amount is negative**: guesses the direction of money, which
+    the user knows and the file does not; the hint asks instead ([FR-134](spec.md#fr-134)).
+  - **Papa Parse's `dynamicTyping`**: knows neither the date formats nor the amount grammar of
+    [csv-import.md](contracts/csv-import.md).
+
+<a id="r-34"></a>
+### R-34 · Column names below account details, and the bank exports that check the proposal
+
+- **Decision** (owner, 2026-10-22), for [FR-021](spec.md#fr-021), [FR-133](spec.md#fr-133) and
+  [SC-023](spec.md#sc-023):
+  - **Finding the column names**: `headerIndex(records, profile)` in
+    `src/domain/import/rows.ts` returns the record that holds the column names, and the import and
+    the preview skip every record above it, keeping each record's number
+    ([contracts/csv-import.md](contracts/csv-import.md#pipeline) step 4):
+    - for a profile that maps columns, the first of the first 20 records that holds every mapped
+      column name; with none, the import is refused with `import-missing-columns`, naming what the
+      record holding most of them lacks, the first such record on a tie;
+    - while the profile editor has nothing mapped yet, the first of the first 20 records that names
+      a date and an amount, or a debit and a credit, by the
+      [table](contracts/csv-import.md#column-names), and otherwise the first record. The editor's
+      column lists read that record.
+
+    Nothing is stored: the profile keeps its fields, and the database and the backup file stay as
+    they are ([data-model.md](data-model.md#mapping-profile)).
+  - **Amount mode**: a column named as an amount wins over debit and credit columns
+    ([csv-import.md](contracts/csv-import.md#proposing-a-format) rule 4).
+  - **The exports**, one fixture per layout in `e2e/fixtures/banks/`, each a header and 6 to 10
+    made-up rows in the layout of real anonymised exports and the open-source importers that read
+    them, as the research of 2026-10-22 found them:
+
+    | Fixture | Bank | Lines above the column names | Date | Amount | Encoding | What it exercises |
+    |---|---|---|---|---|---|---|
+    | `sparkasse.csv` | Sparkasse, CSV-CAMT V2 | 0 | `DD.MM.YY` | `Betrag`, `,`, no thousands separator | Windows-1252 | Every cell quoted, ASCII umlauts (`Beguenstigter/Zahlungspflichtiger`), `Buchungstext` beside `Verwendungszweck` |
+    | `volksbank.csv` | Volksbank and Raiffeisenbank | 0 | `DD.MM.YYYY` | `Betrag`, `,` | UTF-8 with BOM | `Name Zahlungsbeteiligter`, a balance column `Saldo nach Buchung` |
+    | `commerzbank.csv` | Commerzbank | 0 | `DD.MM.YYYY` | `Betrag`, `,`, trailing zeros dropped (`-10,7`, `-2040`) | UTF-8 with BOM | Description only in `Buchungstext`, no counterparty |
+    | `n26.csv` | N26 | 0 | `YYYY-MM-DD` | `Amount (EUR)`, `.` | UTF-8 | `,` delimiter, English names, `Payment Reference`, `Partner Name` |
+    | `ing.csv` | ING | 12 | `DD.MM.YYYY` | `Betrag`, `,` with `.` thousands | Windows-1252 | Account details above the names; `Währung` twice; `Buchung` and `Wertstellungsdatum` |
+    | `dkb.csv` | DKB | 4 | `DD.MM.YY` | `Betrag (€)`, `,`, `1.000` meaning 1,000.00 | UTF-8 with BOM | Two direction-dependent name columns, so no counterparty is proposed |
+    | `comdirect.csv` | comdirect | 4 | `DD.MM.YYYY` | `Umsatz in EUR`, `,` with `.` thousands | Windows-1252 | A `;` ending every line, a row `offen` not yet booked, a closing balance |
+    | `deutsche-bank.csv` | Deutsche Bank and Postbank, which share the layout | 7 | `D.M.YYYY` | `Betrag`, `,`; also `Soll` and `Haben`, which repeat it | UTF-8 with BOM | The signed amount beside negative `Soll` values, a closing balance |
+
+    `ing-longer.csv` is `ing.csv` with 14 lines above the column names, for the bank's next file
+    ([User Story 11](spec.md#user-story-11) scenario 18).
+  - **Test**: for each fixture, `proposeFormat`, then parsing as the import does, yields no
+    unparsable row but those the fixture marks as not booked or as a closing balance
+    ([SC-023](spec.md#sc-023)).
+  - **`.gitattributes`**: `e2e/fixtures/*.csv binary` becomes `e2e/fixtures/**/*.csv binary`, so the
+    fixtures in `banks/` keep their exact bytes, encodings and line endings too.
+  - **Left out**: Consorsbank, whose layout no source confirms, and Revolut, whose date cells hold a
+    time, which no date format reads ([R-22](#r-22)).
+- **Rationale**:
+  - **Half the banks**: of the nine whose layout the research confirmed, five put account details
+    above the column names. Their users could not import at all, and v1.7 is for exactly the user
+    who gives up there.
+  - **Searching, not a stored count**: the number of such lines changes between exports of one
+    bank, 3 or 4 at comdirect and 12 to 15 at ING, with the export's options. A count stored in the
+    profile would break the next file; the column names themselves do not change. Searching also
+    leaves the database and the backup file untouched, so v1.7 stays a MINOR release with nothing
+    for an earlier version to drop.
+  - **Every mapped name on one line**: account details may hold a word such as `Datum`, but not
+    every column the profile maps.
+  - **20 lines**: the longest account details found are ING's, at about 15 lines.
+  - **Lines under the rows**: a closing balance becomes one unparsable row, which review lists and
+    which never enters the ledger ([FR-028](spec.md#fr-028)).
+  - **Made-up rows in real layouts**: the layouts are what the check needs, and no one's data
+    enters the repository ([Assumptions](spec.md#assumptions)).
+  - **Delimiter detection** keeps reading the first 10 lines that are not blank
+    ([R-09](#r-09)), account details included. Those details use the file's delimiter, and the
+    fixtures check each layout.
+- **Alternatives considered**:
+  - **A count of lines to skip, stored in the profile**: breaks when the count changes, as above,
+    and adds a field to every profile and backup.
+  - **Skipping every line that does not read as a transaction**: would also drop rows the user
+    should see in review as unparsable.
+  - **Presets of known banks**: as in [R-33](#r-33).
+
+<a id="r-35"></a>
+### R-35 · New account on Import
+
+- **Decision**, for [FR-132](spec.md#fr-132):
+  - Import's Account select ends, after a divider, with the item **New account…**, whose value is
+    a sentinel that is never an account's id. Choosing it keeps the select's value and opens
+    `AccountDialog` with no account.
+  - `AccountDialog` gains an optional `onCreated(account)`, called after a new account is saved,
+    before `onClose`. Import sets the created account as the import's account. Accounts passes
+    nothing and works as before.
+  - The created account is found by its name key in the state after the save, as the profile
+    editor finds a saved profile ([R-08](#r-08)).
+- **Rationale**: the dialog of Accounts serves both screens, so names, types, the opening balance
+  and every refusal behave the same ([FR-001](spec.md#fr-001)). The import keeps having no default
+  account ([contracts/ui.md](contracts/ui.md#import)); the user's own choice of New account… sets
+  it.
+- **Alternatives considered**:
+  - **A link to Accounts**: leaves the import, which is what users gave up on.
+  - **Creating an account named after the file**: a name and a type the user did not choose.
+
+<a id="r-36"></a>
+### R-36 · The finance chat while AI features are off
+
+- **Decision**, for [FR-135](spec.md#fr-135):
+  - `KeyDialog` moves from `SettingsScreen.tsx` to `src/ui/components/KeyDialog.tsx`, unchanged.
+    Settings and the finance chat both open it, and both pass `turnOnWithKey`
+    ([R-31](#r-31)).
+  - While AI features are off, the chat's body shows, in this order, text of the `financeChat`
+    group in `src/ui/messages.ts`:
+    - two or three lines on what it answers;
+    - the example questions of [FR-101](spec.md#fr-101), from the same constant the chat sends
+      them from, as a plain list, not as buttons;
+    - a line saying that AI features send that data to OpenAI and need the user's own key, which
+      OpenAI charges;
+    - the button **Turn on AI features**, and a link to [FAQ](contracts/ui.md#faq).
+
+    The form to send a question stays hidden, as in v1.6.
+  - When `turnOnWithKey` succeeds, the store turns AI features on, the chat shows its form and
+    the example questions as buttons, and focus moves to the question field.
+- **Rationale**: one dialog keeps the warning, the key check and the messages the same wherever AI
+  features are turned on ([FR-095](spec.md#fr-095), [FR-127](spec.md#fr-127)). The dialog's
+  second user is what makes moving it right (constitution III). Examples that look like buttons
+  but send nothing would mislead.
+- **Alternatives considered**:
+  - **The link to Settings of v1.6**: leaves the chat, and asks the user to find a switch.
+  - **A key field in the chat itself**: a second copy of the dialog's warning and key check.
+  - **Hiding the chat's button while AI features are off**: hides a feature from the users who
+    would want it, against [FR-100](spec.md#fr-100).
+
+<a id="r-37"></a>
+### R-37 · FAQ: one text for the screen and the guide to the app
+
+- **Decision**, for [FR-139](spec.md#fr-139) – [FR-141](spec.md#fr-141):
+  - **The text** is one constant, `FAQ` in `src/ai/faq.ts`: the topics in order, each with its
+    questions, each question with an answer of paragraphs and, for the import, a list of numbered
+    steps. A link in an answer is written `[label](#/route)`; the one link outside the app is
+    `[label](https://platform.openai.com/api-keys)`.
+  - **The URL of OpenAI's page for API keys** moves from `aiKey.createUrl` in
+    `src/ui/messages.ts` to `OPENAI_API_KEYS_URL` in `src/ai/openai.ts`, which the dialog and FAQ
+    both use.
+  - **The guide**: `faqAsText()` in `src/ai/faq.ts` writes FAQ as plain text, each link as its
+    label. `APP_GUIDE` ends with the line `FAQ` and that text.
+  - **The screen**: `src/ui/screens/faq/FaqScreen.tsx`, at `#/faq`, the last entry of the sidebar.
+    Each topic is a section under its heading, and each question a native `<details>` whose
+    `<summary>` is the question, closed at first. A small renderer turns the links of an answer
+    into `<a>` elements: inside the app as a hash link, outside it with `target="_blank"` and
+    `rel="noopener noreferrer"`.
+  - **Tests**: `src/ai/faq.test.ts` checks the twelve questions and the four topics in order,
+    that every link inside the app is a route `parseRoute` knows, and that the only other link is
+    `OPENAI_API_KEYS_URL`. `src/ai/appGuide.test.ts` checks that the guide holds every question and
+    answer. `e2e/ui/faq.spec.ts` checks the screen.
+- **Rationale**:
+  - **Data, not JSX**: the guide needs plain text, and one text for both keeps the chat and FAQ
+    from ever disagreeing ([FR-141](spec.md#fr-141), constitution I).
+  - **In `src/ai`, beside the guide**: the guide cannot import the UI, and the UI already imports
+    from `src/ai`, as Settings does the models ([plan.md](plan.md#project-structure)).
+  - **`<details>`**: keyboard, screen reader and several open answers come with the element, with
+    no component and no state of ours.
+  - **The cost**: twelve answers add about 1,500 tokens to a guide of about 1,500 (6,000
+    characters on 2026-10-22), beside about 15,000 tokens of data per question ([R-25](#r-25)).
+    The guide is the same for every question, so it stays in the prefix OpenAI caches and charges
+    less for.
+- **Alternatives considered**:
+  - **A Markdown file and a Markdown renderer**: a dependency for twelve answers, and answers that
+    could hold markup the chat must not show ([R-25](#r-25)).
+  - **FAQ in JSX and its own text in the guide**: two texts that drift apart.
+  - **shadcn's Accordion**: more code than `<details>`, for the same behaviour.
+  - **Sending FAQ only with questions about the app**: the app would have to tell such questions
+    apart before asking, which only the model can do ([R-25](#r-25)).
+
+<a id="r-38"></a>
+### R-38 · A sentence per screen, terms where they appear, and "bank CSV format" in words only
+
+- **Decision**, for [FR-137](spec.md#fr-137) and [FR-138](spec.md#fr-138):
+  - **Screen sentences**: `ScreenIntro` in `src/ui/components/` is a paragraph in the secondary
+    ink, placed under each screen's heading. Each screen passes its own sentence, as
+    [contracts/ui.md](contracts/ui.md#shared-patterns) lists them. Budgets' and Backup's texts
+    become their intro.
+  - **Terms**: each explanation is a muted line where its term appears: under the chips of
+    Uncategorised and Unaccounted on Categories, in the Reconcile dialog's description, as the
+    field description of Opening balance and of the Destination of a transfer, above review's rows,
+    and beside Import's choice of a bank CSV format.
+  - **"Bank CSV format"** replaces "profile" in every text the user sees: labels, buttons, titles,
+    the messages of `src/ui/messages.ts`, the guide to the app and FAQ. Code names, routes such as
+    `#/import/profiles/new`, the data model and the backup file keep "profile".
+- **Rationale**:
+  - **One component for the sentence**: eleven screens use it, and it keeps them consistent
+    ([FR-065](spec.md#fr-065)).
+  - **Words, not data**: renaming the routes or the stored fields would change the backup file and
+    the database for no user's benefit, and would make v1.7 a MAJOR release
+    ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)).
+- **Alternatives considered**:
+  - **Tooltips or info icons**: hidden until hovered, unreachable by touch, and against "nothing
+    to open" ([FR-138](spec.md#fr-138)).
+  - **A sentence beside every Transfer switch of review**: dozens of copies on a long review.

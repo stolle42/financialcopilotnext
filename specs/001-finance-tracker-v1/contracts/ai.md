@@ -204,10 +204,16 @@ The context, with amounts in euros and money out negative:
 
 The guide to the app describes in plain text each screen of [ui.md](ui.md) and how to do each
 task there: adding, editing and deleting a transaction and filtering the list; importing a bank
-file with a mapping profile, reviewing it and Suggest categories; categories; accounts and
-Reconcile; budgets; Insights; Save backup and Restore from backup; AI features in Settings; and the
-chat itself. It names screens and buttons as the app labels them, holds no user data, and changes
-with the screens it describes ([FR-103](../spec.md#fr-103)).
+file with a bank CSV format, which the app proposes from the first file of a bank, and New account
+on Import; reviewing it and Suggest categories; categories; accounts and Reconcile; budgets;
+Insights; Save backup and Restore from backup; AI features, which need the user's own OpenAI API
+key, entered in the dialog that Turn on AI features opens in Settings or in the chat, and which
+work wherever the app runs; FAQ; and the chat itself. It names screens and buttons as the app
+labels them, holds no user data, and changes with the screens it describes
+([FR-103](../spec.md#fr-103), [FR-136](../spec.md#fr-136)). Since v1.7 it ends with the line `FAQ`
+and the questions and answers of FAQ as plain text, from the same constant the FAQ screen shows
+([FR-141](../spec.md#fr-141), [R-37](../research.md#r-37)). Through v1.6 it said that AI features
+work only on the user's own computer, which [FR-128](../spec.md#fr-128) had ended.
 
 The rules ask the model to:
 

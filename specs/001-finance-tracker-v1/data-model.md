@@ -96,6 +96,14 @@ At most one budget per category, which is why the category id is the key.
 A **column ref** is the header text when `hasHeaderRow` is true and a 0-based column position when
 it is false. Every ref in one profile is the same variant.
 
+The screens call a mapping profile a "bank CSV format" since v1.7; this file, the code and the
+backup keep the name ([FR-138](spec.md#fr-138), [R-38](research.md#r-38)). A new profile opened
+from an import starts as a draft proposed from the file
+([contracts/csv-import.md](contracts/csv-import.md#proposing-a-format)). The draft is the
+profile editor's state, as before v1.7, and is stored only when the user saves it. Since v1.7 the
+column names may sit below lines of account details; the import finds them each time, so the
+profile records nothing about those lines ([R-34](research.md#r-34)).
+
 ### Pending batch
 
 | Field | Type | Notes |
@@ -349,6 +357,8 @@ One IndexedDB database, `financial-copilot`, schema version 1 ([R-06](research.m
 The schema version stays 1: the key is a new record in an existing store, and the model a new
 optional field, so v1.5 reads a v1.6 database unchanged. Replacing all data on restore writes the
 stored key back after clearing the stores ([contracts/backup-file.md](contracts/backup-file.md)).
+v1.7 adds no store, record or field, so v1.6 and v1.7 read each other's databases and backups
+unchanged.
 
 There are no secondary indexes, because the whole state is loaded into memory at start
 ([R-05](research.md#r-05)). The backup file holds the same records ([contracts/backup-file.md](contracts/backup-file.md)).
