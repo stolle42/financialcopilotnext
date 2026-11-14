@@ -62,7 +62,9 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   // Browsers keep data per origin, so a silently moved port would open the app empty (R-20).
-  server: { port: 5173, strictPort: true },
+  // tmp/ holds the builds e2e/support/versions.ts makes; watching it keeps Windows from renaming
+  // them into place while the dev server runs.
+  server: { port: 5173, strictPort: true, watch: { ignored: ["**/tmp/**"] } },
   preview: { port: 4173, strictPort: true },
   // Domain and store tests run in Node; the browser is Playwright's job (R-17).
   test: {
