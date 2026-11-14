@@ -18,10 +18,11 @@ import {
   subscribeChat,
   type ChatSession,
 } from "@/store/chat";
-import { aiFeaturesOn } from "@/store/settings";
+import { aiFeaturesOn, turnOnWithKey } from "@/store/settings";
 import { useStore, useStoreApi } from "@/store/store";
 import { transactionsPath } from "@/ui/app/router";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
+import { KeyDialog } from "@/ui/components/KeyDialog";
 import { RefusalMessage } from "@/ui/components/RefusalMessage";
 import { Button } from "@/ui/components/ui/button";
 import { Input } from "@/ui/components/ui/input";
@@ -88,6 +89,33 @@ function suggestedQuestions(conversation: readonly ChatTurn[]): readonly string[
   const latest = conversation.at(-1);
   if (!latest || latest.outOfScope) return financeChat.examples;
   return latest.stopped ? [] : (latest.followUps ?? []);
+}
+
+/**
+ * The chat while AI features are off, below any stored conversation: what it answers, the examples
+ * as plain text, what it needs and who charges, Turn on AI features, and the link to FAQ (FR-135).
+ */
+function OffState({ onTurnOn }: { onTurnOn: () => void }) {
+  return (
+    <div className="flex flex-col items-start gap-3 pb-4 text-sm">
+      {financeChat.about.map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+      <div className="flex flex-col gap-1">
+        <p className="text-muted-foreground">{financeChat.forExample}</p>
+        <ul className="list-disc pl-5">
+          {financeChat.examples.map((example) => (
+            <li key={example}>{example}</li>
+          ))}
+        </ul>
+      </div>
+      <p className="text-muted-foreground">{financeChat.charges}</p>
+      <Button onClick={onTurnOn}>{financeChat.turnOn}</Button>
+      <a href="#/faq" className="font-medium underline">
+        {financeChat.faqLink}
+      </a>
+    </div>
+  );
 }
 
 /** The chat's width where it opens, its least, and a step of the arrow keys (FR-117). */
@@ -179,6 +207,10 @@ export function FinanceChat() {
   const [draft, setDraft] = useState(() => session.failure?.question ?? "");
   const [clearing, setClearing] = useState(false);
   const [clearFailed, setClearFailed] = useState(false);
+  const [turningOn, setTurningOn] = useState(false);
+  // Set once a key is accepted here, so the field that then shows takes focus (FR-135).
+  const focusField = useRef(false);
+  const apiKey = useStore((state) => state.apiKey);
   // The width the user gave the chat, which lasts while the app stays open, and the width it shows:
   // that one, within the bounds of the window as it is now (FR-117, R-28).
   const [chosenWidth, setChosenWidth] = useState(chatWidth.start);
@@ -219,6 +251,14 @@ export function FinanceChat() {
     setClearing(false);
     setClearFailed((await clearConversation(store)) !== null);
   }
+
+  // The field shows once AI features are on; focus moves there after the key dialog has closed.
+  useEffect(() => {
+    if (!on || turningOn || !focusField.current) return;
+    focusField.current = false;
+    const timer = setTimeout(() => document.getElementById(fieldId)?.focus());
+    return () => clearTimeout(timer);
+  }, [on, turningOn, fieldId]);
 
   const showsLog = conversation.length > 0 || asking;
   const suggested = asking ? [] : suggestedQuestions(conversation);
@@ -278,14 +318,7 @@ export function FinanceChat() {
                 </ol>
               </div>
             )}
-            {!on && (
-              <p className="text-muted-foreground">
-                {financeChat.needsAiFeatures}{" "}
-                <a href="#/settings" className="font-medium text-foreground underline">
-                  Open Settings
-                </a>
-              </p>
-            )}
+            {!on && <OffState onTurnOn={() => setTurningOn(true)} />}
             {on && suggested.length > 0 && (
               <div role="group" aria-labelledby={suggestionsId} className="flex flex-col gap-2">
                 <p id={suggestionsId} className="text-xs text-muted-foreground">
@@ -335,6 +368,19 @@ export function FinanceChat() {
                 )}
               </div>
             </form>
+          )}
+          {turningOn && (
+            <KeyDialog
+              storedKey={apiKey}
+              onTurnOn={async (key) => {
+                // Set before the store changes, which shows the field.
+                focusField.current = true;
+                const refused = await turnOnWithKey(store, key);
+                if (refused) focusField.current = false;
+                return refused;
+              }}
+              onClose={() => setTurningOn(false)}
+            />
           )}
           {/* Last, so that it takes focus after the chat's own controls, not when the chat opens. */}
           <ChatEdge

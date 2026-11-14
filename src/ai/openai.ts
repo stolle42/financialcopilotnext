@@ -7,6 +7,9 @@ import type { z } from "@/files/zod";
 
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
 
+/** OpenAI's page where a user creates an API key, linked from the key dialog (FR-127). */
+export const OPENAI_API_KEYS_URL = "https://platform.openai.com/api-keys";
+
 /** How long the app waits for a whole answer, below Firefox's own 300 seconds (FR-094). */
 export const AI_TIMEOUT_MS = 4 * 60 * 1000;
 

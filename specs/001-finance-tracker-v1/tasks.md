@@ -2039,7 +2039,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
     Reconcile's; in `e2e/ui/transaction-form.spec.ts`, Transfer's description, absent for an
     expense; in `e2e/ui/review.spec.ts`, the line above the rows, once;
   - in `e2e/us11-getting-started.spec.ts`, scenarios 1 and 12.
-- [ ] T156 [US11] The finance chat while AI features are off: `KeyDialog` moves from
+- [x] T156 [US11] The finance chat while AI features are off: `KeyDialog` moves from
   `src/ui/screens/settings/SettingsScreen.tsx` to `src/ui/components/KeyDialog.tsx`, unchanged,
   and both Settings and the chat pass `turnOnWithKey`; the URL of OpenAI's page for API keys moves
   from `aiKey.createUrl` in `src/ui/messages.ts` to `OPENAI_API_KEYS_URL` in `src/ai/openai.ts`.

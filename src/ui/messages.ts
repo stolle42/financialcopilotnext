@@ -220,7 +220,8 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
-  "ai-features-off": "This needs AI features, which you turn on in Settings. Nothing was sent.",
+  "ai-features-off":
+    "This needs AI features, which Settings or the chat turns on. Nothing was sent.",
   "ai-unreachable":
     "OpenAI could not be reached. Check the internet connection, then try again. Nothing changed.",
   "ai-key-rejected":
@@ -282,7 +283,6 @@ export const aiKey = {
     "for every question and every request for suggestions, so setting a monthly limit there is " +
     "wise.",
   createLink: "Create an API key at OpenAI",
-  createUrl: "https://platform.openai.com/api-keys",
   field: "OpenAI API key",
   checking: "Checking key…",
   /** A stored key, only ever shown masked. */
@@ -316,7 +316,18 @@ export const financeChat = {
     "works. I cannot help with other topics.",
   /** The group of the example questions, or of the latest answer's follow-ups (FR-101, FR-111). */
   suggestions: "Suggested questions",
-  needsAiFeatures: "The chat needs AI features, which you turn on in Settings.",
+  /** While AI features are off: what the chat answers, its examples, and what it needs (FR-135). */
+  about: [
+    "Ask about your own finances, which the chat answers from your data of the current month " +
+      "and the 12 months before it.",
+    "It also takes general questions about money, and questions about this app.",
+  ],
+  forExample: "For example",
+  charges:
+    "The chat needs AI features, which send that data to OpenAI and need your own OpenAI API " +
+    "key. OpenAI charges your own OpenAI account for each question.",
+  turnOn: "Turn on AI features",
+  faqLink: "Questions about the app? Read the FAQ",
   thinking: "Thinking…",
   stop: "Stop",
   stopped: "Stopped",
