@@ -18,7 +18,7 @@ test commits stay on the phase branch: `main` gets each finished phase as one sq
 every commit on `main` stays green.
 
 **Organization**: Phases 1 and 2 build the shared base. Phases 3–9 follow the user stories in
-priority order, Phase 13 adds User Story 8, and Phases 15 and 16 add User Stories 9 and 10. Each
+priority order, Phase 13 adds User Story 8, and Phases 15 – 17 add User Stories 9 – 11. Each
 story phase ends with that story's end-to-end journey from
 [quickstart.md](quickstart.md#validation-scenarios).
 
@@ -27,7 +27,7 @@ story phase ends with that story's end-to-end journey from
 - **[P]**: can run in parallel with the neighbouring [P] tasks, because it touches different files
   and depends on no unfinished task. A task that installs a package changes `package.json`, so run
   only one such task at a time.
-- **[Story]**: US1 … US10, the [user stories](spec.md#user-scenarios) of the spec.
+- **[Story]**: US1 … US11, the [user stories](spec.md#user-scenarios) of the spec.
 - Paths are relative to the repository root ([plan.md](plan.md#project-structure)).
 
 ## Conventions for every task
@@ -1835,6 +1835,297 @@ which the local route served only on the owner's computer, now work wherever the
 
 ---
 
+## Phase 17: Getting started
+
+**Purpose**: [User Story 11](spec.md#user-story-11) for someone who opens the app for the first
+time: Import creates the bank account in place and proposes a new bank CSV format from the file,
+every import finds the column names below a bank's account details, the finance chat explains
+itself and turns AI features on where it is, each screen and each new term says what it means, and
+a screen FAQ answers the twelve questions users often have
+([FR-132](spec.md#fr-132) – [FR-141](spec.md#fr-141), [FR-021](spec.md#fr-021),
+[FR-084](spec.md#fr-084), [FR-100](spec.md#fr-100), [R-33](research.md#r-33) –
+[R-38](research.md#r-38), [csv-import.md](contracts/csv-import.md#proposing-a-format),
+[ui.md](contracts/ui.md)). The owner asked for it after v1.6, on 2026-10-22. The spec, research,
+contracts and plan changed first, on this branch. No new dependency, and nothing new is stored:
+the database and the backup file stay as v1.6 left them
+([data-model.md](data-model.md#storage-layout)).
+
+**Independent Test**: User Story 11's, automated as `e2e/us11-getting-started.spec.ts` and
+`e2e/ui/faq.spec.ts`, with [SC-023](spec.md#sc-023) as the Vitest test of `proposeFormat`
+([quickstart.md](quickstart.md#us11-getting-started)), and the manual checks of
+[SC-024](spec.md#sc-024) – [SC-028](spec.md#sc-028) ([quickstart.md](quickstart.md#manual-checks)).
+
+The scenarios that name a demonstration file use a fixture of the same layout, since `demo/` is
+not part of the repository. Every fixture of this phase holds made-up rows only
+([Assumptions](spec.md#assumptions)).
+
+- [ ] T147 (Project owner, with Claude) Check that every step of v1.6's
+  [release checklist](quickstart.md#release-checklist) was done: the v1.6 pull request
+  squash-merged into `main`, the tag `v1.6` on that squash commit and pushed, CI's `test` and
+  `deployed` jobs green, and the manual checks, the [AI features](quickstart.md#ai-features) and
+  the [installable app checks](quickstart.md#installable-app-checks), the Update from v1.5
+  included, walked at the web address. Each step not done is done now. On 2026-11-14 `main` holds
+  v1.6 as `e18f239`, but neither this clone nor `origin` has the tag `v1.6`.
+- [ ] T148 [P] [US11] The encoding of a new file: `detectEncoding(bytes)` in `src/files/csv.ts`
+  gives `UTF-16LE` when the bytes start with `FF FE`, `UTF-8` when strict UTF-8 decoding succeeds,
+  with or without its byte-order mark, and `Windows-1252` otherwise; it never gives `ISO-8859-15`
+  ([FR-133](spec.md#fr-133), [R-33](research.md#r-33),
+  [csv-import.md](contracts/csv-import.md#proposing-a-format) rule 1). Test first in
+  `src/files/csv.test.ts`: each of the three outcomes, a UTF-8 file with its byte-order mark, an
+  empty file as UTF-8, and a Windows-1252 `ä` (`E4`) that is not valid UTF-8.
+- [ ] T149 [P] [US11] Column names below account details: a new
+  `src/domain/import/columnNames.ts` holds `COLUMN_NAMES`, the table of
+  [csv-import.md](contracts/csv-import.md#column-names), one list per role in its order of
+  preference, so the proposal and the header search read the same names (constitution I); and
+  `headerIndex(records, profile)` in `src/domain/import/rows.ts` gives the index of the record
+  that holds the column names ([R-34](research.md#r-34)):
+  - for a profile that maps columns, the first of the first 20 records, blank ones counted, that
+    holds every mapped column name by name key; with none, `import-missing-columns` naming the
+    mapped columns that the record holding most of them lacks, the first such record on a tie;
+  - while nothing is mapped yet, the first of the first 20 records that names a date and an amount,
+    or a date, a debit and a credit, by `COLUMN_NAMES`, and otherwise record 0.
+
+  `parseRecords` reads the header from that record, skips every record above it, and keeps each
+  record's row number as it is in the file, so the preview and the import skip the same lines
+  ([FR-021](spec.md#fr-021), [csv-import.md](contracts/csv-import.md#pipeline) step 4). The
+  profile keeps its fields: nothing is stored about those lines. Test first in
+  `src/domain/import/rows.test.ts`:
+  - the header as record 1 reads as before v1.7;
+  - with 12 records of account details above the header, as ING writes them, and with 14, the same
+    profile reads every row, and the first row's number is 14 or 16;
+  - a record of account details that holds one mapped name, such as `Datum`, is not taken for the
+    header;
+  - a header at record 21 gives `import-missing-columns`; and with no record holding every mapped
+    name, the message names what the record holding most of them lacks, the first one on a tie;
+  - a mapped name twice in the header gives `import-duplicate-header`, as before;
+  - with nothing mapped, the first record naming `Buchung` and `Betrag` is found below account
+    details, and a file naming no date and amount gives record 0;
+  - a profile without a header row reads every record as data, as before.
+- [ ] T150 [US11] The proposal: a new `src/domain/import/propose.ts` with
+  `proposeProfile(records, encoding)`, a pure function that starts from `newProfileDraft()` and
+  changes only what the records tell, by rules 2 – 8 of
+  [csv-import.md](contracts/csv-import.md#proposing-a-format): the column names by `headerIndex`
+  with nothing mapped, or record 1 when none of its cells reads as a date while a column of the
+  other records does, or no header row; the columns by `COLUMN_NAMES`, each role taking the first
+  of its names that is a column of the file and a taken column offered to no later role; a column
+  named as an amount winning over debit and credit columns; by content, the first column in which
+  more than half of the data cells read as a date, and the first other in which more than half
+  read as an amount; the date format under which the most cells of the date column parse, the
+  first in the order of `DATE_FORMATS` on a tie; the decimal separator under which more amount
+  cells follow the grammar, the comma on a tie; and an empty name and sign inversion off. It reads
+  cells with `parseBankDate`, `parseAmount` and `nameKey`, as the import does. The same module has
+  `suggestsInvertedSign(profile, rows)`, true while the profile has one signed column without sign
+  inversion and the parsed rows hold at least one amount and none below zero; unparsable rows do
+  not count ([FR-133](spec.md#fr-133), [FR-134](spec.md#fr-134), [R-33](research.md#r-33),
+  [csv-import.md](contracts/csv-import.md#sign-hint)). Test first in
+  `src/domain/import/propose.test.ts`, on records written in the test:
+  - scenario 3's layout `Date;Payee;Purpose;Amount` with `DD.MM.YYYY` and `,` decimals proposes
+    every setting by name: header row, signed `Amount`, `Date`, `Purpose` as the description and
+    `Payee` as the counterparty;
+  - scenario 5: `Buchungstag;Valuta;Verwendungszweck;Soll;Haben` proposes debit `Soll`, credit
+    `Haben`, `Buchungstag` over `Valuta`, and `Verwendungszweck`;
+  - scenario 6: with no column names, dates in column 1, text in column 2 and amounts in column 3,
+    no header row, the date column 0, the amount column 2 and no description;
+  - scenario 18: 12 records of account details above `Buchung;Wertstellungsdatum;
+    Auftraggeber/Empfänger;Buchungstext;Verwendungszweck;Betrag;Währung` propose `Buchung`,
+    `Betrag`, `Verwendungszweck` and `Auftraggeber/Empfänger`;
+  - Deutsche Bank's layout, with `Betrag` beside `Soll` and `Haben` that repeat it, proposes the
+    signed `Betrag`; DKB's two direction-dependent name columns propose no counterparty; and
+    `Buchungstext` is the description only without `Verwendungszweck`;
+  - the edge cases of the spec: dates with no day above 12 propose `DD/MM/YYYY`; amounts such as
+    `40` and `1250` propose the comma; a closing balance under the rows does not keep its column
+    from being the amount; a file of one column proposes nothing but the encoding;
+  - the name stays empty and sign inversion off, and the encoding is the one passed in;
+  - `suggestsInvertedSign`: true for positive amounts only, false with one negative amount, with
+    no parsed amount, with sign inversion on, and with debit and credit columns.
+- [ ] T151 [US11] A proposal from bytes, checked against real layouts: `proposeFormat(bytes)` in
+  `src/store/import.ts` calls `detectEncoding`, `decodeFile` and `tokenise`, then
+  `proposeProfile`, and gives the draft ([R-33](research.md#r-33)). The test commit adds the
+  fixtures: in `e2e/fixtures/`, `mybank-2026-10.csv`, `soll-haben.csv` (Windows-1252),
+  `no-header.csv` and `cash-notebook.csv`, as the table of
+  [quickstart.md](quickstart.md#us11-getting-started) describes them; in `e2e/fixtures/banks/`,
+  one file per row of the table of [R-34](research.md#r-34), each with the lines above the column
+  names, date format, amount notation, encoding and quirks the table lists and 6 to 10 made-up
+  rows, `comdirect.csv` with a row `offen` and a closing balance and `deutsche-bank.csv` with a
+  closing balance; and `ing-longer.csv`, `ing.csv` with 14 lines above the column names. In
+  `.gitattributes`, `e2e/fixtures/*.csv binary` becomes `e2e/fixtures/**/*.csv binary`
+  ([R-34](research.md#r-34)). Test first in `src/store/import.test.ts`, reading the fixtures from
+  disk:
+  - [SC-023](spec.md#sc-023): for each file of `banks/` and for `mybank-2026-10.csv`,
+    `soll-haben.csv` and `cash-notebook.csv`, the draft proposed has every required column
+    assigned, so only a name is missing before Save, and `parseRecords` with it gives no
+    unparsable row but the `offen` row and the closing balances;
+  - each fixture's encoding is proposed as the table says;
+  - the format saved for `banks/ing.csv` imports `banks/ing-longer.csv` ([FR-021](spec.md#fr-021));
+  - `cash-notebook.csv` proposes no sign inversion, and `suggestsInvertedSign` is true for its rows.
+- [ ] T152 [US11] The profile editor with a proposal, in `src/ui/screens/import/ProfileEditor.tsx`
+  and `ProfilePreview.tsx`: opened from an import, `ProfileForm` starts with
+  `proposeFormat(bytes)` of the file being imported, once; without a file, and for a saved profile
+  with Edit, it starts as before, and picking a sample file changes no setting. `columnOptions`
+  lists the texts of the record `headerIndex` gives, so a header below account details fills the
+  column selects. A line above the preview says that the app read these settings from the file and
+  that the preview shows how the rows read with them, shown only for a proposal; and while
+  `suggestsInvertedSign` holds for the preview's rows, a line in the info style under Invert the
+  sign says that every row would be an income, and that Invert the sign makes them expenses if
+  they are purchases. The editor never turns sign inversion on. The wording lives in
+  `src/ui/messages.ts` ([FR-133](spec.md#fr-133), [FR-134](spec.md#fr-134),
+  [ui.md](contracts/ui.md#profile-editor), [R-33](research.md#r-33)). Test first:
+  - in `src/ui/messages.test.ts`, the proposal line and the sign hint, which names Invert the sign;
+  - in `e2e/ui/profile-editor.spec.ts`: a new format from an import shows the proposal line and
+    the proposed values in every control; a new format without a file, and Edit with a sample file,
+    show neither the line nor changed settings; the sign hint shows for `cash-notebook.csv`, goes
+    once Invert the sign is on, and is absent for `mybank-2026-10.csv`; changing a proposed
+    setting changes the preview;
+  - in `e2e/us11-getting-started.spec.ts`, scenarios 3 – 8 and 18 with their fixtures: the editor
+    opens with the proposed settings and a preview without unparsable rows; typing a name and
+    selecting Save opens review; `soll-haben.csv` proposes debit and credit; `no-header.csv`
+    leaves the description unassigned; `cash-notebook.csv` shows every row as an income and the
+    hint; Edit with a sample file changes nothing; and `banks/ing.csv` proposes from its 13th line,
+    then its saved format imports `banks/ing-longer.csv`;
+  - `e2e/support/import.ts` and the specs that map the MyBank layout by hand still pass, choosing
+    each setting over the proposed one.
+- [ ] T153 [P] [US11] New account on Import: in `src/ui/screens/import/ImportScreen.tsx`, after
+  the accounts and a divider, the Account select ends with **New account…**, a sentinel value
+  that is never an account's id; choosing it keeps the select's value and opens `AccountDialog`
+  with no account. `AccountDialog` in `src/ui/screens/accounts/AccountDialog.tsx` gains an
+  optional `onCreated(account)`, called after a new account is saved and before `onClose`, the
+  account found by its name key in the state after the save; Import makes it the import's account,
+  and Accounts passes nothing ([FR-132](spec.md#fr-132), [R-35](research.md#r-35),
+  [ui.md](contracts/ui.md#import)). Test first:
+  - in `e2e/ui/import.spec.ts`: with only Cash, the select lists Cash and New account…; saving
+    "Giro" chooses it; Cancel leaves the account chosen before, and none when there was none; a
+    duplicate name such as "cash" shows `account-name-taken` in the dialog, which stays open with
+    what was entered;
+  - in `e2e/ui/accounts.spec.ts`, New account on Accounts works as before;
+  - in `e2e/us11-getting-started.spec.ts`, scenario 2: Giro, created on Import, is the import's
+    account and is listed on Accounts with its opening balance.
+- [ ] T154 [US11] "Bank CSV format" in every text the user sees ([FR-138](spec.md#fr-138),
+  [R-38](research.md#r-38), [ui.md](contracts/ui.md#import)): on Import, the select's label "Bank
+  CSV format", **Create new bank CSV format**, the list **Bank CSV formats** with, when none is
+  saved, a line that the first import of a bank's file sets one up, and the field description that
+  a bank CSV format tells the app how one bank's files are laid out and is set up once per bank;
+  the editor's titles "New bank CSV format" and "Edit bank CSV format", and its Save button; the
+  delete confirmation; and in `src/ui/messages.ts`, `profile-name-empty`, `profile-name-taken`,
+  `import-decoding-failed`, `import-missing-columns`, the row failures that name the profile, and
+  the backup refusals that name "a mapping profile". Codes, routes such as
+  `#/import/profiles/new`, the data model and the backup file keep "profile". Test first:
+  - in `src/ui/messages.test.ts`: no message says "profile", and the messages above say "bank CSV
+    format";
+  - in `e2e/ui/import.spec.ts`, the labels, the field description, the list's heading and its
+    empty line; in `e2e/ui/profile-editor.spec.ts`, the titles;
+  - `e2e/support/import.ts`, `e2e/ui/design.spec.ts`, `e2e/ui/shell.spec.ts` and
+    `e2e/us2-import.spec.ts` find the controls by their new names;
+  - in `e2e/us11-getting-started.spec.ts`, scenario 13.
+- [ ] T155 [US11] A sentence per screen and each term where it appears
+  ([FR-137](spec.md#fr-137), [FR-138](spec.md#fr-138), [R-38](research.md#r-38)): a new
+  `src/ui/components/ScreenIntro.tsx`, a paragraph in the secondary ink under a screen's heading,
+  always shown and never in place of an empty state; each screen passes its sentence, as the
+  [screen sentences](contracts/ui.md#screen-sentences) list them: Transactions, Import, Review,
+  the profile editor, Categories, Accounts, Budgets and Backup, whose texts of v1.6 become their
+  intro, Insights and Settings. The terms, each a muted line: under the chips of Uncategorised and
+  Unaccounted on each side of `CategoriesScreen.tsx`, what each holds, by role, so a rename keeps
+  it; the description of `ReconcileDialog.tsx`; the field description of Opening balance in
+  `AccountDialog.tsx`; the field description of the Destination in `TransactionForm.tsx` while
+  Transfer is chosen; and one line above review's rows in `ReviewScreen.tsx`. The wording lives in
+  each screen's code, as [ui.md](contracts/ui.md#shared-patterns) says. Test first:
+  - in each screen's spec of `e2e/ui/`: `transactions`, `import`, `review`, `profile-editor`,
+    `categories`, `accounts`, `budgets`, `backup`, `insights` and `settings`, the sentence under
+    the heading, also beside an empty state;
+  - in `e2e/ui/categories.spec.ts`, the lines of Uncategorised and Unaccounted, also after
+    renaming Uncategorised; in `e2e/ui/accounts.spec.ts`, Opening balance's description and
+    Reconcile's; in `e2e/ui/transaction-form.spec.ts`, Transfer's description, absent for an
+    expense; in `e2e/ui/review.spec.ts`, the line above the rows, once;
+  - in `e2e/us11-getting-started.spec.ts`, scenarios 1 and 12.
+- [ ] T156 [US11] The finance chat while AI features are off: `KeyDialog` moves from
+  `src/ui/screens/settings/SettingsScreen.tsx` to `src/ui/components/KeyDialog.tsx`, unchanged,
+  and both Settings and the chat pass `turnOnWithKey`; the URL of OpenAI's page for API keys moves
+  from `aiKey.createUrl` in `src/ui/messages.ts` to `OPENAI_API_KEYS_URL` in `src/ai/openai.ts`.
+  In `src/ui/screens/chat/FinanceChat.tsx`, while AI features are off, the sheet shows below any
+  stored conversation, in this order and with no field: two or three lines on what the chat
+  answers; `financeChat.examples` as a plain list under "For example", not buttons; a line that the
+  chat needs AI features, which send that data to OpenAI and need the user's own OpenAI API key,
+  and that OpenAI charges that account; the primary button **Turn on AI features**, which opens
+  `KeyDialog`; and the link "Questions about the app? Read the FAQ" to `#/faq`, which closes the
+  sheet as every link there does. When the key is accepted, the field and the example buttons show
+  at once and focus moves to the field. `financeChat.needsAiFeatures` and its link to Settings go;
+  `ai-features-off` says that Settings or the chat turns AI features on; review's line for Suggest
+  categories keeps its link to Settings ([FR-135](spec.md#fr-135), [FR-100](spec.md#fr-100),
+  [FR-095](spec.md#fr-095), [R-36](research.md#r-36), [ui.md](contracts/ui.md#finance-chat)). Test
+  first:
+  - in `src/ui/messages.test.ts`: the lines name the data of the current month and the 12 months
+    before it, general questions about money and questions about the app; the charge line names
+    the user's own OpenAI account; and `ai-features-off` names Settings and the chat;
+  - in `e2e/ui/finance-chat.spec.ts`, with AI features off: the parts in their order; the examples
+    are no buttons and send nothing; Turn on AI features opens "Turn on AI features?"; Cancel, and a
+    key `standInKeyCheck` refuses, leave the sheet as it was; an accepted key shows the field,
+    focused, and the example buttons; a stored conversation stays above and the next question
+    continues it; the FAQ link opens FAQ and closes the sheet;
+  - in `e2e/ui/settings.spec.ts`, the dialog's tests pass unchanged, and Settings shows AI features
+    on after the chat turned them on;
+  - in `e2e/messages.spec.ts`, `ai-features-off`'s new wording;
+  - in `e2e/us11-getting-started.spec.ts`, scenarios 9, 10 and the first half of 17: the key check
+    is the only request until the first question, which is sent without leaving the sheet
+    ([FR-061](spec.md#fr-061)).
+- [ ] T157 [US11] FAQ's text and the guide to the app: a new `src/ai/faq.ts` with `FAQ`, the four
+  topics of [FR-140](spec.md#fr-140) in order, each with its questions worded exactly as there,
+  each answer of paragraphs saying at least what FR-140 lists, the answer on importing with its
+  steps as a numbered list; a link written `[label](#/route)` inside the app, and
+  `[label](OPENAI_API_KEYS_URL)` the only one outside it; and `faqAsText()`, FAQ as plain text,
+  each link as its label. In `src/ai/appGuide.ts`, `APP_GUIDE` describes v1.7 in the words of its
+  screens: FAQ last in the sidebar; AI features need the user's own OpenAI API key, entered in the
+  dialog that Turn on AI features opens in Settings or in the chat, and work wherever the app runs,
+  in place of "only on the user's own computer"; New account on Import; the bank CSV format the
+  app proposes from a bank's first file; and it ends with the line `FAQ` and `faqAsText()`
+  ([FR-136](spec.md#fr-136), [FR-140](spec.md#fr-140), [FR-141](spec.md#fr-141),
+  [R-37](research.md#r-37), [ai.md](contracts/ai.md#finance-chat)). Test first:
+  - in `src/ai/faq.test.ts`: twelve questions under four topics, in the order and words of
+    FR-140; every link inside the app is a route `parseRoute` knows other than not-found, and the
+    only other link is `OPENAI_API_KEYS_URL`; the answer on importing links to Import and has
+    numbered steps; no answer says "profile"; and `faqAsText()` holds every question and answer,
+    with no `](`;
+  - in `src/ai/appGuide.test.ts`: the guide ends with `FAQ` and `faqAsText()`; it says that AI
+    features need the user's own OpenAI API key and work wherever the app runs, names Settings and
+    the chat, and no longer says "only on your own computer"; it names New account and FAQ; and it
+    says "bank CSV format" and never "profile";
+  - in `e2e/us11-getting-started.spec.ts`, scenario 11 and the second half of 17: the
+    instructions of a question to the stand-in hold the guide's line on the key and every FAQ
+    question and answer.
+- [ ] T158 [US11] The FAQ screen: the route `#/faq` in `src/ui/app/router.ts`; the sidebar entry
+  FAQ last in `src/ui/app/App.tsx`; and a new `src/ui/screens/faq/FaqScreen.tsx` with the heading
+  "FAQ", its `ScreenIntro`, and one card per topic of `FAQ` under its topic as an `h2`, each
+  question a native `<details>`, closed at first, whose `<summary>` is the question with a chevron
+  that turns when it opens; a small renderer in the same folder turns an answer's paragraphs and
+  numbered steps into elements and each link into an `<a>`: a hash link inside the app, and
+  `target="_blank"` and `rel="noopener noreferrer"` outside it ([FR-139](spec.md#fr-139),
+  [FR-084](spec.md#fr-084), [R-37](research.md#r-37), [ui.md](contracts/ui.md#faq)). Test first:
+  - in `src/ui/app/router.test.ts`, `#/faq` is the FAQ route;
+  - in `e2e/ui/shell.spec.ts`, the sidebar lists Transactions, Categories, Accounts, Budgets,
+    Backup, Insights, Settings, FAQ, and FAQ is the current entry on FAQ;
+  - in `e2e/ui/faq.spec.ts`: the four topics as headings and twelve questions, every answer
+    hidden; selecting a question, and Enter or Space on it, shows its answer and hides it again;
+    two answers open at once; each link inside the app opens its screen; the link to OpenAI opens
+    in a new tab; opening FAQ sends no request; and with the network disconnected after the first
+    visit, every question and answer shows ([FR-061](spec.md#fr-061),
+    [FR-123](spec.md#fr-123));
+  - in `e2e/us11-getting-started.spec.ts`, scenarios 14 – 16, and the link of the answer on
+    importing opening Import, also while an import waits for review.
+- [ ] T159 (Project owner, manual) On the branch, before the merge, on `localhost` (`npm start`):
+  walk the manual checks of [SC-024](spec.md#sc-024) – [SC-028](spec.md#sc-028) of
+  [quickstart.md](quickstart.md#manual-checks), the first four with a person who has never seen
+  the app, and SC-028 by following every step and every link of FAQ. Its commit sets the version to
+  `1.7.0` (constitution IX). What follows the merge, the tag `v1.7` on the phase's squash commit on
+  `main`, the checks at the web address and the Update from v1.6, is the
+  [release checklist](quickstart.md#release-checklist), which the next phase's first task checks.
+
+**Checkpoint**: every task of the phase is done. The phase is a release, v1.7 (constitution IX),
+MINOR because it adds features and removes none, and stores nothing new: the header search keeps
+no count of lines, and "bank CSV format" is a word on the screens, not a field. v1.6 and v1.7 read
+each other's databases and backups unchanged ([data-model.md](data-model.md#storage-layout),
+[R-34](research.md#r-34), [R-38](research.md#r-38)). Merge, then walk the
+[release checklist](quickstart.md#release-checklist).
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -1877,6 +2168,13 @@ which the local route served only on the owner's computer, now work wherever the
   with T143 at any time before T144. T139 can run beside T137 and T138, since it touches
   `src/ai/openai.ts`, `vite.config.ts` and the messages only. T144 may change `AI_MODELS`, so
   T145's checks follow it.
+- **Getting started (Phase 17)**: depends on Phase 16, whose key dialog the chat opens and whose
+  guide it rewrites; on US2, whose import and profile editor it changes; and on Phase 15, whose
+  worker serves FAQ offline. Order: T147 first, then T148 and T149 → T150 → T151 → T152 → T154,
+  with T153 at any time before T154; then T155 → T156 → T157 → T158 → T159. T150 reads
+  `COLUMN_NAMES` and `headerIndex` from T149; T151 joins T148 and T150; T152 needs both
+  `proposeFormat` and `headerIndex`; T153 and T154 both change `ImportScreen.tsx`; T156 moves the
+  URL that FAQ's text links to; T158 shows T157's `FAQ` with T155's `ScreenIntro`.
 
 ### Within Each Task and Story
 
@@ -1904,6 +2202,10 @@ which the local route served only on the owner's computer, now work wherever the
 - **Phase 16**: T139 alongside T137 and T138, and T143 alongside any task of the phase before
   T144. T140 – T142 in order: each changes `src/ui/messages.ts` and the stand-ins of
   `e2e/support/ai.ts`.
+- **Phase 17**: T148 and T149 together, and T153 alongside T148 – T152. Every task of the phase
+  adds scenarios to `e2e/us11-getting-started.spec.ts`, and most add a test to
+  `src/ui/messages.test.ts`, so the test commit that creates each file comes first, and the others
+  add to it.
 - **Ahead of their phase**: the domain modules of later stories depend only on Foundational and on
   T024/T025, so another agent can build them early: T034–T039, T053–T054, T058, T063, T068 and T072.
 
@@ -1980,6 +2282,15 @@ Task: "T139 [US10] The key check in src/ai/openai.ts"
 Task: "T143 [US10] The model check in scripts/check-models.ts and scripts/modelCheck.ts"
 ```
 
+## Parallel Example: User Story 11
+
+```bash
+# First wave, after T147:
+Task: "T148 [US11] The encoding of a new file in src/files/csv.ts"
+Task: "T149 [US11] Column names below account details in src/domain/import/columnNames.ts and rows.ts"
+Task: "T153 [US11] New account on Import in ImportScreen.tsx and AccountDialog.tsx"
+```
+
 ---
 
 ## Implementation Strategy
@@ -2009,6 +2320,9 @@ Task: "T143 [US10] The model check in scripts/check-models.ts and scripts/modelC
     the user starts.
 12. US10, v1.6, gives the AI features to every user, with their own key and model, and removes
     the local route; it arrives through US9's first real Update.
+13. US11, v1.7, gets a new user started: New account and a proposed bank CSV format on Import,
+    bank files with account details above the column names, the chat turning AI features on, a
+    sentence per screen, terms explained where they appear, and FAQ.
 
 After each story: `npm run verify`, a push to `main`, and the post-push check on localhost and Vercel
 (constitution, quality gates).
