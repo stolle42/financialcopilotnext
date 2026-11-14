@@ -1960,7 +1960,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - each fixture's encoding is proposed as the table says;
   - the format saved for `banks/ing.csv` imports `banks/ing-longer.csv` ([FR-021](spec.md#fr-021));
   - `cash-notebook.csv` proposes no sign inversion, and `suggestsInvertedSign` is true for its rows.
-- [ ] T152 [US11] The profile editor with a proposal, in `src/ui/screens/import/ProfileEditor.tsx`
+- [x] T152 [US11] The profile editor with a proposal, in `src/ui/screens/import/ProfileEditor.tsx`
   and `ProfilePreview.tsx`: opened from an import, `ProfileForm` starts with
   `proposeFormat(bytes)` of the file being imported, once; without a file, and for a saved profile
   with Edit, it starts as before, and picking a sample file changes no setting. `columnOptions`

@@ -334,6 +334,13 @@ export const updateNotice = (available: string, running: string) =>
 /** Added to the Backup note on persistent storage while the header offers Install app (FR-075). */
 export const installHint = "Installing the app helps the browser keep the data.";
 
+/** The profile editor's lines for a format proposed from the file being imported (FR-133, FR-134). */
+export const proposal = {
+  line: "The app read these settings from the file. The preview shows how its rows read with them.",
+  signHint:
+    "Every row would be an income. If these are purchases, Invert the sign makes them expenses.",
+};
+
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";
 

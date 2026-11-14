@@ -1,3 +1,4 @@
+import { InfoIcon } from "lucide-react";
 import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { nameKey } from "@/domain/names";
 import {
@@ -7,6 +8,8 @@ import {
   withHeaderRow,
   type ProfileDraft,
 } from "@/domain/import/profiles";
+import { suggestsInvertedSign } from "@/domain/import/propose";
+import { headerIndex } from "@/domain/import/rows";
 import {
   DATE_FORMATS,
   ENCODINGS,
@@ -16,7 +19,7 @@ import {
   type Refusal,
 } from "@/domain/types";
 import { decodeFile, tokenise } from "@/files/csv";
-import { saveProfile } from "@/store/import";
+import { proposeFormat, saveProfile } from "@/store/import";
 import { useStore, useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
 import { Button } from "@/ui/components/ui/button";
@@ -37,9 +40,9 @@ import {
 } from "@/ui/components/ui/select";
 import { Switch } from "@/ui/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/ui/components/ui/toggle-group";
-import { messageFor, type MessageCode } from "@/ui/messages";
+import { messageFor, proposal, type MessageCode } from "@/ui/messages";
 import { importChosenFile, NEW_PROFILE, useImportState } from "./importState";
-import { ProfilePreview, type SampleRecords } from "./ProfilePreview";
+import { ProfilePreview, usePreviewRead, type SampleRecords } from "./ProfilePreview";
 
 /** Header text with a header row, a 0-based position without one (data-model.md). */
 type Column = string | number;
@@ -66,11 +69,17 @@ const decimalSeparators: { value: DecimalSeparator; label: string }[] = [
 const columnLabel = (column: Column) =>
   typeof column === "number" ? `Column ${column + 1}` : column;
 
-/** The sample file's header texts, or "Column 1…n" with a sample value without a header row. */
-function columnOptions(sample: SampleRecords, hasHeaderRow: boolean): ColumnOption[] {
+/**
+ * The texts of the sample's header, which may sit below a bank's account details (R-34), or
+ * "Column 1…n" with a sample value without a header row.
+ */
+function columnOptions(sample: SampleRecords, draft: ProfileDraft): ColumnOption[] {
   if (!Array.isArray(sample)) return [];
-  if (hasHeaderRow) {
-    const headers = (sample[0] ?? []).map((cell) => cell.trim()).filter(Boolean);
+  if (draft.hasHeaderRow) {
+    // Columns a file lacks still leave its column names to choose from.
+    const found = headerIndex(sample, draft);
+    const header = typeof found === "number" ? found : headerIndex(sample, newProfileDraft());
+    const headers = (sample[header as number] ?? []).map((cell) => cell.trim()).filter(Boolean);
     return [...new Set(headers)].map((header) => ({ value: header, label: header }));
   }
   const records = sample.filter((record) => record.some((cell) => cell.trim() !== ""));
@@ -173,9 +182,12 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
   // Opened from an import: the file being imported is the sample, and saving continues the import.
   const importing =
     profile === null && importState.profileId === NEW_PROFILE ? importState.file : null;
-  const [draft, setDraft] = useState<ProfileDraft>(() =>
-    profile ? draftOfProfile(profile) : newProfileDraft(),
-  );
+  // A new format for the file being imported starts with what the file tells, read once (FR-133).
+  const proposed = importing !== null;
+  const [draft, setDraft] = useState<ProfileDraft>(() => {
+    if (profile) return draftOfProfile(profile);
+    return importing ? proposeFormat(importing.bytes) : newProfileDraft();
+  });
   const [sampleBytes, setSampleBytes] = useState<Uint8Array | null>(importing?.bytes ?? null);
   const [errors, setErrors] = useState<Errors>({});
 
@@ -185,10 +197,8 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
     const text = decodeFile(sampleBytes, draft.encoding);
     return typeof text === "string" ? tokenise(text) : text;
   }, [sampleBytes, draft.encoding]);
-  const options = useMemo(
-    () => columnOptions(sample, draft.hasHeaderRow),
-    [sample, draft.hasHeaderRow],
-  );
+  const options = useMemo(() => columnOptions(sample, draft), [sample, draft]);
+  const read = usePreviewRead(draft, sample);
 
   // Each value comes from `options`, whose variant matches `hasHeaderRow`.
   const setColumn = (
@@ -407,9 +417,17 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
             </FieldDescription>
           </Field>
         )}
+        {suggestsInvertedSign(draft, read.rows) && (
+          <p className="flex items-center gap-3 text-sm">
+            <InfoIcon aria-hidden className="size-5 shrink-0 text-primary" />
+            {proposal.signHint}
+          </p>
+        )}
       </FieldGroup>
 
-      <ProfilePreview draft={draft} sample={sample} />
+      <ProfilePreview draft={draft} sample={sample} read={read}>
+        {proposed && <p className="text-sm text-muted-foreground">{proposal.line}</p>}
+      </ProfilePreview>
 
       {errors.form && (
         <p role="alert" className="text-sm text-destructive">
