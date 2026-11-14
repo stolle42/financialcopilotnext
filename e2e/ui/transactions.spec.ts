@@ -33,7 +33,7 @@ test("Transactions is the first entry in the sidebar", async ({ page }) => {
     "Backup",
     "Insights",
     "Settings",
-    "FAQ",
+    "Help",
   ]);
   await links.first().click();
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();

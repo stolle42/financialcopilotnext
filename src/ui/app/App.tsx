@@ -34,7 +34,7 @@ const sidebarEntries: { route: Route["name"]; label: string; href: string }[] = 
   { route: "backup", label: "Backup", href: "#/backup" },
   { route: "insights", label: "Insights", href: "#/insights" },
   { route: "settings", label: "Settings", href: "#/settings" },
-  { route: "faq", label: "FAQ", href: "#/faq" },
+  { route: "faq", label: "Help", href: "#/faq" },
 ];
 
 /**

@@ -6,7 +6,6 @@ import {
   putBudgets,
   putRecords,
   reconcileAccount,
-  screenIntro,
   storedRecord,
   storedRecords,
   storedTransactions,
@@ -1105,13 +1104,4 @@ test.describe("the finance chat (FR-100 – FR-111)", () => {
     await chatButton(page).click();
     await expect(conversation(page)).toHaveCount(0);
   });
-});
-
-test("says under the heading what Insights is for, also beside the empty state (FR-137)", async ({
-  page,
-}) => {
-  await page.goto("/#/insights");
-  await expect(screenIntro(page)).toHaveText(
-    "Where your money went over a period, by category, and how your budgets stand.",
-  );
 });

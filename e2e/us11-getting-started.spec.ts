@@ -73,18 +73,16 @@ async function discardImport(page: Page) {
   await expect(page).toHaveURL(/#\/import$/);
 }
 
-test("1. every screen says under its heading, in one or two sentences, what it is for (FR-137)", async ({
+test("1. every screen but Categories and Insights says under its heading, in one or two sentences, what it is for (FR-137)", async ({
   page,
 }) => {
   const screens: [path: string, heading: string][] = [
     ["/", "Transactions"],
     ["/#/import", "Import"],
     ["/#/import/profiles/new", "New bank CSV format"],
-    ["/#/categories", "Categories"],
     ["/#/accounts", "Accounts"],
     ["/#/budgets", "Budgets"],
     ["/#/backup", "Backup"],
-    ["/#/insights", "Insights"],
     ["/#/settings", "Settings"],
     ["/#/faq", "FAQ"],
   ];
@@ -101,6 +99,17 @@ test("1. every screen says under its heading, in one or two sentences, what it i
   await page.goto("/#/import/review");
   await expect(main(page).getByRole("button", { name: "Go to Import" })).toBeVisible();
   await expect(screenIntro(page)).toBeVisible();
+
+  // Their headings say enough.
+  const quiet: [path: string, heading: string][] = [
+    ["/#/categories", "Categories"],
+    ["/#/insights", "Insights"],
+  ];
+  for (const [path, heading] of quiet) {
+    await page.goto(path);
+    await expect(main(page).getByRole("heading", { name: heading, level: 1 })).toBeVisible();
+    await expect(screenIntro(page), heading).toHaveCount(0);
+  }
 });
 
 test("2. Import's Account select offers New account…, which creates Giro and chooses it (FR-132)", async ({
@@ -322,8 +331,8 @@ test("14 and 15. FAQ comes last in the sidebar, its answers hidden, and the answ
   page,
 }) => {
   await page.goto("/");
-  await expect(sidebar(page).getByRole("link").last()).toHaveText("FAQ");
-  await sidebar(page).getByRole("link", { name: "FAQ" }).click();
+  await expect(sidebar(page).getByRole("link").last()).toHaveText("Help");
+  await sidebar(page).getByRole("link", { name: "Help" }).click();
   await expect(main(page).getByRole("heading", { level: 2 })).toHaveText(
     FAQ().map((topic) => topic.topic),
   );

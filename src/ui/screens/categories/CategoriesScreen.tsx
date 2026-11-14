@@ -12,7 +12,6 @@ import { Input } from "@/ui/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/components/ui/tabs";
 import { messageFor, type MessageCode } from "@/ui/messages";
 import { NewCategoryDialog } from "./NewCategoryDialog";
-import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -205,9 +204,6 @@ export function CategoriesScreen() {
         <h1 className="text-3xl font-semibold">Categories</h1>
         <Button onClick={() => setCreating(true)}>New category</Button>
       </div>
-      <ScreenIntro>
-        Sort your expenses and income into categories of your own. Insights and budgets use them.
-      </ScreenIntro>
       <Tabs value={side} onValueChange={(value) => setSide(value as Side)}>
         <TabsList>
           <TabsTrigger value="expense">Expenses</TabsTrigger>

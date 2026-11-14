@@ -40,7 +40,7 @@ as the current entry, since an import feeds its list ([FR-085](../spec.md#fr-085
 | `#/backup` | [Backup](#backup) | 5 |
 | `#/insights` | [Insights](#insights) | 6 |
 | `#/settings` | [Settings](#settings) | 7 |
-| `#/faq` | [FAQ](#faq) (v1.7) | 8 |
+| `#/faq` | [FAQ](#faq) (v1.7) | 8, as Help |
 
 Routes use the URL hash so the build works from any static host or local file ([R-04](../research.md#r-04)).
 
@@ -469,7 +469,8 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 | Screen sentence | One or two sentences under each screen's heading, in the secondary ink, always shown: `ScreenIntro` ([FR-137](../spec.md#fr-137), [R-38](../research.md#r-38)). It never replaces an empty state |
 
 <a id="screen-sentences"></a>
-**Screen sentences** (v1.7). The wording lives in each screen's code; each says at least:
+**Screen sentences** (v1.7). The wording lives in each screen's code; each says at least what
+follows. Categories and Insights have none, since their headings say enough:
 
 | Screen | What its sentence says |
 |---|---|
@@ -477,11 +478,9 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 | Import | Turns a bank's CSV file into transactions, which wait for review before they enter the ledger |
 | Review | Give each vendor group a category, then confirm; nothing enters the ledger before Confirm |
 | Profile editor | Tells the app how this bank's files are laid out; set up once, it serves every later file of the bank |
-| Categories | Sort expenses and income into categories of their own; Insights and budgets use them |
 | Accounts | Where the money is held; when a balance here differs from the bank's, Reconcile it |
 | Budgets | A monthly limit per expense category, which every month starts again from zero (v1.6's text) |
 | Backup | Everything the app holds lives only in this browser; a backup file keeps it safe and moves it to another computer |
-| Insights | Where the money went over a period, by category, and how the budgets stand |
 | Settings | AI features, the model, and updates of the app |
 | FAQ | Answers to questions users often have, with links to where to act |
 

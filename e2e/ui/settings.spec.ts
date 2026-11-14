@@ -64,7 +64,7 @@ test("comes last in the sidebar but for FAQ (FR-084, FR-139)", async ({ page }) 
     "Backup",
     "Insights",
     "Settings",
-    "FAQ",
+    "Help",
   ]);
   await links.getByText("Settings", { exact: true }).click();
   await expect(page).toHaveURL(/#\/settings$/);

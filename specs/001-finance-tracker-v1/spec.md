@@ -558,8 +558,8 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
 13. **Given** Import, **Then** it calls a mapping profile a bank CSV format, offers **Create new
     bank CSV format**, lists the saved ones under **Bank CSV formats**, and says beside the choice
     what a bank CSV format is ([FR-138](#fr-138)).
-14. **Given** any screen, **Then** the sidebar lists FAQ last; **When** the user opens it, **Then**
-    it shows its questions grouped by topic, every answer hidden ([FR-084](#fr-084),
+14. **Given** any screen, **Then** the sidebar lists Help last; **When** the user opens it,
+    **Then** FAQ shows its questions grouped by topic, every answer hidden ([FR-084](#fr-084),
     [FR-139](#fr-139)).
 15. **Given** FAQ, **When** the user selects "Entering every bank transaction by hand is a lot of
     work. How can I make it easier?", **Then** its answer shows the steps of a CSV import, with a
@@ -1002,8 +1002,8 @@ them changes states the new behaviour and names the change.
   and category filters ([FR-016](#fr-016)). A start after the end MUST be refused with a message
   at the fields ([FR-068](#fr-068)).
 - <a id="fr-084"></a>**FR-084**: The sidebar MUST list the screens in this order: Transactions,
-  Categories, Accounts, Budgets, Backup, Insights, Settings, FAQ. Changed in v1.2: Settings
-  ([FR-095](#fr-095)). Changed in v1.7: FAQ ([FR-139](#fr-139)).
+  Categories, Accounts, Budgets, Backup, Insights, Settings, Help. Changed in v1.2: Settings
+  ([FR-095](#fr-095)). Changed in v1.7: Help, which opens FAQ ([FR-139](#fr-139)).
 - <a id="fr-085"></a>**FR-085**: Import MUST NOT have its own sidebar entry. It MUST open from a
   button on the transaction list, since an import feeds that list. On Import and the screens
   reached from it, the sidebar MUST mark Transactions as the current screen.
@@ -1461,8 +1461,9 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   new profile starts from ([FR-133](#fr-133)).
 - <a id="fr-137"></a>**FR-137**: Under its heading, each screen MUST say in one or two plain
   sentences what it is for and, where that helps, when to use it: Transactions, Import, Review,
-  the profile editor, Categories, Accounts, Budgets, Backup, Insights, Settings and FAQ. A screen
-  that already says so, such as Budgets, keeps its text. The sentences MUST always show, with
+  the profile editor, Accounts, Budgets, Backup, Settings and FAQ. A screen that already says so,
+  such as Budgets, keeps its text. Categories and Insights have no such sentence: their headings
+  say enough. The sentences MUST always show, with
   nothing to open and nothing to dismiss, and MUST NOT replace an empty state ([FR-065](#fr-065)).
 - <a id="fr-138"></a>**FR-138**: The terms a new user is unlikely to know MUST be explained in one
   plain sentence where they appear, with nothing to open and nothing to dismiss:
@@ -1485,7 +1486,8 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   bank CSV format** on Import and **Bank CSV formats** for the list of saved ones. This spec keeps
   the name mapping profile.
 - <a id="fr-139"></a>**FR-139**: A screen **FAQ** MUST answer the questions that users of the app
-  often have ([FR-140](#fr-140)). The sidebar MUST list it last ([FR-084](#fr-084)).
+  often have ([FR-140](#fr-140)). The sidebar MUST list it last, as **Help**
+  ([FR-084](#fr-084)).
   - The questions MUST be grouped by topic, each topic under its heading, in the order of
     [FR-140](#fr-140). Each question MUST show its answer when selected and hide it when selected
     again. Every answer starts hidden, so the questions show at a glance, and several answers MAY

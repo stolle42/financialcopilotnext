@@ -138,7 +138,7 @@ test("opening FAQ and every answer sends no request outside the app (FR-061)", a
   page.on("request", (request) => requests.push(request.url()));
   await page
     .getByRole("navigation", { name: "Screens" })
-    .getByRole("link", { name: "FAQ" })
+    .getByRole("link", { name: "Help" })
     .click();
   await expect(main(page).getByRole("heading", { name: "FAQ", level: 1 })).toBeVisible();
   await openAll(page);

@@ -4,7 +4,6 @@ import { messageFor } from "../../src/ui/messages";
 import {
   addTransaction,
   putBudgets,
-  screenIntro,
   storedBudgets,
   storedRecords,
   storedTransactions,
@@ -336,13 +335,6 @@ test.describe("deleting (FR-034)", () => {
       expect.objectContaining({ categoryId: groceries!.id }),
     ]);
   });
-});
-
-test("says under the heading what Categories is for (FR-137)", async ({ page }) => {
-  await openCategories(page);
-  await expect(screenIntro(page)).toHaveText(
-    "Sort your expenses and income into categories of your own. Insights and budgets use them.",
-  );
 });
 
 const UNCATEGORISED_LINE = "Holds what is not sorted into a category yet.";

@@ -44,14 +44,14 @@ test("lists FAQ last in the sidebar, and marks it current while FAQ is open (FR-
     "Backup",
     "Insights",
     "Settings",
-    "FAQ",
+    "Help",
   ]);
   await sidebar.getByRole("link").last().click();
   await expect(page).toHaveURL(/#\/faq$/);
   await expect(
     page.getByRole("main").getByRole("heading", { name: "FAQ", level: 1 }),
   ).toBeVisible();
-  await expect(sidebar.locator('[aria-current="page"]')).toHaveText(["FAQ"]);
+  await expect(sidebar.locator('[aria-current="page"]')).toHaveText(["Help"]);
 });
 
 test("opens Transactions for an unknown link (FR-063)", async ({ page }) => {

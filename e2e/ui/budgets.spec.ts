@@ -51,7 +51,7 @@ test.describe("the screen", () => {
       "Backup",
       "Insights",
       "Settings",
-      "FAQ",
+      "Help",
     ]);
     await links.nth(3).click();
     await expect(page).toHaveURL(/#\/budgets$/);

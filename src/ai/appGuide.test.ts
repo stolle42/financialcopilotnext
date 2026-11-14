@@ -15,7 +15,7 @@ describe("APP_GUIDE", () => {
     "Backup",
     "Insights",
     "Settings",
-    "FAQ",
+    "Help",
   ])("describes the screen %s of the sidebar", (screen) => {
     expect(APP_GUIDE).toContain(screen);
   });
@@ -41,8 +41,9 @@ describe("APP_GUIDE", () => {
     expect(APP_GUIDE).toContain(label);
   });
 
-  test("lists FAQ last in the sidebar (FR-084, FR-136)", () => {
-    expect(APP_GUIDE).toContain("Backup, Insights, Settings and FAQ");
+  test("lists Help last in the sidebar, which opens FAQ (FR-084, FR-136, FR-139)", () => {
+    expect(APP_GUIDE).toContain("Backup, Insights, Settings and Help");
+    expect(APP_GUIDE).toContain("Help opens FAQ");
   });
 
   test("says AI features need the user's own OpenAI API key, entered from Settings or the chat, and work wherever the app runs (FR-136)", () => {
