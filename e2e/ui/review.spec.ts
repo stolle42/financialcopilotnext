@@ -697,8 +697,9 @@ test("says under the heading what review is for, also with no import waiting (FR
 test("says once, above the rows, what the Transfer switch is for (FR-138)", async ({ page }) => {
   await saveMyBankProfile(page);
   await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
-  await expect(reviewList(page).getByText(TRANSFER_LINE)).toHaveCount(1);
-  const line = (await reviewList(page).getByText(TRANSFER_LINE).boundingBox())!;
+  const main = page.getByRole("main");
+  await expect(main.getByText(TRANSFER_LINE)).toHaveCount(1);
+  const line = (await main.getByText(TRANSFER_LINE).boundingBox())!;
   const first = (await vendorGroups(page).first().boundingBox())!;
   expect(line.y).toBeLessThan(first.y);
 });

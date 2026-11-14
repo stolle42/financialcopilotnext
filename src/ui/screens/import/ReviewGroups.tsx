@@ -139,34 +139,37 @@ export function ReviewGroups({
     void saved(assignGroup(store, group, choice));
 
   return (
-    <section aria-label="Rows to review" className="flex flex-col gap-3">
+    <>
+      {/* Above the region, whose every child is a card (FR-114). */}
       {view.groups.length > 0 && (
         <p className="text-sm text-muted-foreground">
           Transfer is for money moved between two of your own accounts. It counts as neither
           spending nor income.
         </p>
       )}
-      {view.groups.map((group) => (
-        <GroupCard
-          key={`${group.side} ${group.key}`}
-          group={group}
-          batchAccountId={batchAccountId}
-          onChooseGroup={chooseGroup}
-          onChooseRow={chooseRow}
-        />
-      ))}
-      {view.plainRows.length > 0 && (
-        <ul aria-label="Plain rows" className="surface flex flex-col divide-y">
-          {view.plainRows.map((row) => (
-            <ReviewRow
-              key={row.rowNumber}
-              row={row}
-              batchAccountId={batchAccountId}
-              onChoose={chooseRow}
-            />
-          ))}
-        </ul>
-      )}
-    </section>
+      <section aria-label="Rows to review" className="flex flex-col gap-3">
+        {view.groups.map((group) => (
+          <GroupCard
+            key={`${group.side} ${group.key}`}
+            group={group}
+            batchAccountId={batchAccountId}
+            onChooseGroup={chooseGroup}
+            onChooseRow={chooseRow}
+          />
+        ))}
+        {view.plainRows.length > 0 && (
+          <ul aria-label="Plain rows" className="surface flex flex-col divide-y">
+            {view.plainRows.map((row) => (
+              <ReviewRow
+                key={row.rowNumber}
+                row={row}
+                batchAccountId={batchAccountId}
+                onChoose={chooseRow}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }
