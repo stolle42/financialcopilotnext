@@ -687,7 +687,7 @@ test.describe("the finance chat (FR-100 – FR-111)", () => {
 
     await expect(page).toHaveURL(/#\/faq$/);
     await expect(chat(page)).toBeHidden();
-    await expect(main(page).getByRole("heading", { name: "FAQ", level: 1 })).toBeVisible();
+    await expect(main(page).getByRole("heading", { name: "Help", level: 1 })).toBeVisible();
 
     await chatButton(page).click();
     await expect(chat(page)).toBeVisible();

@@ -559,7 +559,7 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
     bank CSV format**, lists the saved ones under **Bank CSV formats**, and says beside the choice
     what a bank CSV format is ([FR-138](#fr-138)).
 14. **Given** any screen, **Then** the sidebar lists Help last; **When** the user opens it,
-    **Then** FAQ shows its questions grouped by topic, every answer hidden ([FR-084](#fr-084),
+    **Then** Help shows FAQ's questions grouped by topic, every answer hidden ([FR-084](#fr-084),
     [FR-139](#fr-139)).
 15. **Given** FAQ, **When** the user selects "Entering every bank transaction by hand is a lot of
     work. How can I make it easier?", **Then** its answer shows the steps of a CSV import, with a
@@ -1486,8 +1486,9 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   bank CSV format** on Import and **Bank CSV formats** for the list of saved ones. This spec keeps
   the name mapping profile.
 - <a id="fr-139"></a>**FR-139**: A screen **FAQ** MUST answer the questions that users of the app
-  often have ([FR-140](#fr-140)). The sidebar MUST list it last, as **Help**
-  ([FR-084](#fr-084)).
+  often have ([FR-140](#fr-140)). The sidebar MUST list it last ([FR-084](#fr-084)). The screens
+  MUST call it **Help**, in the sidebar, as its heading and in the chat's link to it; this spec
+  keeps the name FAQ.
   - The questions MUST be grouped by topic, each topic under its heading, in the order of
     [FR-140](#fr-140). Each question MUST show its answer when selected and hide it when selected
     again. Every answer starts hidden, so the questions show at a glance, and several answers MAY

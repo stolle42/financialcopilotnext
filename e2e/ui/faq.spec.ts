@@ -37,7 +37,7 @@ const entryOf = (page: Page, text: string) =>
 
 async function openFaq(page: Page) {
   await page.goto("/#/faq");
-  await expect(main(page).getByRole("heading", { name: "FAQ", level: 1 })).toBeVisible();
+  await expect(main(page).getByRole("heading", { name: "Help", level: 1 })).toBeVisible();
 }
 
 /** Opens every answer; going to FAQ from FAQ keeps those open before. */
@@ -110,7 +110,7 @@ test("each link inside the app opens its screen (FR-139)", async ({ page }) => {
     await openAll(page);
     await main(page).locator(`a[href="${target}"]`).first().click();
     await expect(page).toHaveURL(new RegExp(`${target.replaceAll("/", "\\/")}$`));
-    await expect(main(page).getByRole("heading", { level: 1 })).not.toHaveText("FAQ");
+    await expect(main(page).getByRole("heading", { level: 1 })).not.toHaveText("Help");
   }
 });
 
@@ -140,7 +140,7 @@ test("opening FAQ and every answer sends no request outside the app (FR-061)", a
     .getByRole("navigation", { name: "Screens" })
     .getByRole("link", { name: "Help" })
     .click();
-  await expect(main(page).getByRole("heading", { name: "FAQ", level: 1 })).toBeVisible();
+  await expect(main(page).getByRole("heading", { name: "Help", level: 1 })).toBeVisible();
   await openAll(page);
   expect(requests.filter((url) => !url.startsWith(baseURL!))).toEqual([]);
 });
@@ -160,7 +160,7 @@ test.describe("without a network connection (FR-123)", () => {
     await context.setOffline(true);
     await page.goto("/#/faq");
     await page.reload();
-    await expect(main(page).getByRole("heading", { name: "FAQ", level: 1 })).toBeVisible();
+    await expect(main(page).getByRole("heading", { name: "Help", level: 1 })).toBeVisible();
     await expect(main(page).locator("summary")).toHaveText(QUESTIONS);
     await openAll(page);
     for (const entry of await entries(page).all()) await expect(answer(entry)).toBeVisible();

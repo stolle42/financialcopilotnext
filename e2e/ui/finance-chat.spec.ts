@@ -375,7 +375,7 @@ test.describe("while AI features are off (FR-135)", () => {
     await expect(page).toHaveURL(/#\/faq$/);
     await expect(chat(page)).toBeHidden();
     await expect(
-      page.getByRole("main").getByRole("heading", { name: "FAQ", level: 1 }),
+      page.getByRole("main").getByRole("heading", { name: "Help", level: 1 }),
     ).toBeVisible();
   });
 });

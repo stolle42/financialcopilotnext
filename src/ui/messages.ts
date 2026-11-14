@@ -327,7 +327,7 @@ export const financeChat = {
     "The chat needs AI features, which send that data to OpenAI and need your own OpenAI API " +
     "key. OpenAI charges your own OpenAI account for each question.",
   turnOn: "Turn on AI features",
-  faqLink: "Questions about the app? Read the FAQ",
+  faqLink: "Questions about the app? See Help",
   thinking: "Thinking…",
   stop: "Stop",
   stopped: "Stopped",

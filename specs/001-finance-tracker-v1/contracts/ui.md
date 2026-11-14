@@ -144,7 +144,7 @@ Routes use the URL hash so the build works from any static host or local file ([
   - **Turn on AI features**, a primary button that opens the dialog of [Settings](#settings).
     When AI features turn on there, the field and the example questions as buttons show at once,
     and focus moves to the field. Cancel, and a key that is not accepted, leave the sheet as it was;
-  - a link, "Questions about the app? Read the FAQ", to [FAQ](#faq).
+  - a link, "Questions about the app? See Help", to [FAQ](#faq).
 
   A stored conversation still shows, above them. Changed in v1.7: v1.6 showed one line with a link
   to Settings.
@@ -437,7 +437,7 @@ Routes use the URL hash so the build works from any static host or local file ([
 [FR-139](../spec.md#fr-139) – [FR-141](../spec.md#fr-141), [R-37](../research.md#r-37). Added in
 v1.7.
 
-- Under the heading "FAQ" and the screen's sentence, one card per topic of
+- Under the heading "Help" and the screen's sentence, one card per topic of
   [FR-140](../spec.md#fr-140), in its order, each under its topic as an `h2`.
 - Each question is a disclosure: a `<details>` element, closed at first, whose `<summary>` is the
   question, with a chevron that turns when it opens. Selecting the question, or Enter or Space on

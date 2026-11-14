@@ -84,7 +84,7 @@ test("1. every screen but Categories and Insights says under its heading, in one
     ["/#/budgets", "Budgets"],
     ["/#/backup", "Backup"],
     ["/#/settings", "Settings"],
-    ["/#/faq", "FAQ"],
+    ["/#/faq", "Help"],
   ];
   for (const [path, heading] of screens) {
     await page.goto(path);

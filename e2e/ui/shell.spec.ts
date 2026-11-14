@@ -49,7 +49,7 @@ test("lists FAQ last in the sidebar, and marks it current while FAQ is open (FR-
   await sidebar.getByRole("link").last().click();
   await expect(page).toHaveURL(/#\/faq$/);
   await expect(
-    page.getByRole("main").getByRole("heading", { name: "FAQ", level: 1 }),
+    page.getByRole("main").getByRole("heading", { name: "Help", level: 1 }),
   ).toBeVisible();
   await expect(sidebar.locator('[aria-current="page"]')).toHaveText(["Help"]);
 });
@@ -104,7 +104,7 @@ test.describe("the finance chat's button (contracts/ui.md, finance chat; FR-100)
     { path: "/#/backup", heading: "Backup" },
     { path: "/#/insights", heading: "Insights" },
     { path: "/#/settings", heading: "Settings" },
-    { path: "/#/faq", heading: "FAQ" },
+    { path: "/#/faq", heading: "Help" },
   ];
   const background = (locator: Locator) =>
     locator.evaluate((element) => getComputedStyle(element).backgroundColor);

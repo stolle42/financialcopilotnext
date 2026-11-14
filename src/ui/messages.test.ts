@@ -246,7 +246,7 @@ describe("messages", () => {
     expect(chat.charges).toMatch(/your own OpenAI API key/);
     expect(chat.charges).toMatch(/charges your (own )?OpenAI account/);
     expect(chat.turnOn).toBe("Turn on AI features");
-    expect(chat.faqLink).toBe("Questions about the app? Read the FAQ");
+    expect(chat.faqLink).toBe("Questions about the app? See Help");
     expect(chat).not.toHaveProperty("needsAiFeatures");
   });
 
