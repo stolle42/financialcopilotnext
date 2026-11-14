@@ -1859,7 +1859,7 @@ The scenarios that name a demonstration file use a fixture of the same layout, s
 not part of the repository. Every fixture of this phase holds made-up rows only
 ([Assumptions](spec.md#assumptions)).
 
-- [ ] T147 (Project owner, with Claude) Check that every step of v1.6's
+- [x] T147 (Project owner, with Claude) Check that every step of v1.6's
   [release checklist](quickstart.md#release-checklist) was done: the v1.6 pull request
   squash-merged into `main`, the tag `v1.6` on that squash commit and pushed, CI's `test` and
   `deployed` jobs green, and the manual checks, the [AI features](quickstart.md#ai-features) and
