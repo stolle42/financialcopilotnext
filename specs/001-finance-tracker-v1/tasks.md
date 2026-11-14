@@ -2112,7 +2112,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
     [FR-123](spec.md#fr-123));
   - in `e2e/us11-getting-started.spec.ts`, scenarios 14 – 16, and the link of the answer on
     importing opening Import, also while an import waits for review.
-- [ ] T159 (Project owner, manual) On the branch, before the merge, on `localhost` (`npm start`):
+- [x] T159 (Project owner, manual) On the branch, before the merge, on `localhost` (`npm start`):
   walk the manual checks of [SC-024](spec.md#sc-024) – [SC-028](spec.md#sc-028) of
   [quickstart.md](quickstart.md#manual-checks), the first four with a person who has never seen
   the app, and SC-028 by following every step and every link of FAQ. Its commit sets the version to
