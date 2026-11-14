@@ -2,9 +2,12 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { openAiError, responseWith, streamed, type PostedRequest } from "@/ai/testing";
-import type { ProfileDraft } from "@/domain/import/profiles";
+import { profileOf, type ProfileDraft } from "@/domain/import/profiles";
+import { suggestsInvertedSign } from "@/domain/import/propose";
+import { parseRecords } from "@/domain/import/rows";
 import { suggestionRequest } from "@/domain/import/suggestions";
 import type { MappingProfile, ParsedRow, State } from "@/domain/types";
+import { decodeFile, tokenise } from "@/files/csv";
 import { loadState, openDatabase } from "@/persistence/db";
 import {
   assignGroup,
@@ -14,6 +17,7 @@ import {
   discardBatch,
   importFile,
   includeDuplicate,
+  proposeFormat,
   saveProfile,
   suggestCategories,
 } from "./import";
@@ -493,5 +497,88 @@ describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
     expect(await result).toBeNull();
     expect(store.getState()).toBe(before);
     expect((await loadState(db)).pendingBatch).toEqual(before.pendingBatch);
+  });
+});
+
+// src has no Node types, so the fixtures are read through a specifier TypeScript does not resolve.
+const NODE_FS = "node:fs";
+
+async function fixture(name: string): Promise<Uint8Array> {
+  const fs = (await import(/* @vite-ignore */ NODE_FS)) as {
+    readFileSync(path: string): Uint8Array;
+  };
+  return new Uint8Array(fs.readFileSync(`e2e/fixtures/${name}`));
+}
+
+async function proposedRows(name: string) {
+  const bytes = await fixture(name);
+  const proposed = proposeFormat(bytes);
+  const profile = profileOf({ ...proposed, name: "Test" }, "test");
+  if ("code" in profile) throw new Error(`${name}: ${JSON.stringify(profile)}`);
+  const text = decodeFile(bytes, profile.encoding);
+  if (typeof text !== "string") throw new Error(`${name}: ${JSON.stringify(text)}`);
+  const rows = parseRecords(tokenise(text), profile);
+  if ("code" in rows) throw new Error(`${name}: ${JSON.stringify(rows)}`);
+  return { proposed, profile, rows };
+}
+
+describe("proposeFormat (R-33, R-34)", () => {
+  // Each fixture, the encoding R-34's table gives it, and the rows that cannot parse: the
+  // comdirect row still "offen", and the closing balances under the rows.
+  const fixtures: [string, ProfileDraft["encoding"], number][] = [
+    ["banks/sparkasse.csv", "Windows-1252", 0],
+    ["banks/volksbank.csv", "UTF-8", 0],
+    ["banks/commerzbank.csv", "UTF-8", 0],
+    ["banks/n26.csv", "UTF-8", 0],
+    ["banks/ing.csv", "Windows-1252", 0],
+    ["banks/ing-longer.csv", "Windows-1252", 0],
+    ["banks/dkb.csv", "UTF-8", 0],
+    ["banks/comdirect.csv", "Windows-1252", 2],
+    ["banks/deutsche-bank.csv", "UTF-8", 1],
+    ["mybank-2026-10.csv", "UTF-8", 0],
+    ["soll-haben.csv", "Windows-1252", 0],
+    ["cash-notebook.csv", "UTF-8", 0],
+  ];
+
+  test.each(fixtures)(
+    "%s needs only a name, and reads with no row unparsable but those expected (SC-023)",
+    async (name, encoding, unparsable) => {
+      const { proposed, rows } = await proposedRows(name);
+
+      expect(proposed.name).toBe("");
+      expect(proposed.encoding).toBe(encoding);
+      expect(rows.filter((row) => row.status === "unparsable")).toHaveLength(unparsable);
+      expect(rows.filter((row) => row.status === "parsed").length).toBeGreaterThanOrEqual(6);
+    },
+  );
+
+  test("no-header.csv proposes no header row and leaves the description unassigned", async () => {
+    expect(proposeFormat(await fixture("no-header.csv"))).toMatchObject({
+      hasHeaderRow: false,
+      dateColumn: 0,
+      descriptionColumn: null,
+      amount: { mode: "signed", column: 2 },
+      encoding: "UTF-8",
+    });
+  });
+
+  test("the format saved for ing.csv imports ing-longer.csv (FR-021)", async () => {
+    const { profile } = await proposedRows("banks/ing.csv");
+    const text = decodeFile(await fixture("banks/ing-longer.csv"), profile.encoding);
+    if (typeof text !== "string") throw new Error(JSON.stringify(text));
+
+    const rows = parseRecords(tokenise(text), profile);
+
+    if ("code" in rows) throw new Error(JSON.stringify(rows));
+    expect(rows.map((row) => [row.rowNumber, row.status])).toEqual(
+      [16, 17, 18, 19, 20, 21].map((rowNumber) => [rowNumber, "parsed"]),
+    );
+  });
+
+  test("cash-notebook.csv proposes no sign inversion, and the hint holds for its rows", async () => {
+    const { proposed, profile, rows } = await proposedRows("cash-notebook.csv");
+
+    expect(proposed.amount).toEqual({ mode: "signed", column: "Amount", invertSign: false });
+    expect(suggestsInvertedSign(profile, rows)).toBe(true);
   });
 });

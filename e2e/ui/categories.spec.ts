@@ -336,3 +336,24 @@ test.describe("deleting (FR-034)", () => {
     ]);
   });
 });
+
+const UNCATEGORISED_LINE = "Holds what is not sorted into a category yet.";
+const UNACCOUNTED_LINE = "Holds the differences that Reconcile books.";
+
+test("says on each side what Uncategorised and Unaccounted hold, also after a rename (FR-138)", async ({
+  page,
+}) => {
+  for (const tab of ["Expenses", "Income"] as const) {
+    await openCategories(page, tab);
+    await expect(row(page, "Uncategorised")).toContainText(UNCATEGORISED_LINE);
+    await expect(row(page, "Unaccounted")).toContainText(UNACCOUNTED_LINE);
+    await expect(rows(page).filter({ hasText: UNCATEGORISED_LINE })).toHaveCount(1);
+    await expect(rows(page).filter({ hasText: UNACCOUNTED_LINE })).toHaveCount(1);
+  }
+
+  await openCategories(page);
+  await rename(page, "Uncategorised", "To sort");
+  await expect(row(page, "To sort")).toContainText(UNCATEGORISED_LINE);
+  await rename(page, "Unaccounted", "Differences");
+  await expect(row(page, "Differences")).toContainText(UNACCOUNTED_LINE);
+});

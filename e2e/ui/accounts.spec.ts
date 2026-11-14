@@ -8,6 +8,7 @@ import {
   openReconcile,
   openTransactionForm,
   reconcileAccount,
+  screenIntro,
   storedRecords,
   storedTransactions,
 } from "../support/app";
@@ -253,4 +254,37 @@ test.describe("reconciling (FR-005)", () => {
     const form = await openTransactionForm(page);
     await expect(form.getByLabel("Account", { exact: true })).toHaveText("Cash");
   });
+});
+
+test("says under the heading what Accounts is for (FR-137)", async ({ page }) => {
+  await page.goto("/#/accounts");
+  await expect(screenIntro(page)).toHaveText(
+    "Where your money is held. When a balance here differs from your bank's, Reconcile it.",
+  );
+});
+
+test("says what the opening balance means, in New account and Edit (FR-138)", async ({ page }) => {
+  const meaning = "What the account held before its first transaction in the app.";
+  await page.goto("/#/accounts");
+  await page.getByRole("main").getByRole("button", { name: "New account" }).click();
+  const field = (dialog: ReturnType<Page["getByRole"]>) =>
+    dialog
+      .locator('[data-slot="field"]')
+      .filter({ has: page.getByLabel("Opening balance", { exact: true }) });
+  const created = page.getByRole("dialog", { name: "New account" });
+  await expect(field(created)).toContainText(meaning);
+  await created.getByRole("button", { name: "Cancel" }).click();
+
+  await accountRow(page, "Cash").getByRole("button", { name: "Edit" }).click();
+  await expect(field(page.getByRole("dialog", { name: "Edit account" }))).toContainText(meaning);
+});
+
+test("says in Reconcile when to use it, and that the difference goes to Unaccounted (FR-138)", async ({
+  page,
+}) => {
+  const dialog = await openReconcile(page, "Cash");
+  await expect(dialog).toContainText(
+    "For when the account's balance in the app differs from what it really holds. The " +
+      "difference is booked to Unaccounted.",
+  );
 });

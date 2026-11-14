@@ -1,10 +1,12 @@
 # Contract: Bank CSV → pending batch
 
-**Spec**: [FR-020 – FR-029](../spec.md#fr-020) · **Entities**: [data-model.md](../data-model.md#mapping-profile)
+**Spec**: [FR-020 – FR-029](../spec.md#fr-020), [FR-133](../spec.md#fr-133),
+[FR-134](../spec.md#fr-134) · **Entities**: [data-model.md](../data-model.md#mapping-profile)
 
 This contract covers the interface between a bank's CSV export and the app: which files are
-accepted, and how a mapping profile turns each record into a pending row. The behaviour rules are
-in the spec. This file pins down the formats those rules leave open.
+accepted, how a mapping profile turns each record into a pending row, and, since v1.7, how a new
+profile is proposed from a file. The behaviour rules are in the spec. This file pins down the
+formats those rules leave open.
 
 ## Pipeline
 
@@ -22,10 +24,13 @@ preview therefore always shows what the import will produce.
    ([data-model.md](../data-model.md#pending-row)), so a row number always matches what a
    spreadsheet shows.
 4. **Check the layout**. This step depends on the profile's header mode:
-   - With a header row, record 1 is the header. Every mapped column is looked up by header text,
-     compared by name key (trimmed, case-insensitive). If a mapped header is missing, no batch is
-     created and the message names every missing column ([FR-021](../spec.md#fr-021)). If a
-     mapped header appears more than once, no batch is created and the message names it.
+   - With a header row, the header is the first of the first 20 records that holds every mapped
+     column, compared by name key (trimmed, case-insensitive). The records above it are skipped,
+     and keep their place in the row numbering ([R-34](../research.md#r-34)). If no record holds
+     them all, no batch is created and the message names every mapped column that the record
+     holding most of them lacks, the first such record on a tie ([FR-021](../spec.md#fr-021)). If
+     a mapped header appears more than once in the header, no batch is created and the message
+     names it. Until v1.6 the header had to be record 1.
    - With "no header row", every record is data. Columns are taken by position and the layout is
      not checked ([FR-021](../spec.md#fr-021)).
 5. **Require data**. If no data records remain, no batch is created and the user is told that the
@@ -182,3 +187,69 @@ as they would be parsed ([FR-021](../spec.md#fr-021)). Each record shows its dat
 description and, when mapped, its counterparty, or else its failure reason. The preview refreshes on
 every change to a setting. When an existing profile is edited, the user picks a sample file for the
 preview.
+
+## Proposing a format
+
+When the profile editor opens for the file being imported, its first draft is proposed from that
+file ([FR-133](../spec.md#fr-133), [R-33](../research.md#r-33)). Nothing else proposes, and a
+proposal changes no setting afterwards. In these rules, a cell *reads as a date* when it parses
+under at least one [date format](#date-formats), and *reads as an amount* when it follows the
+[amount grammar](#amount-grammar) with at least one decimal separator.
+
+1. **Encoding**: UTF-16LE when the bytes start with `FF FE`; UTF-8 when they decode as strict
+   UTF-8; Windows-1252 otherwise. The file is then decoded and [tokenised](#pipeline) as an
+   import does it.
+2. **Records**: records whose cells are all empty are left out of the counts of rules 5 to 7. The
+   first 20 records of rule 3 are the file's first 20 lines, blank ones included.
+3. **Column names**: the first of the first 20 records that names a date and an amount, or a date,
+   a debit and a credit, by the [table below](#column-names) and by name key
+   ([R-08](../research.md#r-08)), holds the column names, and the records above it are skipped
+   ([R-34](../research.md#r-34)). Without such a record, record 1 holds column names when none of
+   its cells reads as a date while some column of the other records does, by rule 5. Otherwise
+   every record is data, and columns are positions.
+4. **Columns by name**, with column names only. The roles are taken in the order of the table, and
+   each takes the first of its names, in the table's order, that is a column of the file. A column
+   taken by one role is not offered to a later one.
+   - With a column named as an amount, the amount is *one signed column*, even when debit and
+     credit columns exist too: some banks fill those with the same amount and its sign, which the
+     [debit and credit rules](#direction) refuse.
+   - Otherwise, with both a debit and a credit column, the amount is in *separate debit and credit
+     columns*; and without them, it is *one signed column*, left for rule 5.
+5. **Columns by content**, for the date and for a signed amount when rule 4 found none:
+   - The date is the first column, left to right, in which more than half of the data cells read
+     as a date.
+   - The amount is the first other such column in which more than half read as an amount.
+   - A role neither rule fills stays unassigned. Description and counterparty are only ever found
+     by name.
+6. **Date format**: of the formats under which the most data cells of the date column parse, the
+   first in the order of [date formats](#date-formats). With no date column, or no cell that
+   parses, `DD.MM.YYYY` stays.
+7. **Decimal separator**: the one under which more non-empty data cells of the amount columns
+   follow the grammar; the comma when both read as many.
+8. **Left as a new profile starts**: an empty name, and sign inversion off.
+
+### Column names
+
+Names compare by name key, so case and surrounding spaces do not matter. Spellings with umlauts
+and with their ASCII replacements, such as `Empfänger` and `Empfaenger`, are both listed.
+
+| Role | Names, in order of preference |
+|---|---|
+| Date | `Buchungstag`, `Buchungsdatum`, `Buchung`, `Booking date`, `Transaction date`, `Date`, `Datum`, `Valutadatum`, `Valuta`, `Wertstellungsdatum`, `Wertstellung`, `Wertstellung (Valuta)`, `Wert`, `Value date` |
+| Debit | `Soll`, `Debit`, `Ausgang`, `Belastung`, `Money out`, `Paid out` |
+| Credit | `Haben`, `Credit`, `Eingang`, `Gutschrift`, `Money in`, `Paid in` |
+| Amount | `Betrag`, `Betrag (EUR)`, `Betrag (€)`, `Betrag in EUR`, `Umsatz`, `Umsatz in EUR`, `Amount`, `Amount (EUR)` |
+| Description | `Verwendungszweck`, `Purpose`, `Payment reference`, `Reference`, `Description`, `Memo`, `Details`, `Buchungstext`, `Text` |
+| Counterparty | `Beguenstigter/Zahlungspflichtiger`, `Begünstigter/Zahlungspflichtiger`, `Begünstigter / Auftraggeber`, `Beguenstigter / Auftraggeber`, `Auftraggeber / Begünstigter`, `Name Zahlungsbeteiligter`, `Auftraggeber/Empfänger`, `Auftraggeber/Empfaenger`, `Zahlungsempfänger`, `Zahlungsempfaenger`, `Empfänger`, `Empfaenger`, `Auftraggeber`, `Payee`, `Partner name`, `Counterparty`, `Merchant`, `Name` |
+
+Booking dates come before value dates, so a file with both proposes its booking date
+([FR-133](../spec.md#fr-133)). `Buchungstext` comes after `Verwendungszweck`, because banks that
+have both use it for the kind of booking, such as `KARTENZAHLUNG`. DKB names the payer and the
+payee in two columns and fills them by direction, so neither is listed and its files propose no
+counterparty ([R-34](../research.md#r-34)).
+
+### Sign hint
+
+While the draft has one signed column without sign inversion, and the [preview](#preview)'s
+parsed rows hold at least one amount and none below zero, the editor shows the hint of
+[FR-134](../spec.md#fr-134). Unparsable rows of the preview do not count.

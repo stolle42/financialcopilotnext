@@ -1,0 +1,7 @@
+"Booking Date","Value Date","Partner Name","Partner Iban","Type","Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"
+"2026-10-30","2026-10-30","Bakery Kern","","Presentment","","Main Account","-4.50","","",""
+"2026-10-28","2026-10-28","Employer Ltd","","Credit Transfer","Salary October","Main Account","2450.00","","",""
+"2026-10-21","2026-10-21","Supermarket","","Presentment","","Main Account","-62.35","","",""
+"2026-10-15","2026-10-15","Landlord","","Debit Transfer","Rent October","Main Account","-850.00","","",""
+"2026-10-09","2026-10-09","Spotify","","Presentment","","Main Account","-9.99","","",""
+"2026-10-02","2026-10-02","Max Friend","","Credit Transfer","Pay back, thanks","Main Account","25.00","","",""

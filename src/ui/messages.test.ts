@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import * as openai from "@/ai/openai";
 import { formatAmount } from "./format";
 import { messageFor, messages, notifications, type MessageCode } from "./messages";
 // A namespace import, so the tests load before the catalogue words a new message.
@@ -227,9 +228,26 @@ describe("messages", () => {
       expect(chat.outOfScope).toMatch(topic);
     }
     expect(chat.suggestions).toBe("Suggested questions");
-    expect(chat.needsAiFeatures).toMatch(/AI features/);
-    expect(chat.needsAiFeatures).toMatch(/Settings/);
     expect(chat.thinking).toBe("Thinking…");
+  });
+
+  test("words the chat while AI features are off: what it answers, its examples, what it needs and who charges (FR-135)", () => {
+    const chat = catalogue.financeChat as unknown as Record<string, unknown>;
+    const about = chat.about as readonly string[];
+    expect(about.length).toBeGreaterThanOrEqual(2);
+    expect(about.length).toBeLessThanOrEqual(3);
+    const lines = about.join(" ");
+    expect(lines).toMatch(/current month and the 12 months before it/);
+    expect(lines).toMatch(/general questions about money/i);
+    expect(lines).toMatch(/questions about (the|this) app/i);
+    expect(chat.forExample).toBe("For example");
+    expect(chat.charges).toMatch(/AI features/);
+    expect(chat.charges).toMatch(/OpenAI/);
+    expect(chat.charges).toMatch(/your own OpenAI API key/);
+    expect(chat.charges).toMatch(/charges your (own )?OpenAI account/);
+    expect(chat.turnOn).toBe("Turn on AI features");
+    expect(chat.faqLink).toBe("Questions about the app? See Help");
+    expect(chat).not.toHaveProperty("needsAiFeatures");
   });
 
   test("words the finance chat's Stop, its mark, its sources and clearing the conversation (FR-069, FR-104, FR-108, FR-110)", () => {
@@ -292,7 +310,10 @@ describe("messages", () => {
         "limit there is wise.",
     );
     expect(catalogue.aiKey.createLink).toBe("Create an API key at OpenAI");
-    expect(catalogue.aiKey.createUrl).toBe("https://platform.openai.com/api-keys");
+    expect((openai as Record<string, unknown>).OPENAI_API_KEYS_URL).toBe(
+      "https://platform.openai.com/api-keys",
+    );
+    expect(catalogue.aiKey).not.toHaveProperty("createUrl");
     expect(catalogue.aiKey.field).toBe("OpenAI API key");
     expect(catalogue.aiKey.checking).toBe("Checking key…");
   });
@@ -321,10 +342,11 @@ describe("messages", () => {
     expect(catalogue.aiFeaturesNeeded).toMatch(/Settings/);
   });
 
-  test("words ai-features-off for any AI feature, saying that nothing was sent (FR-061)", () => {
+  test("words ai-features-off for any AI feature, saying that nothing was sent (FR-061, FR-135)", () => {
     const message = messageFor({ code: "ai-features-off" });
     expect(message).toMatch(/AI features/);
     expect(message).toMatch(/Settings/);
+    expect(message).toMatch(/the chat/);
     expect(message).toMatch(/nothing was sent/i);
     expect(message).not.toMatch(/suggestion/i);
   });
@@ -431,5 +453,56 @@ describe("messages", () => {
     expect(notifications.restored("financial-copilot-backup-2026-09-03.json")).toContain(
       "financial-copilot-backup-2026-09-03.json",
     );
+  });
+
+  test("words the proposal line and the sign hint, which names Invert the sign (FR-133, FR-134)", () => {
+    const proposal = (catalogue as Record<string, unknown>).proposal as {
+      line: string;
+      signHint: string;
+    };
+    expect(proposal.line).toMatch(/read these settings from the file/);
+    expect(proposal.line).toMatch(/preview/);
+    expect(proposal.signHint).toMatch(/every row would be an income/i);
+    expect(proposal.signHint).toMatch(/Invert the sign/);
+    expect(proposal.signHint).toMatch(/expenses/);
+    expect(proposal.signHint).toMatch(/purchases/);
+  });
+
+  test('says "bank CSV format" where v1.6 said "profile" (FR-138)', () => {
+    expect(messageFor({ code: "profile-name-empty" })).toBe("The bank CSV format needs a name.");
+    expect(messageFor({ code: "profile-name-taken" })).toBe(
+      "A bank CSV format with this name already exists. Choose another name.",
+    );
+    for (const message of [
+      messageFor({ code: "import-decoding-failed", details: { encoding: "UTF-8" } }),
+      messageFor({ code: "import-missing-columns", details: { columns: ["Amount"] } }),
+      messageFor({ code: "import-duplicate-header", details: { column: "Amount" } }),
+      messageFor({ code: "date-unreadable" }),
+      messageFor({ code: "amount-unreadable" }),
+      messageFor({ code: "backup-damaged", details: { rule: "profile-name-duplicate" } }),
+      messageFor({ code: "backup-damaged", details: { record: "profile", field: "name" } }),
+    ]) {
+      expect(message).toMatch(/bank CSV format/);
+    }
+  });
+
+  test('no message says "profile" (FR-138)', () => {
+    const rules = [
+      "profile-name-missing",
+      "profile-name-duplicate",
+      "profile-column-mismatch",
+      "profile-setting-unsupported",
+    ];
+    const texts = [
+      ...(Object.keys(messages) as MessageCode[]).map((code) => messageFor({ code })),
+      messageFor({ code: "import-decoding-failed", details: { encoding: "UTF-8" } }),
+      messageFor({ code: "import-missing-columns", details: { columns: ["Amount"] } }),
+      messageFor({ code: "import-duplicate-header", details: { column: "Amount" } }),
+      ...rules.map((rule) => messageFor({ code: "backup-damaged", details: { rule } })),
+      messageFor({ code: "backup-damaged", details: { record: "profile", field: "name" } }),
+    ];
+    for (const text of texts) {
+      expect(text).not.toMatch(/profile/i);
+    }
   });
 });

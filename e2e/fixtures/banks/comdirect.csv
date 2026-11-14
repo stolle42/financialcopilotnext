@@ -1,0 +1,14 @@
+;
+"Umsätze Girokonto";"Zeitraum: 30 Tage";
+"Neuer Kontostand";"1.689,95 EUR";
+;
+"Buchungstag";"Wertstellung (Valuta)";"Vorgang";"Buchungstext";"Umsatz in EUR";
+"offen";"--";"Lastschrift / Belastung";"Auftraggeber: Tankstelle Nord Buchungstext: Tanken";"-58,20";
+"30.10.2026";"30.10.2026";"Lastschrift / Belastung";"Auftraggeber: Bäckerei Kern Buchungstext: Brötchen";"-4,50";
+"28.10.2026";"28.10.2026";"Übertrag / Überweisung";"Auftraggeber: Arbeitgeber GmbH Buchungstext: Gehalt Oktober";"2.450,00";
+"21.10.2026";"21.10.2026";"Visa-Umsatz";"Supermarkt Süd Einkauf";"-62,35";
+"15.10.2026";"15.10.2026";"Übertrag / Überweisung";"Empfänger: Vermieter Schulz Buchungstext: Miete Oktober";"-1.250,00";
+"09.10.2026";"09.10.2026";"Lastschrift / Belastung";"Auftraggeber: Stadtwerke Buchungstext: Strom";"-71,00";
+"02.10.2026";"02.10.2026";"Übertrag / Überweisung";"Auftraggeber: Freund Max Buchungstext: Rückzahlung";"25,00";
+;
+"Alter Kontostand";"1.452,80 EUR";

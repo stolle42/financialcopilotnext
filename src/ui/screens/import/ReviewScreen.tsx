@@ -4,6 +4,7 @@ import type { ParsedRow, PendingBatch, Refusal, UnparsableRow } from "@/domain/t
 import { confirmBatch, discardBatch, includeDuplicate } from "@/store/import";
 import { useStore, useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { RefusalMessage } from "@/ui/components/RefusalMessage";
 import { Button } from "@/ui/components/ui/button";
@@ -182,7 +183,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-semibold">Review import</h1>
+      <ReviewHeading />
       <section
         aria-label="Batch"
         className="surface flex flex-wrap items-center justify-between gap-4 p-6"
@@ -230,14 +231,30 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
   );
 }
 
+/** The heading and what review is for, shown with and without an import waiting (FR-137). */
+function ReviewHeading() {
+  return (
+    <>
+      <h1 className="text-3xl font-semibold">Review import</h1>
+      <ScreenIntro>
+        Give each vendor group a category, then confirm. Nothing enters the ledger before you select
+        Confirm.
+      </ScreenIntro>
+    </>
+  );
+}
+
 /** Review of the pending batch at `#/import/review` (contracts/ui.md, review). */
 export function ReviewScreen() {
   const batch = useStore((state) => state.pendingBatch);
   if (!batch) {
     return (
-      <div className="surface flex flex-col items-start gap-3 p-6">
-        <p>No import is waiting for review. Import a bank file to start one.</p>
-        <Button onClick={() => navigate("/import")}>Go to Import</Button>
+      <div className="flex flex-col gap-6">
+        <ReviewHeading />
+        <div className="surface flex flex-col items-start gap-3 p-6">
+          <p>No import is waiting for review. Import a bank file to start one.</p>
+          <Button onClick={() => navigate("/import")}>Go to Import</Button>
+        </div>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import type { AccountInput } from "@/domain/accounts";
+import { nameKey } from "@/domain/names";
 import type { Account, AccountType } from "@/domain/types";
 import { addAccount, editAccount } from "@/store/accounts";
 import { useStoreApi } from "@/store/store";
@@ -14,7 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/ui/components/ui/field";
 import { Input } from "@/ui/components/ui/input";
 import {
   Select,
@@ -32,13 +39,18 @@ interface Errors {
   form?: MessageCode;
 }
 
-/** Creates an account, or edits `account`: name, type and opening balance (contracts/ui.md). */
+/**
+ * Creates an account, or edits `account`: name, type and opening balance (contracts/ui.md).
+ * `onCreated` receives a new account once it is saved, before `onClose` (FR-132).
+ */
 export function AccountDialog({
   account,
   onClose,
+  onCreated,
 }: {
   account: Account | null;
   onClose: () => void;
+  onCreated?: (account: Account) => void;
 }) {
   const store = useStoreApi();
   const ids = { name: useId(), type: useId(), openingBalance: useId() };
@@ -55,8 +67,15 @@ export function AccountDialog({
     const refusal = account
       ? await editAccount(store, account.id, input)
       : await addAccount(store, input);
-    if (!refusal) onClose();
-    else if (refusal.code === "save-failed") setErrors({ form: refusal.code });
+    if (!refusal) {
+      if (!account && onCreated) {
+        const created = store
+          .getState()
+          .accounts.find((a) => nameKey(a.name) === nameKey(input.name));
+        if (created) onCreated(created);
+      }
+      onClose();
+    } else if (refusal.code === "save-failed") setErrors({ form: refusal.code });
     else setErrors({ name: refusal.code });
   }
 
@@ -121,6 +140,9 @@ export function AccountDialog({
                 onValueChange={setOpeningBalance}
                 aria-invalid={errors.openingBalance ? true : undefined}
               />
+              <FieldDescription>
+                What the account held before its first transaction in the app.
+              </FieldDescription>
               <FieldError>
                 {errors.openingBalance && messageFor({ code: errors.openingBalance })}
               </FieldError>

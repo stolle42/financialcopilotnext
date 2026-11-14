@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { decodeFile, tokenise } from "./csv";
+import { decodeFile, detectEncoding, tokenise } from "./csv";
 
 // contracts/csv-import.md, pipeline steps 2–3 and encodings; R-09.
 
@@ -80,5 +80,28 @@ describe("tokenise", () => {
       ["Date", "Amount"],
       ["1", "4"],
     ]);
+  });
+});
+
+describe("detectEncoding", () => {
+  // contracts/csv-import.md, proposing a format, rule 1; FR-133, R-33.
+
+  test("gives UTF-16LE for bytes that start with its byte-order mark", () => {
+    expect(detectEncoding(bytes(0xff, 0xfe, 0x44, 0x00, 0xac, 0x20))).toBe("UTF-16LE");
+  });
+
+  test("gives UTF-8 for valid UTF-8, with or without its byte-order mark", () => {
+    expect(detectEncoding(bytes(ascii("Date;Amount"), 0xe2, 0x82, 0xac))).toBe("UTF-8");
+    expect(detectEncoding(bytes(0xef, 0xbb, 0xbf, ascii("Datum;"), 0xc3, 0xa4))).toBe("UTF-8");
+  });
+
+  test("gives UTF-8 for an empty file", () => {
+    expect(detectEncoding(bytes())).toBe("UTF-8");
+  });
+
+  test("gives Windows-1252 for bytes that are not valid UTF-8, never ISO-8859-15", () => {
+    // "Empfänger" with ä as Windows-1252's E4, which is no UTF-8 sequence.
+    expect(detectEncoding(bytes(ascii("Empf"), 0xe4, ascii("nger;Betrag")))).toBe("Windows-1252");
+    expect(detectEncoding(bytes(ascii("Fee "), 0xa4))).toBe("Windows-1252");
   });
 });

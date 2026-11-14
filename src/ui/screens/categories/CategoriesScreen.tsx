@@ -1,6 +1,6 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { deletionImpact, protectedCategory, sortCategories } from "@/domain/categories";
-import type { Category, Refusal, Side } from "@/domain/types";
+import type { Category, CategoryRole, Refusal, Side } from "@/domain/types";
 import { deleteCategory, recolourCategory, renameCategory } from "@/store/categories";
 import { useStore, useStoreApi } from "@/store/store";
 import { CategoryChip } from "@/ui/components/CategoryChip";
@@ -16,6 +16,12 @@ import { NewCategoryDialog } from "./NewCategoryDialog";
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 /** The consequences of a deletion, with counts (FR-034, contracts/ui.md, categories). */
+/** What each protected category holds, found by role so that a rename keeps it (FR-138). */
+const roleLines: Record<CategoryRole, string> = {
+  uncategorised: "Holds what is not sorted into a category yet.",
+  unaccounted: "Holds the differences that Reconcile books.",
+};
+
 function deletionSentence(
   impact: ReturnType<typeof deletionImpact>,
   uncategorisedName: string,
@@ -118,6 +124,11 @@ function CategoryList({ side }: { side: Side }) {
                     autoFocus
                   />
                   <FieldError>{renaming.refusal && messageFor(renaming.refusal)}</FieldError>
+                </div>
+              ) : category.role ? (
+                <div className="flex flex-col items-start gap-1">
+                  <CategoryChip category={category} />
+                  <span className="text-muted-foreground">{roleLines[category.role]}</span>
                 </div>
               ) : (
                 <CategoryChip category={category} />

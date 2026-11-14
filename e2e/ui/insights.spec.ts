@@ -70,11 +70,13 @@ async function expectPressedPreset(page: Page, name: string | null) {
 }
 
 test.describe("the screen", () => {
-  test("follows Backup in the sidebar, with only Settings after it (FR-084)", async ({ page }) => {
+  test("follows Backup in the sidebar, with Settings and FAQ after it (FR-084)", async ({
+    page,
+  }) => {
     await page.goto("/");
     const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
     await expect(links.nth(5)).toHaveText("Insights");
-    await expect(links).toHaveCount(7);
+    await expect(links).toHaveCount(8);
     await links.nth(5).click();
     await expect(page).toHaveURL(/#\/insights$/);
     await expect(main(page).getByRole("heading", { name: "Insights", level: 1 })).toBeVisible();
@@ -622,17 +624,18 @@ test.describe("the finance chat (FR-100 – FR-111)", () => {
     await expect(clearButton(page)).toHaveCount(0);
   });
 
-  test("with AI features off, says they are needed, links to Settings, and offers nothing to send (FR-100)", async ({
+  test("with AI features off, says they are needed, offers to turn them on, and offers nothing to send (FR-100, FR-135)", async ({
     page,
   }) => {
     const standIn = await standInChat(page);
     await openChat(page);
 
-    await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
+    await expect(chat(page)).toContainText(catalogue.financeChat.charges);
+    await expect(
+      chat(page).getByRole("button", { name: catalogue.financeChat.turnOn }),
+    ).toBeVisible();
     await expect(examples(page)).toHaveCount(0);
     await expect(questionField(page)).toHaveCount(0);
-    await chat(page).getByRole("link", { name: "Settings" }).click();
-    await expect(page).toHaveURL(/#\/settings$/);
     expect(standIn.requests).toEqual([]);
   });
 
@@ -651,7 +654,7 @@ test.describe("the finance chat (FR-100 – FR-111)", () => {
     await openChat(page);
 
     await expect(conversation(page)).toHaveText(["Where does my money go?", "Groceries."]);
-    await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
+    await expect(chat(page)).toContainText(catalogue.financeChat.charges);
     await expect(questionField(page)).toHaveCount(0);
   });
 
@@ -673,18 +676,18 @@ test.describe("the finance chat (FR-100 – FR-111)", () => {
     await expect(questionField(page)).toBeEditable();
   });
 
-  test("opening another screen closes the chat, by its link to Settings or by going back (FR-100)", async ({
+  test("opening another screen closes the chat, by its link to FAQ or by going back (FR-100)", async ({
     page,
   }) => {
     await page.goto("/");
     await chatButton(page).click();
     await expect(chat(page)).toBeVisible();
 
-    await chat(page).getByRole("link", { name: "Settings" }).click();
+    await chat(page).getByRole("link", { name: catalogue.financeChat.faqLink }).click();
 
-    await expect(page).toHaveURL(/#\/settings$/);
+    await expect(page).toHaveURL(/#\/faq$/);
     await expect(chat(page)).toBeHidden();
-    await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+    await expect(main(page).getByRole("heading", { name: "Help", level: 1 })).toBeVisible();
 
     await chatButton(page).click();
     await expect(chat(page)).toBeVisible();

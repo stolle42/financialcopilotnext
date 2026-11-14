@@ -85,12 +85,12 @@ const brokenRules: Record<InvariantCode, string> = {
     "a transfer goes to an account that is not in the backup, or to the account it leaves",
   "budget-category-invalid": "a budget refers to a category that cannot carry one",
   "budget-limit-out-of-range": "a budget has a limit that is not an amount above 0.00",
-  "profile-name-missing": "a mapping profile has no name",
-  "profile-name-duplicate": "two mapping profiles have the same name",
+  "profile-name-missing": "a bank CSV format has no name",
+  "profile-name-duplicate": "two bank CSV formats have the same name",
   "profile-column-mismatch":
-    "a mapping profile names its columns in a way its header row setting rules out",
+    "a bank CSV format names its columns in a way its header row setting rules out",
   "profile-setting-unsupported":
-    "a mapping profile uses a date format, encoding or decimal separator this version does not know",
+    "a bank CSV format uses a date format, encoding or decimal separator this version does not know",
   "pending-batch-account-missing":
     "the pending import refers to an account that is not in the backup",
   "pending-row-number-duplicate": "two rows of the pending import have the same number",
@@ -119,7 +119,7 @@ const recordWords: Record<string, string> = {
   category: "a category",
   transaction: "a transaction",
   budget: "a budget",
-  profile: "a mapping profile",
+  profile: "a bank CSV format",
   pendingBatch: "the pending import",
   pendingRow: "a row of the pending import",
   settings: "the settings",
@@ -161,8 +161,8 @@ export const messages: Record<MessageCode, Wording> = {
   "transfer-destination-missing": "Choose the account the money goes to.",
   "transfer-needs-second-account":
     "A transfer needs a second account to move money to. Create one under Accounts first.",
-  "profile-name-empty": "The profile needs a name.",
-  "profile-name-taken": "A profile with this name already exists. Choose another name.",
+  "profile-name-empty": "The bank CSV format needs a name.",
+  "profile-name-taken": "A bank CSV format with this name already exists. Choose another name.",
   "profile-columns-incomplete": (details) =>
     details.roles
       ? `Choose a column for the ${list(details.roles)}.`
@@ -171,13 +171,13 @@ export const messages: Record<MessageCode, Wording> = {
   "date-unreadable": (details) =>
     details.cell
       ? `"${text(details.cell)}" is not a date in the format ${text(details.format)}.`
-      : "The date does not match the profile's date format, or does not exist.",
+      : "The date does not match the bank CSV format's date format, or does not exist.",
   "amount-missing": "The amount is empty.",
   "amount-unreadable": (details) =>
     details.cell
       ? `"${text(details.cell)}" is not an amount with "${text(details.decimalSeparator)}" ` +
         "as the decimal separator."
-      : "The amount is not a number with the profile's decimal separator.",
+      : "The amount is not a number with the bank CSV format's decimal separator.",
   "negative-debit-credit": (details) =>
     `${details.cell ? `"${text(details.cell)}" is negative, but` : "A negative amount, but"} ` +
     "debit and credit amounts are written without a sign: the column says which way the money went.",
@@ -188,14 +188,14 @@ export const messages: Record<MessageCode, Wording> = {
       : "Both the debit and the credit hold an amount, so it is unclear which way the money went.",
   "no-debit-or-credit": "Neither the debit nor the credit column holds an amount.",
   "import-decoding-failed": (details) =>
-    `The file is not valid ${text(details.encoding) || "text in the profile's encoding"}. ` +
-    "Choose another encoding in the profile; many banks use Windows-1252.",
+    `The file is not valid ${text(details.encoding) || "text in the bank CSV format's encoding"}. ` +
+    "Choose another encoding in the bank CSV format; many banks use Windows-1252.",
   "import-missing-columns": (details) =>
-    `The file has no column named ${list(details.columns, true) || "as the profile expects"}, ` +
-    "which the profile expects. Check that this is the right file, or edit the profile.",
+    `The file has no column named ${list(details.columns, true) || "as the bank CSV format expects"}, ` +
+    "which the bank CSV format expects. Check that this is the right file, or edit the bank CSV format.",
   "import-duplicate-header": (details) =>
     `The file has more than one column named ${list(details.column, true) || "the same"}, so ` +
-    "the profile cannot tell which one to read.",
+    "the bank CSV format cannot tell which one to read.",
   "import-no-transactions": "The file contains no transactions.",
   "import-file-unreadable": "The file could not be read. Choose it again.",
   "backup-not-a-backup": `This file is not a Financial Copilot backup. ${BACKUP_UNCHANGED}`,
@@ -220,7 +220,8 @@ export const messages: Record<MessageCode, Wording> = {
   "import-account-missing": "Choose the account to import into.",
   "import-batch-pending":
     "An import is waiting for review. Confirm or discard it before you import another file.",
-  "ai-features-off": "This needs AI features, which you turn on in Settings. Nothing was sent.",
+  "ai-features-off":
+    "This needs AI features, which Settings or the chat turns on. Nothing was sent.",
   "ai-unreachable":
     "OpenAI could not be reached. Check the internet connection, then try again. Nothing changed.",
   "ai-key-rejected":
@@ -282,7 +283,6 @@ export const aiKey = {
     "for every question and every request for suggestions, so setting a monthly limit there is " +
     "wise.",
   createLink: "Create an API key at OpenAI",
-  createUrl: "https://platform.openai.com/api-keys",
   field: "OpenAI API key",
   checking: "Checking key…",
   /** A stored key, only ever shown masked. */
@@ -316,7 +316,18 @@ export const financeChat = {
     "works. I cannot help with other topics.",
   /** The group of the example questions, or of the latest answer's follow-ups (FR-101, FR-111). */
   suggestions: "Suggested questions",
-  needsAiFeatures: "The chat needs AI features, which you turn on in Settings.",
+  /** While AI features are off: what the chat answers, its examples, and what it needs (FR-135). */
+  about: [
+    "Ask about your own finances, which the chat answers from your data of the current month " +
+      "and the 12 months before it.",
+    "It also takes general questions about money, and questions about this app.",
+  ],
+  forExample: "For example",
+  charges:
+    "The chat needs AI features, which send that data to OpenAI and need your own OpenAI API " +
+    "key. OpenAI charges your own OpenAI account for each question.",
+  turnOn: "Turn on AI features",
+  faqLink: "Questions about the app? See Help",
   thinking: "Thinking…",
   stop: "Stop",
   stopped: "Stopped",
@@ -333,6 +344,13 @@ export const updateNotice = (available: string, running: string) =>
 
 /** Added to the Backup note on persistent storage while the header offers Install app (FR-075). */
 export const installHint = "Installing the app helps the browser keep the data.";
+
+/** The profile editor's lines for a format proposed from the file being imported (FR-133, FR-134). */
+export const proposal = {
+  line: "The app read these settings from the file. The preview shows how its rows read with them.",
+  signHint:
+    "Every row would be an income. If these are purchases, Invert the sign makes them expenses.",
+};
 
 /** Beside Suggest categories while AI features are off (FR-090). */
 export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on in Settings.";

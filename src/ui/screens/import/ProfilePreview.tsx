@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { profileOf, type ProfileDraft } from "@/domain/import/profiles";
-import { parseRecords } from "@/domain/import/rows";
+import { parseRecords, type RecordRow } from "@/domain/import/rows";
 import type { DecodingRefusal } from "@/files/csv";
 import { formatAmount, formatDate } from "@/ui/format";
 import { messageFor } from "@/ui/messages";
@@ -10,17 +10,41 @@ const PREVIEW_ROWS = 10;
 /** A sample file as the editor read it: its records, or why its bytes could not be decoded. */
 export type SampleRecords = string[][] | DecodingRefusal | null;
 
+/** The draft as a profile, or what it lacks, and the sample's rows as the import reads them. */
+export interface PreviewRead {
+  profile: ReturnType<typeof profileOf>;
+  parsed: ReturnType<typeof parseRecords> | null;
+  /** The rows the preview shows. */
+  rows: RecordRow[];
+}
+
+/** Reads the sample with the draft, through the import's own parsing (FR-021). */
+export function usePreviewRead(draft: ProfileDraft, sample: SampleRecords): PreviewRead {
+  return useMemo(() => {
+    const profile = profileOf(draft, "preview");
+    const parsed =
+      Array.isArray(sample) && !("code" in profile) ? parseRecords(sample, profile) : null;
+    const rows = Array.isArray(parsed) ? parsed.slice(0, PREVIEW_ROWS) : [];
+    return { profile, parsed, rows };
+  }, [draft, sample]);
+}
+
 /**
  * The first data rows of the sample file as the import will read them, through the same parsing
  * (FR-021, contracts/csv-import.md, preview). It refreshes whenever the draft changes.
  */
-export function ProfilePreview({ draft, sample }: { draft: ProfileDraft; sample: SampleRecords }) {
-  const profile = useMemo(() => profileOf(draft, "preview"), [draft]);
-  const parsed = useMemo(
-    () => (Array.isArray(sample) && !("code" in profile) ? parseRecords(sample, profile) : null),
-    [sample, profile],
-  );
-
+export function ProfilePreview({
+  draft,
+  sample,
+  read: { profile, parsed, rows },
+  children,
+}: {
+  draft: ProfileDraft;
+  sample: SampleRecords;
+  read: PreviewRead;
+  /** A line under the heading, such as the proposal's. */
+  children?: ReactNode;
+}) {
   let content;
   if (sample === null) {
     content = (
@@ -46,7 +70,7 @@ export function ProfilePreview({ draft, sample }: { draft: ProfileDraft; sample:
           </tr>
         </thead>
         <tbody>
-          {(parsed ?? []).slice(0, PREVIEW_ROWS).map((row) => (
+          {rows.map((row) => (
             <tr key={row.rowNumber} className="border-b">
               <td className="py-2 text-muted-foreground">Row {row.rowNumber}</td>
               {row.status === "parsed" ? (
@@ -71,6 +95,7 @@ export function ProfilePreview({ draft, sample }: { draft: ProfileDraft; sample:
   return (
     <section aria-label="Preview" className="surface flex flex-col gap-2 p-6">
       <h2 className="text-xl font-semibold">Preview</h2>
+      {children}
       {content}
     </section>
   );

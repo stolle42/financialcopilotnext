@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Category } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
-import { budgetRow, storedBudgets, storedRecords } from "../support/app";
+import { budgetRow, screenIntro, storedBudgets, storedRecords } from "../support/app";
 import { expect, test } from "../support/test";
 
 // contracts/ui.md, budgets; FR-040, FR-041; User Story 4 scenarios 4 and 5.
@@ -51,6 +51,7 @@ test.describe("the screen", () => {
       "Backup",
       "Insights",
       "Settings",
+      "Help",
     ]);
     await links.nth(3).click();
     await expect(page).toHaveURL(/#\/budgets$/);
@@ -288,4 +289,12 @@ test.describe("Remove (FR-040, scenario 5)", () => {
     await expect(limitField(budgetRow(page, "Groceries"))).toHaveValue("");
     await expect(main(page).getByRole("button", { name: "Remove" })).toHaveCount(0);
   });
+});
+
+test("says under the heading what Budgets is for (FR-137)", async ({ page }) => {
+  await page.goto("/#/budgets");
+  await expect(screenIntro(page)).toHaveText(
+    "A limit applies to every month. Each month starts at zero, and what is left over does not " +
+      "carry into the next.",
+  );
 });

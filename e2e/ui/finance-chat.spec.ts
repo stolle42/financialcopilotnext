@@ -1,5 +1,24 @@
 import type { Page } from "@playwright/test";
-import { aiFeaturesSwitch, chat, chatButton, questionField, turnOnAiFeatures } from "../support/ai";
+import type { ChatTurn } from "../../src/domain/types";
+// A namespace import, so the spec loads before the catalogue words the chat's new lines.
+import * as catalogue from "../../src/ui/messages";
+import {
+  aiFeaturesSwitch,
+  answer,
+  chat,
+  chatButton,
+  conversation,
+  keyDialog,
+  keyField,
+  questionField,
+  askInChat,
+  standInChat,
+  standInKeyCheck,
+  suggestions,
+  TEST_KEY,
+  turnOnAiFeatures,
+} from "../support/ai";
+import { putRecord } from "../support/app";
 import { expect, test } from "../support/test";
 
 // contracts/ui.md, finance chat, width (FR-117, R-28). The window is 1280px wide, so the chat's
@@ -210,5 +229,153 @@ test.describe("the model that answers (contracts/ui.md, finance chat; FR-129)", 
     await expect(aiFeaturesSwitch(page)).not.toBeChecked();
     await openChat(page);
     await expect(answersBy(page)).toHaveCount(0);
+  });
+});
+
+test.describe("while AI features are off (FR-135)", () => {
+  /** The chat's words while AI features are off, as the catalogue will hold them. */
+  const said = catalogue.financeChat as unknown as {
+    about: readonly string[];
+    forExample: string;
+    examples: readonly string[];
+    charges: string;
+    turnOn: string;
+    faqLink: string;
+  };
+  const turnOnButton = (page: Page) => chat(page).getByRole("button", { name: said.turnOn });
+  const faqLink = (page: Page) => chat(page).getByRole("link", { name: said.faqLink });
+  const keyDialogTurnOn = (page: Page) =>
+    keyDialog(page).getByRole("button", { name: "Turn on", exact: true });
+
+  /** Expects the sheet as AI features off leave it: every part, no field, no example buttons. */
+  async function expectOffState(page: Page) {
+    for (const line of said.about) await expect(chat(page)).toContainText(line);
+    await expect(chat(page)).toContainText(said.charges);
+    await expect(turnOnButton(page)).toBeVisible();
+    await expect(faqLink(page)).toBeVisible();
+    await expect(questionField(page)).toHaveCount(0);
+    await expect(suggestions(page)).toHaveCount(0);
+  }
+
+  test("shows what it answers, the examples, what it needs, Turn on AI features and the FAQ link, in that order, with no field", async ({
+    page,
+  }) => {
+    await openChat(page);
+    await expectOffState(page);
+    const parts = [
+      chat(page).getByText(said.about[0]!),
+      chat(page).getByText(said.forExample, { exact: true }),
+      chat(page).getByText(said.examples[0]!, { exact: true }),
+      chat(page).getByText(said.examples.at(-1)!, { exact: true }),
+      chat(page).getByText(said.charges),
+      turnOnButton(page),
+      faqLink(page),
+    ];
+    let above = -1;
+    for (const part of parts) {
+      const y = (await part.boundingBox())!.y;
+      expect(y).toBeGreaterThan(above);
+      above = y;
+    }
+  });
+
+  test("lists the examples as text, which cannot be selected or sent", async ({ page }) => {
+    const standIn = await standInChat(page);
+    await openChat(page);
+    for (const example of said.examples) {
+      await expect(chat(page).getByText(example, { exact: true })).toBeVisible();
+      await expect(chat(page).getByRole("button", { name: example })).toHaveCount(0);
+    }
+    await chat(page).getByText(said.examples[0]!, { exact: true }).click();
+    await page.waitForTimeout(300);
+    expect(standIn.requests).toHaveLength(0);
+    await expect(conversation(page)).toHaveCount(0);
+  });
+
+  test("Turn on AI features opens the dialog of Settings; Cancel leaves the sheet as it was", async ({
+    page,
+  }) => {
+    await openChat(page);
+    await turnOnButton(page).click();
+    await expect(keyDialog(page)).toBeVisible();
+    await expect(keyField(page)).toBeVisible();
+    await keyDialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(keyDialog(page)).toBeHidden();
+    await expect(chat(page)).toBeVisible();
+    await expectOffState(page);
+  });
+
+  test("a key OpenAI does not accept leaves the sheet as it was", async ({ page }) => {
+    await standInKeyCheck(page, 401);
+    await openChat(page);
+    await turnOnButton(page).click();
+    await keyField(page).fill(TEST_KEY);
+    await keyDialogTurnOn(page).click();
+    await expect(keyDialog(page)).toContainText("OpenAI didn't accept this key.");
+    await keyDialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(keyDialog(page)).toBeHidden();
+    await expect(chat(page)).toBeVisible();
+    await expectOffState(page);
+  });
+
+  test("a key OpenAI accepts shows the field, focused, and the example buttons, in the open sheet", async ({
+    page,
+  }) => {
+    await standInKeyCheck(page, 200);
+    await openChat(page);
+    await turnOnButton(page).click();
+    await keyField(page).fill(TEST_KEY);
+    await keyDialogTurnOn(page).click();
+    await expect(keyDialog(page)).toBeHidden();
+    await expect(chat(page)).toBeVisible();
+    await expect(questionField(page)).toBeFocused();
+    await expect(suggestions(page).getByRole("button")).toHaveText([...said.examples]);
+    await expect(turnOnButton(page)).toHaveCount(0);
+    await expect(chat(page)).not.toContainText(said.charges);
+  });
+
+  test("a stored conversation stays above, and the next question continues it", async ({
+    page,
+  }) => {
+    const stored: ChatTurn[] = [
+      { question: "Where does my money go?", answer: "Mostly to groceries.", sources: [] },
+    ];
+    await putRecord(page, "settings", "conversation", stored);
+    await page.reload();
+    await openChat(page);
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      "Mostly to groceries.",
+    ]);
+    await expectOffState(page);
+    const last = (await conversation(page).last().boundingBox())!;
+    const about = (await chat(page).getByText(said.about[0]!).boundingBox())!;
+    expect(last.y).toBeLessThan(about.y);
+
+    const standIn = await standInChat(page, answer("Rent, mostly."));
+    await standInKeyCheck(page, 200);
+    await turnOnButton(page).click();
+    await keyField(page).fill(TEST_KEY);
+    await keyDialogTurnOn(page).click();
+    await askInChat(page, "And last month?");
+    await expect(conversation(page)).toHaveText([
+      "Where does my money go?",
+      "Mostly to groceries.",
+      "And last month?",
+      "Rent, mostly.",
+    ]);
+    expect(standIn.requests[0]!.turns).toEqual([
+      { question: "Where does my money go?", answer: "Mostly to groceries." },
+    ]);
+  });
+
+  test("the FAQ link opens FAQ and closes the sheet", async ({ page }) => {
+    await openChat(page);
+    await faqLink(page).click();
+    await expect(page).toHaveURL(/#\/faq$/);
+    await expect(chat(page)).toBeHidden();
+    await expect(
+      page.getByRole("main").getByRole("heading", { name: "Help", level: 1 }),
+    ).toBeVisible();
   });
 });

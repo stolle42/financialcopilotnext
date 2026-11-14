@@ -24,7 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/ui/components/ui/field";
 import { Input } from "@/ui/components/ui/input";
 import {
   Select,
@@ -170,6 +176,10 @@ export function TransactionForm({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldDescription>
+                      Money moved between two of your own accounts. It counts as neither spending
+                      nor income.
+                    </FieldDescription>
                     <FieldError>
                       {errors.destination && messageFor({ code: errors.destination })}
                     </FieldError>

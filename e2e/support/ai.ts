@@ -216,9 +216,12 @@ export const aiFeaturesSwitch = (page: Page) =>
 export const sharingWarning = (page: Page) =>
   page.getByRole("alertdialog", { name: "Turn on AI features?" });
 
-/** The key the specs enter, and the part Settings shows of it (FR-126). */
-export const TEST_KEY = "sk-proj-e2eTestKey0000a1b2";
-export const MASKED_TEST_KEY = "sk-…a1b2";
+/**
+ * The key the specs enter, and the part Settings shows of it (FR-126). Its last 4 characters are
+ * not hex digits, so no random id in a backup or a request can contain them by chance.
+ */
+export const TEST_KEY = "sk-proj-e2eTestKey0000wxyz";
+export const MASKED_TEST_KEY = "sk-…wxyz";
 
 /** OpenAI's address for the key check (contracts/ai.md, key check). */
 export const KEY_CHECK_URL = "https://api.openai.com/v1/models";

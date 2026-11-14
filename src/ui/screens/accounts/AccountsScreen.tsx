@@ -8,6 +8,7 @@ import { formatAmount } from "@/ui/format";
 import { AccountDialog } from "./AccountDialog";
 import { accountTypeLabel } from "./accountTypes";
 import { ReconcileDialog } from "./ReconcileDialog";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /** Every account with its computed balance (FR-002), and the dialogs to add or edit one. */
 export function AccountsScreen() {
@@ -30,6 +31,9 @@ export function AccountsScreen() {
         <h1 className="text-3xl font-semibold">Accounts</h1>
         <Button onClick={() => setDialog({ account: null })}>New account</Button>
       </div>
+      <ScreenIntro>
+        Where your money is held. When a balance here differs from your bank&apos;s, Reconcile it.
+      </ScreenIntro>
       <div className="surface px-6 py-2">
         <table className="w-full text-sm">
           <thead>

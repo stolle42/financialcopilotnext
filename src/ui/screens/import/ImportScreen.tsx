@@ -8,7 +8,7 @@ import { useStore, useStoreApi } from "@/store/store";
 import { navigate } from "@/ui/app/router";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Button } from "@/ui/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/ui/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/ui/components/ui/field";
 import { Input } from "@/ui/components/ui/input";
 import {
   Select,
@@ -19,7 +19,12 @@ import {
   SelectValue,
 } from "@/ui/components/ui/select";
 import { messageFor, type MessageCode } from "@/ui/messages";
+import { AccountDialog } from "@/ui/screens/accounts/AccountDialog";
 import { importChosenFile, NEW_PROFILE, useImportState } from "./importState";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
+
+/** The Account select's value for New account…; account ids are UUIDs, never this (FR-132). */
+const NEW_ACCOUNT = "new-account";
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -85,7 +90,10 @@ function nextStep(refusal: Refusal<MessageCode>, profile: MappingProfile | undef
     "import-duplicate-header",
   ];
   if (profile && profileAtFault.includes(refusal.code)) {
-    return { label: "Edit profile", path: `/import/profiles/${encodeURIComponent(profile.id)}` };
+    return {
+      label: "Edit bank CSV format",
+      path: `/import/profiles/${encodeURIComponent(profile.id)}`,
+    };
   }
   return null;
 }
@@ -99,6 +107,7 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
   const sortedProfiles = useMemo(() => sortProfiles(profiles), [profiles]);
   const { importState, setImportState } = useImportState();
   const [importing, setImporting] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const ids = { account: useId(), file: useId(), profile: useId() };
 
   // Exactly one profile is preselected; with none yet, a new one is the only choice.
@@ -204,9 +213,11 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
             <FieldLabel htmlFor={ids.account}>Account</FieldLabel>
             <Select
               value={importState.accountId}
-              onValueChange={(accountId) =>
-                setImportState((state) => ({ ...state, accountId, refusal: null }))
-              }
+              onValueChange={(accountId) => {
+                // New account… opens the dialog and keeps the account chosen so far.
+                if (accountId === NEW_ACCOUNT) setCreatingAccount(true);
+                else setImportState((state) => ({ ...state, accountId, refusal: null }));
+              }}
             >
               <SelectTrigger
                 id={ids.account}
@@ -227,13 +238,24 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
                     {account.name}
                   </SelectItem>
                 ))}
+                {sortedAccounts.length > 0 && <SelectSeparator />}
+                <SelectItem value={NEW_ACCOUNT}>New account…</SelectItem>
               </SelectContent>
             </Select>
             <FieldError>{refusal && accountRefused ? messageFor(refusal) : null}</FieldError>
           </Field>
+          {creatingAccount && (
+            <AccountDialog
+              account={null}
+              onClose={() => setCreatingAccount(false)}
+              onCreated={(account) =>
+                setImportState((state) => ({ ...state, accountId: account.id, refusal: null }))
+              }
+            />
+          )}
           {fileZone}
           <Field>
-            <FieldLabel htmlFor={ids.profile}>Profile</FieldLabel>
+            <FieldLabel htmlFor={ids.profile}>Bank CSV format</FieldLabel>
             <Select
               value={profileId}
               onValueChange={(id) =>
@@ -244,9 +266,9 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
                 <SelectValue>
                   {(id: string | null) =>
                     id === NEW_PROFILE
-                      ? "Create new profile"
+                      ? "Create new bank CSV format"
                       : (profiles.find((p) => p.id === id)?.name ?? (
-                          <span className="text-muted-foreground">Choose a profile</span>
+                          <span className="text-muted-foreground">Choose a bank CSV format</span>
                         ))
                   }
                 </SelectValue>
@@ -258,9 +280,13 @@ function ImportForm({ batchPending }: { batchPending: boolean }) {
                   </SelectItem>
                 ))}
                 {sortedProfiles.length > 0 && <SelectSeparator />}
-                <SelectItem value={NEW_PROFILE}>Create new profile</SelectItem>
+                <SelectItem value={NEW_PROFILE}>Create new bank CSV format</SelectItem>
               </SelectContent>
             </Select>
+            <FieldDescription>
+              A bank CSV format tells the app how one bank's files are laid out. You set it up once
+              per bank.
+            </FieldDescription>
           </Field>
           <div>
             <Button
@@ -291,8 +317,8 @@ function ProfileList({ batchPending }: { batchPending: boolean }) {
   }
 
   return (
-    <section aria-label="Mapping profiles" className="surface flex max-w-2xl flex-col gap-3 p-6">
-      <h2 className="text-xl font-semibold">Mapping profiles</h2>
+    <section aria-label="Bank CSV formats" className="surface flex max-w-2xl flex-col gap-3 p-6">
+      <h2 className="text-xl font-semibold">Bank CSV formats</h2>
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
           {messageFor(refusal)}
@@ -300,7 +326,7 @@ function ProfileList({ batchPending }: { batchPending: boolean }) {
       )}
       {sorted.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No profiles yet. You define one the first time you import a file.
+          None yet. The first import of a bank's file sets one up.
         </p>
       ) : (
         <ul className="flex flex-col divide-y">
@@ -325,14 +351,14 @@ function ProfileList({ batchPending }: { batchPending: boolean }) {
       )}
       <ConfirmDialog
         open={deleting !== null}
-        title={`Delete the profile "${deleting?.name ?? ""}"?`}
+        title={`Delete the bank CSV format "${deleting?.name ?? ""}"?`}
         description={
           "Future imports can no longer use it. " +
           (batchPending
             ? "The import waiting for review is not affected."
             : "Transactions it imported stay in the ledger.")
         }
-        confirmLabel="Delete profile"
+        confirmLabel="Delete bank CSV format"
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}
       />
@@ -346,6 +372,10 @@ export function ImportScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Import</h1>
+      <ScreenIntro>
+        Turns a bank&apos;s CSV file into transactions. They wait for your review before they enter
+        the ledger.
+      </ScreenIntro>
       {batch && <PendingBatchCard batch={batch} />}
       <ImportForm batchPending={batch !== null} />
       <ProfileList batchPending={batch !== null} />

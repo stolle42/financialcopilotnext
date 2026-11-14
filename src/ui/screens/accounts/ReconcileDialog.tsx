@@ -10,6 +10,7 @@ import {
   DialogClose,
   DialogContent,
   DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/ui/components/ui/dialog";
@@ -65,6 +66,10 @@ export function ReconcileDialog({ account, onClose }: { account: Account; onClos
       <DialogContent initialFocus={input}>
         <DialogHeader>
           <DialogTitle>Reconcile {account.name}</DialogTitle>
+          <DialogDescription>
+            For when the account&apos;s balance in the app differs from what it really holds. The
+            difference is booked to Unaccounted.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} noValidate className="flex flex-col gap-4">
           <FieldGroup>

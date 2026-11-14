@@ -58,6 +58,18 @@ From the review of the [data-safety checklist](checklists/data-safety.md):
 - Q: What kind should the app propose for an imported row whose amount is zero? → A: An expense,
   the same default as manual entry ([FR-023](#fr-023)).
 
+### Session 2026-10-22
+
+- Q: Should the screens keep the word "profile" for a mapping profile, or call it something
+  plainer? → A: Call it a "bank CSV format" wherever the user sees it, such as "Create new bank
+  CSV format"; the spec keeps the name mapping profile ([FR-138](#fr-138)).
+- Q: Of the banks widely used in Germany, ING, DKB, comdirect, Deutsche Bank and Postbank put
+  account details above the column names, which no import could read ([R-22](research.md#r-22)).
+  Should v1.7 handle them? → A: Yes. Every import looks for the line of column names within the
+  file's first 20 lines and skips the lines above it, so a bank whose number of such lines
+  changes still imports; nothing new is stored ([FR-021](#fr-021), [FR-133](#fr-133),
+  [R-34](research.md#r-34)).
+
 <a id="user-scenarios"></a>
 ## User Scenarios & Testing *(mandatory)*
 
@@ -345,8 +357,9 @@ was.
 **Acceptance Scenarios**:
 
 1. **Given** any screen, **Then** it shows the chat's button with its name; **Given** AI features
-   are off, **When** the user opens the chat, **Then** it says that it needs AI features, which
-   Settings turns on, and offers nothing to send ([FR-100](#fr-100)).
+   are off, **When** the user opens the chat, **Then** it says what it answers and that it needs
+   AI features, offers **Turn on AI features**, and offers nothing to send ([FR-100](#fr-100),
+   [FR-135](#fr-135)). Changed in v1.7.
 2. **Given** AI features are on and an empty conversation, **When** the user opens the chat,
    **Then** it offers example questions; **When** they select one, **Then** it is sent at once
    ([FR-101](#fr-101)).
@@ -474,6 +487,99 @@ entered.
 
 ---
 
+<a id="user-story-11"></a>
+### User Story 11 - Get started without getting stuck (Priority: P11)
+
+Someone opens the app for the first time. Each screen says in a sentence what it is for, and the
+words that are new to them, such as Reconcile, Unaccounted or a transfer, are explained where they
+appear. They import their first bank file without first finding the Accounts screen and without
+knowing what an encoding or a decimal separator is: they create the bank account right on Import,
+and the app reads the file's layout and proposes it, so they only check the preview and name it.
+The finance chat, whose button is on every screen, says what it can do and lets them turn it on
+where they are. When they wonder how to save work, why a balance is off or whether their data is
+safe, a screen FAQ answers, with links to where to do it. Added in v1.7.
+
+**Why this priority**: Every earlier story works, but a new user meets them all at once in an empty
+app. The first bank import asks for an account that does not exist yet and for six settings of the
+file, and the chat's button leads to a sentence that sends the user to another screen. A user who
+gets stuck there gives up before the app is of any use to them. It comes after the stories it makes
+easier to reach ([User Story 1](#user-story-1), [User Story 2](#user-story-2),
+[User Story 8](#user-story-8), [User Story 10](#user-story-10)).
+
+**Independent Test**: In a browser that never opened the app, read what each screen says it is
+for; import a demonstration bank file into a bank account created on Import, typing nothing in
+the profile editor but a name; open FAQ and follow the link of the answer on importing; then open
+the chat, turn AI features on from it with a key, and ask how to set a budget.
+
+**Acceptance Scenarios**:
+
+1. **Given** a first launch, **When** the user opens each screen, **Then** under its heading one
+   or two sentences say what the screen is for ([FR-137](#fr-137)).
+2. **Given** only the account Cash exists, **When** the user opens Import and its Account select,
+   **Then** it lists Cash and **New account…**; **When** they create the account "Giro" there,
+   **Then** Giro is chosen for the import and is listed on Accounts ([FR-132](#fr-132)).
+3. **Given** the demonstration file `mybank-2026-10.csv`, whose columns are Date, Payee, Purpose
+   and Amount, and Create new bank CSV format, **When** the user selects Import, **Then** the
+   profile editor opens with: first row as column names, UTF-8, `DD.MM.YYYY`, comma as decimal
+   separator, one signed column, Date as the date, Amount as the amount, Purpose as the
+   description and Payee as the counterparty; and the preview shows every row readable
+   ([FR-133](#fr-133)).
+4. **Given** that editor, **When** the user types a name and selects Save, **Then** the file is
+   imported and review opens, as before v1.7 ([FR-021](#fr-021)).
+5. **Given** a file whose columns are named Buchungstag, Verwendungszweck, Soll and Haben, **When**
+   the editor opens for it, **Then** it proposes separate debit and credit columns, with Soll as
+   the debit and Haben as the credit column, Buchungstag as the date and Verwendungszweck as the
+   description ([FR-133](#fr-133)).
+6. **Given** a file without column names whose first column holds dates and whose third holds
+   amounts, **When** the editor opens for it, **Then** it proposes no header row, the first column
+   as the date and the third as the amount, and leaves the description to the user
+   ([FR-133](#fr-133)).
+7. **Given** the demonstration file `whatsapp-notebook-2026-10-15.csv`, whose amounts are all
+   positive, **When** the editor opens for it, **Then** the preview shows every row as an income,
+   and the editor says that Invert the sign turns them into expenses if they are purchases
+   ([FR-134](#fr-134)).
+8. **Given** a saved profile opened with Edit, **When** the user picks a sample file, **Then** none
+   of the profile's settings change ([FR-133](#fr-133)).
+9. **Given** AI features are off, **When** the user opens the chat, **Then** it says in a few lines
+   what it answers, lists the example questions without letting them be sent, says that it needs
+   the user's own OpenAI API key and that OpenAI charges that account, and offers **Turn on AI
+   features** ([FR-135](#fr-135)).
+10. **Given** that chat, **When** the user selects Turn on AI features and enters a key OpenAI
+    accepts, **Then** AI features are on, Settings shows them on, and the chat takes a question at
+    once, without the user leaving it ([FR-127](#fr-127), [FR-135](#fr-135)).
+11. **Given** AI features are on, **When** the user asks the chat how to turn AI features on,
+    **Then** the answer says that they need the user's own OpenAI API key, that the dialog for it
+    opens from Settings or from the chat, and that they work wherever the app runs
+    ([FR-136](#fr-136)).
+12. **Given** Categories, **Then** "Uncategorised" and "Unaccounted" each say what they hold;
+    **given** Accounts, **then** it says when to use Reconcile; **given** the account dialog,
+    **then** Opening balance says what it means; **given** the transaction form with Transfer
+    chosen, **then** it says what a transfer is ([FR-138](#fr-138)).
+13. **Given** Import, **Then** it calls a mapping profile a bank CSV format, offers **Create new
+    bank CSV format**, lists the saved ones under **Bank CSV formats**, and says beside the choice
+    what a bank CSV format is ([FR-138](#fr-138)).
+14. **Given** any screen, **Then** the sidebar lists Help last; **When** the user opens it,
+    **Then** Help shows FAQ's questions grouped by topic, every answer hidden ([FR-084](#fr-084),
+    [FR-139](#fr-139)).
+15. **Given** FAQ, **When** the user selects "Entering every bank transaction by hand is a lot of
+    work. How can I make it easier?", **Then** its answer shows the steps of a CSV import, with a
+    link to Import; **When** they follow the link, **Then** Import opens ([FR-139](#fr-139),
+    [FR-140](#fr-140)).
+16. **Given** no network connection, **When** the user opens FAQ, **Then** every question and
+    answer shows ([FR-139](#fr-139)).
+17. **Given** AI features are off, **When** the user opens the chat, **Then** it links to FAQ
+    ([FR-135](#fr-135)); **given** AI features are on, **when** the user asks the chat a question
+    of FAQ, **then** the answer agrees with FAQ's ([FR-141](#fr-141)).
+18. **Given** a file with 12 lines of account details above the column names Buchung,
+    Wertstellungsdatum, Auftraggeber/Empfänger, Buchungstext, Verwendungszweck, Betrag and Währung,
+    **When** the editor opens for it, **Then** it takes the 13th line as the column names and
+    proposes Buchung as the date, Betrag as the amount, Verwendungszweck as the description and
+    Auftraggeber/Empfänger as the counterparty, and the preview reads every row; **When** the
+    saved format imports the bank's next file, which has 14 such lines, **Then** that file imports
+    too ([FR-021](#fr-021), [FR-133](#fr-133)).
+
+---
+
 <a id="edge-cases"></a>
 ### Edge Cases
 
@@ -563,6 +669,42 @@ entered.
   features are on if the backup holds them on ([FR-126](#fr-126)).
 - The user uses the app on two computers: each has its own key entry, since no backup carries the
   key ([FR-126](#fr-126)).
+- Every date of a new file reads both as `DD/MM/YYYY` and as `MM/DD/YYYY`, because no day is
+  above 12: the app proposes `DD/MM/YYYY`, and the preview shows the dates, so the user changes the
+  format if they are wrong ([FR-133](#fr-133)).
+- Every amount of a new file reads with either decimal separator, such as `40` or `1250`: the app
+  proposes the comma ([FR-133](#fr-133)).
+- A new file has two columns named as a date, such as Buchungstag and Valuta: the app proposes the
+  booking date, not the value date ([FR-133](#fr-133)).
+- A new file is not valid UTF-8: the app proposes Windows-1252. If the preview shows wrong
+  letters, the user chooses another encoding ([FR-133](#fr-133)).
+- A bank puts account details above the column names and a closing balance under the rows: the
+  import skips the lines above the column names, and the closing balance shows as one unparsable
+  row ([FR-021](#fr-021), [FR-028](#fr-028)).
+- A bank exports rows it has not booked yet with a word, such as `offen`, in place of the date:
+  they show as unparsable, and the next file brings them in once booked ([FR-028](#fr-028)).
+- A bank's file has a signed amount column and also debit and credit columns that repeat it: the
+  app proposes the signed column ([FR-133](#fr-133)).
+- A bank puts a different number of lines of account details above the column names in its next
+  file: the import still finds the column names, within the file's first 20 lines
+  ([FR-021](#fr-021)).
+- A file without column names has lines of account details above its rows: they show as
+  unparsable rows, and the user deletes them from the file or leaves them out of the import
+  ([FR-028](#fr-028)).
+- Nothing in a new file can be placed, such as a file of one column: the editor opens with the
+  usual settings and no column assigned, as before v1.7, and Save says which columns are missing
+  ([FR-021](#fr-021), [FR-133](#fr-133)).
+- The user creates an account on Import with the name of one that exists: it is refused as on
+  Accounts, and the dialog stays open with what they entered ([FR-001](#fr-001),
+  [FR-132](#fr-132)).
+- The user turns AI features on from the chat while a stored conversation is shown: it stays, and
+  the next question continues it ([FR-104](#fr-104), [FR-135](#fr-135)).
+- OpenAI does not accept the key entered in the dialog opened from the chat: the dialog says so,
+  as in Settings, and the chat stays as it was ([FR-127](#fr-127), [FR-135](#fr-135)).
+- A later version changes something an FAQ answer describes: the answer changes in that version,
+  as the guide to the app does ([FR-139](#fr-139), [FR-141](#fr-141)).
+- An FAQ answer links to Import while an import waits for review: Import shows the waiting import,
+  as it always does ([FR-022](#fr-022)).
 
 ## Requirements *(mandatory)*
 
@@ -628,10 +770,19 @@ entered.
   columns), the description, and optionally the counterparty; whether the amount's sign is
   inverted (for exports that list purchases as positive numbers); the date format; the decimal
   separator; and the file encoding. Profile names MUST be unique, compared as account names are
-  ([FR-001](#fr-001)); a duplicate name MUST be refused with an explanation.
+  ([FR-001](#fr-001)); a duplicate name MUST be refused with an explanation. Changed in v1.7: a
+  new profile starts from the settings the app reads from the file ([FR-133](#fr-133),
+  [FR-134](#fr-134)), and the column names may come below lines of account details.
   - Columns MUST be identified by their header text. A file missing a mapped header MUST create no
     batch, and the message MUST name the missing columns. A profile MAY instead be flagged "no header
     row", in which case columns are identified by position and no layout check is made.
+  - With column names, the import and the preview MUST take as them the first of the file's first
+    20 lines that holds every column name the profile maps, and MUST skip the lines above it. Such
+    lines hold account details that some banks put above their rows, such as the account, the
+    period and the balance, and their number may change from one file of the bank to the next.
+    When no such line exists, the missing columns are those the line holding most of the mapped
+    names lacks. Rows keep the numbers they have in the file. Changed in v1.7: before, the column
+    names had to be the first line.
   - While defining a profile, the app MUST preview how the first rows of the file parse (date,
     signed amount, description), so a wrong date format or decimal separator is visible before any
     batch exists.
@@ -851,8 +1002,8 @@ them changes states the new behaviour and names the change.
   and category filters ([FR-016](#fr-016)). A start after the end MUST be refused with a message
   at the fields ([FR-068](#fr-068)).
 - <a id="fr-084"></a>**FR-084**: The sidebar MUST list the screens in this order: Transactions,
-  Categories, Accounts, Budgets, Backup, Insights, Settings. Changed in v1.2: Settings
-  ([FR-095](#fr-095)).
+  Categories, Accounts, Budgets, Backup, Insights, Settings, Help. Changed in v1.2: Settings
+  ([FR-095](#fr-095)). Changed in v1.7: Help, which opens FAQ ([FR-139](#fr-139)).
 - <a id="fr-085"></a>**FR-085**: Import MUST NOT have its own sidebar entry. It MUST open from a
   button on the transaction list, since an import feeds that list. On Import and the screens
   reached from it, the sidebar MUST mark Transactions as the current screen.
@@ -923,9 +1074,10 @@ it changes states the new behaviour and names the change.
   [FR-100](#fr-100)). AI features are on only while the switch is on and the user's OpenAI API key
   is stored on this computer ([FR-126](#fr-126)); without a key, Settings shows the switch off.
   Changed in v1.3: [FR-100](#fr-100), [FR-102](#fr-102), [FR-106](#fr-106). Changed in v1.6:
-  [FR-126](#fr-126), [FR-127](#fr-127).
-  - Turning it on MUST first show the dialog of [FR-127](#fr-127), with a warning that data will
-    now be shared: what each AI feature sends and to whom ([FR-091](#fr-091), [FR-102](#fr-102)).
+  [FR-126](#fr-126), [FR-127](#fr-127). Changed in v1.7: [FR-135](#fr-135).
+  - Turning it on, in Settings or from the chat ([FR-135](#fr-135)), MUST first show the dialog of
+    [FR-127](#fr-127), with a warning that data will now be shared: what each AI feature sends and
+    to whom ([FR-091](#fr-091), [FR-102](#fr-102)).
     AI features MUST turn on only when the user agrees and OpenAI accepts the key; cancelling
     leaves them off and changes nothing. Turning them on sends nothing but the key check.
   - Turning it off MUST take effect at once, without a warning. The key stays stored.
@@ -950,9 +1102,10 @@ version that it changes states the new behaviour and names the change.
   button MUST NOT keep any of a screen's content hidden: scrolled to its end, a screen's content
   ends above it. The button opens the chat beside the screen. Opening another screen, also by
   following a link in the chat such as a source, closes the chat, so that screen shows. Opening
-  and closing the chat send nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST say that it needs AI
-  features, which Settings turns on, and MUST offer nothing to send; a stored conversation still
-  shows ([FR-104](#fr-104)).
+  and closing the chat send nothing. While AI features are off ([FR-095](#fr-095)), the chat MUST
+  say what it answers and that it needs AI features, MUST offer to turn them on
+  ([FR-135](#fr-135)), and MUST offer nothing to send; a stored conversation still shows
+  ([FR-104](#fr-104)). Changed in v1.7: [FR-135](#fr-135).
 - <a id="fr-101"></a>**FR-101**: While its conversation is empty, and after a question out of
   scope ([FR-103](#fr-103)), the chat MUST offer example questions, among them how to reduce
   spending and which subscriptions have become more expensive. Selecting one MUST send it at once,
@@ -1230,6 +1383,194 @@ names the change.
   A model that fails MUST NOT be listed. When gpt-5.4-mini fails, the cheapest model that passes
   MUST be the default. The results are recorded in [research.md](research.md).
 
+**Getting started (v1.7)**
+
+A change the owner asked for after v1.6, released as v1.7, so that a new user does not give up
+before the app is of use to them: the first bank import needs no trip to another screen and no
+knowledge of file formats, the finance chat explains itself and turns on where it is offered, each
+screen and each new word says what it means, and a screen FAQ answers the questions users often
+have. [User Story 11](#user-story-11) describes it. A
+requirement of an earlier version that it changes states the new behaviour and names the change.
+It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#fr-061),
+[FR-070](#fr-070)).
+
+- <a id="fr-132"></a>**FR-132**: Import's Account select MUST end with **New account…**, which
+  opens the dialog that New account opens on Accounts: name, type and opening balance
+  ([FR-001](#fr-001)). Saving MUST create the account, as on Accounts, and choose it for the
+  import. Cancelling MUST leave the account chosen before, if any. A refusal, such as a duplicate
+  name, shows in the dialog as on Accounts.
+- <a id="fr-133"></a>**FR-133**: When the user defines a new mapping profile for the file being
+  imported ([FR-021](#fr-021)), the app MUST read the file and propose every setting it can tell
+  from it, and the profile editor MUST open with those settings chosen and the preview showing
+  them:
+  - **encoding**: UTF-16LE when the file starts with its byte-order mark; UTF-8 when the file is
+    valid UTF-8; Windows-1252 otherwise;
+  - **column names**: the first of the file's first 20 lines that names both a date column and an
+    amount column (or a debit and a credit column) holds the column names, and the lines above it
+    are skipped ([FR-021](#fr-021)). Without such a line, the first line holds column names when
+    it does not read as a transaction while the lines under it do;
+  - **amount mode**: one signed column when the file has a column named as an amount; otherwise
+    separate debit and credit columns when it has a column named as a debit and one named as a
+    credit, such as Soll and Haben; one signed column otherwise. A named amount wins because some
+    banks add debit and credit columns that repeat it with its sign;
+  - **columns**: the date, the amount (or the debit and the credit), the description and the
+    counterparty, recognised by the column names common in English and German bank exports, such
+    as Date, Buchungstag, Amount, Betrag, Description, Verwendungszweck, Payee and Empfänger. Where
+    two columns could be the date, the booking date wins over the value date. Without a name the
+    app recognises, it MUST propose as the date the first column in which more than half of the
+    cells read as a date, and as the amount the first other column in which more than half read as
+    an amount. A column it cannot place MUST stay unassigned;
+  - **date format**: of the formats under which the most cells of the proposed date column read,
+    the first in the order of [csv-import.md](contracts/csv-import.md#date-formats), so that a
+    day-first format wins over a month-first one;
+  - **decimal separator**: the one under which more cells of the proposed amount columns read; the
+    comma when both read as many.
+
+  The app MUST NOT propose a name or sign inversion; the user types the name, and
+  [FR-134](#fr-134) covers the sign. The user MUST be able to change every proposed setting, and the
+  preview follows each change, as before v1.7. Proposing saves nothing and imports nothing: the
+  user still selects Save, which imports the file ([FR-021](#fr-021)). A profile being edited, and
+  a sample file picked for it, MUST NOT change its settings. Reading the file happens on this
+  computer and sends nothing ([FR-061](#fr-061)).
+- <a id="fr-134"></a>**FR-134**: While a profile has one signed column, sign inversion off, and the
+  preview reads at least one amount and no negative one, the profile editor MUST say under Invert
+  the sign that every row would be an income, and that Invert the sign makes them expenses if they
+  are purchases. The editor MUST NOT turn it on by itself.
+- <a id="fr-135"></a>**FR-135**: While AI features are off ([FR-095](#fr-095)), the finance chat
+  MUST, in place of the line that sent the user to Settings ([FR-100](#fr-100)):
+  - say in two or three lines what it answers: questions about the user's own money, from the data
+    of the current month and the 12 months before it; general questions about money; and questions
+    about the app ([FR-102](#fr-102), [FR-103](#fr-103));
+  - list the example questions of [FR-101](#fr-101) as examples, which cannot be selected or sent;
+  - say that it needs AI features, which send that data to OpenAI, need the user's own OpenAI API
+    key, and are charged to the user's OpenAI account;
+  - offer **Turn on AI features**, which opens the dialog of [FR-127](#fr-127), as the Settings
+    switch does ([FR-095](#fr-095)). When AI features turn on there, the chat MUST take a question
+    at once, without the user leaving it, and Settings shows them on. Cancelling, and a key OpenAI
+    does not accept, leave the chat as it was;
+  - link to the [FAQ](#fr-139), which answers questions about the app without AI features.
+
+  A stored conversation still shows ([FR-104](#fr-104)), and opening the chat still sends nothing.
+  Review's line for Suggest categories keeps sending the user to Settings ([FR-090](#fr-090)).
+- <a id="fr-136"></a>**FR-136**: The guide to the app that a question sends ([FR-102](#fr-102),
+  [FR-103](#fr-103)) MUST describe the app of the version it ships with, in the words its screens
+  use. In particular, it MUST say that AI features need the user's own OpenAI API key, entered in
+  the dialog that opens from Settings or from the chat, and that they work wherever the app runs
+  ([FR-126](#fr-126) – [FR-128](#fr-128)). Through v1.6 it said that they work only on the user's
+  own computer. It MUST also describe New account on Import ([FR-132](#fr-132)) and the settings a
+  new profile starts from ([FR-133](#fr-133)).
+- <a id="fr-137"></a>**FR-137**: Under its heading, each screen MUST say in one or two plain
+  sentences what it is for and, where that helps, when to use it: Transactions, Import, Review,
+  the profile editor, Accounts, Budgets, Backup, Settings and FAQ. A screen that already says so,
+  such as Budgets, keeps its text. Categories and Insights have no such sentence: their headings
+  say enough. The sentences MUST always show, with
+  nothing to open and nothing to dismiss, and MUST NOT replace an empty state ([FR-065](#fr-065)).
+- <a id="fr-138"></a>**FR-138**: The terms a new user is unlikely to know MUST be explained in one
+  plain sentence where they appear, with nothing to open and nothing to dismiss:
+  - **Uncategorised** and **Unaccounted**: on Categories, beside each of them, what it holds:
+    Uncategorised, what is not sorted into a category yet; Unaccounted, the differences Reconcile
+    books ([FR-005](#fr-005), [FR-035](#fr-035));
+  - **Reconcile**: on Accounts and in its dialog, that it is for when an account's balance in the
+    app differs from what it really holds, and that the difference is booked to Unaccounted
+    ([FR-005](#fr-005));
+  - **Opening balance**: in the account dialog, under the field, that it is what the account held
+    before its first transaction in the app ([FR-001](#fr-001));
+  - **Transfer**: in the transaction form while Transfer is chosen, and on Review once, above the
+    rows whose Transfer switches it explains, that a transfer moves money between two of the
+    user's own accounts and counts as neither spending nor income ([FR-012](#fr-012));
+  - **Mapping profile**: on Import, beside its choice, that it tells the app how one bank's files
+    are laid out, and is set up once per bank ([FR-021](#fr-021)).
+
+  Wherever the user sees a mapping profile, in labels, buttons, titles, messages and the guide to
+  the app ([FR-136](#fr-136)), the screens MUST call it a **bank CSV format**, such as **Create new
+  bank CSV format** on Import and **Bank CSV formats** for the list of saved ones. This spec keeps
+  the name mapping profile.
+- <a id="fr-139"></a>**FR-139**: A screen **FAQ** MUST answer the questions that users of the app
+  often have ([FR-140](#fr-140)). The sidebar MUST list it last ([FR-084](#fr-084)). The screens
+  MUST call it **Help**, in the sidebar, as its heading and in the chat's link to it; this spec
+  keeps the name FAQ.
+  - The questions MUST be grouped by topic, each topic under its heading, in the order of
+    [FR-140](#fr-140). Each question MUST show its answer when selected and hide it when selected
+    again. Every answer starts hidden, so the questions show at a glance, and several answers MAY
+    show at once.
+  - Where an answer names a screen or an action, it MUST link to that screen, such as Import,
+    Accounts, Backup or Settings; following a link opens it. The one link outside the app is
+    OpenAI's page for API keys, which opens in the browser and is no request of the app's, as in
+    [FR-127](#fr-127).
+  - The answers MUST describe the version they ship with, in the words its screens use
+    ([FR-138](#fr-138)), and the steps of an answer MUST work as written.
+  - Opening FAQ sends nothing, and it works without a network connection ([FR-061](#fr-061),
+    [FR-123](#fr-123)).
+- <a id="fr-140"></a>**FR-140**: FAQ MUST hold these twelve questions, and no others, each with an
+  answer in plain words that says at least what follows the question. An answer agrees with the
+  requirements it names. A term that the screens explain where it appears, such as Unaccounted,
+  gets no question of its own ([FR-138](#fr-138)).
+  - **Getting started**
+    - "Where do I start?": there is nothing to sign up for, and the app is ready when it opens; the
+      account Cash and the categories are ready; Add transaction records one by hand; Import CSV
+      brings in a bank's file; a bank account is created on Accounts or right on Import
+      ([FR-006](#fr-006), [FR-031](#fr-031), [FR-121](#fr-121), [FR-132](#fr-132)).
+    - "Entering every bank transaction by hand is a lot of work. How can I make it easier?":
+      import the bank's CSV file instead, step by step: in online banking, open the account's
+      transactions, choose the period and export them as CSV, in words that differ from bank to
+      bank; on Transactions, select Import CSV; choose the account, or New account…; choose the
+      file; the first time, Create new bank CSV format, check the settings the app proposes in the
+      preview, name the format and save; in review, give each vendor group a category at once, and
+      mark payments to the user's own accounts as transfers; select Confirm. The next file of the
+      same bank uses the saved format, with nothing to set, and rows imported before are skipped as
+      duplicates ([User Story 2](#user-story-2), [FR-133](#fr-133)).
+    - "Can the app connect to my bank directly?": no, on purpose: the app never holds bank logins,
+      and the bank's CSV file is the way in, which takes a few minutes a month
+      ([SC-001](#sc-001), [Out of Scope](#out-of-scope)).
+    - "Where is my data, and who can see it?": only in this browser on this computer; the app sends
+      nothing unless AI features are on; anyone who can use this computer's user account can open
+      it, since the app has no passcode ([FR-061](#fr-061), [Out of Scope](#out-of-scope)).
+  - **Importing bank files**
+    - "My bank's file doesn't import, or the preview looks wrong. What do I do?": for wrong dates,
+      wrong amounts or strange letters, change the date format, the decimal separator or the
+      encoding until the preview reads right; when every row shows as an income, turn on Invert the
+      sign; when a message names missing columns, the bank changed its file, so edit the bank CSV
+      format or create a new one; unparsable rows are rows the format cannot read, such as a
+      closing balance under the rows, review says why each failed, and they are fixed in the
+      format or added by hand ([FR-021](#fr-021), [FR-028](#fr-028), [FR-134](#fr-134)).
+    - "Why are some rows marked as duplicates?": they match a transaction already in the account, or
+      an earlier row of the same file, on date, amount and direction, so importing the same months
+      twice adds nothing twice; they are left out unless the user includes them, as for two
+      coffees of the same price on the same day ([FR-024](#fr-024), [FR-025](#fr-025)).
+    - "Can I undo an import?": before Confirm, Discard leaves everything as it was; after, an import
+      cannot be undone as a whole, so delete its transactions one by one or load a backup saved
+      before; saving a backup before a large import is wise ([FR-027](#fr-027),
+      [FR-071](#fr-071)).
+  - **Accounts and budgets**
+    - "A payment to my credit card or savings account counts as spending. How do I fix it?": make it
+      a transfer, in review or by editing the transaction, as for taking out cash into Cash; a
+      transfer counts as neither spending nor income, so no Insights figure or budget shows it;
+      when the other account's file is imported later, its side of the transfer shows as a
+      duplicate ([FR-011](#fr-011), [FR-012](#fr-012), [FR-023](#fr-023),
+      [Edge Cases](#edge-cases)).
+    - "Why does an account's balance differ from my bank's?": check the opening balance, which is
+      what the account held before its first transaction in the app, and look for missing or
+      doubled transactions; then Reconcile states what the account holds and books the difference
+      to Unaccounted ([FR-001](#fr-001), [FR-005](#fr-005)).
+    - "How do budgets work? Does money I don't spend carry over?": a monthly limit per expense
+      category, set on Budgets; each month starts at zero, and nothing carries over; Insights shows
+      which categories are over their limit ([FR-040](#fr-040) – [FR-042](#fr-042)).
+  - **Your data and AI features**
+    - "Can I lose my data?": the browser may clear it when disk space runs low, and clearing the
+      browser's data for the app deletes it; save a backup now and then, which also moves the data
+      to another computer or browser; installing the app helps Chrome and Edge keep the data
+      ([FR-070](#fr-070), [FR-071](#fr-071), [FR-075](#fr-075)).
+    - "What do the AI features do, and what do they cost?": Suggest categories in review and the
+      finance chat; they need the user's own OpenAI API key, created on OpenAI's page for API keys
+      and entered with Turn on AI features, in Settings or in the chat; OpenAI charges that account
+      for each request, so a monthly limit there is wise; they send data to OpenAI only when the
+      user uses them: Suggest categories sends no amounts, dates or account names, and a question
+      to the chat sends the expenses and incomes of the current month and the 12 months before it
+      ([FR-091](#fr-091), [FR-102](#fr-102), [FR-126](#fr-126) – [FR-129](#fr-129),
+      [FR-135](#fr-135)).
+- <a id="fr-141"></a>**FR-141**: The guide to the app ([FR-136](#fr-136)) MUST hold FAQ's
+  questions and answers, so the finance chat answers them as FAQ does, and the two never differ.
+
 <a id="key-entities"></a>
 ### Key Entities
 
@@ -1246,7 +1587,8 @@ names the change.
 - **Budget**: A monthly spending limit attached to one non-protected expense category. There is one
   limit at a time, and it applies to every month ([FR-041](#fr-041)).
 - **Mapping profile**: A named, reusable description of one bank's CSV layout: column roles, date
-  format, decimal separator, encoding.
+  format, decimal separator, encoding. The screens call it a bank CSV format
+  ([FR-138](#fr-138)).
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or
   discarded. Belongs to one account and one profile. At most one exists at a time.
 - **Pending row**: One parsed line in a pending batch: its parsed fields, its vendor group, its
@@ -1326,6 +1668,29 @@ names the change.
 - <a id="sc-022"></a>**SC-022**: Every model the app lists passed [FR-131](#fr-131)'s check: at least
   90 of 100 suggestions right, and every chat answer complete within 60 seconds and true to the
   data, but for at most one wrong conclusion drawn from amounts the data holds.
+- <a id="sc-023"></a>**SC-023**: For every bank file the project keeps for checks, the
+  demonstration files and the exports of at least five banks widely used in Germany, among them
+  banks that put account details above the column names, defining a new profile proposes settings
+  under which the preview reads every booked transaction, so the user types only a name before
+  Save. Lines that hold no booked transaction, such as a closing balance under the rows or a row a
+  bank marks as not yet booked instead of giving its date, may show as unparsable. A file that
+  lists purchases as positive amounts makes the editor say to invert the sign
+  ([FR-133](#fr-133), [FR-134](#fr-134)).
+- <a id="sc-024"></a>**SC-024**: A new user with a bank's CSV file at hand and only the account
+  Cash reaches the review of that file within 2 minutes of opening Import, without opening another
+  screen ([FR-132](#fr-132), [FR-133](#fr-133)).
+- <a id="sc-025"></a>**SC-025**: A user with AI features off and an OpenAI API key at hand sends
+  their first question within 2 minutes of opening the finance chat, without leaving it
+  ([FR-135](#fr-135)).
+- <a id="sc-026"></a>**SC-026**: Asked what each screen is for, and what Reconcile, Unaccounted
+  and a transfer are, a new user who has only opened each screen once, at default zoom in a
+  1280 × 800 window, answers each from what the screens say ([FR-137](#fr-137),
+  [FR-138](#fr-138)).
+- <a id="sc-027"></a>**SC-027**: A new user given any question of [FR-140](#fr-140) finds its
+  answer on FAQ within 30 seconds of opening it, and can follow its steps in the app without
+  other help ([FR-139](#fr-139)).
+- <a id="sc-028"></a>**SC-028**: In each release, every step that an FAQ answer describes works in
+  the app as written, and every link of FAQ opens the screen it names ([FR-139](#fr-139)).
 
 <a id="assumptions"></a>
 ## Assumptions
@@ -1354,6 +1719,18 @@ names the change.
   - The pass marks of [FR-131](#fr-131), 90 of 100 suggestions and every chat answer true to the
     data, are set for v1.6 by this spec, not taken from a measurement; the owner may change them
     before the check runs.
+- **v1.7**:
+  - Most users' banks name their columns in English or German. For other files the app still
+    proposes the encoding, the date and amount columns from their content, the date format and the
+    decimal separator, and the user assigns the rest ([FR-133](#fr-133)).
+  - A proposed setting can be wrong. The preview ([FR-021](#fr-021)) stays the safeguard: it shows
+    every row as the import will read it before any batch exists.
+  - The exports of five widely used banks that [SC-023](#sc-023) needs can be rebuilt from their
+    published layouts with made-up transactions, so no one's real data enters the project.
+  - The explanations and FAQ are in English, as is the rest of the app.
+  - FAQ's questions and answers make the guide that every question to the chat sends longer
+    ([FR-141](#fr-141)). The guide is the same for every question, which OpenAI charges less for
+    when it is sent again, so the cost per question rises only a little.
 
 <a id="out-of-scope"></a>
 ## Out of Scope
@@ -1456,3 +1833,16 @@ Listed so that "should we add…?" has an answer that does not require a meeting
   the first rows at once and render the rest just after, for example with React's
   `useDeferredValue`. Every row still reaches the page, so find-in-page keeps working, a moment
   later for rows past the first. The check in `e2e/performance.spec.ts` is skipped until then.
+- Further help for new users, considered for v1.7 and left for later: a getting-started checklist,
+  sample data to try the app with, a guided tour, and a reminder to save a backup.
+- For a new profile ([FR-133](#fr-133)): proposing its name or sign inversion; recognising a bank
+  by its file; column names in languages other than English and German; column names below the
+  file's first 20 lines; skipping lines after the rows, or lines above the rows of a file without
+  column names; proposing settings for a profile being edited; and importing without the profile
+  editor, even when every setting was proposed.
+- Turning AI features on from review's Suggest categories, which keeps its line to Settings
+  ([FR-090](#fr-090), [FR-135](#fr-135)).
+- Help pages other than FAQ, tooltips, and explanations that can be hidden or turned off
+  ([FR-137](#fr-137), [FR-138](#fr-138)). For FAQ ([FR-139](#fr-139)): questions beyond the
+  twelve of [FR-140](#fr-140), searching it, linking to a single question, questions the user
+  adds, and languages other than English.

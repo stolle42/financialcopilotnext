@@ -185,6 +185,41 @@ committed. Tests that need existing data load it through the backup restore
   for an AI feature ([FR-128](spec.md#fr-128)); a refused key shows its message within 10 s and
   stores nothing ([SC-021](spec.md#sc-021)).
 
+### US11: Getting started
+
+- **Run**: `e2e/us11-getting-started.spec.ts`, with stand-ins answering at `/v1/models` and
+  `/v1/responses` ([R-31](research.md#r-31)); `e2e/ui/faq.spec.ts` for the FAQ screen; and, for
+  [SC-023](spec.md#sc-023), the Vitest test of `proposeFormat` in `src/store/import.test.ts`.
+- **Covers**: [User Story 11](spec.md#user-story-11) scenarios 1–18. The scenarios that name a
+  demonstration file use a fixture of the same layout, because `demo/` is not part of the
+  repository.
+
+| Fixture | Shape | Exercises |
+|---|---|---|
+| `mybank-2026-10.csv` | The layout of the demonstration file: `Date;Payee;Purpose;Amount`, UTF-8, `DD.MM.YYYY`, `,` decimals | Scenario 3: every setting proposed by name |
+| `soll-haben.csv` | `Buchungstag;Valuta;Verwendungszweck;Soll;Haben`, Windows-1252 | Scenario 5: debit and credit by name, booking date before value date, Windows-1252 |
+| `no-header.csv` | No column names; dates in the first column, text in the second, amounts in the third | Scenario 6: no header, date and amount by content, description left unassigned |
+| `cash-notebook.csv` | The layout of the demonstration file `whatsapp-notebook-2026-10-15.csv`: `Date;Amount;Purpose`, all amounts positive | Scenario 7: the sign hint |
+| `banks/*.csv` | One export per bank of [R-34](research.md#r-34), with made-up rows | [SC-023](spec.md#sc-023): every row reads with the proposed settings |
+
+- **Expected**:
+  - For each file of `banks/` and each fixture above but `no-header.csv`, the proposed settings
+    read every booked transaction of the preview, so that only a name is typed before Save; a
+    closing balance and a row marked `offen` show as unparsable ([SC-023](spec.md#sc-023)). For
+    `cash-notebook.csv`, the editor shows the sign hint.
+  - The format saved for `banks/ing.csv` imports `banks/ing-longer.csv`, whose column names sit two
+    lines lower ([FR-021](spec.md#fr-021)).
+  - A new account created on Import is the import's account, and is listed on Accounts
+    ([FR-132](spec.md#fr-132)).
+  - With AI features off, the chat turns them on through the dialog and then sends a question
+    without leaving the sheet; the key check is the only request until the question
+    ([FR-135](spec.md#fr-135), [FR-061](spec.md#fr-061)).
+  - Every screen of [ui.md](contracts/ui.md#screen-sentences) shows its sentence; FAQ is the
+    sidebar's last entry, its twelve answers start closed, each internal link opens its screen, and
+    with the network disconnected FAQ still shows every answer ([FR-139](spec.md#fr-139)).
+  - The guide sent with a question holds every FAQ question and answer
+    ([FR-141](spec.md#fr-141)).
+
 ### Messages
 
 - **Run**: `e2e/messages.spec.ts`
@@ -216,6 +251,11 @@ noted. Use the app at its web address, or `npm start` before a push, with a fres
 | [FR-064](spec.md#fr-064), [FR-065](spec.md#fr-065) | Walk every screen at default zoom on a desktop viewport | Clear hierarchy, comfortable spacing, and categories that look the same everywhere |
 | [FR-112](spec.md#fr-112) – [FR-116](spec.md#fr-116) | Walk every screen, a dialog, the chat and a notification, on `localhost` and at the web address, beside the reference design at `financialcopilot4you.lovable.app` | The reference's canvas, cards, ink, periwinkle and fonts, as [ui.md](contracts/ui.md#look) lists them; each screen keeps its layout, labels and flows; the browser's network log shows the fonts coming from the app's own origin |
 | [FR-117](spec.md#fr-117) | Open the chat, drag its left edge toward the screen and back, then move it with the arrow keys | The edge follows the pointer without lag and stops at 320px and at three quarters of the window; closed and opened again, the chat keeps its width |
+| [SC-024](spec.md#sc-024) | A person who has never seen the app, with a bank's CSV file of their own or `demo/mybank-2026-10.csv`, opens Import with only the account Cash | They reach review within 2 min, without opening another screen |
+| [SC-025](spec.md#sc-025) | A person with AI features off and an OpenAI API key at hand opens the finance chat | Their first question is sent within 2 min, without leaving the chat |
+| [SC-026](spec.md#sc-026) | A person who has never seen the app opens each screen once, at default zoom in a 1280 × 800 window, then is asked what each screen is for and what Reconcile, Unaccounted and a transfer are | Each answer comes from what the screens say |
+| [SC-027](spec.md#sc-027) | Give a person who has never seen the app three questions of [FR-140](spec.md#fr-140) in their own words, one at a time, and open FAQ | Each answer is found within 30 s, and its steps followed in the app without other help |
+| [SC-028](spec.md#sc-028), at each release from v1.7 on | Follow every step of every FAQ answer in the app, and every link | Each step works as written, and each link opens the screen it names |
 
 `npm run fixtures:sc001` writes the SC-001 file to `tmp/` ([plan.md](plan.md#project-structure)).
 
@@ -237,7 +277,8 @@ noted. Use the app at its web address, or `npm start` before a push, with a fres
 **Suggest categories** in review ([FR-090](spec.md#fr-090)) and the **finance chat**
 ([FR-100](spec.md#fr-100)) ask OpenAI straight from the app, with the user's own key
 ([R-31](research.md#r-31), [contracts/ai.md](contracts/ai.md)). They need AI features turned on in
-Settings with a key that OpenAI accepts ([FR-095](spec.md#fr-095), [FR-127](spec.md#fr-127)).
+Settings, or from the chat since v1.7, with a key that OpenAI accepts ([FR-095](spec.md#fr-095),
+[FR-127](spec.md#fr-127), [FR-135](spec.md#fr-135)).
 Everything else works without them. They work wherever the app runs: at the web address,
 installed, and on `localhost` ([FR-128](spec.md#fr-128)).
 
