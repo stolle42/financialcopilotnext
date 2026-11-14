@@ -2001,7 +2001,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - in `e2e/ui/accounts.spec.ts`, New account on Accounts works as before;
   - in `e2e/us11-getting-started.spec.ts`, scenario 2: Giro, created on Import, is the import's
     account and is listed on Accounts with its opening balance.
-- [ ] T154 [US11] "Bank CSV format" in every text the user sees ([FR-138](spec.md#fr-138),
+- [x] T154 [US11] "Bank CSV format" in every text the user sees ([FR-138](spec.md#fr-138),
   [R-38](research.md#r-38), [ui.md](contracts/ui.md#import)): on Import, the select's label "Bank
   CSV format", **Create new bank CSV format**, the list **Bank CSV formats** with, when none is
   saved, a line that the first import of a bank's file sets one up, and the field description that

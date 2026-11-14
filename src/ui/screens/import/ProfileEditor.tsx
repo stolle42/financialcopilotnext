@@ -235,7 +235,9 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
   const amount = draft.amount;
   return (
     <form onSubmit={submit} noValidate className="flex max-w-4xl flex-col gap-6">
-      <h1 className="text-3xl font-semibold">{profile ? "Edit profile" : "New profile"}</h1>
+      <h1 className="text-3xl font-semibold">
+        {profile ? "Edit bank CSV format" : "New bank CSV format"}
+      </h1>
       <FieldGroup className="surface p-6">
         <LabelledField id={ids.name} label="Name" error={errors.name}>
           <Input
@@ -249,7 +251,7 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
 
         {importing ? (
           <p className="text-sm text-muted-foreground">
-            Previewing {importing.name}. Saving the profile imports this file.
+            Previewing {importing.name}. Saving the bank CSV format imports this file.
           </p>
         ) : (
           <Field>
@@ -435,7 +437,7 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
         </p>
       )}
       <div className="flex gap-2">
-        <Button type="submit">Save profile</Button>
+        <Button type="submit">Save</Button>
         <Button type="button" variant="outline" onClick={() => navigate("/import")}>
           Cancel
         </Button>
@@ -452,7 +454,7 @@ export function ProfileEditor({ profileId }: { profileId: string | null }) {
   if (profileId !== null && !profile) {
     return (
       <div className="surface flex flex-col items-start gap-3 p-6">
-        <p>This profile does not exist. It may have been deleted.</p>
+        <p>This bank CSV format does not exist. It may have been deleted.</p>
         <Button onClick={() => navigate("/import")}>Back to Import</Button>
       </div>
     );
