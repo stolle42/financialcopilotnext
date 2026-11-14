@@ -1940,7 +1940,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - the name stays empty and sign inversion off, and the encoding is the one passed in;
   - `suggestsInvertedSign`: true for positive amounts only, false with one negative amount, with
     no parsed amount, with sign inversion on, and with debit and credit columns.
-- [ ] T151 [US11] A proposal from bytes, checked against real layouts: `proposeFormat(bytes)` in
+- [x] T151 [US11] A proposal from bytes, checked against real layouts: `proposeFormat(bytes)` in
   `src/store/import.ts` calls `detectEncoding`, `decodeFile` and `tokenise`, then
   `proposeProfile`, and gives the draft ([R-33](research.md#r-33)). The test commit adds the
   fixtures: in `e2e/fixtures/`, `mybank-2026-10.csv`, `soll-haben.csv` (Windows-1252),

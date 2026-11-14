@@ -11,6 +11,7 @@ import {
   saveProfile as decideSaveProfile,
   type ProfileDraft,
 } from "@/domain/import/profiles";
+import { proposeProfile } from "@/domain/import/propose";
 import {
   assignGroup as decideAssignGroup,
   assignRow as decideAssignRow,
@@ -19,7 +20,7 @@ import {
 } from "@/domain/import/review";
 import { applySuggestions, suggestionRequest } from "@/domain/import/suggestions";
 import type { MappingProfile } from "@/domain/types";
-import { decodeFile, tokenise } from "@/files/csv";
+import { decodeFile, detectEncoding, tokenise } from "@/files/csv";
 import { aiFeaturesOn } from "./settings";
 import type { Store } from "./store";
 
@@ -28,6 +29,17 @@ import type { Store } from "./store";
 
 export function saveProfile(store: Store, draft: ProfileDraft) {
   return store.run((state, context) => decideSaveProfile(state, draft, context));
+}
+
+/**
+ * The draft a new bank CSV format starts with for the file being imported, read from its bytes
+ * (R-33; contracts/csv-import.md, proposing a format). Nothing is stored.
+ */
+export function proposeFormat(bytes: Uint8Array): ProfileDraft {
+  const encoding = detectEncoding(bytes);
+  const text = decodeFile(bytes, encoding);
+  // The detected encoding decodes the bytes; were it not to, the file proposes nothing but it.
+  return proposeProfile(typeof text === "string" ? tokenise(text) : [], encoding);
 }
 
 export function deleteProfile(store: Store, id: string) {
