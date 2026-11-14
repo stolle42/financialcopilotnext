@@ -270,3 +270,22 @@ test.describe("validation messages beside their fields (FR-068)", () => {
     );
   });
 });
+
+test("says what a transfer is under Destination, and nothing of it for an expense (FR-138)", async ({
+  page,
+}) => {
+  const meaning =
+    "Money moved between two of your own accounts. It counts as neither spending nor income.";
+  await addAccount(page, "Checking");
+  await page.goto("/");
+  const form = await openTransactionForm(page);
+  await expect(form).not.toContainText(meaning);
+  await form.getByRole("button", { name: "Transfer" }).click();
+  const destination = form
+    .locator('[data-slot="field"]')
+    .filter({ has: page.getByLabel("Destination", { exact: true }) });
+  await expect(destination).toContainText(meaning);
+  await expect(form.getByText(meaning)).toHaveCount(1);
+  await form.getByRole("button", { name: "Expense" }).click();
+  await expect(form).not.toContainText(meaning);
+});

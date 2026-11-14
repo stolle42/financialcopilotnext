@@ -13,6 +13,7 @@ describe("parseRoute", () => {
     ["#/categories", { name: "categories" }],
     ["#/accounts", { name: "accounts" }],
     ["#/backup", { name: "backup" }],
+    ["#/faq", { name: "faq" }],
   ])("reads %s", (hash, route) => {
     expect(parseRoute(hash)).toEqual(route);
   });

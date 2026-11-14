@@ -1,0 +1,8 @@
+﻿Buchungstag;Wertstellung;Umsatzart;Buchungstext;Betrag;Währung;Auftraggeberkonto;Bankleitzahl Auftraggeberkonto;IBAN Auftraggeberkonto;Kategorie
+30.10.2026;30.10.2026;Lastschrift;Bäckerei Kern Brötchen;-10,7;EUR;;;;Lebensmittel
+28.10.2026;28.10.2026;Gutschrift;Arbeitgeber GmbH Gehalt Oktober;2450;EUR;;;;Einkommen
+21.10.2026;21.10.2026;Lastschrift;Supermarkt Süd Einkauf;-62,35;EUR;;;;Lebensmittel
+15.10.2026;15.10.2026;Dauerauftrag;Vermieter Schulz Miete Oktober;-850;EUR;;;;Wohnen
+09.10.2026;09.10.2026;Lastschrift;Stadtwerke Strom Abschlag;-71;EUR;;;;Wohnen
+05.10.2026;05.10.2026;Überweisung;Autohaus Raten;-2040;EUR;;;;Mobilität
+02.10.2026;02.10.2026;Gutschrift;Freund Max Rückzahlung;25,5;EUR;;;;Sonstiges

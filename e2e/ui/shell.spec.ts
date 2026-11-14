@@ -31,6 +31,29 @@ test("lists the screens in one flat list, without group headings", async ({ page
   await expect(navigation.getByText("Manage", { exact: true })).toHaveCount(0);
 });
 
+test("lists FAQ last in the sidebar, and marks it current while FAQ is open (FR-084, FR-139)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const sidebar = page.getByRole("navigation", { name: "Screens" });
+  await expect(sidebar.getByRole("link")).toHaveText([
+    "Transactions",
+    "Categories",
+    "Accounts",
+    "Budgets",
+    "Backup",
+    "Insights",
+    "Settings",
+    "FAQ",
+  ]);
+  await sidebar.getByRole("link").last().click();
+  await expect(page).toHaveURL(/#\/faq$/);
+  await expect(
+    page.getByRole("main").getByRole("heading", { name: "FAQ", level: 1 }),
+  ).toBeVisible();
+  await expect(sidebar.locator('[aria-current="page"]')).toHaveText(["FAQ"]);
+});
+
 test("opens Transactions for an unknown link (FR-063)", async ({ page }) => {
   await page.goto("/#/nowhere");
   await expect(page.getByRole("main").getByRole("heading", { name: "Transactions" })).toBeVisible();
@@ -74,13 +97,14 @@ test.describe("the finance chat's button (contracts/ui.md, finance chat; FR-100)
   const screens = [
     { path: "/", heading: "Transactions" },
     { path: "/#/import", heading: "Import" },
-    { path: "/#/import/profiles/new", heading: "New profile" },
+    { path: "/#/import/profiles/new", heading: "New bank CSV format" },
     { path: "/#/categories", heading: "Categories" },
     { path: "/#/accounts", heading: "Accounts" },
     { path: "/#/budgets", heading: "Budgets" },
     { path: "/#/backup", heading: "Backup" },
     { path: "/#/insights", heading: "Insights" },
     { path: "/#/settings", heading: "Settings" },
+    { path: "/#/faq", heading: "FAQ" },
   ];
   const background = (locator: Locator) =>
     locator.evaluate((element) => getComputedStyle(element).backgroundColor);

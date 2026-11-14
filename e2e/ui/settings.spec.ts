@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import type { Settings } from "../../src/domain/types";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
-import { putRecord, storedRecord } from "../support/app";
+import { putRecord, screenIntro, storedRecord } from "../support/app";
 import {
   aiFeaturesSwitch,
   keyDialog,
@@ -53,7 +53,7 @@ async function expectOffWithoutKey(page: Page) {
   expect(await storedKey(page)).toBeUndefined();
 }
 
-test("is the last entry in the sidebar (FR-084)", async ({ page }) => {
+test("comes last in the sidebar but for FAQ (FR-084, FR-139)", async ({ page }) => {
   await page.goto("/");
   const links = page.getByRole("navigation", { name: "Screens" }).getByRole("link");
   await expect(links).toHaveText([
@@ -64,8 +64,9 @@ test("is the last entry in the sidebar (FR-084)", async ({ page }) => {
     "Backup",
     "Insights",
     "Settings",
+    "FAQ",
   ]);
-  await links.last().click();
+  await links.getByText("Settings", { exact: true }).click();
   await expect(page).toHaveURL(/#\/settings$/);
   await expect(main(page).getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
 });
@@ -383,4 +384,27 @@ test.describe("Model (FR-129, FR-130)", () => {
     await expect(main(page)).not.toContainText(note);
     await expect.poll(async () => (await storedSettings(page))?.model).toBe("gpt-5.6-luna");
   });
+});
+
+test("says under the heading what Settings is for (FR-137)", async ({ page }) => {
+  await page.goto("/#/settings");
+  await expect(screenIntro(page)).toHaveText(
+    "AI features, the model that answers, and updates of the app.",
+  );
+});
+
+test("shows AI features on once the chat turned them on (FR-135)", async ({ page }) => {
+  await standInKeyCheck(page, 200);
+  await page.goto("/#/insights");
+  await page.getByRole("button", { name: "Ask about your finances" }).click();
+  await page
+    .getByRole("dialog", { name: "Ask about your finances" })
+    .getByRole("button", { name: "Turn on AI features" })
+    .click();
+  await keyField(page).fill(TEST_KEY);
+  await turnOnButton(page).click();
+  await expect(keyDialog(page)).toBeHidden();
+  await page.goto("/#/settings");
+  await expect(aiFeaturesSwitch(page)).toBeChecked();
+  expect(await storedKey(page)).toBe(TEST_KEY);
 });

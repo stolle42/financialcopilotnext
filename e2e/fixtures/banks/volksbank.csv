@@ -1,0 +1,7 @@
+﻿Bezeichnung Auftragskonto;IBAN Auftragskonto;BIC Auftragskonto;Bankname Auftragskonto;Buchungstag;Valutadatum;Name Zahlungsbeteiligter;IBAN Zahlungsbeteiligter;BIC (SWIFT-Code) Zahlungsbeteiligter;Buchungstext;Verwendungszweck;Betrag;Waehrung;Saldo nach Buchung;Bemerkung;Kategorie;Steuerrelevant;Glaeubiger ID;Mandatsreferenz
+Girokonto;DE00200600000000000002;TESTDEVBXXX;Volksbank Test;30.10.2026;30.10.2026;Bäckerei Kern;DE00200600000000009999;TESTDEFFXXX;Kartenzahlung;Brötchen;-4,50;EUR;1690,35;;;;;
+Girokonto;DE00200600000000000002;TESTDEVBXXX;Volksbank Test;28.10.2026;28.10.2026;Arbeitgeber GmbH;DE00200600000000009999;TESTDEFFXXX;Gehalt/Rente;Gehalt Oktober;2450,00;EUR;1694,85;;;;;
+Girokonto;DE00200600000000000002;TESTDEVBXXX;Volksbank Test;21.10.2026;21.10.2026;Supermarkt Süd;DE00200600000000009999;TESTDEFFXXX;Kartenzahlung;Einkauf;-62,35;EUR;-755,15;;;;;
+Girokonto;DE00200600000000000002;TESTDEVBXXX;Volksbank Test;15.10.2026;15.10.2026;Vermieter Schulz;DE00200600000000009999;TESTDEFFXXX;Dauerauftrag;Miete Oktober;-850,00;EUR;-692,80;;;;;
+Girokonto;DE00200600000000000002;TESTDEVBXXX;Volksbank Test;09.10.2026;09.10.2026;Stadtwerke;DE00200600000000009999;TESTDEFFXXX;Lastschrift;Strom Abschlag;-71,00;EUR;157,20;;;;;
+Girokonto;DE00200600000000000002;TESTDEVBXXX;Volksbank Test;02.10.2026;02.10.2026;Freund Max;DE00200600000000009999;TESTDEFFXXX;Überweisung;Rückzahlung;25,00;EUR;228,20;;;;;

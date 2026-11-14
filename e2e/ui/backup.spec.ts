@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import type { Transaction } from "../../src/domain/types";
 import { messageFor, notifications } from "../../src/ui/messages";
-import { addTransaction } from "../support/app";
+import { addTransaction, screenIntro } from "../support/app";
 import {
   backupText,
   byKey,
@@ -191,4 +191,12 @@ test.describe("persistent storage (FR-075)", () => {
     await expect(main(page).getByRole("button", { name: "Save backup" })).toBeVisible();
     await expect(notice(page)).toHaveCount(0);
   });
+});
+
+test("says under the heading what Backup is for (FR-137)", async ({ page }) => {
+  await page.goto("/#/backup");
+  await expect(screenIntro(page)).toHaveText(
+    "Everything the app holds lives only in this browser. A backup file keeps it safe and moves " +
+      "it to another computer.",
+  );
 });

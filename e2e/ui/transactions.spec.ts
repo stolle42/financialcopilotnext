@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Account, Category } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
-import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
+import { addAccount, addTransaction, choose, screenIntro, storedRecords } from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
 // contracts/ui.md, transactions; FR-016, FR-063, FR-073, FR-080 – FR-083 and FR-110.
@@ -520,4 +520,15 @@ test("deleting asks for confirmation first, then removes the row (FR-013, FR-069
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("main")).toContainText("No transactions yet");
+});
+
+test("says under the heading what Transactions is for, also beside the empty state (FR-137)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("main").getByRole("link", { name: "Import a CSV" })).toBeVisible();
+  await expect(screenIntro(page)).toHaveText(
+    "Every expense, income and transfer, newest first. Add one by hand, or import a bank's CSV " +
+      "file.",
+  );
 });

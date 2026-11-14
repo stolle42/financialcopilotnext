@@ -242,3 +242,7 @@ export async function reconcileAccount(
 export function fixture(name: string): string {
   return fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
 }
+
+/** The sentence under a screen's heading that says what the screen is for (FR-137). */
+export const screenIntro = (page: Page) =>
+  page.getByRole("main").locator('[data-slot="screen-intro"]');

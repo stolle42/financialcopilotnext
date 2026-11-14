@@ -1,0 +1,19 @@
+Umsatzanzeige;Datei erstellt am: 01.11.2026 09:12
+
+IBAN;DE00 5001 0517 0000 0000 03
+Kontoname;Girokonto
+Bank;ING
+Kunde;Erika Mustermann
+Zeitraum;01.10.2026 - 31.10.2026
+Saldo;1.689,95;EUR
+
+Sortierung;Datum absteigend
+
+In der CSV-Datei finden Sie alle bereits gebuchten Umsätze. Die vorgemerkten Umsätze werden nicht aufgenommen, auch wenn sie in Ihrem Internetbanking angezeigt werden.
+Buchung;Wertstellungsdatum;Auftraggeber/Empfänger;Buchungstext;Verwendungszweck;Saldo;Währung;Betrag;Währung
+30.10.2026;30.10.2026;Bäckerei Kern;Lastschrift;Brötchen;1.689,95;EUR;-4,50;EUR
+28.10.2026;28.10.2026;Arbeitgeber GmbH;Gehalt/Rente;Gehalt Oktober;1.694,45;EUR;2.450,00;EUR
+21.10.2026;21.10.2026;Supermarkt Süd;Lastschrift;Einkauf;-755,55;EUR;-62,35;EUR
+15.10.2026;15.10.2026;Vermieter Schulz;Dauerauftrag;Miete Oktober;-693,20;EUR;-1.250,00;EUR
+09.10.2026;09.10.2026;Stadtwerke;Lastschrift;Strom Abschlag;556,80;EUR;-71,00;EUR
+02.10.2026;02.10.2026;Freund Max;Gutschrift;Rückzahlung;627,80;EUR;25,00;EUR

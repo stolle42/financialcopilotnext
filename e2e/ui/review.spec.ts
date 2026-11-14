@@ -10,7 +10,7 @@ import { openAiError } from "../../src/ai/testing";
 import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
-import { addAccount, addTransaction, choose, storedRecords } from "../support/app";
+import { addAccount, addTransaction, choose, screenIntro, storedRecords } from "../support/app";
 import {
   standInCategoriser,
   suggestBySide,
@@ -673,4 +673,32 @@ test.describe("the suggested mark (FR-093)", () => {
     expect(shopPurchases.length).toBeGreaterThanOrEqual(4);
     for (const transaction of booked) expect(transaction).not.toHaveProperty("suggested");
   });
+});
+
+const REVIEW_INTRO =
+  "Give each vendor group a category, then confirm. Nothing enters the ledger before you select " +
+  "Confirm.";
+const TRANSFER_LINE =
+  "Transfer is for money moved between two of your own accounts. It counts as neither spending " +
+  "nor income.";
+
+test("says under the heading what review is for, also with no import waiting (FR-137)", async ({
+  page,
+}) => {
+  await page.goto("/#/import/review");
+  await expect(page.getByRole("main").getByRole("button", { name: "Go to Import" })).toBeVisible();
+  await expect(screenIntro(page)).toHaveText(REVIEW_INTRO);
+
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await expect(screenIntro(page)).toHaveText(REVIEW_INTRO);
+});
+
+test("says once, above the rows, what the Transfer switch is for (FR-138)", async ({ page }) => {
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  await expect(reviewList(page).getByText(TRANSFER_LINE)).toHaveCount(1);
+  const line = (await reviewList(page).getByText(TRANSFER_LINE).boundingBox())!;
+  const first = (await vendorGroups(page).first().boundingBox())!;
+  expect(line.y).toBeLessThan(first.y);
 });

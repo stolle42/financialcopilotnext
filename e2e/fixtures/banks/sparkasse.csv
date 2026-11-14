@@ -1,0 +1,8 @@
+"Auftragskonto";"Buchungstag";"Valutadatum";"Buchungstext";"Verwendungszweck";"Glaeubiger ID";"Mandatsreferenz";"Kundenreferenz (End-to-End)";"Sammlerreferenz";"Lastschrift Ursprungsbetrag";"Auslagenersatz Ruecklastschrift";"Beguenstigter/Zahlungspflichtiger";"Kontonummer/IBAN";"BIC (SWIFT-Code)";"Betrag";"Waehrung";"Info"
+"DE00100500000000000001";"30.10.26";"30.10.26";"KARTENZAHLUNG";"Brötchen und Kaffee";"";"";"";"";"";"";"Bäckerei Kern";"DE00100500000000009999";"TESTDEFFXXX";"-6,80";"EUR";"Umsatz gebucht"
+"DE00100500000000000001";"28.10.26";"28.10.26";"GUTSCHR. UEBERWEISUNG";"Gehalt Oktober";"";"";"";"";"";"";"Arbeitgeber GmbH";"DE00100500000000009999";"TESTDEFFXXX";"2450,00";"EUR";"Umsatz gebucht"
+"DE00100500000000000001";"27.10.26";"27.10.26";"FOLGELASTSCHRIFT";"Strom Abschlag Oktober";"";"";"";"";"";"";"Stadtwerke";"DE00100500000000009999";"TESTDEFFXXX";"-71,00";"EUR";"Umsatz gebucht"
+"DE00100500000000000001";"20.10.26";"20.10.26";"KARTENZAHLUNG";"Einkauf";"";"";"";"";"";"";"Supermarkt Süd";"DE00100500000000009999";"TESTDEFFXXX";"-45,20";"EUR";"Umsatz gebucht"
+"DE00100500000000000001";"15.10.26";"15.10.26";"DAUERAUFTRAG";"Miete Oktober";"";"";"";"";"";"";"Vermieter Schulz";"DE00100500000000009999";"TESTDEFFXXX";"-850,00";"EUR";"Umsatz gebucht"
+"DE00100500000000000001";"09.10.26";"09.10.26";"ENTGELTABSCHLUSS";"Kontoführung";"";"";"";"";"";"";"Sparkasse";"DE00100500000000009999";"TESTDEFFXXX";"-4,95";"EUR";"Umsatz gebucht"
+"DE00100500000000000001";"02.10.26";"02.10.26";"GUTSCHR. UEBERWEISUNG";"Rückzahlung";"";"";"";"";"";"";"Freund Max";"DE00100500000000009999";"TESTDEFFXXX";"25,00";"EUR";"Umsatz gebucht"

@@ -9,7 +9,10 @@ interface MyBankMapping {
   encoding?: string;
 }
 
-/** Maps the MyBank layout in the open profile editor: `;`, `,` decimals, DD.MM.YYYY. */
+/**
+ * Maps the MyBank layout in the open editor: `;`, `,` decimals, DD.MM.YYYY. Each setting is chosen
+ * over whatever the editor proposed, so the mapping holds with or without a proposal.
+ */
 export async function mapMyBank(
   page: Page,
   { name = "MyBank", encoding = "Windows-1252" }: MyBankMapping = {},
@@ -24,7 +27,7 @@ export async function mapMyBank(
   await choose(page, editor, "Decimal separator", "Comma (1.250,00)");
 }
 
-/** Saves a MyBank profile from the editor, with `sample` as its sample file. */
+/** Saves a MyBank bank CSV format from the editor, with `sample` as its sample file. */
 export async function saveMyBankProfile(
   page: Page,
   mapping: MyBankMapping = {},
@@ -33,7 +36,7 @@ export async function saveMyBankProfile(
   await page.goto("/#/import/profiles/new");
   await page.getByLabel("Sample file").setInputFiles(fixture(sample));
   await mapMyBank(page, mapping);
-  await page.getByRole("main").getByRole("button", { name: "Save profile" }).click();
+  await page.getByRole("main").getByRole("button", { name: "Save", exact: true }).click();
   await expect(page).toHaveURL(/#\/import$/);
 }
 
@@ -49,17 +52,17 @@ export async function startImport(page: Page, { account, file, profile }: Import
   const form = page.getByRole("region", { name: "Import a file" });
   if (account) await choose(page, form, "Account", account);
   await form.getByLabel("Bank file").setInputFiles(fixture(file));
-  if (profile) await choose(page, form, "Profile", profile);
+  if (profile) await choose(page, form, "Bank CSV format", profile);
   await form.getByRole("button", { name: "Import", exact: true }).click();
 }
 
-/** Imports `file` with an existing profile and waits for review to open. */
+/** Imports `file` with a saved bank CSV format and waits for review to open. */
 export async function importWithProfile(page: Page, choice: ImportChoice) {
   await startImport(page, choice);
   await expect(page).toHaveURL(/#\/import\/review$/);
 }
 
-/** Saves the profile of debit-credit.csv from the editor, with the file as its sample. */
+/** Saves the bank CSV format of debit-credit.csv from the editor, with the file as its sample. */
 export async function saveDebitCreditProfile(page: Page) {
   await page.goto("/#/import/profiles/new");
   await page.getByLabel("Sample file").setInputFiles(fixture("debit-credit.csv"));
@@ -78,5 +81,50 @@ export async function mapDebitCredit(page: Page) {
   await choose(page, editor, "Description column", "Description");
   await choose(page, editor, "Date format", "MM/DD/YYYY (09/03/2026)");
   await choose(page, editor, "Decimal separator", "Point (1,250.00)");
-  await editor.getByRole("button", { name: "Save profile" }).click();
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+}
+
+/**
+ * Starts an import of `file` into `account` with no bank CSV format saved, which opens the editor
+ * for a new one with the settings proposed from the file (FR-133).
+ */
+export async function openEditorFor(page: Page, file: string, account = "Cash") {
+  await startImport(page, { account, file });
+  await expect(page).toHaveURL(/#\/import\/profiles\/new$/);
+}
+
+/** What the editor's controls show, as the user reads them. */
+interface EditorSettings {
+  hasHeaderRow: boolean;
+  encoding: string;
+  dateFormat: string;
+  decimalSeparator: string;
+  amountMode: "One signed column" | "Separate debit and credit columns";
+  columns: Record<string, string>;
+}
+
+/** Checks that every control of the open editor shows `settings`. */
+export async function expectEditorSettings(page: Page, settings: EditorSettings) {
+  const editor = page.getByRole("main");
+  const header = editor.getByRole("switch", { name: "First row contains column names" });
+  if (settings.hasHeaderRow) await expect(header).toBeChecked();
+  else await expect(header).not.toBeChecked();
+  await expect(editor.getByLabel("Encoding", { exact: true })).toHaveText(settings.encoding);
+  await expect(editor.getByLabel("Date format", { exact: true })).toHaveText(settings.dateFormat);
+  await expect(editor.getByLabel("Decimal separator", { exact: true })).toHaveText(
+    settings.decimalSeparator,
+  );
+  await expect(editor.getByRole("button", { name: settings.amountMode })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  for (const [label, shown] of Object.entries(settings.columns)) {
+    await expect(editor.getByLabel(label, { exact: true })).toHaveText(shown);
+  }
+}
+
+/** The preview's data rows, and those of them it cannot read: they show no amount. */
+export function previewDataRows(page: Page) {
+  const rows = page.getByRole("region", { name: "Preview" }).locator("tbody tr");
+  return { rows, unreadable: rows.filter({ hasNotText: "€" }) };
 }

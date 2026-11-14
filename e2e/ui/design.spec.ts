@@ -25,7 +25,7 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Screens" }
 const SCREENS = [
   { path: "/", heading: "Transactions" },
   { path: "/#/import", heading: "Import" },
-  { path: "/#/import/profiles/new", heading: "New profile" },
+  { path: "/#/import/profiles/new", heading: "New bank CSV format" },
   { path: "/#/categories", heading: "Categories" },
   { path: "/#/accounts", heading: "Accounts" },
   { path: "/#/budgets", heading: "Budgets" },
@@ -291,10 +291,10 @@ test.describe("cards (FR-114)", () => {
     page,
   }) => {
     await open(page, "/#/import", "Import");
-    for (const section of ["Import a file", "Mapping profiles"]) {
+    for (const section of ["Import a file", "Bank CSV formats"]) {
       await expectCard(main(page).getByRole("region", { name: section }), section);
     }
-    await open(page, "/#/import/profiles/new", "New profile");
+    await open(page, "/#/import/profiles/new", "New bank CSV format");
     await expectCard(main(page).locator('[data-slot="field-group"]').first(), "profile fields");
     await expectCard(main(page).getByRole("region", { name: "Preview" }), "preview");
   });

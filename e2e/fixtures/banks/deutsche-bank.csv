@@ -1,0 +1,15 @@
+﻿Umsätze Girokonto;Zeitraum: 01.10.2026 - 31.10.2026;
+Kontoinhaber;Erika Mustermann;
+IBAN;DE00 1007 0000 0000 0000 05;
+Letzter Kontostand;;;;1.452,80;EUR
+
+Vorgemerkte und noch nicht gebuchte Umsätze sind nicht Bestandteil dieser Übersicht.
+
+Buchungstag;Wert;Umsatzart;Begünstigter / Auftraggeber;Verwendungszweck;IBAN;BIC;Kundenreferenz;Mandatsreferenz ;Gläubiger ID;Fremde Gebühren;Betrag;Abweichender Empfänger;Anzahl der Aufträge;Anzahl der Schecks;Soll;Haben;Währung
+30.10.2026;30.10.2026;SEPA-Lastschrift;Bäckerei Kern;Brötchen;DE00100700000000009999;TESTDEFFXXX;;;;;-4,50;;;;-4,50;;EUR
+28.10.2026;28.10.2026;SEPA-Überweisung;Arbeitgeber GmbH;Gehalt Oktober;DE00100700000000009999;TESTDEFFXXX;;;;;2.450,00;;;;;2.450,00;EUR
+21.10.2026;21.10.2026;Kartenzahlung;Supermarkt Süd;Einkauf;DE00100700000000009999;TESTDEFFXXX;;;;;-62,35;;;;-62,35;;EUR
+15.10.2026;15.10.2026;Dauerauftrag;Vermieter Schulz;Miete Oktober;DE00100700000000009999;TESTDEFFXXX;;;;;-1.250,00;;;;-1.250,00;;EUR
+9.10.2026;9.10.2026;SEPA-Lastschrift;Stadtwerke;Strom Abschlag;DE00100700000000009999;TESTDEFFXXX;;;;;-71,00;;;;-71,00;;EUR
+2.10.2026;2.10.2026;SEPA-Überweisung;Freund Max;Rückzahlung;DE00100700000000009999;TESTDEFFXXX;;;;;25,00;;;;;25,00;EUR
+Kontostand;31.10.2026;;;1.689,95;EUR

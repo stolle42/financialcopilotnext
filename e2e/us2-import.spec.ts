@@ -61,7 +61,7 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   await expect(page).toHaveURL(/#\/import\/profiles\/new$/);
   await expect(main(page)).toContainText("Previewing mybank-2026-08.csv");
   await mapMyBank(page);
-  await main(page).getByRole("button", { name: "Save profile" }).click();
+  await main(page).getByRole("button", { name: "Save", exact: true }).click();
   await expect(page).toHaveURL(/#\/import\/review$/);
   await expect(header(page)).toContainText("13 rows to review");
   expect(await storedRecords(page, "transactions")).toEqual([]);
@@ -157,7 +157,9 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   // 2. The next month's file uses the saved profile without any re-mapping.
   await page.goto("/#/import");
   await expect(
-    page.getByRole("region", { name: "Import a file" }).getByLabel("Profile", { exact: true }),
+    page
+      .getByRole("region", { name: "Import a file" })
+      .getByLabel("Bank CSV format", { exact: true }),
   ).toHaveText("MyBank");
   await importWithProfile(page, { account: "Giro", file: "mybank-2026-09.csv" });
 
@@ -215,7 +217,7 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   await startImport(page, {
     account: "Credit card",
     file: "debit-credit.csv",
-    profile: "Create new profile",
+    profile: "Create new bank CSV format",
   });
   await expect(page).toHaveURL(/#\/import\/profiles\/new$/);
   await mapDebitCredit(page);
@@ -248,7 +250,7 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   await startImport(page, {
     account: "Credit card",
     file: "positive-purchases.csv",
-    profile: "Create new profile",
+    profile: "Create new bank CSV format",
   });
   await expect(page).toHaveURL(/#\/import\/profiles\/new$/);
   await main(page).getByLabel("Name", { exact: true }).fill("Card statement");
@@ -259,7 +261,7 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   await choose(page, main(page), "Date format", "YYYY-MM-DD (2026-09-03)");
   await choose(page, main(page), "Decimal separator", "Point (1,250.00)");
   await main(page).getByRole("switch", { name: "Invert the sign" }).click();
-  await main(page).getByRole("button", { name: "Save profile" }).click();
+  await main(page).getByRole("button", { name: "Save", exact: true }).click();
   await expect(page).toHaveURL(/#\/import\/review$/);
   expect((await pendingRows(page)).map((row) => [row.description, row.amountCents])).toEqual([
     ["Novel", -2500],

@@ -75,7 +75,7 @@ test.describe("a field error, under its field", () => {
     await page.goto("/#/import/profiles/new");
     await page.getByLabel("Sample file").setInputFiles(fixture("mybank-2026-08.csv"));
     await mapMyBank(page, { name: " mybank" });
-    await main(page).getByRole("button", { name: "Save profile" }).click();
+    await main(page).getByRole("button", { name: "Save", exact: true }).click();
 
     await expectWording(fieldError(main(page), "Name"), "profile-name-taken");
   });
