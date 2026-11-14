@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import type { AccountInput } from "@/domain/accounts";
+import { nameKey } from "@/domain/names";
 import type { Account, AccountType } from "@/domain/types";
 import { addAccount, editAccount } from "@/store/accounts";
 import { useStoreApi } from "@/store/store";
@@ -32,13 +33,18 @@ interface Errors {
   form?: MessageCode;
 }
 
-/** Creates an account, or edits `account`: name, type and opening balance (contracts/ui.md). */
+/**
+ * Creates an account, or edits `account`: name, type and opening balance (contracts/ui.md).
+ * `onCreated` receives a new account once it is saved, before `onClose` (FR-132).
+ */
 export function AccountDialog({
   account,
   onClose,
+  onCreated,
 }: {
   account: Account | null;
   onClose: () => void;
+  onCreated?: (account: Account) => void;
 }) {
   const store = useStoreApi();
   const ids = { name: useId(), type: useId(), openingBalance: useId() };
@@ -55,8 +61,15 @@ export function AccountDialog({
     const refusal = account
       ? await editAccount(store, account.id, input)
       : await addAccount(store, input);
-    if (!refusal) onClose();
-    else if (refusal.code === "save-failed") setErrors({ form: refusal.code });
+    if (!refusal) {
+      if (!account && onCreated) {
+        const created = store
+          .getState()
+          .accounts.find((a) => nameKey(a.name) === nameKey(input.name));
+        if (created) onCreated(created);
+      }
+      onClose();
+    } else if (refusal.code === "save-failed") setErrors({ form: refusal.code });
     else setErrors({ name: refusal.code });
   }
 

@@ -1986,7 +1986,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
     then its saved format imports `banks/ing-longer.csv`;
   - `e2e/support/import.ts` and the specs that map the MyBank layout by hand still pass, choosing
     each setting over the proposed one.
-- [ ] T153 [P] [US11] New account on Import: in `src/ui/screens/import/ImportScreen.tsx`, after
+- [x] T153 [P] [US11] New account on Import: in `src/ui/screens/import/ImportScreen.tsx`, after
   the accounts and a divider, the Account select ends with **New account…**, a sentinel value
   that is never an account's id; choosing it keeps the select's value and opens `AccountDialog`
   with no account. `AccountDialog` in `src/ui/screens/accounts/AccountDialog.tsx` gains an
