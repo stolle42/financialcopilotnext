@@ -41,6 +41,16 @@ replaces one of 001's.
   side: manual entry, editing in place on Transactions, and review, each with the same search
   while typing ([FR-148](#fr-148), [FR-149](#fr-149)).
 
+### Session 2026-11-14 (clarify)
+
+- Q: If most of a vendor's past transactions were transfers to the same account, such as cash
+  withdrawals into Cash, should its new rows start as a transfer to that account? → A: Yes, by the
+  same more-than-half rule as categories; such a row starts as a transfer to that account, marked as
+  from earlier transactions ([FR-146](#fr-146), [FR-147](#fr-147)).
+- Q: Should Set aside rows under also set aside small incomes, such as interest of 0.12, or only
+  small expenses? → A: Both: a row is set aside by its amount, whichever way the money moves
+  ([FR-152](#fr-152)).
+
 ## User Scenarios & Testing *(mandatory)*
 
 <a id="user-story-12"></a>
@@ -121,6 +131,10 @@ marked as from earlier; Amazon's rows start in Uncategorised.
 6. **Given** the user confirms a batch, **When** they later edit one of its transactions on
    Transactions to another category, **Then** the next import counts the new category for that
    vendor ([FR-145](#fr-145), [FR-146](#fr-146)).
+7. **Given** 4 of the 5 earlier rows of vendor "Geldautomat" on Checking were confirmed as
+   transfers from Checking to Cash, **When** the user imports Checking's next file, **Then** its
+   Geldautomat rows start as transfers to Cash, marked as from earlier transactions; turning
+   Transfer off leaves them in "Uncategorised" ([FR-146](#fr-146), [FR-147](#fr-147)).
 
 ---
 
@@ -180,9 +194,10 @@ under 1.00 aside without asking.
 
 **Acceptance Scenarios**:
 
-1. **Given** a batch with rows of 0.50, 0.99, 1.00 and 25.00, **When** the user enters 1.00,
-   **Then** the rows of 0.50 and 0.99 are set aside, review says 2 rows under 1.00 are set aside,
-   and the rows of 1.00 and 25.00 stay under review ([FR-152](#fr-152)).
+1. **Given** a batch with expenses of 0.50, 0.99, 1.00 and 25.00 and an income of 0.12 interest,
+   **When** the user enters 1.00, **Then** the expenses of 0.50 and 0.99 and the income of 0.12 are
+   set aside, review says 3 rows under 1.00 are set aside, and the expenses of 1.00 and 25.00 stay
+   under review ([FR-152](#fr-152)).
 2. **Given** rows set aside, **When** the user confirms, **Then** they enter the ledger in their
    side's "Uncategorised", and every balance holds them ([FR-157](#fr-157), [FR-159](#fr-159)).
 3. **Given** the count of rows set aside, **When** the user selects it, **Then** the rows set aside
@@ -250,8 +265,11 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
 - A file of the account the paired transaction is on is imported again: its row is flagged as a
   duplicate of the transfer the pair became, even when the two banks booked it on different days
   ([FR-156](#fr-156)).
-- A vendor has exactly half its transactions on one side in one category: no usual category
-  ([FR-146](#fr-146)).
+- A vendor has exactly half its transactions on one side in one category: no usual choice
+  ([FR-146](#fr-146)). The same holds for transfers split between two accounts, such as 2 to Cash
+  and 2 to Savings.
+- A row has both a suggested transfer and a usual choice: it starts with the suggested transfer,
+  which names the transaction it pairs with ([FR-158](#fr-158)).
 - The category most of a vendor's transactions held is deleted: those transactions move to
   "Uncategorised" ([FR-034](../001-finance-tracker-v1/spec.md#fr-034)), so the next import counts
   them there.
@@ -298,9 +316,9 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   amount. Review MUST say how many transfers it suggests. A row holding a suggested transfer MUST
   show as a plain row, outside its vendor group, so assigning a category to the group leaves it
   alone.
-  - Turning its Transfer switch off MUST end the suggestion: the row holds a category again, the
-    category it would have started with ([FR-158](#fr-158)), and the paired transaction stays as
-    it is.
+  - Turning its Transfer switch off MUST end the suggestion: the row holds a category again, its
+    usual category if its usual choice is one ([FR-146](#fr-146)), or else its side's
+    "Uncategorised", and the paired transaction stays as it is.
   - Choosing another counter-account MUST end the suggestion and leave an ordinary transfer, as if
     the user had marked it.
   - A suggestion never replaces a choice of the user's, and nothing else in review ends it.
@@ -311,24 +329,33 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   transaction is gone or no longer an expense or income of that amount on that account, the row
   MUST enter the ledger as a transfer with that counter-account, as a row the user marked would.
 
-**Usual categories**
+**Usual choices**
 
 - <a id="fr-145"></a>**FR-145**: Confirming a batch MUST keep each row's vendor
   ([FR-026](../001-finance-tracker-v1/spec.md#fr-026)) with the transaction it becomes. A
   transaction entered by hand, or confirmed before v1.8, has no vendor. The screens do not show it.
-- <a id="fr-146"></a>**FR-146**: A row's **usual category** is the category of its side held by more
-  than half of the ledger's transactions of the same vendor and side: expenses for money out,
-  incomes for money in. Vendors compare as in
-  [FR-026](../001-finance-tracker-v1/spec.md#fr-026). Transactions in "Uncategorised" count, so
-  when they are the majority there is no usual category; transfers do not count. A row whose vendor
-  has no such category, or which has no vendor, has no usual category. Usual categories MUST be
-  found once, when the batch is created.
-- <a id="fr-147"></a>**FR-147**: Review MUST mark a category that is a row's usual category as
-  **from earlier transactions**, on its row and on a vendor group whose rows all hold it, and the
+- <a id="fr-146"></a>**FR-146**: A row's **usual choice** is the choice held by more than half of
+  the ledger's transactions of the same vendor that move money the same way as the row. Vendors
+  compare as in [FR-026](../001-finance-tracker-v1/spec.md#fr-026).
+  - For money out, these are the expenses with that vendor and the transfers with that vendor
+    whose source is the batch's account; for money in, the incomes with that vendor and the
+    transfers with that vendor whose destination is the batch's account.
+  - Each category is one choice, and the transfers with each counter-account are one choice.
+    "Uncategorised" is a choice too, so when it holds the majority there is no usual choice.
+  - A usual choice is either a **usual category** or a **usual transfer** with that
+    counter-account. A row whose vendor has no choice held by more than half, or which has no
+    vendor, has no usual choice.
+
+  Usual choices MUST be found once, when the batch is created. A row holding a usual transfer is a
+  transfer as if the user had marked it ([FR-023](../001-finance-tracker-v1/spec.md#fr-023)).
+- <a id="fr-147"></a>**FR-147**: Review MUST mark a category or transfer that is a row's usual
+  choice as **from earlier transactions**, on its row and on a vendor group whose rows all hold it,
+  and the
   mark MUST look different from the mark of an AI suggestion
   ([FR-093](../001-finance-tracker-v1/spec.md#fr-093)). The mark MUST go when the user assigns the
-  row anything, directly or through its group, even the same category, and when its category is
-  deleted. Marks are review progress ([FR-155](#fr-155)); the ledger keeps no mark.
+  row anything, directly or through its group, even the same category, when the user turns its
+  Transfer switch or changes its counter-account, and when its category is deleted. Marks are
+  review progress ([FR-155](#fr-155)); the ledger keeps no mark.
 
 **Picking a category**
 
@@ -365,8 +392,8 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
     matching, the item keeps what it holds. On a row holding a transfer, its Transfer switch takes
     the place of the category field. Tab from the last item moves on to Confirm.
   - Selecting an item with the mouse or by touch MUST make it current.
-- <a id="fr-151"></a>**FR-151**: An item MUST count as **seen** once it has been current; the rows
-  of a seen group are seen too. Seen items, other than the current one, MUST look different from
+- <a id="fr-151"></a>**FR-151**: An item MUST count as **seen** once another item becomes current
+  after it was current; the rows of a seen group are seen too. Seen items, other than the current one, MUST look different from
   items not yet seen, by more than colour alone. Review MUST say how many items are not seen yet.
   Seen marks are review progress ([FR-155](#fr-155)).
 
@@ -374,9 +401,10 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
 
 - <a id="fr-152"></a>**FR-152**: Review MUST offer **Set aside rows under**, an amount, empty until
   the user enters one. While it holds an amount, every row under review whose amount is less than
-  it MUST be set aside: it leaves the rows under review, so it is in no group, no request for
-  suggestions ([FR-090](../001-finance-tracker-v1/spec.md#fr-090)) and no step of Tab. These rows
-  MUST NOT be set aside: a row holding a suggested transfer, a row the user has assigned anything,
+  it, whichever way the money moves, MUST be set aside, expenses and incomes alike: it leaves the
+  rows under review, so it is in no group, no request for suggestions ([FR-090](../001-finance-tracker-v1/spec.md#fr-090)) and no step of Tab. These rows
+  MUST NOT be set aside: a row holding a transfer, suggested, usual or marked, a row the user has
+  assigned anything,
   and a row the user brought back ([FR-153](#fr-153)).
   - The amount MUST be more than zero, with at most two decimals. Anything else MUST set nothing
     aside, and the field MUST say what it needs
@@ -398,7 +426,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
     another account, that confirming makes the two one transfer, and that turning Transfer off
     keeps them apart;
   - the mark from earlier transactions: that most earlier transactions of this vendor are in this
-    category;
+    category, or are transfers with this account;
   - beside Set aside rows under: that rows under the amount are left out of review and saved in
     Uncategorised;
   - on review, above the rows: that typing finds a category, and Tab moves to the next row.
@@ -410,7 +438,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   reopening the app, together with every choice made in review and its progress: categories, rows
   marked as transfers, suggested transfers and whether each still holds
   ([FR-143](#fr-143)), flagged rows included, rows set aside that were brought back
-  ([FR-153](#fr-153)), the categories the AI suggested and the usual categories, with their marks
+  ([FR-153](#fr-153)), the categories the AI suggested and the usual choices, with their marks
   ([FR-093](../001-finance-tracker-v1/spec.md#fr-093), [FR-147](#fr-147)), and which items were
   seen ([FR-151](#fr-151)). At most one pending batch MAY exist at any time, across all accounts;
   starting an import while one is pending MUST be refused with a message that leads the user to
@@ -434,10 +462,11 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   unchanged. A confirmed batch cannot be undone as a whole
   ([Out of Scope](../001-finance-tracker-v1/spec.md#out-of-scope)). Replaces
   [FR-027](../001-finance-tracker-v1/spec.md#fr-027).
-- <a id="fr-158"></a>**FR-158**: Every row under review that is not a transfer MUST hold a category,
-  initially its usual category ([FR-146](#fr-146)) or, without one, its side's "Uncategorised";
-  the category picker MUST offer no empty state, so no row can be confirmed without a category.
-  Replaces [FR-029](../001-finance-tracker-v1/spec.md#fr-029).
+- <a id="fr-158"></a>**FR-158**: Every row under review MUST start with its suggested transfer
+  ([FR-142](#fr-142)) if it has one, or else with its usual choice ([FR-146](#fr-146)), or else
+  with its side's "Uncategorised". Every row under review that is not a transfer MUST hold a
+  category; the category picker MUST offer no empty state, so no row can be confirmed without a
+  category. Replaces [FR-029](../001-finance-tracker-v1/spec.md#fr-029).
 - <a id="fr-159"></a>**FR-159**: System MUST itself assign "Uncategorised" to imported rows that hold
   no category the user chose, the AI suggested ([FR-092](../001-finance-tracker-v1/spec.md#fr-092))
   or that is their usual category ([FR-146](#fr-146)), to rows set aside ([FR-152](#fr-152)), and
@@ -452,7 +481,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   aside ([FR-152](#fr-152)) and the finance chat's conversation
   ([FR-104](../001-finance-tracker-v1/spec.md#fr-104)). The OpenAI API key MUST NOT be part of a
   backup ([FR-126](../001-finance-tracker-v1/spec.md#fr-126)). A backup saved before v1.8 restores
-  its transactions without vendors, its pending batch without suggested transfers, usual categories
+  its transactions without vendors, its pending batch without suggested transfers, usual choices
   or seen items, and no amount for setting rows aside. Replaces
   [FR-070](../001-finance-tracker-v1/spec.md#fr-070).
 
@@ -466,7 +495,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   ([FR-145](#fr-145)).
 - **Pending row** (changed): one parsed line in a pending batch: its parsed fields, its vendor
   group, its proposed kind, its category or counter-account, whether the AI suggested that category
-  or it is the row's usual category ([FR-147](#fr-147)), whether it holds a suggested transfer and
+  or its category or transfer is the row's usual choice ([FR-147](#fr-147)), whether it holds a suggested transfer and
   the transaction it pairs with ([FR-142](#fr-142)), whether it is flagged as a duplicate, whether
   it failed to parse, whether it was brought back from the rows set aside ([FR-153](#fr-153)),
   whether it was seen ([FR-151](#fr-151)), and whether it is included in confirmation.
@@ -484,7 +513,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
 - <a id="sc-030"></a>**SC-030**: Importing both files of [SC-029](#sc-029) again and accepting the
   review defaults adds zero transactions to the ledger.
 - <a id="sc-031"></a>**SC-031**: In a review after one confirmed month, every row whose vendor has a
-  usual category starts in it, and every other row starts in "Uncategorised", checked on a file of
+  usual choice starts with it, and every other row starts in "Uncategorised", checked on a file of
   about 300 rows across about 40 vendors.
 - <a id="sc-032"></a>**SC-032**: A user categorises a review of 40 items using only the keyboard, in
   under 3 minutes and without ever losing track of the current item.
@@ -507,7 +536,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   hand, as before.
 - A transfer arrives with the amount it left with. Fees or currency conversion make the amounts
   differ, and such a transfer is marked by hand.
-- The ledger keeps no vendor for transactions confirmed before v1.8, so usual categories start
+- The ledger keeps no vendor for transactions confirmed before v1.8, so usual choices start
   with the first batch confirmed in v1.8. Guessing a vendor from old descriptions would be
   unreliable, since descriptions often carry references and dates.
 - One amount for setting rows aside suits every account; the app has one currency.
@@ -531,6 +560,6 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
 - Suggesting transfers between rows of the same file, which all belong to one account.
 - Vendors that match more loosely than [FR-026](../001-finance-tracker-v1/spec.md#fr-026) says,
   such as "REWE Markt 123" and "REWE Markt 456".
-- Usual categories learned from the AI's suggestions before they are confirmed, or from rows of
+- Usual choices learned from the AI's suggestions before they are confirmed, or from rows of
   the batch under review.
 - Setting rows aside on screens other than review.
