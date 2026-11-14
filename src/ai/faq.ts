@@ -126,7 +126,7 @@ So save a backup now and then on [Backup](#/backup). A backup also moves your da
 
 They need your own OpenAI API key. Create one on ${keysPage}, then turn on the switch AI features in [Settings](#/settings), or select Turn on AI features in the chat, and enter the key. OpenAI charges your OpenAI account for each request, so setting a monthly limit there is wise.
 
-AI features send data to OpenAI only when you use them. Suggest categories sends the rows' descriptions and payees and your category names, but no amounts, dates or account names. A question to the chat sends your expenses and incomes of the current month and the 12 months before it.`,
+AI features send data to OpenAI only when you use them. Suggest categories sends the rows' descriptions and payees, your category names, and as examples up to 100 earlier descriptions with their categories, but no amounts, dates or account names. A question to the chat sends your expenses and incomes of the current month and the 12 months before it.`,
       },
     ],
   },
