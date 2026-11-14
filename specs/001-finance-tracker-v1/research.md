@@ -1690,8 +1690,9 @@ mark, concurrency, zod and the untrusted answer still holds.
       record holding most of them lacks, the first such record on a tie;
     - while the profile editor has nothing mapped yet, the first of the first 20 records that names
       a date and an amount, or a debit and a credit, by the
-      [table](contracts/csv-import.md#column-names), and otherwise the first record. The editor's
-      column lists read that record.
+      [table](contracts/csv-import.md#column-names), which `COLUMN_NAMES` in
+      `src/domain/import/columnNames.ts` holds for this search and the proposal alike, and
+      otherwise the first record. The editor's column lists read that record.
 
     Nothing is stored: the profile keeps its fields, and the database and the backup file stay as
     they are ([data-model.md](data-model.md#mapping-profile)).

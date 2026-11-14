@@ -1433,7 +1433,7 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   a sample file picked for it, MUST NOT change its settings. Reading the file happens on this
   computer and sends nothing ([FR-061](#fr-061)).
 - <a id="fr-134"></a>**FR-134**: While a profile has one signed column, sign inversion off, and the
-  preview reads at least one amount and no negative one, the profile editor MUST say beside Invert
+  preview reads at least one amount and no negative one, the profile editor MUST say under Invert
   the sign that every row would be an income, and that Invert the sign makes them expenses if they
   are purchases. The editor MUST NOT turn it on by itself.
 - <a id="fr-135"></a>**FR-135**: While AI features are off ([FR-095](#fr-095)), the finance chat

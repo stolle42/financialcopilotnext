@@ -285,7 +285,8 @@ src/
 │   ├── invariants.ts     # The state invariants of data-model.md
 │   └── import/           # Profile checks, date parsing, rows, duplicates, vendor groups,
 │                         # review edits, confirmation; propose.ts proposes a new bank CSV
-│                         # format and the sign hint (v1.7, R-33)
+│                         # format and the sign hint (v1.7, R-33); columnNames.ts holds
+│                         # COLUMN_NAMES, the column-names table both it and rows.ts read (R-34)
 ├── files/                # Boundary formats: CSV bytes → records (TextDecoder, Papa Parse), and
 │                         # the encoding a file is proposed with (R-33); backup JSON in and out
 │                         # (zod, configured once in zod.ts)

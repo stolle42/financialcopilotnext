@@ -1900,7 +1900,8 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - a mapped name twice in the header gives `import-duplicate-header`, as before;
   - with nothing mapped, the first record naming `Buchung` and `Betrag` is found below account
     details, and a file naming no date and amount gives record 0;
-  - a profile without a header row reads every record as data, as before.
+  - a profile without a header row reads every record as data, as before, also with lines of
+    account details above its rows, which give unparsable rows rather than a header.
 - [ ] T150 [US11] The proposal: a new `src/domain/import/propose.ts` with
   `proposeProfile(records, encoding)`, a pure function that starts from `newProfileDraft()` and
   changes only what the records tell, by rules 2 – 8 of
@@ -2004,11 +2005,12 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   CSV format", **Create new bank CSV format**, the list **Bank CSV formats** with, when none is
   saved, a line that the first import of a bank's file sets one up, and the field description that
   a bank CSV format tells the app how one bank's files are laid out and is set up once per bank;
-  the editor's titles "New bank CSV format" and "Edit bank CSV format", and its Save button; the
-  delete confirmation; and in `src/ui/messages.ts`, `profile-name-empty`, `profile-name-taken`,
-  `import-decoding-failed`, `import-missing-columns`, the row failures that name the profile, and
-  the backup refusals that name "a mapping profile". Codes, routes such as
-  `#/import/profiles/new`, the data model and the backup file keep "profile". Test first:
+  the editor's titles "New bank CSV format" and "Edit bank CSV format", while its Save button
+  keeps the label Save; the delete confirmation; and in `src/ui/messages.ts`,
+  `profile-name-empty`, `profile-name-taken`, `import-decoding-failed`, `import-missing-columns`,
+  the row failures that name the profile, and the backup refusals that name "a mapping profile".
+  Codes, routes such as `#/import/profiles/new`, the data model and the backup file keep
+  "profile". Test first:
   - in `src/ui/messages.test.ts`: no message says "profile", and the messages above say "bank CSV
     format";
   - in `e2e/ui/import.spec.ts`, the labels, the field description, the list's heading and its
