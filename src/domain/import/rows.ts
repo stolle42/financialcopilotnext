@@ -52,8 +52,16 @@ function mappedNames(profile: MappingProfile | ProfileDraft): string[] {
 /** How many records from the top of a file may hold the bank's account details and the header. */
 const HEADER_SEARCH = 20;
 
-const namesAny = (keys: ReadonlySet<string>, names: readonly string[]) =>
-  names.some((name) => keys.has(nameKey(name)));
+/** Whether a record names a date and an amount, or a date, a debit and a credit, as a header. */
+export function namesDateAndAmount(record: readonly string[]): boolean {
+  const keys = new Set(record.map(nameKey));
+  const namesAny = (names: readonly string[]) => names.some((name) => keys.has(nameKey(name)));
+  return (
+    namesAny(COLUMN_NAMES.date) &&
+    (namesAny(COLUMN_NAMES.amount) ||
+      (namesAny(COLUMN_NAMES.debit) && namesAny(COLUMN_NAMES.credit)))
+  );
+}
 
 /**
  * The index of the record that holds the column names, below any lines of account details a bank
@@ -70,17 +78,7 @@ export function headerIndex(
   const keysOf = (record: readonly string[]) => new Set(record.map(nameKey));
   const names = mappedNames(profile);
 
-  if (names.length === 0) {
-    const found = searched.findIndex((record) => {
-      const keys = keysOf(record);
-      return (
-        namesAny(keys, COLUMN_NAMES.date) &&
-        (namesAny(keys, COLUMN_NAMES.amount) ||
-          (namesAny(keys, COLUMN_NAMES.debit) && namesAny(keys, COLUMN_NAMES.credit)))
-      );
-    });
-    return Math.max(found, 0);
-  }
+  if (names.length === 0) return Math.max(searched.findIndex(namesDateAndAmount), 0);
 
   let best = { index: 0, missing: names };
   for (const [index, record] of searched.entries()) {

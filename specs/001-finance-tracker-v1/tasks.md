@@ -1903,7 +1903,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
     details, and a file naming no date and amount gives record 0;
   - a profile without a header row reads every record as data, as before, also with lines of
     account details above its rows, which give unparsable rows rather than a header.
-- [ ] T150 [US11] The proposal: a new `src/domain/import/propose.ts` with
+- [x] T150 [US11] The proposal: a new `src/domain/import/propose.ts` with
   `proposeProfile(records, encoding)`, a pure function that starts from `newProfileDraft()` and
   changes only what the records tell, by rules 2 – 8 of
   [csv-import.md](contracts/csv-import.md#proposing-a-format): the column names by `headerIndex`
