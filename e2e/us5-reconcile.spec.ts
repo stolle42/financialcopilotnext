@@ -43,7 +43,10 @@ async function addAccountOfType(page: Page, name: string, type: string, openingB
   await choose(page, dialog, "Type", type);
   await dialog.getByLabel("Opening balance").fill(openingBalance);
   await dialog.getByRole("button", { name: "Create account" }).click();
-  await expect(dialog).toHaveCount(0);
+  // The new row shows the account is saved. The dialog's closing animation can then take more than
+  // the usual 5 seconds on a busy CI machine; the next New account must not find it still there.
+  await expect(accountRow(page, name)).toBeVisible();
+  await expect(dialog).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function unaccountedId(page: Page, side: Side): Promise<string> {
