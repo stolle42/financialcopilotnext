@@ -1874,7 +1874,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   [csv-import.md](contracts/csv-import.md#proposing-a-format) rule 1). Test first in
   `src/files/csv.test.ts`: each of the three outcomes, a UTF-8 file with its byte-order mark, an
   empty file as UTF-8, and a Windows-1252 `ä` (`E4`) that is not valid UTF-8.
-- [ ] T149 [P] [US11] Column names below account details: a new
+- [x] T149 [P] [US11] Column names below account details: a new
   `src/domain/import/columnNames.ts` holds `COLUMN_NAMES`, the table of
   [csv-import.md](contracts/csv-import.md#column-names), one list per role in its order of
   preference, so the proposal and the header search read the same names (constitution I); and

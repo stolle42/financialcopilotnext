@@ -7,8 +7,10 @@ import type {
   RowFailureCode,
   UnparsableRow,
 } from "../types";
+import { COLUMN_NAMES } from "./columnNames";
 import { parseBankDate } from "./dates";
 import { readAmount } from "./direction";
+import type { ProfileDraft } from "./profiles";
 
 /** A parsed record, before the batch adds its review fields (data-model.md, pending row). */
 export type ParsedRecord = Pick<
@@ -32,14 +34,62 @@ interface Positions {
 
 const isBlank = (record: readonly string[]) => record.every((cell) => cell.trim() === "");
 
-/** The mapped header texts, in the order a message names them. */
-function mappedHeaders(profile: MappingProfile & { hasHeaderRow: true }): string[] {
+/** The column names a profile or a draft maps so far, in the order a message names them. */
+function mappedNames(profile: MappingProfile | ProfileDraft): string[] {
+  if (!profile.hasHeaderRow) return [];
   const amount =
     profile.amount.mode === "signed"
       ? [profile.amount.column]
       : [profile.amount.debitColumn, profile.amount.creditColumn];
-  const counterparty = profile.counterpartyColumn === null ? [] : [profile.counterpartyColumn];
-  return [profile.dateColumn, ...amount, profile.descriptionColumn, ...counterparty];
+  return [
+    profile.dateColumn,
+    ...amount,
+    profile.descriptionColumn,
+    profile.counterpartyColumn,
+  ].filter((name): name is string => name !== null);
+}
+
+/** How many records from the top of a file may hold the bank's account details and the header. */
+const HEADER_SEARCH = 20;
+
+const namesAny = (keys: ReadonlySet<string>, names: readonly string[]) =>
+  names.some((name) => keys.has(nameKey(name)));
+
+/**
+ * The index of the record that holds the column names, below any lines of account details a bank
+ * writes above them (R-34; contracts/csv-import.md, pipeline step 4). For a profile that maps
+ * columns, the first of the first 20 records that holds every mapped name; with none, the mapped
+ * names that the record holding most of them lacks. While nothing is mapped, the first record
+ * naming a date and an amount, or a date, a debit and a credit, and otherwise record 0.
+ */
+export function headerIndex(
+  records: readonly string[][],
+  profile: MappingProfile | ProfileDraft,
+): number | Refusal<"import-missing-columns"> {
+  const searched = records.slice(0, HEADER_SEARCH);
+  const keysOf = (record: readonly string[]) => new Set(record.map(nameKey));
+  const names = mappedNames(profile);
+
+  if (names.length === 0) {
+    const found = searched.findIndex((record) => {
+      const keys = keysOf(record);
+      return (
+        namesAny(keys, COLUMN_NAMES.date) &&
+        (namesAny(keys, COLUMN_NAMES.amount) ||
+          (namesAny(keys, COLUMN_NAMES.debit) && namesAny(keys, COLUMN_NAMES.credit)))
+      );
+    });
+    return Math.max(found, 0);
+  }
+
+  let best = { index: 0, missing: names };
+  for (const [index, record] of searched.entries()) {
+    const keys = keysOf(record);
+    const missing = names.filter((name) => !keys.has(nameKey(name)));
+    if (missing.length === 0) return index;
+    if (missing.length < best.missing.length) best = { index, missing };
+  }
+  return { code: "import-missing-columns", details: { columns: best.missing } };
 }
 
 /** Looks every mapped column up in the header row by name key (pipeline step 4). */
@@ -51,9 +101,9 @@ function findColumns(
   const indexesOf = (column: string) =>
     keys.flatMap((key, index) => (key === nameKey(column) ? [index] : []));
 
-  const missing = mappedHeaders(profile).filter((column) => indexesOf(column).length === 0);
+  const missing = mappedNames(profile).filter((column) => indexesOf(column).length === 0);
   if (missing.length > 0) return { code: "import-missing-columns", details: { columns: missing } };
-  const repeated = mappedHeaders(profile).find((column) => indexesOf(column).length > 1);
+  const repeated = mappedNames(profile).find((column) => indexesOf(column).length > 1);
   if (repeated !== undefined) {
     return { code: "import-duplicate-header", details: { column: repeated } };
   }
@@ -112,7 +162,8 @@ function parseRecord(
 /**
  * Turns a file's records into rows, or refuses the file's layout (contracts/csv-import.md,
  * pipeline steps 3–6). The import and the profile preview both use it, so the preview shows what
- * the import will produce (FR-021). A blank record becomes no row but keeps its row number.
+ * the import will produce (FR-021). The records above the header, a bank's account details, give
+ * no rows. A blank record becomes no row but keeps its row number.
  */
 export function parseRecords(
   records: readonly string[][],
@@ -122,10 +173,14 @@ export function parseRecords(
   if (records.every(isBlank)) return { code: "import-no-transactions" };
 
   let positions: Positions;
+  let firstData = 0;
   if (profile.hasHeaderRow) {
-    const found = findColumns(profile, records[0] ?? []);
+    const header = headerIndex(records, profile);
+    if (typeof header !== "number") return header;
+    const found = findColumns(profile, records[header]!);
     if ("code" in found) return found;
     positions = found;
+    firstData = header + 1;
   } else {
     positions = {
       date: profile.dateColumn,
@@ -135,7 +190,6 @@ export function parseRecords(
     };
   }
 
-  const firstData = profile.hasHeaderRow ? 1 : 0;
   const rows = records.flatMap((cells, index) =>
     index < firstData || isBlank(cells) ? [] : [parseRecord(cells, index + 1, positions, profile)],
   );
