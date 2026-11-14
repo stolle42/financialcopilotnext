@@ -76,7 +76,7 @@ test.beforeEach(async ({ page }) => {
   await setToday(page, "2026-09-20");
 });
 
-test("scenario 1: every screen shows the chat's button, and with AI features off the chat says it needs them and offers nothing to send (FR-100)", async ({
+test("scenario 1: every screen shows the chat's button, and with AI features off the chat says it needs them and offers nothing to send (FR-100, FR-135)", async ({
   page,
 }) => {
   const standIn = await standInChat(page);
@@ -86,7 +86,7 @@ test("scenario 1: every screen shows the chat's button, and with AI features off
   await expect(chatButton(page)).toHaveText(catalogue.financeChat.title);
   await chatButton(page).click();
 
-  await expect(chat(page)).toContainText(catalogue.financeChat.needsAiFeatures);
+  await expect(chat(page)).toContainText(catalogue.financeChat.charges);
   await expect(questionField(page)).toHaveCount(0);
   await expect(examples(page)).toHaveCount(0);
   expect(standIn.requests).toEqual([]);

@@ -2093,7 +2093,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - in `e2e/us11-getting-started.spec.ts`, scenario 11 and the second half of 17: the
     instructions of a question to the stand-in hold the guide's line on the key and every FAQ
     question and answer.
-- [ ] T158 [US11] The FAQ screen: the route `#/faq` in `src/ui/app/router.ts`; the sidebar entry
+- [x] T158 [US11] The FAQ screen: the route `#/faq` in `src/ui/app/router.ts`; the sidebar entry
   FAQ last in `src/ui/app/App.tsx`; and a new `src/ui/screens/faq/FaqScreen.tsx` with the heading
   "FAQ", its `ScreenIntro`, and one card per topic of `FAQ` under its topic as an `h2`, each
   question a native `<details>`, closed at first, whose `<summary>` is the question with a chevron

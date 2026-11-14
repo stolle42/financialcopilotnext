@@ -40,9 +40,11 @@ async function openFaq(page: Page) {
   await expect(main(page).getByRole("heading", { name: "FAQ", level: 1 })).toBeVisible();
 }
 
-/** Opens every answer. */
+/** Opens every answer; going to FAQ from FAQ keeps those open before. */
 async function openAll(page: Page) {
-  for (const entry of await entries(page).all()) await question(entry).click();
+  for (const entry of await entries(page).all()) {
+    if ((await entry.getAttribute("open")) === null) await question(entry).click();
+  }
   await expect(main(page).locator("details[open]")).toHaveCount(QUESTIONS.length);
 }
 

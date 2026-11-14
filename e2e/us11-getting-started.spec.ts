@@ -196,7 +196,10 @@ test("8. a sample file picked in Edit changes none of the format's settings (FR-
 }) => {
   await saveMyBankProfile(page);
   await page.goto("/#/import");
-  await main(page).getByRole("button", { name: "Edit bank CSV format" }).click();
+  await page
+    .getByRole("region", { name: "Bank CSV formats" })
+    .getByRole("button", { name: "Edit", exact: true })
+    .click();
   await page.getByLabel("Sample file").setInputFiles(fixture("mybank-2026-10.csv"));
   await expect(page.getByRole("region", { name: "Preview" })).toContainText("Row 2");
   await expectEditorSettings(page, {
@@ -270,10 +273,10 @@ test("12. the terms a new user may not know are explained where they appear (FR-
   page,
 }) => {
   await page.goto("/#/categories");
-  await expect(main(page).getByRole("row").filter({ hasText: "Uncategorised" })).toContainText(
+  await expect(main(page).getByRole("listitem").filter({ hasText: "Uncategorised" })).toContainText(
     "Holds what is not sorted into a category yet.",
   );
-  await expect(main(page).getByRole("row").filter({ hasText: "Unaccounted" })).toContainText(
+  await expect(main(page).getByRole("listitem").filter({ hasText: "Unaccounted" })).toContainText(
     "Holds the differences that Reconcile books.",
   );
 
@@ -288,6 +291,7 @@ test("12. the terms a new user may not know are explained where they appear (FR-
     .getByRole("dialog", { name: "New account" })
     .getByRole("button", { name: "Create account" })
     .click();
+  await expect(page.getByRole("dialog", { name: "New account" })).toHaveCount(0);
 
   await page.goto("/");
   await page.getByRole("banner").getByRole("button", { name: "Add transaction" }).click();
