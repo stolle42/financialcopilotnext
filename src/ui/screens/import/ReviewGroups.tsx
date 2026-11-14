@@ -140,6 +140,12 @@ export function ReviewGroups({
 
   return (
     <section aria-label="Rows to review" className="flex flex-col gap-3">
+      {view.groups.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Transfer is for money moved between two of your own accounts. It counts as neither
+          spending nor income.
+        </p>
+      )}
       {view.groups.map((group) => (
         <GroupCard
           key={`${group.side} ${group.key}`}

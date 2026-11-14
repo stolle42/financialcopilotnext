@@ -43,6 +43,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/ui/components/ui/toggle-group";
 import { messageFor, proposal, type MessageCode } from "@/ui/messages";
 import { importChosenFile, NEW_PROFILE, useImportState } from "./importState";
 import { ProfilePreview, usePreviewRead, type SampleRecords } from "./ProfilePreview";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /** Header text with a header row, a 0-based position without one (data-model.md). */
 type Column = string | number;
@@ -243,6 +244,10 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
       <h1 className="text-3xl font-semibold">
         {profile ? "Edit bank CSV format" : "New bank CSV format"}
       </h1>
+      <ScreenIntro>
+        Tells the app how this bank&apos;s files are laid out. Set up once, it serves every later
+        file of the bank.
+      </ScreenIntro>
       <FieldGroup className="surface p-6">
         <LabelledField id={ids.name} label="Name" error={errors.name}>
           <Input

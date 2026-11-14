@@ -2019,7 +2019,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - `e2e/support/import.ts`, `e2e/ui/design.spec.ts`, `e2e/ui/shell.spec.ts` and
     `e2e/us2-import.spec.ts` find the controls by their new names;
   - in `e2e/us11-getting-started.spec.ts`, scenario 13.
-- [ ] T155 [US11] A sentence per screen and each term where it appears
+- [x] T155 [US11] A sentence per screen and each term where it appears
   ([FR-137](spec.md#fr-137), [FR-138](spec.md#fr-138), [R-38](research.md#r-38)): a new
   `src/ui/components/ScreenIntro.tsx`, a paragraph in the secondary ink under a screen's heading,
   always shown and never in place of an empty state; each screen passes its sentence, as the

@@ -15,7 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/ui/components/ui/field";
 import { Input } from "@/ui/components/ui/input";
 import {
   Select,
@@ -134,6 +140,9 @@ export function AccountDialog({
                 onValueChange={setOpeningBalance}
                 aria-invalid={errors.openingBalance ? true : undefined}
               />
+              <FieldDescription>
+                What the account held before its first transaction in the app.
+              </FieldDescription>
               <FieldError>
                 {errors.openingBalance && messageFor({ code: errors.openingBalance })}
               </FieldError>

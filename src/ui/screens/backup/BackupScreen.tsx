@@ -11,6 +11,7 @@ import { Button } from "@/ui/components/ui/button";
 import { toast } from "@/ui/components/ui/toast";
 import { installHint, messageFor, notifications, type MessageCode } from "@/ui/messages";
 import { saveBackup } from "./saveBackup";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /** A state that passed validation, waiting for the user to agree to replace everything. */
 interface Pending {
@@ -72,6 +73,10 @@ export function BackupScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Backup</h1>
+      <ScreenIntro>
+        Everything the app holds lives only in this browser. A backup file keeps it safe and moves
+        it to another computer.
+      </ScreenIntro>
       {persisted === false && (
         <div className="surface flex flex-col items-start gap-3 p-6">
           <p className="text-sm">

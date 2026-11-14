@@ -8,6 +8,7 @@ import { CategoryChip } from "@/ui/components/CategoryChip";
 import { Button } from "@/ui/components/ui/button";
 import { Field, FieldError } from "@/ui/components/ui/field";
 import { messageFor, type MessageCode } from "@/ui/messages";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /** One category's limit field, which saves on Enter and when it loses focus (contracts/ui.md, budgets). */
 function BudgetRow({
@@ -99,10 +100,10 @@ export function BudgetsScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Budgets</h1>
-      <p className="text-muted-foreground">
+      <ScreenIntro>
         A limit applies to every month. Each month starts at zero, and what is left over does not
         carry into the next.
-      </p>
+      </ScreenIntro>
       <ul className="surface flex flex-col divide-y">
         {budgetable.map((category) => (
           <BudgetRow key={category.id} category={category} limitCents={limits.get(category.id)} />

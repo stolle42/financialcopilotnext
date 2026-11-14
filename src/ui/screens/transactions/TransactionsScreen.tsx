@@ -36,6 +36,7 @@ import { CellEditor, type Column } from "./CellEditor";
 import { OpenTransactionFormContext } from "./formContext";
 import { isCalendarDate } from "@/domain/dates";
 import type { ListFilters } from "@/ui/app/router";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 // The "All" option of a filter select; Base UI selects need a value for every option.
 const ALL = "";
@@ -272,6 +273,10 @@ export function TransactionsScreen({ filters = {} }: { filters?: ListFilters }) 
           Import CSV
         </a>
       </div>
+      <ScreenIntro>
+        Every expense, income and transfer, newest first. Add one by hand, or import a bank&apos;s
+        CSV file.
+      </ScreenIntro>
 
       {transactions.length === 0 ? (
         <div className="surface flex flex-col items-start gap-3 p-6">

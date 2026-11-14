@@ -21,6 +21,7 @@ import {
 import { messageFor, type MessageCode } from "@/ui/messages";
 import { AccountDialog } from "@/ui/screens/accounts/AccountDialog";
 import { importChosenFile, NEW_PROFILE, useImportState } from "./importState";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /** The Account select's value for New account…; account ids are UUIDs, never this (FR-132). */
 const NEW_ACCOUNT = "new-account";
@@ -371,6 +372,10 @@ export function ImportScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Import</h1>
+      <ScreenIntro>
+        Turns a bank&apos;s CSV file into transactions. They wait for your review before they enter
+        the ledger.
+      </ScreenIntro>
       {batch && <PendingBatchCard batch={batch} />}
       <ImportForm batchPending={batch !== null} />
       <ProfileList batchPending={batch !== null} />

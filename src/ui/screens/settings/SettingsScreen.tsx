@@ -37,6 +37,7 @@ import {
   type MessageCode,
 } from "@/ui/messages";
 import { saveBackup } from "@/ui/screens/backup/saveBackup";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /**
  * Settings (contracts/ui.md, settings): the AI features switch, which turns on only with an OpenAI
@@ -86,6 +87,7 @@ export function SettingsScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Settings</h1>
+      <ScreenIntro>AI features, the model that answers, and updates of the app.</ScreenIntro>
       {newer && (
         <section className="surface flex flex-wrap items-center gap-3 p-6">
           <InfoIcon aria-hidden className="size-5 shrink-0 text-primary" />

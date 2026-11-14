@@ -8,6 +8,7 @@ import { BudgetSection } from "./BudgetSection";
 import { CategoryBreakdown } from "./CategoryBreakdown";
 import { PeriodPicker } from "./PeriodPicker";
 import { SpendingChart } from "./SpendingChart";
+import { ScreenIntro } from "@/ui/components/ScreenIntro";
 
 /** Spending over time for a chosen period, defaulting to this month (FR-050, FR-051). */
 export function InsightsScreen() {
@@ -21,6 +22,9 @@ export function InsightsScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Insights</h1>
+      <ScreenIntro>
+        Where your money went over a period, by category, and how your budgets stand.
+      </ScreenIntro>
       <PeriodPicker period={period} onChange={setPeriod} />
       <section aria-labelledby={spendingHeading} className="surface flex flex-col gap-4 p-6">
         <h2 id={spendingHeading} className="text-xl font-semibold">
