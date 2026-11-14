@@ -2069,7 +2069,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   - in `e2e/us11-getting-started.spec.ts`, scenarios 9, 10 and the first half of 17: the key check
     is the only request until the first question, which is sent without leaving the sheet
     ([FR-061](spec.md#fr-061)).
-- [ ] T157 [US11] FAQ's text and the guide to the app: a new `src/ai/faq.ts` with `FAQ`, the four
+- [x] T157 [US11] FAQ's text and the guide to the app: a new `src/ai/faq.ts` with `FAQ`, the four
   topics of [FR-140](spec.md#fr-140) in order, each with its questions worded exactly as there,
   each answer of paragraphs saying at least what FR-140 lists, the answer on importing with its
   steps as a numbered list; a link written `[label](#/route)` inside the app, and
