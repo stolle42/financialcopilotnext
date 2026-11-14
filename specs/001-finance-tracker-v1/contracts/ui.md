@@ -79,10 +79,8 @@ Routes use the URL hash so the build works from any static host or local file ([
   value right there, one cell at a time. Selecting a cell never opens the form.
   - Date, Description and Amount open a field with the current value, the amount without its sign.
     Enter or leaving the field saves, and Escape cancels.
-  - Category opens a select with the rules of the form's Category. A transfer's cell holds its
-    destination instead, and opens a select of every account except the transaction's own. Account
-    opens a select of the accounts, which for a transfer leaves out the destination
-    ([FR-011](../spec.md#fr-011)). Picking an option saves, and Escape cancels.
+  - Category, and Account: replaced in v1.8 by
+    [Transactions: Category, edited in place](../../018-review-queue/contracts/ui.md#transactions).
   - After a save or a cancel, focus returns to the cell.
   - A refusal, such as `amount-invalid`, `date-invalid` or `save-failed`, shows under the cell. The
     field stays open with what the user entered ([FR-068](../spec.md#fr-068),
@@ -101,10 +99,8 @@ Routes use the URL hash so the build works from any static host or local file ([
 - **Focus** starts in Amount with its content selected, so typing replaces 0.00. **Enter** saves.
   A typical cash expense therefore takes: type the amount, Tab, pick a category, Enter
   ([SC-002](../spec.md#sc-002)).
-- **Category**: a select of the kind's side. Each option shows its colour swatch. There is
-  no empty option ([FR-011](../spec.md#fr-011)) and no "Unaccounted" option
-  ([FR-030](../spec.md#fr-030)). When the transaction being edited holds "Unaccounted", the field
-  shows it as the current value, but it still does not appear among the options.
+- **Category**: replaced in v1.8 by
+  [Transaction form: Category](../../018-review-queue/contracts/ui.md#transaction-form).
 - **Destination**: offers every account except the selected Account ([FR-011](../spec.md#fr-011)).
   When the Account is changed to the chosen destination, the destination is cleared. With only one
   account, choosing Transfer shows `transfer-needs-second-account` with a link to Accounts. Its
@@ -268,50 +264,7 @@ Routes use the URL hash so the build works from any static host or local file ([
 
 ### Review
 
-- **Header**: the account, the file, and three counts: rows to review, **duplicates** and
-  **unparsable**. The duplicates and unparsable counts are buttons
-  ([FR-025](../spec.md#fr-025), [FR-028](../spec.md#fr-028)).
-  - The **duplicates** drawer lists the flagged rows, each with an **Include** switch. An included
-    row joins the review list.
-  - The **unparsable** drawer lists the row number, the raw cells and the reason. These rows cannot
-    be included.
-- **Suggestions**, between the header and the body ([FR-090](../spec.md#fr-090) –
-  [FR-094](../spec.md#fr-094), [ai.md](ai.md#category-suggestions)):
-  - An outline button **Suggest categories for N rows**, where N is the number of rows a request
-    would send. It is unavailable when N is 0.
-  - While AI features are off ([FR-095](../spec.md#fr-095)), the button is unavailable, and a line
-    beside it says that suggestions need AI features, with a link to [Settings](#settings). While
-    they are on, selecting the button sends the request at once, without a dialog.
-  - While the AI answers, the button reads **Asking the AI…** and is unavailable. The rows stay
-    editable, Confirm is unavailable, and leaving review cancels the request.
-  - The outcome shows in a status line beside the button, such as "The AI suggested categories
-    for 14 of 20 rows". A failure shows in the review's alert, with the codes of
-    [ai.md](ai.md#failures).
-  - Review names no AI provider; only [Settings](#settings) does.
-- **Suggested mark** ([FR-093](../spec.md#fr-093)): a sparkle icon and "Suggested" after the
-  category select of a row whose category the AI suggested. A group header shows the mark only when
-  all its rows hold the same suggested category. Otherwise the group shows what it would without
-  suggestions, a shared category or "Mixed", and the marks show on the unfolded rows.
-- **Body**: vendor groups first, largest first, collapsed. Plain rows follow by date
-  ([csv-import.md](csv-import.md#vendor-groups)). Large groups first gets the most rows out of
-  "Uncategorised" with the fewest actions ([SC-001](../spec.md#sc-001)).
-  - Above the rows, one line says that the Transfer switch is for money moved between two of the
-    user's own accounts, which counts as neither spending nor income ([FR-138](../spec.md#fr-138)).
-  - A group header shows the vendor, side, count, total and the group's assignment control.
-    Unfolding the group shows a control for each row ([FR-026](../spec.md#fr-026)).
-- **Assignment control**: a category select of the row's side, with no "Unaccounted"
-  ([FR-030](../spec.md#fr-030)) and "Uncategorised" as the start value
-  ([FR-029](../spec.md#fr-029)).
-  - A separate **Transfer** switch replaces the select with a counter-account select, listing every
-    account except the batch account ([FR-023](../spec.md#fr-023)).
-  - Switching back restores the side's "Uncategorised".
-- **Saving**: every change is saved at once, so review progress survives closing the app
-  ([FR-022](../spec.md#fr-022), [R-05](../research.md#r-05)).
-- **Footer**:
-  - **Discard** asks for confirmation.
-  - **Confirm N transactions** opens a modal stating the count ([FR-027](../spec.md#fr-027)). After
-    confirmation, a notification reports what was added and the app opens Transactions. It is
-    unavailable while the AI answers a request for suggestions.
+Replaced in v1.8 by [Review](../../018-review-queue/contracts/ui.md#review).
 
 ### Budgets
 
@@ -468,6 +421,8 @@ These patterns apply on every screen ([FR-065](../spec.md#fr-065)).
 | Empty state | One sentence and one primary action |
 | Screen sentence | One or two sentences under each screen's heading, in the secondary ink, always shown: `ScreenIntro` ([FR-137](../spec.md#fr-137), [R-38](../research.md#r-38)). It never replaces an empty state |
 
+v1.8 adds the [category picker](../../018-review-queue/contracts/ui.md#category-picker).
+
 <a id="screen-sentences"></a>
 **Screen sentences** (v1.7). The wording lives in each screen's code; each says at least what
 follows. Categories and Insights have none, since their headings say enough:
@@ -544,7 +499,8 @@ turns a code into plain language in one module, `src/ui/messages.ts`, which hold
 ([R-15](../research.md#r-15), [FR-067](../spec.md#fr-067)). The table below records what each message
 must convey. [SC-012](../spec.md#sc-012) is covered by the rows that cite it. Since v1.7, a message
 calls a mapping profile a "bank CSV format" ([FR-138](../spec.md#fr-138)); the codes keep
-`profile`.
+`profile`. v1.8 adds the codes of its
+[Message catalogue](../../018-review-queue/contracts/ui.md#message-catalogue).
 
 | Code | Raised when | The message tells the user |
 |---|---|---|

@@ -547,11 +547,10 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
 - The guide to the app and FAQ describe this version, as
   [FR-136](../001-finance-tracker-v1/spec.md#fr-136) and
   [FR-139](../001-finance-tracker-v1/spec.md#fr-139) require; no new FAQ question is added.
-- Whether keeping vendors and the new review progress in stored data and backups calls for a MAJOR
-  version is decided in the plan, by
-  [constitution IX](../../.specify/memory/constitution.md#ix-versioning). A v1.7 app refuses a
-  v1.8 backup in any case, as saved by a newer version
-  ([FR-072](../001-finance-tracker-v1/spec.md#fr-072)).
+- Keeping vendors, the new review progress and the set-aside amount needs no MAJOR version
+  ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)): they are additions
+  that v1.7 drops when it reads a v1.8 backup or database, so v1.7 still reads v1.8's data, without
+  them ([research R-39](research.md#r-39)).
 
 ## Out of Scope
 

@@ -83,22 +83,5 @@ searches the file for the key and its last 4 characters. The end-to-end test for
 
 ## Compatibility
 
-- This version of the app reads only `formatVersion` 1.
-- A later change to the stored data must either keep version 1 readable, by migrating it on load,
-  or increase `formatVersion` and add that migration. Version 1 files are never refused for being
-  old.
-- v1.2 added the optional key `suggested` to a pending row's category assignment
-  ([data-model.md](../data-model.md#pending-row), [FR-093](../spec.md#fr-093)). A file without it
-  is complete, and earlier versions of the app drop it on loading, so the format stays version 1.
-  The same holds for the optional `aiFeatures` key that v1.2 added to the settings
-  ([FR-095](../spec.md#fr-095)); a file without it restores AI features off.
-- v1.3 added the optional key `conversation` to `data` ([FR-104](../spec.md#fr-104)). A file
-  without it is complete and restores an empty conversation, and v1.2 drops it on loading, so the
-  format stays version 1 ([R-26](../research.md#r-26)).
-- v1.6 added the optional key `model` to the settings ([FR-130](../spec.md#fr-130)). A file
-  without it is complete and restores the default model, and v1.5 drops it on loading, so the
-  format stays version 1 ([R-32](../research.md#r-32)). A model the app no longer lists is kept as
-  it is, and the app uses the default.
-- From v1.6, `aiFeatures` restores the switch only, since AI features also need a stored key. A
-  file with AI features on, also one saved by v1.5, restores them off on a computer that has no key,
-  until the user enters one ([FR-095](../spec.md#fr-095), [R-31](../research.md#r-31)).
+Replaced in v1.8 by
+[Compatibility](../../018-review-queue/contracts/backup-file.md#compatibility).

@@ -37,4 +37,5 @@
   app is built.
 - Replaced 001 requirements and entities (FR-022, FR-024, FR-027, FR-029, FR-035, FR-070,
   Transaction, Pending row, one edge case) now link to 018, per `.claude/rules/specs.md`.
-- Whether the stored-data change needs a MAJOR version is left to the plan (Assumptions).
+- The plan found that the stored-data change needs no MAJOR version (research R-39), and the
+  Assumption now says so.

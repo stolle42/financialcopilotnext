@@ -37,10 +37,10 @@ preview therefore always shows what the import will produce.
    file contained no transactions ([edge cases](../spec.md#edge-cases)).
 6. **Parse** each data record into a parsed or an unparsable row, as described below. A record
    with too few cells has its missing cells treated as empty.
-7. **Flag duplicates** once, using [the matching rule](#duplicate-matching)
-   ([FR-024](../spec.md#fr-024)).
-8. **Store** the batch. The storage transaction refuses again if a batch already exists, in
-   addition to the check before the import starts ([FR-022](../spec.md#fr-022)).
+7. Replaced in v1.8 by steps 7–10 of the
+   [Pipeline](../../018-review-queue/contracts/csv-import.md#pipeline).
+8. Replaced in v1.8 by steps 7–10 of the
+   [Pipeline](../../018-review-queue/contracts/csv-import.md#pipeline).
 
 ## Cells
 
@@ -141,33 +141,13 @@ row has several problems, the first in this table is reported.
 
 ## Duplicate matching
 
-The rule is [FR-024](../spec.md#fr-024). This section fixes how it is computed.
-
-- **Signed effect**: an entry's amount and direction combine into its *signed effect* on an
-  account, negative for money out and positive for money in.
-  - For a ledger transaction, the effect on each account it touches is defined in
-    [data-model.md](../data-model.md#derived-values). A transfer therefore has one effect on its
-    source account and another on its destination.
-  - For a parsed row, the effect is its `amountCents` on the batch account.
-- **Match**: two entries match when their account, date and signed effect on that account are
-  equal.
-- **Earlier row**: an earlier row of the same batch is a parsed row with a lower row number.
-  Unparsable rows are ignored.
-- **Text**: counterparties play no part, just as descriptions do.
-- **Speed**: matching uses a hash of (account, date, signed effect), so 5,000 rows take linear
-  time ([SC-010](../spec.md#sc-010)).
+Replaced in v1.8 by
+[Duplicate matching](../../018-review-queue/contracts/csv-import.md#duplicate-matching).
 
 ## Vendor groups
 
-The grouping rule is [FR-026](../spec.md#fr-026), applied to the rows under review
-([data-model.md](../data-model.md#derived-values)). In data terms, a group is the set of rows that
-share a vendor key and a side. This section adds what review shows and how later changes behave.
-
-- A group shows the first row's counterparty text, the side, the row count and the total.
-- Setting a group's assignment sets it on every row currently in the group. The assignment is either
-  a category of the group's side or a transfer to or from another account.
-- A row that is included later ([FR-025](../spec.md#fr-025)) joins its group with its own
-  assignment unchanged.
+Replaced in v1.8 by
+[Vendor groups](../../018-review-queue/contracts/csv-import.md#vendor-groups).
 
 ## Outcomes
 
