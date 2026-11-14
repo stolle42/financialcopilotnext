@@ -61,6 +61,11 @@ const dateFormatExamples: Record<DateFormat, string> = {
   "DD-MM-YYYY": "03-09-2026",
 };
 
+const dateFormats = DATE_FORMATS.map((format) => ({
+  value: format,
+  label: `${format} (${dateFormatExamples[format]})`,
+}));
+
 const decimalSeparators: { value: DecimalSeparator; label: string }[] = [
   { value: ",", label: "Comma (1.250,00)" },
   { value: ".", label: "Point (1,250.00)" },
@@ -295,6 +300,7 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
           </LabelledField>
           <LabelledField id={ids.dateFormat} label="Date format">
             <Select
+              items={dateFormats}
               value={draft.dateFormat}
               onValueChange={(dateFormat) => dateFormat && setDraft({ ...draft, dateFormat })}
             >
@@ -302,9 +308,9 @@ function ProfileForm({ profile }: { profile: MappingProfile | null }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {DATE_FORMATS.map((format) => (
-                  <SelectItem key={format} value={format}>
-                    {format} ({dateFormatExamples[format]})
+                {dateFormats.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
