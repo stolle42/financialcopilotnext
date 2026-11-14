@@ -124,7 +124,8 @@ function ColumnSelect({
             current === null ? (
               <span className="text-muted-foreground">{optional ? "None" : "Choose a column"}</span>
             ) : (
-              columnLabel(current)
+              // With the sample's value, as in the list, so a proposed column is readable.
+              (shown.find((option) => option.value === current)?.label ?? columnLabel(current))
             )
           }
         </SelectValue>
