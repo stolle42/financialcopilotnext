@@ -1867,7 +1867,7 @@ not part of the repository. Every fixture of this phase holds made-up rows only
   included, walked at the web address. Each step not done is done now. On 2026-11-14 `main` held
   v1.6 as `e18f239` with a local, lightweight tag `v1.6` that was never pushed; it is now an
   annotated tag on `e18f239`, pushed to `origin`.
-- [ ] T148 [P] [US11] The encoding of a new file: `detectEncoding(bytes)` in `src/files/csv.ts`
+- [x] T148 [P] [US11] The encoding of a new file: `detectEncoding(bytes)` in `src/files/csv.ts`
   gives `UTF-16LE` when the bytes start with `FF FE`, `UTF-8` when strict UTF-8 decoding succeeds,
   with or without its byte-order mark, and `Windows-1252` otherwise; it never gives `ISO-8859-15`
   ([FR-133](spec.md#fr-133), [R-33](research.md#r-33),

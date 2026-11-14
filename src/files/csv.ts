@@ -19,6 +19,17 @@ export function decodeFile(bytes: Uint8Array, encoding: Encoding): string | Deco
 }
 
 /**
+ * The encoding a new bank CSV format proposes for a file: UTF-16LE when the bytes start with its
+ * byte-order mark, UTF-8 when they decode as UTF-8, and Windows-1252 otherwise. ISO-8859-15 is
+ * never proposed, since Windows-1252 reads the same letters and is what banks write
+ * (contracts/csv-import.md, proposing a format, rule 1; R-33).
+ */
+export function detectEncoding(bytes: Uint8Array): Encoding {
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return "UTF-16LE";
+  return typeof decodeFile(bytes, "UTF-8") === "string" ? "UTF-8" : "Windows-1252";
+}
+
+/**
  * The text's records, with the delimiter detected among `,`, `;`, tab and `|`. Blank lines stay
  * as records, so the domain can skip them without losing the file's row numbers.
  */
