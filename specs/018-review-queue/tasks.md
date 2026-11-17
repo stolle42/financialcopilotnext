@@ -167,7 +167,7 @@ that already exists, or a broken fixture.
   - `pairFits` is true for an unchanged pair, and false once the paired transaction is deleted,
     changed in amount, moved to another account or made a transfer
     ([data-model.md](data-model.md#derived-values)).
-- [ ] T170 [P] [US12] In `src/domain/import/duplicates.test.ts`, the duplicate rule of
+- [X] T170 [P] [US12] In `src/domain/import/duplicates.test.ts`, the duplicate rule of
   [FR-156](spec.md#fr-156) ([csv-import.md](contracts/csv-import.md#duplicate-matching)): a row on
   Savings dated 2 May with money in matches a transfer from Checking to Savings dated 30 April (2
   days), on its destination side; a row on Checking with money out matches it on its source side
