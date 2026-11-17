@@ -1,27 +1,23 @@
 import { useState } from "react";
 import { proposedSide } from "@/domain/import/direction";
-import { sharedAssignment, type ReviewView, type VendorGroup } from "@/domain/import/groups";
+import {
+  markOf,
+  sharedAssignment,
+  type ReviewView,
+  type VendorGroup,
+} from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
 import type { ParsedRow, Refusal } from "@/domain/types";
 import { assignGroup, assignRow } from "@/store/import";
 import { useStoreApi } from "@/store/store";
 import { Button } from "@/ui/components/ui/button";
 import { formatAmount } from "@/ui/format";
-import type { MessageCode } from "@/ui/messages";
-import { AssignmentControl } from "./AssignmentControl";
+import { usualMarkSentence, type MessageCode } from "@/ui/messages";
+import { AssignmentControl, usualSentenceId } from "./AssignmentControl";
 import { RowSummary } from "./RowSummary";
 import { SuggestedTransfers } from "./SuggestedTransfers";
 
 const sideLabel = { expense: "expenses", income: "income" } as const;
-
-/**
- * Whether the AI suggested the row's category, which the user has not assigned since (FR-093), or
- * the row holds a suggested transfer (FR-143).
- */
-const isSuggested = (row: ParsedRow) =>
-  row.assignment.type === "category"
-    ? row.assignment.suggested === true
-    : row.assignment.pairedTransactionId !== undefined;
 
 const rowGrid = "grid grid-cols-[6rem_1fr_7rem_auto] items-center gap-3 px-4 py-2 text-sm";
 
@@ -41,7 +37,6 @@ function ReviewRow({
         label={`row ${row.rowNumber}`}
         side={proposedSide(row.amountCents)}
         assignment={row.assignment}
-        suggested={isSuggested(row)}
         batchAccountId={batchAccountId}
         onChoose={(choice) => onChoose(row, choice)}
       />
@@ -83,7 +78,6 @@ function GroupCard({
             side={group.side}
             assignment={shared}
             // Marked only when every row holds the same category as a suggestion.
-            suggested={shared !== null && group.rows.every(isSuggested)}
             batchAccountId={batchAccountId}
             onChoose={(choice) => onChooseGroup(group, choice)}
           />
@@ -120,6 +114,10 @@ export function ReviewGroups({
   onRefusal: (refusal: Refusal<MessageCode> | null) => void;
 }) {
   const store = useStoreApi();
+  // The sentence of the mark "From earlier" shows once, above every item that may hold it (FR-154).
+  const holdsUsual = [...view.groups.flatMap((g) => g.rows), ...view.plainRows].some(
+    (row) => markOf(row.assignment) === "usual",
+  );
 
   async function saved(result: ReturnType<typeof assignRow>) {
     const refusal = await result;
@@ -142,6 +140,11 @@ export function ReviewGroups({
         </p>
       )}
       <section aria-label="Rows to review" className="flex flex-col gap-3">
+        {holdsUsual && (
+          <p id={usualSentenceId} className="surface px-4 py-3 text-sm text-muted-foreground">
+            {usualMarkSentence}
+          </p>
+        )}
         {view.suggestedTransfers.length > 0 && (
           <SuggestedTransfers
             items={view.suggestedTransfers}

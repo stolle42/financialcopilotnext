@@ -138,8 +138,11 @@ const target = (assignment: Assignment) =>
     ? `category ${assignment.categoryId}`
     : `transfer ${assignment.counterAccountId}`;
 
-/** The mark an assignment carries, if any: the AI's suggestion or the usual choice (FR-147). */
-const markOf = (assignment: Assignment): "suggested" | "usual" | null => {
+/** The mark an assignment carries: a suggestion, of the AI or a suggested transfer, or the usual choice. */
+export type Mark = "suggested" | "usual" | null;
+
+/** The mark an assignment carries, if any (FR-093, FR-143, FR-147). */
+export const markOf = (assignment: Assignment): Mark => {
   if (assignment.usual) return "usual";
   if (assignment.type === "category") return assignment.suggested ? "suggested" : null;
   return assignment.pairedTransactionId === undefined ? null : "suggested";

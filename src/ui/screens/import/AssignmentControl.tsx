@@ -1,6 +1,7 @@
-import { Sparkles } from "lucide-react";
+import { History, Sparkles } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { sortAccounts } from "@/domain/accounts";
+import { markOf } from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
 import type { Assignment, Side } from "@/domain/types";
 import { useStore } from "@/store/store";
@@ -21,11 +22,12 @@ interface AssignmentControlProps {
   side: Side;
   /** `null` when the rows of a group differ. */
   assignment: Assignment | null;
-  /** The AI suggested the category, or the row holds a suggested transfer (FR-093, FR-143). */
-  suggested: boolean;
   batchAccountId: string;
   onChoose: (choice: AssignmentChoice) => void;
 }
+
+/** The element holding the sentence of the mark "From earlier", which describes the mark (FR-154). */
+export const usualSentenceId = "usual-mark-sentence";
 
 /**
  * A review row's category, of its side and without "Unaccounted" (FR-029, FR-030), or a transfer
@@ -36,7 +38,6 @@ export function AssignmentControl({
   label,
   side,
   assignment,
-  suggested,
   batchAccountId,
   onChoose,
 }: AssignmentControlProps) {
@@ -48,6 +49,8 @@ export function AssignmentControl({
   // On while the user picks the counter-account; nothing is saved until one is picked.
   const [choosingAccount, setChoosingAccount] = useState(false);
   const isTransfer = assignment?.type === "transfer" || choosingAccount;
+  // The assignment carries its mark: of a group, only when all its rows hold it (FR-147).
+  const mark = assignment && !choosingAccount ? markOf(assignment) : null;
   const ids = { category: useId(), account: useId(), transfer: useId() };
 
   return (
@@ -99,10 +102,19 @@ export function AssignmentControl({
           </>
         )}
       </div>
-      {suggested && !choosingAccount && (
+      {mark === "suggested" && (
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Sparkles aria-hidden className="size-3.5" />
           Suggested
+        </span>
+      )}
+      {mark === "usual" && (
+        <span
+          aria-describedby={usualSentenceId}
+          className="flex items-center gap-1 text-xs text-muted-foreground"
+        >
+          <History aria-hidden className="size-3.5" />
+          From earlier
         </span>
       )}
       <div className="flex items-center gap-2">

@@ -267,6 +267,10 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
+/** The mark "From earlier" in one plain sentence, shown once above the rows (FR-154). */
+export const usualMarkSentence =
+  "From earlier: most earlier transactions of this vendor are in this category, or are transfers with this account.";
+
 /**
  * What the Confirm modal states (FR-157): the rows entering the ledger, how many of them in
  * "Uncategorised" because they were set aside, and the transactions becoming transfers.

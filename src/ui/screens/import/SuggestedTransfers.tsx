@@ -57,7 +57,6 @@ export function SuggestedTransfers({
                 label={`row ${item.row.rowNumber}`}
                 side={proposedSide(item.row.amountCents)}
                 assignment={item.row.assignment}
-                suggested
                 batchAccountId={batchAccountId}
                 onChoose={(choice) => onChooseRow(item.row, choice)}
               />

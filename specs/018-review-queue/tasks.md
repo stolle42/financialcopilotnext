@@ -501,7 +501,7 @@ earlier" ([FR-146](spec.md#fr-146), [FR-147](spec.md#fr-147), [FR-158](spec.md#f
   row or a group, also of the same category, and every switch or counter-account change leaves no
   `usual` or `suggested`; in `src/domain/import/groups.ts`, a group carries a mark only when all
   its rows hold the same assignment with the same mark; T177 passes.
-- [ ] T208 [US13] The mark "From earlier" in `AssignmentControl.tsx`, `ReviewGroups.tsx` and
+- [X] T208 [US13] The mark "From earlier" in `AssignmentControl.tsx`, `ReviewGroups.tsx` and
   `RowSummary.tsx`: a history icon and the word, unlike the sparkle of "Suggested"; the sentence
   of [FR-154](spec.md#fr-154) once above the first item holding it, and as the mark's accessible
   description on every one ([contracts/ui.md](contracts/ui.md#review) Marks). T178 and T179 pass.
