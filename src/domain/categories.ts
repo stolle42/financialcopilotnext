@@ -134,27 +134,37 @@ export function deletionImpact(state: State, id: string): DeletionImpact {
   };
 }
 
-/** The batch with the rows assigned to `id` moved to `to`, or null when no row is assigned to it. */
+/**
+ * The batch with the rows that hold category `id` moved to `to` without marks, and a suggested
+ * transfer's usual category dropped when it is `id` (FR-147), or null when no row holds it.
+ */
 function reassignRows(batch: PendingBatch | null, id: string, to: string): PendingBatch | null {
-  const assigned = (row: PendingRow) =>
+  const holds = (row: PendingRow) =>
     row.status === "parsed" &&
-    row.assignment.type === "category" &&
-    row.assignment.categoryId === id;
-  if (!batch?.rows.some(assigned)) return null;
+    (row.assignment.type === "category"
+      ? row.assignment.categoryId === id
+      : row.assignment.usualCategoryId === id);
+  if (!batch?.rows.some(holds)) return null;
   return {
     ...batch,
-    rows: batch.rows.map((row) =>
-      row.status === "parsed" && assigned(row)
-        ? { ...row, assignment: { type: "category", categoryId: to } }
-        : row,
-    ),
+    rows: batch.rows.map((row) => {
+      if (row.status !== "parsed" || !holds(row)) return row;
+      if (row.assignment.type === "category") {
+        return { ...row, assignment: { type: "category", categoryId: to } };
+      }
+      // The row stays a suggested transfer, without the category that is gone.
+      const transfer = { ...row.assignment };
+      delete transfer.usualCategoryId;
+      return { ...row, assignment: transfer };
+    }),
   };
 }
 
 /**
  * Removes a category. Its transactions and the pending rows assigned to it move to the side's
- * "Uncategorised", and its budget goes (FR-034, data-model.md state transitions). The protected
- * categories are found by role, so they stay protected whatever they are called (FR-033).
+ * "Uncategorised", without marks, and its budget goes (FR-034, data-model.md state transitions).
+ * The protected categories are found by role, so they stay protected whatever they are called
+ * (FR-033).
  */
 export function deleteCategory(state: State, id: string): Changes | Refusal<CategoryRefusalCode> {
   const category = findCategory(state, id);

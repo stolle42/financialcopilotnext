@@ -429,7 +429,7 @@ should.
 - [X] T197 [P] The zod schemas of `src/files/backup.ts` accept the new optional fields, with
   [invariants 4, 7 and 8](data-model.md#invariants), and `formatVersion` stays 1
   ([contracts/backup-file.md](contracts/backup-file.md)); T165 passes.
-- [ ] T198 [P] Vendors through edits and category deletion: in `src/domain/transactions.ts`, a
+- [X] T198 [P] Vendors through edits and category deletion: in `src/domain/transactions.ts`, a
   kind change away from transfer drops `destinationVendor` and keeps `vendor`, and no other edit
   touches either; in `src/domain/categories.ts`, deleting a category also clears the marks of
   pending rows it held and removes `usualCategoryId` where it names it, in the same change
