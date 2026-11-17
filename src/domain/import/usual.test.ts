@@ -71,7 +71,7 @@ function spend(vendor: string | undefined, categoryId: string, accountId = check
 }
 
 function earn(vendor: string | undefined, categoryId: string, accountId = checking): Transaction {
-  return { ...spend(vendor, categoryId, accountId), kind: "income" };
+  return { ...spend(vendor, categoryId, accountId), kind: "income" } as Transaction;
 }
 
 function move(from: string, to: string, fields: Counted): Transaction {

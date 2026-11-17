@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { protectedCategory } from "../categories";
 import { seedState } from "../seed";
 import { applyValid, idCounter } from "../testing";
-import type { Category, ParsedRow, State, Transaction } from "../types";
+import type { Category, CategorisedTransaction, ParsedRow, State, Transaction } from "../types";
 import { pairFits, pairTransfers } from "./transfers";
 
 // FR-142, FR-144, R-41, contracts/csv-import.md, suggested transfers. A row of a batch pairs with
@@ -39,7 +39,7 @@ function expense(
   amountCents: number,
   accountId = checking,
   categoryId = groceries.id,
-): Transaction {
+): CategorisedTransaction {
   return {
     id,
     seq: (seq += 1),
@@ -57,7 +57,7 @@ const income = (
   date: string,
   amountCents: number,
   accountId = checking,
-): Transaction => ({
+): CategorisedTransaction => ({
   ...expense(id, date, amountCents, accountId, salary.id),
   kind: "income",
 });
