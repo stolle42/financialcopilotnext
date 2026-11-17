@@ -347,7 +347,7 @@ that already exists, or a broken fixture.
   - in `src/domain/import/suggestions.test.ts`: rows set aside are not sent;
   - in `src/domain/import/items.test.ts`: rows set aside are no item and count as neither seen nor
     not seen.
-- [ ] T188 [US15] In `src/domain/import/confirm.test.ts`, after T173: set-aside rows enter the
+- [X] T188 [US15] In `src/domain/import/confirm.test.ts`, after T173: set-aside rows enter the
   ledger as an expense or income in their side's "Uncategorised", also one whose usual category is
   Groceries; a row brought back confirms with what it holds; `confirmationCounts` gives the rows
   set aside; with 30 rows under 1.00, every balance equals the balance the same batch gives with

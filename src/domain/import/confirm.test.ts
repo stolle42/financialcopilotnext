@@ -550,3 +550,151 @@ describe("confirmationCounts: what the confirmation states (FR-157)", () => {
     });
   });
 });
+
+describe("confirmBatch: rows set aside (FR-152, FR-157, FR-159, SC-034)", () => {
+  /** `state` with the amount under which rows are set aside, or none: `settings.setAsideUnderCents`. */
+  function withSetAside(state: State, under: number | undefined): State {
+    const settings = { ...state.settings } as Record<string, unknown>;
+    if (under === undefined) delete settings.setAsideUnderCents;
+    else settings.setAsideUnderCents = under;
+    return applyValid(state, { settings: { put: settings as unknown as State["settings"] } });
+  }
+  /** The category a booked income or expense holds. */
+  const categoryOf = (state: State, t: Transaction) => {
+    if (t.kind === "transfer") throw new Error("A transfer has no category");
+    return state.categories.find((c) => c.id === t.categoryId)!;
+  };
+  const usual = (categoryId: string) =>
+    ({ type: "category", categoryId, usual: true }) as unknown as Assignment;
+
+  test("a row set aside enters the ledger in its side's Uncategorised, as an expense or an income", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50),
+        row(s, 3, 12),
+        row(s, 4, -4520, {
+          assignment: { type: "category", categoryId: categoryNamed(s, "expense", "Groceries") },
+        }),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+
+    const [small, tiny, large] = added(state, next);
+    expect(small).toMatchObject({ kind: "expense", amountCents: 50, description: "Row 2" });
+    expect(categoryOf(next, small!).name).toBe("Uncategorised");
+    expect(tiny).toMatchObject({ kind: "income", amountCents: 12, description: "Row 3" });
+    expect(categoryOf(next, tiny!)).toMatchObject({
+      name: "Uncategorised",
+      side: "income",
+    });
+    expect(categoryOf(next, large!).name).toBe("Groceries");
+  });
+
+  test("a row set aside whose usual category is Groceries still enters in Uncategorised", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, { assignment: usual(categoryNamed(s, "expense", "Groceries")) }),
+      ]),
+      100,
+    );
+    const [entered] = added(state, confirmed(state));
+    expect(categoryOf(confirmed(state), entered!).name).toBe("Uncategorised");
+  });
+
+  test("the same row keeps its usual category when it is not set aside", () => {
+    const state = withBatch((s) => [
+      row(s, 2, -50, { assignment: usual(categoryNamed(s, "expense", "Groceries")) }),
+    ]);
+    const next = confirmed(state);
+    const [entered] = added(state, next);
+    expect(categoryOf(next, entered!).name).toBe("Groceries");
+  });
+
+  test("a row brought back confirms with what it holds", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, {
+          keptInReview: true,
+          assignment: usual(categoryNamed(s, "expense", "Groceries")),
+        } as Partial<ParsedRow>),
+        row(s, 3, -60, { keptInReview: true } as Partial<ParsedRow>),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+    const [first, second] = added(state, next);
+    expect(categoryOf(next, first!).name).toBe("Groceries");
+    expect(categoryOf(next, second!).name).toBe("Uncategorised");
+  });
+
+  test("a row given a category before the amount was set is not set aside, and keeps it", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, {
+          keptInReview: true,
+          assignment: { type: "category", categoryId: categoryNamed(s, "expense", "Travel") },
+        } as Partial<ParsedRow>),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+    expect(categoryOf(next, added(state, next)[0]!).name).toBe("Travel");
+  });
+
+  test("a transfer under the amount stays a transfer", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, { assignment: { type: "transfer", counterAccountId: "card" } }),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+    const entered = added(state, next);
+    expect(entered).toHaveLength(1);
+    expect(entered[0]).toMatchObject({ kind: "transfer", amountCents: 50 });
+  });
+
+  test("confirmationCounts gives the rows set aside, which also enter the ledger", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50),
+        row(s, 3, 12),
+        row(s, 4, -4520),
+        row(s, 5, -60, { keptInReview: true } as Partial<ParsedRow>),
+        row(s, 6, -70, { included: false }),
+      ]),
+      100,
+    );
+    expect(confirmationCounts(state)).toEqual({ entering: 4, setAside: 2, becomingTransfers: 0 });
+  });
+
+  test("confirmationCounts counts none set aside when no amount is set", () => {
+    const state = withBatch((s) => [row(s, 2, -50), row(s, 3, 12)]);
+    expect(confirmationCounts(state)).toEqual({ entering: 2, setAside: 0, becomingTransfers: 0 });
+  });
+
+  test("30 rows under 1.00 change every balance exactly as they do with nothing set aside (SC-034)", () => {
+    const rows = (s: State): PendingRow[] => [
+      ...Array.from({ length: 30 }, (_, n) =>
+        row(s, 2 + n, n % 3 === 0 ? 10 + n : -(50 + n), {
+          date: `2026-08-${String(1 + (n % 28)).padStart(2, "0")}`,
+        }),
+      ),
+      row(s, 32, -4520),
+      row(s, 33, 245000),
+      row(s, 34, -3000, { assignment: { type: "transfer", counterAccountId: "card" } }),
+    ];
+    const plain = withBatch(rows);
+    const aside = withSetAside(plain, 100);
+    expect(confirmationCounts(aside).setAside).toBe(30);
+
+    const without = confirmed(plain);
+    const withSet = confirmed(aside);
+
+    for (const account of plain.accounts) {
+      expect(accountBalance(withSet, account.id)).toBe(accountBalance(without, account.id));
+    }
+    expect(withSet.transactions).toHaveLength(without.transactions.length);
+  });
+});
