@@ -95,30 +95,25 @@ that already exists, or a broken fixture.
 
 ### Tests of the foundation
 
-- [ ] T164 [P] In `src/domain/invariants.test.ts`, invariants 4, 7 and 8 as
-  [data-model.md](data-model.md#invariants) restates them:
-  - a transaction's `vendor`, when present, is "non-empty after trimming"; `"  "` breaks it;
-    `destinationVendor` "is present only on a transfer, and is then non-empty after trimming", so
-    one on an expense breaks it;
-  - a category assignment "never holds both `suggested` and `usual`"; `suggested: false` or
-    `usual: false` breaks it, since each is "absent otherwise, never `false`";
-  - a transfer assignment "never holds both `usual` and `pairedTransactionId`";
-    `usualCategoryId` "is present only with `pairedTransactionId`, and references an existing
-    category of the row's side with role `null`": one without `pairedTransactionId`, one naming an
-    income category on an expense row, and one naming "Uncategorised" each break it;
-  - a `pairedTransactionId` that names no transaction does not break it, since the pair is "not a
-    reference the state must keep valid";
-  - `keptInReview` and `seen`, "when present, are `true`";
-  - `settings.setAsideUnderCents`, "when present, is a safe integer greater than 0": 0, -1, 1.5 and
-    `2 ** 53` break it; 1 and 100 do not;
+- [ ] T164 [P] In `src/domain/invariants.test.ts`, invariants 4, 7 and 8 of
+  [data-model.md](data-model.md#invariants), one test each for these inputs:
+  - vendors: a `vendor` of `"  "` breaks them, and so does a `destinationVendor` on an expense;
+  - category marks: an assignment with both `suggested` and `usual`, and one with
+    `suggested: false` or `usual: false`, break them;
+  - transfer marks: one with both `usual` and `pairedTransactionId` breaks them; so does a
+    `usualCategoryId` without `pairedTransactionId`, one naming an income category on an expense
+    row, and one naming "Uncategorised"; a `pairedTransactionId` that names no transaction does
+    not;
+  - `keptInReview: false`, `seen: false` and `groupSeen: false` each break them;
+  - `settings.setAsideUnderCents` of 0, -1, 1.5 and `2 ** 53` breaks them; 1 and 100 do not;
   - a state saved by v1.7, with none of these fields, holds every invariant.
 - [ ] T165 [P] In `src/files/backup.test.ts`, the backup file of
   [contracts/backup-file.md](contracts/backup-file.md) ([FR-160](spec.md#fr-160),
   [SC-014](../001-finance-tracker-v1/spec.md#sc-014)):
   - a v1.7 backup restores, with transactions without vendors, a pending batch without marks,
-    `keptInReview` or `seen`, and settings without `setAsideUnderCents`;
+    `keptInReview`, `seen` or `groupSeen`, and settings without `setAsideUnderCents`;
   - a v1.8 backup holding every new field (both vendors, a suggested transfer with
-    `usualCategoryId`, a usual category, a usual transfer, `keptInReview`, `seen` and
+    `usualCategoryId`, a usual category, a usual transfer, `keptInReview`, `seen`, `groupSeen` and
     `setAsideUnderCents`) round-trips to an equal state;
   - `formatVersion` stays 1, and a file breaking T164's invariants is refused as before.
 - [ ] T166 [P] The ledger's vendor fields and category deletion:
@@ -164,9 +159,9 @@ that already exists, or a broken fixture.
     `seq`;
   - rows flagged as duplicates take no part;
   - the result names, per row number, the paired transaction's id and its account;
-  - `pairFits` is true while the transaction exists and is an expense or income of the row's
-    absolute amount on the counter-account, and false once it is deleted, changed in amount,
-    moved to another account or made a transfer.
+  - `pairFits` is true for an unchanged pair, and false once the paired transaction is deleted,
+    changed in amount, moved to another account or made a transfer
+    ([data-model.md](data-model.md#derived-values)).
 - [ ] T170 [P] [US12] In `src/domain/import/duplicates.test.ts`, the duplicate rule of
   [FR-156](spec.md#fr-156) ([csv-import.md](contracts/csv-import.md#duplicate-matching)): a row on
   Savings dated 2 May with money in matches a transfer from Checking to Savings dated 30 April (2
@@ -178,7 +173,7 @@ that already exists, or a broken fixture.
   and pairs only the rows not flagged, then starts each paired row as a transfer assignment with
   the paired transaction's account as `counterAccountId` and its id as `pairedTransactionId`,
   without `usual` ([data-model.md](data-model.md#state-transitions) steps 1, 2 and 4). No row
-  starts with `keptInReview` or `seen`. A row flagged as a duplicate that would pair gets no
+  starts with `keptInReview`, `seen` or `groupSeen`. A row flagged as a duplicate that would pair gets no
   suggested transfer.
 - [ ] T172 [P] [US12] Review of a suggested transfer ([FR-143](spec.md#fr-143)):
   - in `src/domain/import/review.test.ts`: turning the Transfer switch off gives the row its
@@ -218,7 +213,10 @@ that already exists, or a broken fixture.
   Checking and no expense or income for them; both balances match the files; and importing both
   files again flags every row as a duplicate, so confirming adds nothing. One more test edits the
   paired transaction on Transactions while the batch is pending and sees "Pairs with:" say it has
-  changed, and the row confirm as an ordinary transfer.
+  changed, and the row confirm as an ordinary transfer. A test of SC-029 as it stands writes copies
+  of both fixtures without the shop's 50.00 and its refund into its own output folder, imports and
+  confirms them with every default, and finds exactly 5 transfers, no expense or income for them,
+  and both balances matching the files.
 
 ### Tests of User Story 13: usual choices
 
@@ -226,14 +224,15 @@ that already exists, or a broken fixture.
   `usualChoices(rows, accountId, transactions)` ([FR-146](spec.md#fr-146),
   [R-42](research.md#r-42), [csv-import.md](contracts/csv-import.md#usual-choices)):
   - 3 of 5 REWE expenses in Groceries give Groceries; 2 of 4 Amazon expenses in Household and 2 in
-    Hobbies give none; 3 of 5 in "Uncategorised" give none, as does a majority in "Unaccounted";
-  - only the row's direction counts: a REWE refund gets Refunds from REWE's one income;
-  - transfers count per counter-account: 4 of 5 Geldautomat rows on Checking as transfers to Cash
-    give a usual transfer to Cash; 2 to Cash and 2 to Savings give none;
-  - a transfer counts on the side whose vendor matches and only when that side is the batch's
-    account, by `vendor` on its source and `destinationVendor` on its destination;
-  - vendors compare as in [FR-026](../001-finance-tracker-v1/spec.md#fr-026) (trimmed, ignoring
-    case); a row without counterparty, and transactions without vendor, count for nothing;
+    Hobbies give none; 3 of 5 in "Uncategorised" give none, as do 3 of 5 in "Unaccounted";
+  - a REWE refund gets Refunds from REWE's one income, ignoring REWE's expenses;
+  - 4 of 5 Geldautomat rows on Checking as transfers to Cash give a usual transfer to Cash; 2 to
+    Cash and 2 to Savings give none;
+  - a transfer from Checking to Cash with `vendor` "Geldautomat" counts for a Checking row from
+    Geldautomat, and not for a Cash row; one with `destinationVendor` "Geldautomat" counts for a
+    Cash row only;
+  - " rewe " matches "REWE"; a row without counterparty, and transactions without vendor, count
+    for nothing;
   - rows flagged as duplicates get their usual choice too.
 - [ ] T176 [US13] In `src/domain/import/batch.test.ts`, after T171, the starting assignments of
   [data-model.md](data-model.md#state-transitions) step 4 and [FR-158](spec.md#fr-158): a usual
@@ -274,15 +273,19 @@ that already exists, or a broken fixture.
 - [ ] T180 [P] [US14] A new `src/domain/import/items.test.ts` for the review items
   ([data-model.md](data-model.md#derived-values), [R-44](research.md#r-44)): `reviewItems(view,
   unfolded)` lists the suggested transfers, then the vendor groups largest first, each followed by
-  its rows when its key is in `unfolded`, then the plain rows by date; a row is seen when it has
-  `seen`, a group when all its rows do; `notSeenCount` counts the suggested transfers, groups and
-  plain rows not seen, never rows inside a group; `firstNotSeen` gives the first item not seen,
-  and the first item when all are seen.
+  its rows when its key is in `unfolded`, then the plain rows by date; a row item is seen when it
+  has `seen`, and a group when all its rows have `groupSeen`; the rows of an unfolded group that
+  hold only `groupSeen` are not seen, and a group whose rows all have `seen` but not `groupSeen` is
+  not seen; `notSeenCount` counts the suggested transfers, groups and plain rows not seen, never
+  rows inside a group; `firstNotSeen` gives the first item not seen, and the first item when all
+  are seen.
 - [ ] T181 [US14] Seen marks ([FR-151](spec.md#fr-151), [FR-155](spec.md#fr-155)), after T177:
-  - in `src/domain/import/review.test.ts`: `markSeen(batch, rowNumbers)` sets `seen: true` on
-    each row and on nothing else, and changes no assignment or mark;
-  - in `src/store/import.test.ts`: `markSeen` for a group marks all its rows, and the batch
-    reloaded from storage still holds them.
+  - in `src/domain/import/review.test.ts`: `markSeen(batch, rowNumbers)` sets `seen: true` and
+    `markGroupSeen(batch, rowNumbers)` sets `groupSeen: true` on each row named, on nothing else,
+    and change no assignment or mark;
+  - in `src/store/import.test.ts`: `markSeen(store, item)` sets `seen` on a row item, and for a
+    group sets `groupSeen` on all its rows and leaves their `seen` as it was; the batch reloaded
+    from storage still holds both.
 - [ ] T182 [P] [US14] The end-to-end helpers for the picker: in `e2e/support/app.ts`, a
   `pickCategory(page, scope, name)` that types into a category picker and picks the item named
   `name`, and `choose` keeps working for the selects that stay (account, kind, counter-account).
@@ -303,21 +306,24 @@ that already exists, or a broken fixture.
   current and its picker has focus; "gro" and Tab give the item Groceries and make the next one
   current; Tab with nothing typed, and with text matching nothing, keeps the item's category;
   Shift+Tab goes back one item; on a row holding a transfer, its Transfer switch takes the picker's
-  place; each item left shows the check icon; the header's "N not seen yet" falls to "All seen";
-  after reloading with 12 seen, the 12 still look seen, the header says 28, and the 13th is
-  current; Tab on the last item focuses Confirm; clicking a row makes it current.
+  place; each item left shows the check icon; after reloading with 12 seen, the 12 still look
+  seen, the header says 28, and the 13th is current; Tab on the last item focuses Confirm, that
+  item shows the check icon, and the header's "N not seen yet" reads "All seen"; a group passed
+  while folded shows its rows not seen when unfolded; clicking a row makes it current.
 - [ ] T185 [US14] In `e2e/ui/review.spec.ts`, after T179 and T182, a block for the current and
   seen items ([contracts/ui.md](contracts/ui.md#review)): the current item has the 2px outline,
   the 4px left bar and the arrow icon; a seen item that is not current has the check icon and its
   text in the secondary ink; an item not seen has neither; the current item scrolls into view
-  when it changes; unfolding a group makes it current and its rows follow it; the keyboard line
-  with the sentence of [FR-154](spec.md#fr-154) shows above the items.
+  when it changes; unfolding a group makes it current and its rows follow it; clicking another
+  item, or focusing the set-aside field, makes the current item seen
+  ([FR-151](spec.md#fr-151)), while opening its own list or New category dialog does not; the
+  keyboard line with the sentence of [FR-154](spec.md#fr-154) shows above the items.
 
 ### Tests of User Story 15: set aside
 
 - [ ] T186 [P] [US15] The set-aside amount ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)):
   - in `src/domain/settings.test.ts`: `setSetAsideAmount(state, cents)` stores
-    `setAsideUnderCents`, a "positive safe integer, or absent", and `undefined` removes it; 0, a
+    `setAsideUnderCents` ([Settings](data-model.md#settings)), and `undefined` removes it; 0, a
     negative amount and a fraction of a cent are refused;
   - in `src/store/settings.test.ts`: "1.00", "1,00" and "0.5" store 100, 100 and 50; "abc", "0",
     "-1" and "1.005" store nothing, remove the amount and give `set-aside-amount-invalid`; an
@@ -380,11 +386,15 @@ that already exists, or a broken fixture.
 ### Red run
 
 - [ ] T194 Run the tests of Phase 2: `npm run lint` passes on them, `npm test` and
-  `npm run test:e2e` run, and every test written or changed in T163 – T193 fails for the right
-  reason, a missing module, export or behaviour, while every other test passes. Report in a few
-  lines which fail and why, then commit them, and go on to the code without waiting.
+  `npm run test:e2e` run. Every assertion of new behaviour written in T163 – T193 fails for the
+  right reason, a missing module, export or behaviour. Assertions that guard what v1.7 already
+  does may pass, such as T165's v1.7 backup restore, T170's exact-date matching of expenses and
+  incomes, and T168's timing if it is already within 10 s. Every other test passes. Report in a
+  few lines which fail and why, and which new tests pass because they guard v1.7, then commit
+  them, and go on to the code without waiting.
 
-**Checkpoint**: every test of v1.8 exists and fails for the reason it should.
+**Checkpoint**: every test of v1.8 exists, and each one of new behaviour fails for the reason it
+should.
 
 ---
 
@@ -397,15 +407,16 @@ that already exists, or a broken fixture.
 - [ ] T195 The new fields in `src/domain/types.ts` ([data-model.md](data-model.md),
   [R-39](research.md#r-39), [R-40](research.md#r-40)), all optional, so a v1.7 state is a valid
   v1.8 state:
-  - `Transaction`: `vendor?`, a "non-empty string", and `destinationVendor?`, "optional, transfer
-    only";
-  - the category assignment: `suggested?: true` and `usual?: true`, "each … absent otherwise,
-    never `false`, and never both";
-  - the transfer assignment: `usual?: true`, `pairedTransactionId?` and `usualCategoryId?`,
-    "`usualCategoryId`, only beside `pairedTransactionId`", and "never both `usual` and
-    `pairedTransactionId`";
-  - the parsed pending row: `keptInReview?: true` and `seen?: true`, "`true`, or absent";
-  - `Settings`: `setAsideUnderCents?`, a "positive safe integer, or absent".
+  - `Transaction`: `vendor?` and `destinationVendor?`
+    ([Transaction](data-model.md#transaction));
+  - the category assignment: `suggested?: true` and `usual?: true`; the transfer assignment:
+    `usual?: true`, `pairedTransactionId?` and `usualCategoryId?`; and the parsed pending row:
+    `keptInReview?: true`, `seen?: true` and `groupSeen?: true`
+    ([Pending row](data-model.md#pending-row));
+  - `Settings`: `setAsideUnderCents?` ([Settings](data-model.md#settings)).
+
+  Where a type can state a rule of [invariants](data-model.md#invariants) 4, 7 and 8, such as
+  `true` instead of `boolean`, it does; T196 checks the rest.
 - [ ] T196 [P] Invariants 4, 7 and 8 in `src/domain/invariants.ts`, as
   [data-model.md](data-model.md#invariants) restates them; T164 passes.
 - [ ] T197 [P] The zod schemas of `src/files/backup.ts` accept the new optional fields, with the
@@ -503,27 +514,30 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
 - [ ] T209 [P] [US14] A new `src/domain/import/items.ts` with `reviewItems(view, unfolded)`,
   `itemSeen`, `notSeenCount` and `firstNotSeen` ([data-model.md](data-model.md#derived-values),
   [R-44](research.md#r-44)); T180 passes.
-- [ ] T210 [P] [US14] `markSeen(batch, rowNumbers)` in `src/domain/import/review.ts`, and
-  `markSeen(store, item)` in `src/store/import.ts`, which marks a row or every row of a group and
-  saves at once ([FR-155](spec.md#fr-155)); T181 passes.
+- [ ] T210 [P] [US14] `markSeen(batch, rowNumbers)` and `markGroupSeen(batch, rowNumbers)` in
+  `src/domain/import/review.ts`, and `markSeen(store, item)` in `src/store/import.ts`, which sets
+  `seen` on a row item or `groupSeen` on every row of a group and saves at once
+  ([FR-151](spec.md#fr-151), [FR-155](spec.md#fr-155)); T181 passes.
 - [ ] T211 [US14] A new `src/ui/components/CategoryPicker.tsx` on T161's combobox: the items are
   `pickerCategories(categories, side)`, our filter keeps those whose name contains the trimmed text
   ignoring case, `autoHighlight` highlights the first, "No category matches" shows when none
   does, each item carries its colour swatch, and the picker exposes its highlighted category to
   its caller ([R-43](research.md#r-43), [contracts/ui.md](contracts/ui.md#category-picker)). It
-  replaces `CategorySelect` in `src/ui/components/TransactionForm.tsx`, in the cell editor
-  `CellEditor.tsx` (open, with its search in focus), and in
-  `src/ui/screens/import/AssignmentControl.tsx`; `CategorySelect.tsx` is deleted, and its own
-  tests move to the picker. The SC-002 path of
+  replaces `CategorySelect` in `src/ui/screens/transactions/TransactionForm.tsx`, in the cell
+  editor `src/ui/screens/transactions/CellEditor.tsx` (open, with its search in focus), and in
+  `src/ui/screens/import/AssignmentControl.tsx`; `src/ui/components/CategorySelect.tsx` is
+  deleted. The SC-002 path of
   [contracts/ui.md](contracts/ui.md#transaction-form) still takes: amount, Tab, a few letters,
   Enter, Enter. T182 and T183 pass.
 - [ ] T212 [US14] The current and seen items: a new `src/ui/screens/import/useReviewFocus.ts`
   keeps the current item and the unfolded groups as React state, starts on `firstNotSeen`, and
   holds a map of refs to each item's field; Tab and Shift+Tab in an item's picker or Transfer
-  switch call `preventDefault`, pick the highlighted category when a search is open, mark the item
-  left seen, make the next or previous item current, focus its field and
-  `scrollIntoView({ block: "nearest" })`; on the last item, Tab is left to the browser. Clicking,
-  touching or focusing an item makes it current, and unfolding a group does too
+  switch call `preventDefault`, pick the highlighted category when a search is open, make the
+  next or previous item current, focus its field and `scrollIntoView({ block: "nearest" })`; on
+  the last item, Tab is left to the browser. Clicking, touching or focusing an item makes it
+  current, and unfolding a group does too. Each item's `focusout` marks it seen through
+  `markSeen` when the focus leaves it for anything else in the app: not when `relatedTarget` is
+  inside its own list or New category dialog, and not when `document.hasFocus()` is false
   ([R-44](research.md#r-44)). `ReviewScreen.tsx` shows the header's "N not seen yet" or "All
   seen" and the keyboard line; `ReviewGroups.tsx` and `RowSummary.tsx` show the current look (2px
   outline, 4px left bar, arrow icon) and the seen look (check icon, secondary ink)
@@ -625,9 +639,11 @@ then walk the [release checklist](quickstart.md#release-checklist).
 - **Phase 2, Tests first**: after T162 and T163, which the end-to-end tests read. Blocks every
   code task.
 - **Phase 3, Foundational**: after T194. Blocks every story.
-- **Phases 4 – 8, the stories**: after Phase 3, in priority order when one person works. US12,
-  US14 and US15 can start in parallel; US13 needs US12's `createBatch` (T201) for T206; US16 needs
-  US14's `CategoryPicker` (T211).
+- **Phases 4 – 8, the stories**: after Phase 3, one after the other in priority order. They
+  change the same files (`review.ts`, `groups.ts`, `confirm.ts`, `src/store/import.ts` and
+  `ReviewScreen.tsx`), so two stories at once would edit them against each other. US13 needs
+  US12's `createBatch` (T201) for T206; `items.ts` (T209) lists the suggested transfers of T202;
+  US16 needs US14's `CategoryPicker` (T211).
 - **Phase 9, Polish**: after every story. T222 is last.
 
 ### Within the tests (Phase 2)
@@ -648,8 +664,9 @@ from Phase 2 passing, and is committed with its checkbox ticked.
 - Tests: T164 – T170 together; then T171 – T175, T178, T180, T182 – T184, T186, T189, T191 and
   T193, each in its own file.
 - Foundation: T196, T197 and T198 after T195.
-- Stories: T199 with T200; T202 with T203; T205 beside all of US12; T209 with T210; T213 beside
-  US14.
+- Stories: T199 with T200; T202 with T203; T209 with T210. Beyond these, only the pure modules
+  of later stories run ahead, each in its own file: T205 (`usual.ts`) and T213 (`settings.ts`)
+  once Phase 3 is done, and T209 (`items.ts`) once T202 is.
 - Polish: T220 beside any story phase once T167 is red.
 
 ---
@@ -679,9 +696,11 @@ Task: "T203 [US12] converting pairs in confirm.ts and src/store/import.ts"
 ## Parallel Example: User Stories 13 – 15
 
 ```bash
+# Pure modules, ahead of their stories, beside US12:
 Task: "T205 [US13] usualChoices in src/domain/import/usual.ts"
-Task: "T209 [US14] reviewItems in src/domain/import/items.ts"
 Task: "T213 [US15] setSetAsideAmount in src/domain/settings.ts and src/store/settings.ts"
+# After T202:
+Task: "T209 [US14] reviewItems in src/domain/import/items.ts"
 ```
 
 ---
@@ -712,8 +731,9 @@ the merge.
 ### Parallel agent strategy
 
 With several agents: one works through the story phases in order, while others build the pure
-domain modules of later stories (`usual.ts`, `items.ts`, `settings.ts`) ahead of time. They have
-their own tests, so they can merge into the branch before their screens exist.
+domain modules of later stories (`usual.ts`, `settings.ts`, and `items.ts` after T202) ahead of
+time. They have their own tests and files, so they can merge into the branch before their screens
+exist. The rest of each story waits for the story before it, since they share files.
 
 ---
 
