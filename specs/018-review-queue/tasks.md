@@ -100,7 +100,7 @@ that already exists, or a broken fixture.
 
 ### Tests of the foundation
 
-- [ ] T164 [P] In `src/domain/invariants.test.ts`, invariants 4, 7 and 8 of
+- [X] T164 [P] In `src/domain/invariants.test.ts`, invariants 4, 7 and 8 of
   [data-model.md](data-model.md#invariants), one test each for these inputs:
   - vendors: a `vendor` of `"  "` breaks them, and so does a `destinationVendor` on an expense;
   - category marks: an assignment with both `suggested` and `usual`, and one with
