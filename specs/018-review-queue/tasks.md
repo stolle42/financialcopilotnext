@@ -411,7 +411,7 @@ should.
 
 **⚠️ CRITICAL**: no user story's code starts before this phase is done.
 
-- [ ] T195 The new fields in `src/domain/types.ts` ([data-model.md](data-model.md),
+- [X] T195 The new fields in `src/domain/types.ts` ([data-model.md](data-model.md),
   [R-39](research.md#r-39), [R-40](research.md#r-40)), all optional, so a v1.7 state is a valid
   v1.8 state:
   - `Transaction`: `vendor?` and `destinationVendor?`
