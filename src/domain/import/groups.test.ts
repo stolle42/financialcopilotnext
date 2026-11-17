@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { PendingBatch, ParsedRow, PendingRow, UnparsableRow } from "../types";
+import type { PendingBatch, ParsedRow, PendingRow, Transaction, UnparsableRow } from "../types";
 import { reviewView } from "./groups";
 
 // FR-025, FR-026, FR-028; contracts/csv-import.md, vendor groups; contracts/ui.md, review.
@@ -46,7 +46,12 @@ describe("reviewView", () => {
       unparsable(),
     ];
     const view = reviewView(batchOf(rows));
-    expect(view.counts).toEqual({ review: 3, duplicates: 2, unparsable: 1 });
+    expect(view.counts).toMatchObject({
+      review: 3,
+      suggestedTransfers: 0,
+      duplicates: 2,
+      unparsable: 1,
+    });
     expect(view.duplicates).toEqual([rows[2], rows[3]]);
     expect(view.unparsable).toEqual([rows[4]]);
   });
@@ -141,5 +146,116 @@ describe("reviewView", () => {
     const view = reviewView(batchOf(rows));
     expect(view.groups[0]?.rows).toEqual(rows);
     expect(view.groups[0]?.rows[1]?.assignment).toEqual(transfer);
+  });
+});
+
+// FR-143, contracts/csv-import.md, vendor groups: `reviewView` takes the ledger, leaves the rows
+// that hold a suggested transfer out of every vendor group, and lists them by date with whether
+// their pair still fits and the paired transaction. The fields of the suggestion are not typed
+// yet, so those rows are written through a cast.
+describe("reviewView: suggested transfers (FR-143)", () => {
+  /** A row of money in or out of `checking` that holds its suggested transfer to `card`. */
+  function suggested(
+    fields: Partial<ParsedRow> & Pick<ParsedRow, "amountCents">,
+    pairedTransactionId: string,
+  ): ParsedRow {
+    return parsed({
+      ...fields,
+      assignment: {
+        type: "transfer",
+        counterAccountId: "card",
+        pairedTransactionId,
+      } as unknown as ParsedRow["assignment"],
+    });
+  }
+
+  const pair = (id: string, amountCents: number, accountId = "card"): Transaction => ({
+    id,
+    seq: 1,
+    date: "2026-08-01",
+    amountCents,
+    accountId,
+    description: "Payment received",
+    kind: "expense",
+    categoryId: "groceries",
+  });
+
+  test("leaves the rows that hold a suggested transfer out of every vendor group", () => {
+    const first = suggested({ amountCents: -5000, counterparty: "Shop" }, "p1");
+    const rows = [shop(-100), shop(-200), first];
+    const view = reviewView(batchOf(rows), [pair("p1", 5000)]);
+
+    expect(view.groups).toHaveLength(1);
+    expect(view.groups[0]).toMatchObject({ key: "shop", count: 2, totalCents: -300 });
+    expect(view.groups[0]!.rows).toEqual([rows[0], rows[1]]);
+    expect(view.plainRows).not.toContain(first);
+  });
+
+  test("a group of three whose one row is paired becomes a group of two", () => {
+    const rows = [
+      shop(-100),
+      suggested({ amountCents: -4000, counterparty: "Shop" }, "p1"),
+      shop(-300),
+    ];
+    const view = reviewView(batchOf(rows), [pair("p1", 4000)]);
+    expect(view.groups[0]).toMatchObject({ count: 2, totalCents: -400 });
+  });
+
+  test("a group left with one row shows it as a plain row (FR-026)", () => {
+    const rows = [shop(-100), suggested({ amountCents: -4000, counterparty: "Shop" }, "p1")];
+    const view = reviewView(batchOf(rows), [pair("p1", 4000)]);
+    expect(view.groups).toEqual([]);
+    expect(view.plainRows).toEqual([rows[0]]);
+  });
+
+  test("lists the suggested transfers by date, then row number, each with its pair", () => {
+    const later = suggested({ amountCents: -4000, date: "2026-08-09", counterparty: "A" }, "p1");
+    const earlier = suggested({ amountCents: 7000, date: "2026-08-02", counterparty: null }, "p2");
+    const sameDay = suggested({ amountCents: -100, date: "2026-08-02" }, "p3");
+    const p1 = pair("p1", 4000);
+    const p2 = { ...pair("p2", 7000), kind: "income" as const, categoryId: "salary" };
+    const p3 = pair("p3", 100);
+
+    const view = reviewView(batchOf([later, earlier, sameDay]), [p1, p2, p3]);
+
+    expect(view.suggestedTransfers).toEqual([
+      { row: earlier, fits: true, paired: p2 },
+      { row: sameDay, fits: true, paired: p3 },
+      { row: later, fits: true, paired: p1 },
+    ]);
+  });
+
+  test("counts the suggested transfers, which are still rows under review", () => {
+    const rows = [
+      shop(-100),
+      suggested({ amountCents: -4000 }, "p1"),
+      suggested({ amountCents: -5000 }, "p2"),
+    ];
+    const view = reviewView(batchOf(rows), [pair("p1", 4000), pair("p2", 5000)]);
+    expect(view.counts).toMatchObject({ review: 3, suggestedTransfers: 2 });
+  });
+
+  test("says a pair no longer fits when the transaction is gone, changed in amount or moved", () => {
+    const rows = [
+      suggested({ amountCents: -4000, date: "2026-08-01" }, "gone"),
+      suggested({ amountCents: -5000, date: "2026-08-02" }, "changed"),
+      suggested({ amountCents: -6000, date: "2026-08-03" }, "moved"),
+    ];
+    const changed = pair("changed", 5001);
+    const moved = pair("moved", 6000, "savings");
+
+    const view = reviewView(batchOf(rows), [changed, moved]);
+
+    expect(view.suggestedTransfers.map(({ fits, paired }) => [fits, paired])).toEqual([
+      [false, null],
+      [false, changed],
+      [false, moved],
+    ]);
+  });
+
+  test("a batch without suggested transfers has none, whatever the ledger", () => {
+    const view = reviewView(batchOf([shop(-100), shop(-200)]), [pair("p1", 100)]);
+    expect(view.suggestedTransfers).toEqual([]);
+    expect(view.counts.suggestedTransfers).toBe(0);
   });
 });

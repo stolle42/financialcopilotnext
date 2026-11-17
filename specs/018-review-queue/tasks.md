@@ -180,7 +180,7 @@ that already exists, or a broken fixture.
   without `usual` ([data-model.md](data-model.md#state-transitions) steps 1, 2 and 4). No row
   starts with `keptInReview`, `seen` or `groupSeen`. A row flagged as a duplicate that would pair gets no
   suggested transfer.
-- [ ] T172 [P] [US12] Review of a suggested transfer ([FR-143](spec.md#fr-143)):
+- [X] T172 [P] [US12] Review of a suggested transfer ([FR-143](spec.md#fr-143)):
   - in `src/domain/import/review.test.ts`: turning the Transfer switch off gives the row its
     `usualCategoryId` when it has one, and otherwise the side's "Uncategorised", without marks;
     choosing another counter-account leaves an ordinary transfer without `pairedTransactionId`;

@@ -281,3 +281,104 @@ describe("includeDuplicate (FR-025)", () => {
     expect(includeDuplicate(state, 2, false)).toEqual({ code: "row-not-duplicate" });
   });
 });
+
+// FR-143, data-model.md, state transitions: a row holding a suggested transfer sits outside its
+// vendor group, ends the suggestion when the user turns Transfer off or picks another counter-
+// account, and gets its usual category back when it has one. The fields of the suggestion are not
+// typed yet, so the rows are written through a cast.
+describe("review of a suggested transfer (FR-143)", () => {
+  /** `withBatch()` with rows 3 and 4 holding a suggested transfer to Credit card. */
+  function withSuggested(usualCategoryId?: string): State {
+    const state = withBatch();
+    const batch = state.pendingBatch!;
+    const suggestion = (pair: string) =>
+      ({
+        type: "transfer",
+        counterAccountId: "card",
+        pairedTransactionId: pair,
+        ...(usualCategoryId ? { usualCategoryId } : {}),
+      }) as unknown as Assignment;
+    const rows = batch.rows.map((row) =>
+      row.status === "parsed" && (row.rowNumber === 3 || row.rowNumber === 4)
+        ? { ...row, assignment: suggestion(`pair-${row.rowNumber}`) }
+        : row,
+    );
+    return applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+  }
+
+  test("turning Transfer off gives the row its usual category, without marks", () => {
+    const groceries = categoryNamed(withBatch(), "expense", "Groceries");
+    const state = withSuggested(groceries);
+
+    const next = applyValid(state, changesOf(assignRow(state, 3, "uncategorised")));
+
+    expect(rowOf(next, 3).assignment).toEqual({ type: "category", categoryId: groceries });
+  });
+
+  test("turning Transfer off gives the side's Uncategorised when there is no usual category", () => {
+    const state = withSuggested();
+
+    const next = applyValid(state, changesOf(assignRow(state, 3, "uncategorised")));
+
+    expect(rowOf(next, 3).assignment).toEqual(uncategorised(state, "expense"));
+  });
+
+  test("turning Transfer off on a row of money in uses an income category of its side", () => {
+    const salary = categoryNamed(withBatch(), "income", "Salary");
+    const state = withSuggested(salary);
+
+    const next = applyValid(state, changesOf(assignRow(state, 4, "uncategorised")));
+
+    expect(rowOf(next, 4).assignment).toEqual({ type: "category", categoryId: salary });
+  });
+
+  test("choosing another counter-account leaves an ordinary transfer, without the pair", () => {
+    const state = applyValid(withSuggested(), {
+      accounts: {
+        put: [{ id: "savings", name: "Savings", type: "savings", openingBalanceCents: 0 }],
+      },
+    });
+
+    const next = applyValid(
+      state,
+      changesOf(assignRow(state, 3, { type: "transfer", counterAccountId: "savings" })),
+    );
+
+    expect(rowOf(next, 3).assignment).toEqual({ type: "transfer", counterAccountId: "savings" });
+  });
+
+  test("assigning the row a category directly ends the suggestion", () => {
+    const state = withSuggested();
+    const groceries = categoryNamed(state, "expense", "Groceries");
+
+    const next = applyValid(
+      state,
+      changesOf(assignRow(state, 3, { type: "category", categoryId: groceries })),
+    );
+
+    expect(rowOf(next, 3).assignment).toEqual({ type: "category", categoryId: groceries });
+  });
+
+  test("assigning a category to the vendor group leaves the suggested transfers alone", () => {
+    // Row 2 and row 3 are Shop expenses; row 3 holds a suggested transfer, so only row 2 is
+    // left in the group, which shows it as a plain row, and assignGroup has no group to reach.
+    const state = withSuggested();
+    const batch = state.pendingBatch!;
+    const rows = batch.rows.map((row) =>
+      row.status === "parsed" && row.rowNumber === 5
+        ? { ...row, included: true, duplicate: false }
+        : row,
+    );
+    const grouped = applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+    const groceries = categoryNamed(grouped, "expense", "Groceries");
+
+    const next = applyValid(
+      grouped,
+      changesOf(assignGroup(grouped, shopExpenses, { type: "category", categoryId: groceries })),
+    );
+
+    expect(rowOf(next, 3).assignment).toEqual(rowOf(grouped, 3).assignment);
+    expect(rowOf(next, 2).assignment).toEqual({ type: "category", categoryId: groceries });
+    expect(rowOf(next, 5).assignment).toEqual({ type: "category", categoryId: groceries });
+  });
+});
