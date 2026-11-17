@@ -121,7 +121,7 @@ that already exists, or a broken fixture.
     `usualCategoryId`, a usual category, a usual transfer, `keptInReview`, `seen`, `groupSeen` and
     `setAsideUnderCents`) round-trips to an equal state;
   - `formatVersion` stays 1, and a file breaking T164's invariants is refused as before.
-- [ ] T166 [P] The ledger's vendor fields and category deletion:
+- [X] T166 [P] The ledger's vendor fields and category deletion:
   - in `src/domain/transactions.test.ts`: changing a transfer holding both vendors into an expense
     keeps `vendor` and drops `destinationVendor`; changing an expense with `vendor` into a transfer
     keeps it; editing date, amount, description, account or category changes neither field; the
