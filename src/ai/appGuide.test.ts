@@ -57,6 +57,22 @@ describe("APP_GUIDE", () => {
     expect(APP_GUIDE).not.toMatch(/profile/i);
   });
 
+  // FR-142 – FR-153 (v1.8): what review does by itself, in the guide's part on review.
+  test("says review suggests transfers, and that turning Transfer off keeps the two apart (FR-142, FR-143)", () => {
+    expect(APP_GUIDE).toMatch(/suggested transfers?/i);
+    expect(APP_GUIDE).toMatch(/Transfer[^.]*off[^.]*(separate|apart|stay)/i);
+  });
+
+  test('names the mark "From earlier" and the choice "Set aside rows under" (FR-147, FR-152)', () => {
+    expect(APP_GUIDE).toContain("From earlier");
+    expect(APP_GUIDE).toContain("Set aside rows under");
+  });
+
+  test("says typing finds a category and Tab moves to the next row (FR-148, FR-150)", () => {
+    expect(APP_GUIDE).toMatch(/typing[^.]*(finds|find|narrows)[^.]*categor/i);
+    expect(APP_GUIDE).toMatch(/Tab[^.]*next row/i);
+  });
+
   test("ends with the line FAQ and FAQ as plain text (FR-141)", () => {
     const faqAsText = (faqModule as Record<string, unknown>).faqAsText as () => string;
     expect(APP_GUIDE.endsWith(["", "FAQ", faqAsText()].join("\n"))).toBe(true);

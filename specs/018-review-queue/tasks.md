@@ -131,7 +131,7 @@ that already exists, or a broken fixture.
     the same side's "Uncategorised" without `suggested` or `usual`, and a transfer assignment whose
     `usualCategoryId` names it loses that field and keeps `pairedTransactionId`
     ([data-model.md](data-model.md#state-transitions), [FR-147](spec.md#fr-147)).
-- [ ] T167 [P] The guide and FAQ describe v1.8, with no new question
+- [X] T167 [P] The guide and FAQ describe v1.8, with no new question
   ([Assumptions](spec.md#assumptions)):
   - in `src/ai/appGuide.test.ts`: the guide's part on importing names suggested transfers and
     that turning Transfer off keeps the two apart, the mark "From earlier", "Set aside rows

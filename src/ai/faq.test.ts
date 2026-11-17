@@ -110,6 +110,18 @@ describe("FAQ", () => {
   test('never says "profile"', () => {
     for (const answer of answers()) expect(answer).not.toMatch(/profile/i);
   });
+
+  // v1.8 adds no question (Assumptions): the answer on importing, whose last step is review,
+  // tells what review now does by itself.
+  test("keeps twelve questions and names, in the answer on importing, what review of v1.8 does", () => {
+    expect(FAQ.flatMap((topic) => topic.questions)).toHaveLength(12);
+    const [, importing] = FAQ[0]!.questions;
+    expect(importing!.answer).toMatch(/suggested transfers?/i);
+    expect(importing!.answer).toContain("From earlier");
+    expect(importing!.answer).toMatch(
+      /set (small amounts )?aside|sets? aside|Set aside rows under/i,
+    );
+  });
 });
 
 describe("faqAsText", () => {
