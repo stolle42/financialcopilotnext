@@ -316,7 +316,7 @@ that already exists, or a broken fixture.
   text in the secondary ink; an item not seen has neither; the current item scrolls into view
   when it changes; unfolding a group makes it current and its rows follow it; clicking another
   item, or focusing Discard in the footer, makes the current item seen
-  ([FR-151](spec.md#fr-151)), while opening its own list or New category dialog does not; the
+  ([FR-151](spec.md#fr-151)), while opening its own list does not; the
   keyboard line with the sentence of [FR-154](spec.md#fr-154) shows above the items.
 
 ### Tests of User Story 15: set aside
@@ -375,7 +375,8 @@ that already exists, or a broken fixture.
   searching; with nothing matching it is the only item, highlighted, and Enter opens the dialog
   with the typed text as the name; the dialog is Categories' own, its colour the first one the
   side does not use; creating picks the new category in the form, the cell (which saves) and
-  review; Cancel leaves each field as it was.
+  review; Cancel leaves each field as it was; opening the dialog from the current review item
+  leaves that item current and not seen ([FR-151](spec.md#fr-151)).
 - [ ] T193 [P] [US16] A new `e2e/us16-new-category.spec.ts`, User Story 16's five scenarios
   ([quickstart.md](quickstart.md#us16-new-category)): New category… on a review group creates
   "Pets", every row of the group holds it without marks, and Pets is on Categories; "pets" and
@@ -419,8 +420,8 @@ should.
   `true` instead of `boolean`, it does; T196 checks the rest.
 - [ ] T196 [P] Invariants 4, 7 and 8 in `src/domain/invariants.ts`, as
   [data-model.md](data-model.md#invariants) restates them; T164 passes.
-- [ ] T197 [P] The zod schemas of `src/files/backup.ts` accept the new optional fields, with the
-  constraints of T195, and `formatVersion` stays 1
+- [ ] T197 [P] The zod schemas of `src/files/backup.ts` accept the new optional fields, with
+  [invariants 4, 7 and 8](data-model.md#invariants), and `formatVersion` stays 1
   ([contracts/backup-file.md](contracts/backup-file.md)); T165 passes.
 - [ ] T198 [P] Vendors through edits and category deletion: in `src/domain/transactions.ts`, a
   kind change away from transfer drops `destinationVendor` and keeps `vendor`, and no other edit
