@@ -292,7 +292,7 @@ that already exists, or a broken fixture.
   - in `src/store/import.test.ts`: `markSeen(store, item)` sets `seen` on a row item, and for a
     group sets `groupSeen` on all its rows and leaves their `seen` as it was; the batch reloaded
     from storage still holds both.
-- [ ] T182 [P] [US14] The end-to-end helpers for the picker: in `e2e/support/app.ts`, a
+- [X] T182 [P] [US14] The end-to-end helpers for the picker: in `e2e/support/app.ts`, a
   `pickCategory(page, scope, name)` that types into a category picker and picks the item named
   `name`, and `choose` keeps working for the selects that stay (account, kind, counter-account).
   Every existing spec that picks a category through the old select uses it:

@@ -14,6 +14,7 @@ import {
   addAccount,
   addTransaction,
   choose,
+  expectCategory,
   pickCategory,
   screenIntro,
   storedRecords,
@@ -162,7 +163,7 @@ test("starts every row in its side's Uncategorised, and offers no Unaccounted (F
 }) => {
   await importAugust(page);
   const category = assignment(page, "Shop, expenses").getByLabel("Category", { exact: true });
-  await expect(category).toHaveText("Uncategorised");
+  await expectCategory(assignment(page, "Shop, expenses"), "Uncategorised");
   await category.click();
   await expect(page.getByRole("option", { name: "Groceries", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: "Unaccounted", exact: true })).toHaveCount(0);
@@ -173,7 +174,7 @@ test("assigning a category to a group assigns it to every row in it, at once (sc
   page,
 }) => {
   await importAugust(page);
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
   const groceries = {
     type: "category",
     categoryId: await categoryId(page, "expense", "Groceries"),
@@ -193,10 +194,10 @@ test("an unfolded group gives each row its own category without affecting the ot
 }) => {
   await importAugust(page);
   const shop = group(page, "Shop, expenses");
-  await choose(page, assignment(shop, "Shop, expenses"), "Category", "Groceries");
+  await pickCategory(page, assignment(shop, "Shop, expenses"), "Groceries");
   await shop.getByRole("button", { name: "Show rows" }).click();
-  await expect(shop).toContainText("Groceries");
-  await choose(page, assignment(shop, "row 5"), "Category", "Eating out");
+  await expectCategory(shop, "Groceries");
+  await pickCategory(page, assignment(shop, "row 5"), "Eating out");
 
   const eatingOut = await categoryId(page, "expense", "Eating out");
   await expect
@@ -207,9 +208,7 @@ test("an unfolded group gives each row its own category without affecting the ot
     type: "category",
     categoryId: groceries,
   });
-  await expect(
-    assignment(shop, "Shop, expenses").getByLabel("Category", { exact: true }),
-  ).toHaveText("Mixed");
+  await expectCategory(assignment(shop, "Shop, expenses"), "Mixed");
 });
 
 test("without a counterparty column, every row is a plain row with its own category (scenario 6)", async ({
@@ -245,7 +244,7 @@ test("marks a payment to the user's own credit card as a transfer, and back (sce
 
   // Switching back restores the side's Uncategorised.
   await control.getByRole("switch", { name: "Transfer" }).click();
-  await expect(control.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+  await expectCategory(control, "Uncategorised");
   const uncategorised = await categoryId(page, "expense", "Uncategorised");
   await expect
     .poll(async () => (await storedRow(page, 11)).assignment)
@@ -254,18 +253,12 @@ test("marks a payment to the user's own credit card as a transfer, and back (sce
 
 test("assignments survive a reload (FR-022)", async ({ page }) => {
   await importAugust(page);
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
-  await choose(page, assignment(page, "row 2"), "Category", "Salary");
-  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
-    "Salary",
-  );
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
+  await pickCategory(page, assignment(page, "row 2"), "Salary");
+  await expectCategory(assignment(page, "row 2"), "Salary");
   await page.reload();
-  await expect(
-    assignment(page, "Shop, expenses").getByLabel("Category", { exact: true }),
-  ).toHaveText("Groceries");
-  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
-    "Salary",
-  );
+  await expectCategory(assignment(page, "Shop, expenses"), "Groceries");
+  await expectCategory(assignment(page, "row 2"), "Salary");
 });
 
 const footer = (page: Page) => page.getByRole("region", { name: "Finish review" });
@@ -274,11 +267,9 @@ test("confirming states the count, books the rows as reviewed and opens Transact
   page,
 }) => {
   await importAugust(page);
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
-  await choose(page, assignment(page, "row 2"), "Category", "Salary");
-  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
-    "Salary",
-  );
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
+  await pickCategory(page, assignment(page, "row 2"), "Salary");
+  await expectCategory(assignment(page, "row 2"), "Salary");
 
   // Cancelling the confirmation keeps the batch.
   await footer(page).getByRole("button", { name: "Confirm 13 transactions" }).click();
@@ -469,7 +460,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     await expect(suggestButton(page)).toHaveText("Asking the AI…");
     await expect(suggestButton(page)).toBeDisabled();
     await expect(confirmButton(page)).toBeDisabled();
-    await choose(page, assignment(page, "Shop, expenses"), "Category", "Travel");
+    await pickCategory(page, assignment(page, "Shop, expenses"), "Travel");
     const travel = await categoryId(page, "expense", "Travel");
     await expect
       .poll(async () => (await storedRow(page, 3)).assignment)
@@ -582,7 +573,7 @@ test.describe("the suggested mark (FR-093)", () => {
     await withSuggestions(page);
 
     const parking = assignment(page, "row 9");
-    await expect(parking).toContainText("Transport");
+    await expectCategory(parking, "Transport");
     await expect(mark(parking)).toBeVisible();
     await expect(mark(assignment(page, "row 11"))).toHaveCount(0);
   });
@@ -593,11 +584,11 @@ test.describe("the suggested mark (FR-093)", () => {
     await withSuggestions(page);
 
     const shop = assignment(page, "Shop, expenses");
-    await expect(shop).toContainText("Groceries");
+    await expectCategory(shop, "Groceries");
     await expect(mark(shop)).toBeVisible();
 
     const bakery = group(page, "Bäckerei Krüger, expenses");
-    await expect(assignment(bakery, "Bäckerei Krüger, expenses")).toContainText("Mixed");
+    await expectCategory(assignment(bakery, "Bäckerei Krüger, expenses"), "Mixed");
     await expect(mark(assignment(bakery, "Bäckerei Krüger, expenses"))).toHaveCount(0);
     await bakery.getByRole("button", { name: "Show rows" }).click();
     for (const rowNumber of [4, 8, 17]) {
@@ -611,7 +602,7 @@ test.describe("the suggested mark (FR-093)", () => {
     await withSuggestions(page);
     const transport = await categoryId(page, "expense", "Transport");
 
-    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+    await pickCategory(page, assignment(page, "row 9"), "Transport");
 
     await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
     await expect
@@ -626,10 +617,10 @@ test.describe("the suggested mark (FR-093)", () => {
     const shop = group(page, "Shop, expenses");
     await shop.getByRole("button", { name: "Show rows" }).click();
 
-    await choose(page, assignment(shop, "row 3"), "Category", "Groceries");
+    await pickCategory(page, assignment(shop, "row 3"), "Groceries");
 
     await expect(mark(assignment(shop, "row 3"))).toHaveCount(0);
-    await expect(assignment(shop, "Shop, expenses")).toContainText("Groceries");
+    await expectCategory(assignment(shop, "Shop, expenses"), "Groceries");
     await expect(mark(assignment(shop, "Shop, expenses"))).toHaveCount(0);
     for (const rowNumber of [5, 7]) {
       await expect(mark(assignment(shop, `row ${rowNumber}`))).toBeVisible();
@@ -639,7 +630,7 @@ test.describe("the suggested mark (FR-093)", () => {
   test("a choice for the group removes the marks of all its rows", async ({ page }) => {
     await withSuggestions(page);
 
-    await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+    await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
 
     await expect(mark(assignment(page, "Shop, expenses"))).toHaveCount(0);
     for (const rowNumber of [3, 5, 7]) {
@@ -651,7 +642,7 @@ test.describe("the suggested mark (FR-093)", () => {
 
   test("the marks survive a reload, and a removed mark stays removed", async ({ page }) => {
     await withSuggestions(page);
-    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+    await pickCategory(page, assignment(page, "row 9"), "Transport");
     await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
 
     await page.reload();
@@ -807,7 +798,7 @@ test.describe("the marks: Suggested and From earlier (FR-147, FR-154)", () => {
     await pickCategory(page, assignment(bakery, "row 4"), "Travel");
 
     const header = assignment(bakery, "Bäckerei Krüger, expenses");
-    await expect(header).toContainText("Mixed");
+    await expectCategory(header, "Mixed");
     await expect(earlier(header)).toHaveCount(0);
     await expect(earlier(assignment(bakery, "row 4"))).toHaveCount(0);
     for (const rowNumber of [8, 17]) {

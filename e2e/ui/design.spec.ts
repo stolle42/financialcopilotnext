@@ -345,7 +345,7 @@ test.describe("cards (FR-114)", () => {
     await expectCard(form, "transaction form");
 
     await form.getByLabel("Category", { exact: true }).click();
-    const options = page.locator('[data-slot="select-content"]');
+    const options = page.locator('[data-slot="combobox-content"]');
     await expect(options).toBeVisible();
     expect(await style(options, "background-color"), "options").toBe(CARD);
     expect(await style(options, "border-top-left-radius"), "options").toBe(CONTROL_CORNERS);

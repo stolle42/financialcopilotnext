@@ -41,6 +41,19 @@ export async function pickCategory(page: Page, scope: Locator, name: string) {
   await page.getByRole("option", { name, exact: true }).click();
 }
 
+/** What a category picker shows: its field's text, or its placeholder (such as "Mixed") when empty. */
+export function shownCategory(scope: Locator): Promise<string> {
+  return scope.getByLabel("Category", { exact: true }).evaluate((field) => {
+    if (field instanceof HTMLInputElement) return field.value || field.placeholder;
+    return field.textContent?.trim() ?? "";
+  });
+}
+
+/** Expects the category picker inside `scope` to show `name`. */
+export async function expectCategory(scope: Locator, name: string) {
+  await expect.poll(() => shownCategory(scope)).toBe(name);
+}
+
 interface NewTransaction {
   kind?: "Expense" | "Income" | "Transfer";
   /** As typed in en-US, such as "40.00". */

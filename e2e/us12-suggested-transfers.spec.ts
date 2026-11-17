@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import type { Locator, Page } from "@playwright/test";
 import type { Account, Category, ParsedRow, PendingBatch, Transaction } from "../src/domain/types";
-import { addAccount, fixture, storedRecords } from "./support/app";
+import { addAccount, expectCategory, fixture, storedRecords } from "./support/app";
 import { saveMyBankProfile } from "./support/import";
 import { euros, expect, setToday, test } from "./support/test";
 
@@ -175,9 +175,7 @@ test("suggests the other side of each transfer, confirms them as 5 transfers and
   await expect
     .poll(async () => (await pendingRows(page)).find((r) => r.rowNumber === 8)?.assignment)
     .toEqual({ type: "category", categoryId: incomeUncategorised.id });
-  await expect(assignment(page, "row 8").getByLabel("Category", { exact: true })).toHaveText(
-    "Uncategorised",
-  );
+  await expectCategory(assignment(page, "row 8"), "Uncategorised");
 
   // Scenario 5: the confirmation says how many transactions will become transfers (FR-157).
   const said = await confirmReview(page);

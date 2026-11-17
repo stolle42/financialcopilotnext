@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 import type { Account, Category, ParsedRow, PendingBatch, Transaction } from "../src/domain/types";
 import { standInCategoriser, suggestBySide, suggestButton, turnOnAiFeatures } from "./support/ai";
-import { addAccount, pickCategory, storedRecords } from "./support/app";
+import { addAccount, expectCategory, pickCategory, storedRecords } from "./support/app";
 import { backupText, restoreBackup, storedData, type BackupData } from "./support/backup";
 import { generateUsualChoicesData } from "./support/generate";
 import { saveMyBankProfile } from "./support/import";
@@ -185,7 +185,7 @@ test("vendors sorted before start in their usual category or transfer, marked, a
   // Scenario 1: REWE's rows start in Groceries, marked, on the group and on each row; the sentence
   // of FR-154 shows once, and is the mark's description on every one.
   const rewe = assignment(reviewList(page), "REWE, expenses");
-  await expect(rewe).toContainText("Groceries");
+  await expectCategory(rewe, "Groceries");
   await expect(rewe).toContainText("From earlier");
   await expect(reviewList(page).getByText(EARLIER_SENTENCE)).toHaveCount(1);
   await expect(rewe.getByText("From earlier")).toHaveAccessibleDescription(EARLIER_SENTENCE);
@@ -202,13 +202,13 @@ test("vendors sorted before start in their usual category or transfer, marked, a
     .click();
   for (const rowNumber of [2, 3]) {
     const row = assignment(reviewList(page), `row ${rowNumber}`);
-    await expect(row).toContainText("Groceries");
+    await expectCategory(row, "Groceries");
     await expect(row).toContainText("From earlier");
   }
 
   // Scenario 2: no category holds more than half of Amazon's, so its rows start in Uncategorised.
   const amazon = assignment(reviewList(page), "Amazon, expenses");
-  await expect(amazon).toContainText("Uncategorised");
+  await expectCategory(amazon, "Uncategorised");
   await expect(amazon).not.toContainText("From earlier");
   for (const rowNumber of [5, 6]) {
     expect((await rowOf(page, rowNumber)).assignment).toStrictEqual(uncategorised("expense"));
@@ -216,7 +216,7 @@ test("vendors sorted before start in their usual category or transfer, marked, a
 
   // Scenario 3: the REWE refund counts only the vendor's incomes, so it starts in Refunds.
   const refund = assignment(reviewList(page), "row 4");
-  await expect(refund).toContainText("Refunds");
+  await expectCategory(refund, "Refunds");
   await expect(refund).toContainText("From earlier");
   expect((await rowOf(page, 4)).assignment).toStrictEqual({
     type: "category",
@@ -244,7 +244,7 @@ test("vendors sorted before start in their usual category or transfer, marked, a
   // Turning Transfer off leaves them in "Uncategorised", with no mark.
   await transferSwitch(reviewList(page), "Geldautomat, expenses").click();
   await expect(transferSwitch(reviewList(page), "Geldautomat, expenses")).not.toBeChecked();
-  await expect(atm).toContainText("Uncategorised");
+  await expectCategory(atm, "Uncategorised");
   await expect(atm).not.toContainText("From earlier");
   for (const rowNumber of [7, 8]) {
     expect((await rowOf(page, rowNumber)).assignment).toStrictEqual(uncategorised("expense"));
@@ -257,7 +257,7 @@ test("vendors sorted before start in their usual category or transfer, marked, a
   expect((await rowOf(page, 2)).assignment).toStrictEqual(groceries);
   expect((await rowOf(page, 3)).assignment).toStrictEqual({ ...groceries, usual: true });
   // The group shows Groceries, with no mark, since its rows no longer agree on it.
-  await expect(rewe).toContainText("Groceries");
+  await expectCategory(rewe, "Groceries");
   await expect(rewe).not.toContainText("From earlier");
 
   // Scenario 5: Suggest categories sends only the rows still in "Uncategorised": Amazon's two,
@@ -329,7 +329,7 @@ test("a transaction edited after it was confirmed counts with its new category i
   ]);
   await importFrom(page, "Checking", november);
   const group = assignment(reviewList(page), "Bakery, expenses");
-  await expect(group).toContainText("Eating out");
+  await expectCategory(group, "Eating out");
   await expect(group).toContainText("From earlier");
   const categories = await storedRecords<Category>(page, "categories");
   const eatingOut = categories.find((c) => c.side === "expense" && c.name === "Eating out")!;

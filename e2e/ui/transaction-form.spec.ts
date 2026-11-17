@@ -3,7 +3,9 @@ import type { Account, Category } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
 import {
   addAccount,
+  expectCategory,
   openTransactionForm,
+  pickCategory,
   reconcileAccount,
   storedRecords,
   storedTransactions,
@@ -62,7 +64,7 @@ test("opens with the defaults and saves an unchanged form as 0.00 in Uncategoris
     "true",
   );
   await expect(form.getByLabel("Amount")).toHaveValue("0.00");
-  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+  await expectCategory(form, "Uncategorised");
   await expect(form.getByLabel("Account", { exact: true })).toHaveText("Cash");
   await expect(form.getByLabel("Date")).toHaveValue("2026-09-03");
   await expect(form.getByLabel("Description")).toHaveValue("");
@@ -112,6 +114,7 @@ test("offers expense categories only, one Uncategorised and no Unaccounted (scen
     "Travel",
     "Utilities",
     "Uncategorised",
+    "New category…",
   ]);
 });
 
@@ -128,10 +131,10 @@ test("editing a reconciliation entry shows Unaccounted as its value, never as an
     .getByRole("button", { name: "Edit transaction" })
     .click();
   const form = page.getByRole("dialog", { name: "Edit transaction" });
-  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Unaccounted");
+  await expectCategory(form, "Unaccounted");
 
   expect(await optionsOf(page, form, "Category")).not.toContain("Unaccounted");
-  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Unaccounted");
+  await expectCategory(form, "Unaccounted");
   await form.getByLabel("Amount").fill("16.00");
   await form.getByRole("button", { name: "Save" }).click();
 
@@ -149,7 +152,7 @@ test("offers no way to leave the category empty (scenario 6)", async ({ page }) 
   const options = await optionsOf(page, form, "Category");
   expect(options).not.toContain("");
   expect(options.filter((name) => name === "Uncategorised")).toHaveLength(1);
-  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+  await expectCategory(form, "Uncategorised");
 });
 
 test("a transfer asks for a destination instead of a category, never its own account (scenario 7)", async ({
@@ -178,9 +181,9 @@ test.describe("kind changes (FR-015)", () => {
   test("expense to income sets income Uncategorised", async ({ page }) => {
     await page.goto("/");
     const form = await openTransactionForm(page);
-    await choose(page, form, "Category", "Groceries");
+    await pickCategory(page, form, "Groceries");
     await form.getByRole("button", { name: "Income" }).click();
-    await expect(form.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+    await expectCategory(form, "Uncategorised");
     expect(await optionsOf(page, form, "Category")).toContain("Salary");
   });
 
@@ -193,7 +196,7 @@ test.describe("kind changes (FR-015)", () => {
     await choose(page, form, "Destination", "Checking");
     await form.getByRole("button", { name: "Expense" }).click();
     await expect(form.getByLabel("Destination", { exact: true })).toHaveCount(0);
-    await expect(form.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+    await expectCategory(form, "Uncategorised");
   });
 
   test("a transfer saves with its destination and no category", async ({ page }) => {
