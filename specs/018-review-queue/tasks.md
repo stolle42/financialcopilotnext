@@ -383,7 +383,7 @@ that already exists, or a broken fixture.
   side does not use; creating picks the new category in the form, the cell (which saves) and
   review; Cancel leaves each field as it was; opening the dialog from the current review item
   leaves that item current and not seen ([FR-151](spec.md#fr-151)).
-- [ ] T193 [P] [US16] A new `e2e/us16-new-category.spec.ts`, User Story 16's five scenarios
+- [X] T193 [P] [US16] A new `e2e/us16-new-category.spec.ts`, User Story 16's five scenarios
   ([quickstart.md](quickstart.md#us16-new-category)): New category… on a review group creates
   "Pets", every row of the group holds it without marks, and Pets is on Categories; "pets" and
   Enter open the dialog named "pets", which says the name is taken; with kind Income, the form
