@@ -69,7 +69,7 @@ of Phase 2 need.
 
   A comment block in neither file: the layout must stay the bank's. The expected pairs are
   written down in the US12 test (T174), not in the files.
-- [ ] T163 [P] Generated data, written by the test run into the test's output folder and never
+- [X] T163 [P] Generated data, written by the test run into the test's output folder and never
   committed ([R-46](research.md#r-46), [quickstart.md](quickstart.md#us13-usual-choices)):
   - in `e2e/support/generate.ts`, ledgers whose imported transactions carry `vendor` and, on
     transfers, `destinationVendor` ([data-model.md](data-model.md#transaction)); a backup with one
