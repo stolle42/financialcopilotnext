@@ -40,7 +40,7 @@ committed ([R-46](research.md#r-46)).
 **Purpose**: check the previous release, and add the component and the test data that the tests
 of Phase 2 need.
 
-- [ ] T160 (Project owner, with Claude) Check that every step of v1.7's
+- [X] T160 (Project owner, with Claude) Check that every step of v1.7's
   [release checklist](../001-finance-tracker-v1/quickstart.md#release-checklist) was done: the
   v1.7 pull request squash-merged into `main`, the tag `v1.7` on that squash commit and pushed,
   CI's `test` and `deployed` jobs green, and the manual checks, the
@@ -48,6 +48,11 @@ of Phase 2 need.
   [installable app checks](../001-finance-tracker-v1/quickstart.md#installable-app-checks), the
   Update from v1.6 included, walked at the web address. Each step not done is done now, and this
   task records what was found.
+
+  Found: merged and tag `v1.7` pushed on `main`'s head. CI on `main` was red once, from the
+  Firefox run of `e2e/us3-insights.spec.ts` (a 5 s heading check timed out); the same test passed
+  on the pull request, so the failed jobs were re-run. The manual checks at the web address are the
+  owner's to walk.
 - [X] T161 [P] Add shadcn/ui's combobox with its CLI (`npx shadcn@latest add combobox`) as
   `src/ui/components/ui/combobox.tsx`, built on the `Combobox` of `@base-ui/react`, which is
   already a dependency, so `package.json` gains no package ([R-43](research.md#r-43),
