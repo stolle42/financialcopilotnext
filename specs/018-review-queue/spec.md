@@ -396,7 +396,7 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
 - <a id="fr-151"></a>**FR-151**: An item MUST count as **seen** once the focus moves away from it
   after it was current: to another item, or to anything else in the app, such as Confirm after Tab
   from the last item. The focus moving into the item's own category list or its New category
-  dialog, or to another window, does not count.
+  dialog does not count.
   - The rows of a vendor group are items of their own, shown only while the group is unfolded. A
     row counts as seen only once it was current itself, so a group seen while folded leaves its
     rows not seen.

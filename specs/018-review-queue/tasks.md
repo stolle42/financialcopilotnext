@@ -536,9 +536,8 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   next or previous item current, focus its field and `scrollIntoView({ block: "nearest" })`; on
   the last item, Tab is left to the browser. Clicking, touching or focusing an item makes it
   current, and unfolding a group does too. Each item's `focusout` marks it seen through
-  `markSeen` when the focus leaves it for anything else in the app: not when `relatedTarget` is
-  inside its own list or New category dialog, and not when `document.hasFocus()` is false
-  ([R-44](research.md#r-44)). `ReviewScreen.tsx` shows the header's "N not seen yet" or "All
+  `markSeen` when the focus leaves it, but not when `relatedTarget` is inside its own list or New
+  category dialog ([R-44](research.md#r-44)). `ReviewScreen.tsx` shows the header's "N not seen yet" or "All
   seen" and the keyboard line; `ReviewGroups.tsx` and `RowSummary.tsx` show the current look (2px
   outline, 4px left bar, arrow icon) and the seen look (check icon, secondary ink)
   ([contracts/ui.md](contracts/ui.md#review)). T184 and T185 pass.

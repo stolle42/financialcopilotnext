@@ -176,10 +176,9 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
     for anything else in the app, the store marks it seen: `seen: true` on a row, or
     `groupSeen: true` on every row of a group, which leaves the rows' own `seen` as it was. Focus
     moving into the item's own category list or New category dialog does not count; both are
-    portalled, so the handler checks the event's `relatedTarget` against them. Nor does the window
-    losing focus, which
-    `document.hasFocus()` shows. A group counts as seen when all its rows have `groupSeen`. Like
-    every review change, it is saved at once ([FR-155](spec.md#fr-155)).
+    portalled, so the handler checks the event's `relatedTarget` against them. A group counts as
+    seen when all its rows have `groupSeen`. Like every review change, it is saved at once
+    ([FR-155](spec.md#fr-155)).
   - **Look**: the current item has a 2 px outline, a bar at its left edge and an arrow icon before
     it. A seen item has a check icon and its text in the secondary ink. Both differ in shape, not
     only in colour ([contracts/ui.md](contracts/ui.md#review)).
@@ -200,6 +199,9 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
     were never shown.
   - **A seen mark stored on each group**: groups are derived, so the mark would be lost when the
     group changes.
+  - **Switching to another window does not count**: dropped by the owner. It needs a
+    `document.hasFocus()` check that an end-to-end test cannot drive, since Playwright keeps every
+    page focused, and an item marked seen this way is still current when the user comes back.
 
 <a id="r-45"></a>
 ### R-45 · Setting rows aside is derived from the amount; one flag keeps a row in review
