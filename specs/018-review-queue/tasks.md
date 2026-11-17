@@ -315,7 +315,7 @@ that already exists, or a broken fixture.
   the 4px left bar and the arrow icon; a seen item that is not current has the check icon and its
   text in the secondary ink; an item not seen has neither; the current item scrolls into view
   when it changes; unfolding a group makes it current and its rows follow it; clicking another
-  item, or focusing the set-aside field, makes the current item seen
+  item, or focusing Discard in the footer, makes the current item seen
   ([FR-151](spec.md#fr-151)), while opening its own list or New category dialog does not; the
   keyboard line with the sentence of [FR-154](spec.md#fr-154) shows above the items.
 
