@@ -190,7 +190,7 @@ that already exists, or a broken fixture.
     pair fits and the paired transaction, and counts them; a group of three whose one row is
     paired becomes a group of two; a group left with one row shows it as a plain row
     ([FR-026](../001-finance-tracker-v1/spec.md#fr-026)).
-- [ ] T173 [P] [US12] In `src/domain/import/confirm.test.ts`, confirmation of
+- [X] T173 [P] [US12] In `src/domain/import/confirm.test.ts`, confirmation of
   [data-model.md](data-model.md#state-transitions) ([FR-144](spec.md#fr-144),
   [FR-145](spec.md#fr-145), [FR-157](spec.md#fr-157)):
   - a row with a fitting pair adds no transaction: the paired expense becomes a transfer from its
