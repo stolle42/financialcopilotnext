@@ -206,13 +206,14 @@ that already exists, or a broken fixture.
   - `confirmationCounts` gives the rows that will enter the ledger, how many of them set aside
     (zero here) and how many transactions will become transfers;
   - both balances are right after confirming scenario 2's batch.
-- [ ] T174 [P] [US12] A new `e2e/us12-suggested-transfers.spec.ts`, User Story 12's six scenarios,
+- [X] T174 [P] [US12] A new `e2e/us12-suggested-transfers.spec.ts`, User Story 12's six scenarios,
   [SC-029](spec.md#sc-029) and [SC-030](spec.md#sc-030), on T162's fixtures
   ([quickstart.md](quickstart.md#us12-suggested-transfers)): after importing and confirming
   `checking-2026-10.csv` into Checking, importing `card-2026-10.csv` shows "6 suggested transfers"
   in the header and under "Suggested transfers", with the sentence of [FR-154](spec.md#fr-154),
   each row marked "Suggested" with "Pairs with:" naming Checking's account, date, description and
-  amount; the sixth payment and the one with the fee are plain rows; turning the shop refund's
+  amount; the sixth payment and the one with the fee are not suggested and stay in review as
+  rows of the group "Checking"; turning the shop refund's
   Transfer switch off leaves it an income in "Uncategorised"; the Confirm modal says 5
   transactions will become transfers; Transactions then holds those 5 as transfers dated as on
   Checking and no expense or income for them; both balances match the files; and importing both
