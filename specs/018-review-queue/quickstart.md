@@ -83,8 +83,9 @@ loaded through the backup restore, as in 001.
   few letters and Tab on each item, Shift+Tab once; reload part way through.
 - **Expected**: the first item is current with its picker in focus; "gro" narrows the list to
   categories containing it, and Tab picks the first and moves on; each item passed shows the check
-  icon; the count of items not seen falls to "All seen"; after the reload, the seen items still
-  show as seen and the first unseen item is current; Tab on the last item focuses Confirm.
+  icon; after the reload, the seen items still show as seen and the first unseen item is current;
+  Tab on the last item focuses Confirm, and the count of items not seen falls to "All seen". A
+  group passed while folded shows its rows not seen when unfolded.
 
 <a id="us15-set-aside"></a>
 ### US15: Set aside

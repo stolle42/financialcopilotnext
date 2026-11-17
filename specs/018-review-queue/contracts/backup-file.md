@@ -15,7 +15,7 @@ added fields, with the representations of [data-model.md](../data-model.md):
 | Key | Added in v1.8 |
 |---|---|
 | `transactions` | `vendor` and `destinationVendor`, when the transaction has them ([FR-145](../spec.md#fr-145)) |
-| `pendingBatch` | On each parsed row, `keptInReview` and `seen`; on its assignment, `usual`, `pairedTransactionId` and `usualCategoryId` ([FR-155](../spec.md#fr-155)) |
+| `pendingBatch` | On each parsed row, `keptInReview`, `seen` and `groupSeen`; on its assignment, `usual`, `pairedTransactionId` and `usualCategoryId` ([FR-155](../spec.md#fr-155)) |
 | `settings` | `setAsideUnderCents`, when set ([FR-152](../spec.md#fr-152)) |
 
 Loading checks these fields as [invariants 4, 7 and 8](../data-model.md#invariants) state.

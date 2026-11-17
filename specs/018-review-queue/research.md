@@ -172,9 +172,14 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
     if a search is open, make the next or previous item current and focus its field through a map
     of refs. On the last item, Tab is left to the browser, so the focus moves on to Confirm. The
     item scrolls into view with `scrollIntoView({ block: "nearest" })`.
-  - **Seen**: when an item stops being current, the store marks it seen: `seen: true` on the row,
-    or on every row of a group. A group counts as seen when all its rows are. Like every review
-    change, it is saved at once ([FR-155](spec.md#fr-155)).
+  - **Seen**: each item's element has a `focusout` handler. When the focus leaves the current item
+    for anything else in the app, the store marks it seen: `seen: true` on a row, or
+    `groupSeen: true` on every row of a group, which leaves the rows' own `seen` as it was. Focus
+    moving into the item's own category list or New category dialog does not count; both are
+    portalled, so the handler checks the event's `relatedTarget` against them. Nor does the window
+    losing focus, which
+    `document.hasFocus()` shows. A group counts as seen when all its rows have `groupSeen`. Like
+    every review change, it is saved at once ([FR-155](spec.md#fr-155)).
   - **Look**: the current item has a 2 px outline, a bar at its left edge and an arrow icon before
     it. A seen item has a check icon and its text in the secondary ink. Both differ in shape, not
     only in colour ([contracts/ui.md](contracts/ui.md#review)).
@@ -182,14 +187,19 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
   - The current item is where the user is now; storing it would make every Tab a second write
     with nothing to restore, since review opens on the first unseen item anyway.
   - Marks on rows, not on groups: groups are derived and change when rows are set aside or brought
-    back, rows are not.
+    back, rows are not. A group's mark is a second flag on its rows, because a group seen while
+    folded never showed its rows, so they are not seen.
+  - Seen on leaving the focus, not on Tab only: Tab from the last item goes to Confirm, and
+    clicking elsewhere leaves an item too; both must count, or "All seen" could not be reached.
   - Tab handled per item, not by a global key listener, so Tab elsewhere on the screen (the
     set-aside field, the drawers, the footer) moves focus as browsers do.
 - **Alternatives considered**:
   - **Arrow keys between items**: the arrow keys already move the highlight inside an open
     picker; the owner asked for Tab.
-  - **A seen mark for each group as well**: a second record of the same fact, which could disagree
-    with the rows.
+  - **A seen group marks its rows seen**: rejected by the owner, since the rows of a folded group
+    were never shown.
+  - **A seen mark stored on each group**: groups are derived, so the mark would be lost when the
+    group changes.
 
 <a id="r-45"></a>
 ### R-45 · Setting rows aside is derived from the amount; one flag keeps a row in review

@@ -286,8 +286,8 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   the next item becomes current ([FR-150](#fr-150)).
 - The user creates a category from review and then discards the batch: the category stays, as one
   created on Categories would ([FR-149](#fr-149)).
-- The current item is the last one and the user presses Tab: the focus moves on to Confirm
-  ([FR-150](#fr-150)).
+- The current item is the last one and the user presses Tab: the focus moves on to Confirm, and
+  the item counts as seen ([FR-150](#fr-150), [FR-151](#fr-151)).
 
 ## Requirements *(mandatory)*
 
@@ -341,7 +341,8 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
     whose source is the batch's account; for money in, the incomes with that vendor and the
     transfers with that vendor whose destination is the batch's account.
   - Each category is one choice, and the transfers with each counter-account are one choice.
-    "Uncategorised" is a choice too, so when it holds the majority there is no usual choice.
+    "Uncategorised" and "Unaccounted" are choices too, so when either holds the majority there is
+    no usual choice.
   - A usual choice is either a **usual category** or a **usual transfer** with that
     counter-account. A row whose vendor has no choice held by more than half, or which has no
     vendor, has no usual choice.
@@ -392,10 +393,16 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
     matching, the item keeps what it holds. On a row holding a transfer, its Transfer switch takes
     the place of the category field. Tab from the last item moves on to Confirm.
   - Selecting an item with the mouse or by touch MUST make it current.
-- <a id="fr-151"></a>**FR-151**: An item MUST count as **seen** once another item becomes current
-  after it was current; the rows of a seen group are seen too. Seen items, other than the current one, MUST look different from
-  items not yet seen, by more than colour alone. Review MUST say how many items are not seen yet.
-  Seen marks are review progress ([FR-155](#fr-155)).
+- <a id="fr-151"></a>**FR-151**: An item MUST count as **seen** once the focus moves away from it
+  after it was current: to another item, or to anything else in the app, such as Confirm after Tab
+  from the last item. The focus moving into the item's own category list or its New category
+  dialog, or to another window, does not count.
+  - The rows of a vendor group are items of their own, shown only while the group is unfolded. A
+    row counts as seen only once it was current itself, so a group seen while folded leaves its
+    rows not seen.
+  - Seen items, other than the current one, MUST look different from items not yet seen, by more
+    than colour alone. Review MUST say how many items are not seen yet.
+  - Seen marks are review progress ([FR-155](#fr-155)).
 
 **Setting small amounts aside**
 
@@ -498,7 +505,8 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
   or its category or transfer is the row's usual choice ([FR-147](#fr-147)), whether it holds a suggested transfer and
   the transaction it pairs with ([FR-142](#fr-142)), whether it is flagged as a duplicate, whether
   it failed to parse, whether it was brought back from the rows set aside ([FR-153](#fr-153)),
-  whether it was seen ([FR-151](#fr-151)), and whether it is included in confirmation.
+  whether it was seen and whether its vendor group was seen ([FR-151](#fr-151)), and whether it is
+  included in confirmation.
 - **Set-aside amount**: the amount under which review sets rows aside, or none. There is one, for
   every account; it is stored and is part of a backup ([FR-152](#fr-152), [FR-160](#fr-160)).
 

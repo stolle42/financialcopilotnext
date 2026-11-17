@@ -135,14 +135,16 @@ Replaces 001's [Review](../../001-finance-tracker-v1/contracts/ui.md#review) in 
   - In an item's picker, or in the Transfer switch of a row holding a transfer, Tab picks the
     highlighted category when a search is open, then makes the next item current and focuses its
     field. Shift+Tab does the same backwards. With nothing typed or nothing matching, the item
-    keeps what it holds. Tab from the last item moves the focus on to Confirm, as browsers do.
+    keeps what it holds. Tab from the last item moves the focus on to Confirm, as browsers do, and
+    the item counts as seen.
   - Selecting an item's row or header with the mouse or by touch, or focusing its field, makes it
     current.
   - Unfolding a group makes it current; its rows become items after it.
-- **Seen items** ([FR-151](../spec.md#fr-151)): an item that is not current and is seen shows a
-  check icon before it, and its text in the secondary ink. An item not seen has neither. The
-  header's **N not seen yet** counts the suggested transfers, groups and plain rows not seen, and
-  reads **All seen** at zero.
+- **Seen items** ([FR-151](../spec.md#fr-151)): an item becomes seen when the focus moves away
+  from it, as the FR states. An item that is not current and is seen shows a check icon before
+  it, and its text in the secondary ink. An item not seen has neither. Rows of a group seen while
+  folded show as not seen when it is unfolded. The header's **N not seen yet** counts the
+  suggested transfers, groups and plain rows not seen, and reads **All seen** at zero.
 - **Saving**: every change is saved at once, so review progress survives closing the app,
   including marks, rows brought back and seen items ([FR-155](../spec.md#fr-155),
   [R-05](../../001-finance-tracker-v1/research.md#r-05)). Which item is current is not saved.

@@ -25,8 +25,8 @@ v1.8 makes a monthly review take fewer decisions ([spec](spec.md)):
   in the form, the cell editor and review, with search while typing and **New category…** as its
   last item, which opens the dialog Categories uses ([R-43](research.md#r-43)).
 - **Keyboard review**: review lists its items in one order; Tab picks the highlighted category and
-  moves the current item, which stands out by an outline, a bar and an arrow; items passed are
-  marked seen on their rows and stored ([R-44](research.md#r-44)).
+  moves the current item, which stands out by an outline, a bar and an arrow; an item the focus
+  leaves is marked seen on its rows and stored ([R-44](research.md#r-44)).
 - **Set aside**: one stored amount; whether a row is set aside is derived each time, and one flag
   keeps a row the user touched in review ([R-45](research.md#r-45)).
 - **Version**: every new field is optional and v1.7 drops fields it does not know, so the backup
@@ -138,7 +138,7 @@ Only files v1.8 adds or changes. Tests sit next to their module, as in 001.
 ```text
 src/
 ├── domain/
-│   ├── types.ts                 # vendor, destinationVendor; assignment marks; keptInReview, seen;
+│   ├── types.ts                 # vendor, destinationVendor; assignment marks; keptInReview, seen, groupSeen;
 │   │                            # setAsideUnderCents (data-model.md)
 │   ├── transactions.ts          # A kind change away from transfer drops destinationVendor
 │   ├── categories.ts            # Deletion also clears marks and usualCategoryId in the batch

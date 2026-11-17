@@ -67,7 +67,8 @@ row 1, as a spreadsheet shows it. It identifies the row within the batch and in 
 | `included` | boolean | Starts as `!duplicate` ([FR-025](../001-finance-tracker-v1/spec.md#fr-025)) |
 | `assignment` | see below | Starts as [FR-158](spec.md#fr-158) says ([State transitions](#state-transitions)) |
 | `keptInReview` | `true`, or absent | Present once the user assigned the row anything or brought it back, so it is never set aside ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)) |
-| `seen` | `true`, or absent | Present once the row, or its vendor group, was current and another item became current ([FR-151](spec.md#fr-151), [R-44](research.md#r-44)) |
+| `seen` | `true`, or absent | Present once the row itself was current, as a suggested transfer, a plain row or a row of an unfolded group, and the focus moved away from it ([FR-151](spec.md#fr-151), [R-44](research.md#r-44)) |
+| `groupSeen` | `true`, or absent | Present once the vendor group holding the row was current and the focus moved away from it. It says nothing about the row itself ([FR-151](spec.md#fr-151), [R-44](research.md#r-44)) |
 
 **`assignment`** is one of:
 
@@ -120,9 +121,9 @@ it. Like every derived value, they are computed by domain functions and never st
 - **Review items**: the suggested transfers, the vendor groups (each followed by its rows while
   unfolded) and the plain rows, in the order review shows them
   ([contracts/ui.md](contracts/ui.md#review)). The order of Tab ([FR-150](spec.md#fr-150)).
-- **Seen item**: a row with `seen`; a vendor group all of whose rows have `seen`
-  ([FR-151](spec.md#fr-151)). **Items not seen**: the suggested transfers, vendor groups and plain
-  rows that are not seen.
+- **Seen item**: a suggested transfer, plain row or row of an unfolded group with `seen`; a vendor
+  group all of whose rows have `groupSeen` ([FR-151](spec.md#fr-151)).
+- **Items not seen**: the suggested transfers, vendor groups and plain rows that are not seen.
 
 <a id="invariants"></a>
 ## Invariants
@@ -147,7 +148,7 @@ backup checks all of them ([FR-072](../001-finance-tracker-v1/spec.md#fr-072)).
      holds both `usual` and `pairedTransactionId`. `usualCategoryId` is present only with
      `pairedTransactionId`, and references an existing category of the row's side with role
      `null`.
-   - `keptInReview` and `seen`, when present, are `true`.
+   - `keptInReview`, `seen` and `groupSeen`, when present, are `true`.
    - Every unparsable row carries a known failure code.
 8. `settings.manualEntryAccountId` references an existing account. `settings.model`, when
    present, is a non-empty string. `settings.setAsideUnderCents`, when present, is a safe integer
@@ -175,7 +176,7 @@ Replaces the **Pending row**, **Confirmation** and **Category deletion** parts o
 | else a usual transfer | transfer with that counter-account and `usual: true` |
 | else | the side's "Uncategorised" |
 
-No row starts with `keptInReview` or `seen`.
+No row starts with `keptInReview`, `seen` or `groupSeen`.
 
 **Pending row**: an unparsable row never changes and is never confirmed. In a parsed row:
 
@@ -187,7 +188,8 @@ No row starts with `keptInReview` or `seen`.
 | The user brings a row set aside back ([FR-153](spec.md#fr-153)) | `keptInReview`; the assignment stays |
 | The set-aside amount changes ([FR-152](spec.md#fr-152)) | Nothing stored on the row: whether it is set aside is derived |
 | Applying AI suggestions ([FR-092](../001-finance-tracker-v1/spec.md#fr-092)) | A row under review still in "Uncategorised" gets the suggested category with `suggested: true` |
-| The current item changes from this row, or from its group ([FR-151](spec.md#fr-151)) | `seen` |
+| The focus moves away from this row while it is the current item ([FR-151](spec.md#fr-151)) | `seen` |
+| The focus moves away from the row's vendor group while the group is the current item ([FR-151](spec.md#fr-151)) | `groupSeen`; `seen` stays as it was |
 | The UI includes or excludes a flagged row ([FR-025](../001-finance-tracker-v1/spec.md#fr-025)) | `included` |
 
 **Confirmation** ([FR-157](spec.md#fr-157)) changes the ledger in one storage transaction:
@@ -224,7 +226,7 @@ whose `usualCategoryId` names it loses that field. This keeps invariant 7 true
 The stores and keys of 001's
 [Storage layout](../001-finance-tracker-v1/data-model.md#storage-layout) stay, and the schema
 version stays 1. v1.8 adds fields only: `vendor` and `destinationVendor` to records of
-`transactions`, `keptInReview`, `seen` and the assignment marks to rows of the `pendingBatch`
+`transactions`, `keptInReview`, `seen`, `groupSeen` and the assignment marks to rows of the `pendingBatch`
 record, and `setAsideUnderCents` to the `settings` record. v1.7 reads a v1.8 database, and v1.8 a
 v1.7 one, without migrating ([R-39](research.md#r-39)). The backup holds the same records
 ([contracts/backup-file.md](contracts/backup-file.md)).
