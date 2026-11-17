@@ -458,7 +458,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
 - [X] T201 [US12] `createBatch` in `src/domain/import/batch.ts` flags duplicates, pairs the rows
   not flagged with `pairTransfers`, and starts each paired row as its suggested transfer; T171
   passes. Depends on T199 and T200.
-- [ ] T202 [P] [US12] Review of suggested transfers: in `src/domain/import/review.ts`, turning the
+- [X] T202 [P] [US12] Review of suggested transfers: in `src/domain/import/review.ts`, turning the
   switch off gives `usualCategoryId` or the side's "Uncategorised", and choosing a counter-account
   drops `pairedTransactionId`; in `src/domain/import/groups.ts`, `reviewView` also takes the
   ledger, leaves paired rows out of the groups, and lists the suggested transfers with their pair

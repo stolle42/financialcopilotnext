@@ -3,6 +3,7 @@ import { protectedCategory } from "../categories";
 import { seedState } from "../seed";
 import { applyValid, changesOf, idCounter } from "../testing";
 import type { Assignment, ParsedRow, Side, State } from "../types";
+import { proposedSide } from "./direction";
 import {
   assignGroup,
   assignRow,
@@ -298,16 +299,20 @@ describe("review of a suggested transfer (FR-143)", () => {
   function withSuggested(usualCategoryId?: string): State {
     const state = withBatch();
     const batch = state.pendingBatch!;
-    const suggestion = (pair: string) =>
+    // The usual category is of one side, so only the rows of that side remember it (invariant 8).
+    const usualSide = state.categories.find((c) => c.id === usualCategoryId)?.side;
+    const suggestion = (row: ParsedRow) =>
       ({
         type: "transfer",
         counterAccountId: "card",
-        pairedTransactionId: pair,
-        ...(usualCategoryId ? { usualCategoryId } : {}),
+        pairedTransactionId: `pair-${row.rowNumber}`,
+        ...(usualCategoryId && usualSide === proposedSide(row.amountCents)
+          ? { usualCategoryId }
+          : {}),
       }) as unknown as Assignment;
     const rows = batch.rows.map((row) =>
       row.status === "parsed" && (row.rowNumber === 3 || row.rowNumber === 4)
-        ? { ...row, assignment: suggestion(`pair-${row.rowNumber}`) }
+        ? { ...row, assignment: suggestion(row) }
         : row,
     );
     return applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });

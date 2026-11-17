@@ -27,17 +27,28 @@ function pendingBatchOf(state: State): PendingBatch {
   return state.pendingBatch;
 }
 
-/** The assignment `choice` gives a row of `side`, or `null` when the rules do not allow it. */
+/**
+ * The assignment `choice` gives `row`, or `null` when the rules do not allow it. Turning Transfer
+ * off ("uncategorised") on a transfer that remembers a usual category gives that category, and
+ * otherwise the side's "Uncategorised" (FR-143). Every choice is a new assignment, so it carries
+ * neither the AI's mark (FR-093) nor a suggested transfer's pair.
+ */
 function resolve(
   state: State,
   batch: PendingBatch,
+  row: ParsedRow,
   side: Side,
   choice: AssignmentChoice,
 ): Assignment | null {
-  if (choice === "uncategorised") return uncategorisedAssignment(state.categories, side);
+  if (choice === "uncategorised") {
+    const { assignment } = row;
+    if (assignment.type === "transfer" && assignment.usualCategoryId !== undefined) {
+      return { type: "category", categoryId: assignment.usualCategoryId };
+    }
+    return uncategorisedAssignment(state.categories, side);
+  }
   if (choice.type === "category") {
     const category = state.categories.find((c) => c.id === choice.categoryId);
-    // A new assignment, so a user's choice never carries the AI's mark (FR-093).
     return category?.side === side && category.role !== "unaccounted"
       ? { type: "category", categoryId: category.id }
       : null;
@@ -74,7 +85,7 @@ export function assignRow(
 ): Changes | Refusal<"assignment-not-allowed"> {
   const batch = pendingBatchOf(state);
   const row = parsedRow(batch, rowNumber);
-  const assignment = resolve(state, batch, proposedSide(row.amountCents), choice);
+  const assignment = resolve(state, batch, row, proposedSide(row.amountCents), choice);
   if (!assignment) return { code: "assignment-not-allowed" };
   return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, assignment }));
 }
@@ -88,10 +99,16 @@ export function assignGroup(
   const batch = pendingBatchOf(state);
   const found = reviewView(batch).groups.find((g) => g.key === group.key && g.side === group.side);
   if (!found) throw new Error(`No ${group.side} group ${group.key}`);
-  const assignment = resolve(state, batch, found.side, choice);
-  if (!assignment) return { code: "assignment-not-allowed" };
-  const rowNumbers = new Set(found.rows.map((row) => row.rowNumber));
-  return updateRows(batch, rowNumbers, (r) => ({ ...r, assignment }));
+  const assignments = new Map<number, Assignment>();
+  for (const row of found.rows) {
+    const assignment = resolve(state, batch, row, found.side, choice);
+    if (!assignment) return { code: "assignment-not-allowed" };
+    assignments.set(row.rowNumber, assignment);
+  }
+  return updateRows(batch, new Set(assignments.keys()), (r) => ({
+    ...r,
+    assignment: assignments.get(r.rowNumber)!,
+  }));
 }
 
 /** Includes a flagged row among the rows under review, or excludes it again (FR-025). */
