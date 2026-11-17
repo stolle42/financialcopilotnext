@@ -438,3 +438,172 @@ describe("parseBackup: step 3, every part with the right shape", () => {
     });
   });
 });
+
+// contracts/backup-file.md (v1.8 changes): optional fields on records the backup already holds.
+// The fixture state of v1.7 holds none of them, and the backup keeps format version 1 (R-39).
+
+/** The full fixture state with every field v1.8 adds, which a v1.7 state does not hold. */
+function v18State(): State {
+  const state = everyEntityState();
+  const withVendors = state.transactions.map((t) => {
+    if (t.id === "t1") return { ...t, vendor: "Bäckerei Krüger" };
+    if (t.id === "t3") return { ...t, vendor: "Geldautomat", destinationVendor: "Bank" };
+    return t;
+  });
+  const batch = state.pendingBatch!;
+  const groceries = state.categories.find((c) => c.side === "expense" && c.name === "Groceries")!;
+  const rows = batch.rows.map((row) => {
+    if (row.status !== "parsed") return row;
+    if (row.rowNumber === 2) {
+      const usual = { type: "category", categoryId: groceries.id, usual: true };
+      return { ...row, assignment: usual, keptInReview: true, seen: true, groupSeen: true };
+    }
+    // A usual transfer.
+    if (row.rowNumber === 4) {
+      return { ...row, assignment: { type: "transfer", counterAccountId: "card", usual: true } };
+    }
+    return row;
+  });
+  const paired = {
+    rowNumber: 8,
+    status: "parsed",
+    date: "2026-09-03",
+    amountCents: -3000,
+    description: "Card payment",
+    counterparty: "Credit Card",
+    duplicate: false,
+    included: true,
+    assignment: {
+      type: "transfer",
+      counterAccountId: "card",
+      pairedTransactionId: "t1",
+      usualCategoryId: groceries.id,
+    },
+    seen: true,
+  };
+  return {
+    ...state,
+    transactions: withVendors,
+    pendingBatch: { ...batch, rows: [...rows, paired] },
+    settings: { ...state.settings, setAsideUnderCents: 100 },
+  } as unknown as State;
+}
+
+const v18File = () =>
+  JSON.parse(serializeBackup(v18State(), EXPORTED_AT)) as BackupJson & { data: Json };
+
+describe("backup of v1.8 (FR-160)", () => {
+  test("a v1.8 file holds every added field and keeps format version 1", () => {
+    const json = v18File();
+    expect(json.formatVersion).toBe(1);
+    const transactions = records(json, "transactions");
+    expect(transactions.find((t) => t.id === "t1")).toHaveProperty("vendor", "Bäckerei Krüger");
+    expect(transactions.find((t) => t.id === "t3")).toMatchObject({
+      vendor: "Geldautomat",
+      destinationVendor: "Bank",
+    });
+    const rows = (json.data.pendingBatch as { rows: Json[] }).rows;
+    expect(rows.find((r) => r.rowNumber === 2)).toMatchObject({
+      keptInReview: true,
+      seen: true,
+      groupSeen: true,
+      assignment: { usual: true },
+    });
+    expect(rows.find((r) => r.rowNumber === 4)).toMatchObject({ assignment: { usual: true } });
+    expect(rows.find((r) => r.rowNumber === 8)).toMatchObject({
+      assignment: { pairedTransactionId: "t1", usualCategoryId: expect.any(String) },
+    });
+    expect(json.data.settings).toHaveProperty("setAsideUnderCents", 100);
+  });
+
+  test("round-trips to an equal state, every added field kept (SC-014)", () => {
+    const state = v18State();
+    const loaded = parseBackup(serializeBackup(state, EXPORTED_AT)) as State;
+    expect(loaded).not.toHaveProperty("code");
+    expect(byKey(loaded)).toEqual(byKey(state));
+  });
+
+  test("saves a loaded v1.8 file as the same file", () => {
+    const text = serializeBackup(v18State(), EXPORTED_AT);
+    expect(JSON.parse(serializeBackup(parseBackup(text) as State, EXPORTED_AT))).toEqual(
+      JSON.parse(text),
+    );
+  });
+
+  test("restores a v1.7 file: no vendors, no marks, no seen items, no set-aside amount", () => {
+    const json = fileJson();
+    const text = JSON.stringify(json);
+    expect(text).not.toMatch(/vendor|keptInReview|"seen"|groupSeen|usual|paired|setAside/i);
+
+    const loaded = parseBackup(text) as State;
+
+    expect(loaded).not.toHaveProperty("code");
+    expect(loaded.transactions.some((t) => "vendor" in t || "destinationVendor" in t)).toBe(false);
+    expect(loaded.settings).not.toHaveProperty("setAsideUnderCents");
+    for (const row of loaded.pendingBatch!.rows) {
+      expect(row).not.toHaveProperty("keptInReview");
+      expect(row).not.toHaveProperty("seen");
+      expect(row).not.toHaveProperty("groupSeen");
+    }
+    expect(JSON.parse(serializeBackup(loaded, EXPORTED_AT))).toEqual(json);
+  });
+
+  test.each<[string, string, (json: { data: Json }) => void]>([
+    ["transaction", "vendor", (json) => (records(json, "transactions")[0]!.vendor = 7)],
+    ["transaction", "vendor", (json) => (records(json, "transactions")[0]!.vendor = "")],
+    [
+      "transaction",
+      "destinationVendor",
+      (json) => (records(json, "transactions")[2]!.destinationVendor = ""),
+    ],
+    [
+      "pendingRow",
+      "keptInReview",
+      (json) => ((json.data.pendingBatch as { rows: Json[] }).rows[0]!.keptInReview = false),
+    ],
+    [
+      "pendingRow",
+      "seen",
+      (json) => ((json.data.pendingBatch as { rows: Json[] }).rows[0]!.seen = false),
+    ],
+    [
+      "pendingRow",
+      "groupSeen",
+      (json) => ((json.data.pendingBatch as { rows: Json[] }).rows[0]!.groupSeen = "yes"),
+    ],
+    [
+      "pendingRow",
+      "assignment",
+      (json) =>
+        ((json.data.pendingBatch as { rows: { assignment: Json }[] }).rows[0]!.assignment.usual =
+          false) as unknown,
+    ],
+    [
+      "pendingRow",
+      "assignment",
+      (json) =>
+        ((
+          json.data.pendingBatch as { rows: { assignment: Json }[] }
+        ).rows[0]!.assignment.pairedTransactionId = 7) as unknown,
+    ],
+    [
+      "settings",
+      "setAsideUnderCents",
+      (json) => ((json.data.settings as Json).setAsideUnderCents = 0),
+    ],
+    [
+      "settings",
+      "setAsideUnderCents",
+      (json) => ((json.data.settings as Json).setAsideUnderCents = 1.5),
+    ],
+    [
+      "settings",
+      "setAsideUnderCents",
+      (json) => ((json.data.settings as Json).setAsideUnderCents = "100"),
+    ],
+  ])("refuses a file whose %s field %s is of the wrong kind", (record, field, damage) => {
+    const json = v18File();
+    damage(json);
+    expect(parsed(json)).toMatchObject({ code: "backup-damaged", details: { record, field } });
+  });
+});

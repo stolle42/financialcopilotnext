@@ -112,7 +112,7 @@ that already exists, or a broken fixture.
   - `keptInReview: false`, `seen: false` and `groupSeen: false` each break them;
   - `settings.setAsideUnderCents` of 0, -1, 1.5 and `2 ** 53` breaks them; 1 and 100 do not;
   - a state saved by v1.7, with none of these fields, holds every invariant.
-- [ ] T165 [P] In `src/files/backup.test.ts`, the backup file of
+- [X] T165 [P] In `src/files/backup.test.ts`, the backup file of
   [contracts/backup-file.md](contracts/backup-file.md) ([FR-160](spec.md#fr-160),
   [SC-014](../001-finance-tracker-v1/spec.md#sc-014)):
   - a v1.7 backup restores, with transactions without vendors, a pending batch without marks,
