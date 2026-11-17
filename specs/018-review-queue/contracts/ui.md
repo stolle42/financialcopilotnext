@@ -49,7 +49,7 @@ Replaces 001's [Review](../../001-finance-tracker-v1/contracts/ui.md#review) in 
   **duplicates** and **unparsable** ([FR-025](../../001-finance-tracker-v1/spec.md#fr-025),
   [FR-028](../../001-finance-tracker-v1/spec.md#fr-028)). Suggested transfers and set aside show
   only when not zero. The set-aside, duplicates and unparsable counts are buttons.
-  - The **set aside** drawer lists the rows set aside by date, each with its date, description,
+  - The **set aside** drawer, a dialog named "Rows set aside", lists the rows set aside by date, each with its date, description,
     vendor and amount, and a **Bring back** button ([FR-153](../spec.md#fr-153)). A row brought
     back leaves the drawer and joins the rows under review with what it held.
   - The **duplicates** drawer lists the flagged rows, each with an **Include** switch. An included

@@ -353,7 +353,7 @@ that already exists, or a broken fixture.
   set aside; with 30 rows under 1.00, every balance equals the balance the same batch gives with
   nothing set aside ([SC-034](spec.md#sc-034), [FR-157](spec.md#fr-157),
   [FR-159](spec.md#fr-159)).
-- [ ] T189 [P] [US15] A new `e2e/us15-set-aside.spec.ts`, User Story 15's seven scenarios and
+- [X] T189 [P] [US15] A new `e2e/us15-set-aside.spec.ts`, User Story 15's seven scenarios and
   [SC-034](spec.md#sc-034) ([quickstart.md](quickstart.md#us15-set-aside)): entering 1.00 takes
   the 30 rows under 1.00 out of review and the line says "30 rows under €1.00 set aside"; a row
   given a category first stays; "abc" and 0 show the message of `set-aside-amount-invalid` and set
