@@ -226,7 +226,7 @@ that already exists, or a broken fixture.
 
 ### Tests of User Story 13: usual choices
 
-- [ ] T175 [P] [US13] A new `src/domain/import/usual.test.ts` for
+- [X] T175 [P] [US13] A new `src/domain/import/usual.test.ts` for
   `usualChoices(rows, accountId, transactions, categories)` ([FR-146](spec.md#fr-146),
   [R-42](research.md#r-42), [csv-import.md](contracts/csv-import.md#usual-choices)):
   - 3 of 5 REWE expenses in Groceries give Groceries; 2 of 4 Amazon expenses in Household and 2 in
