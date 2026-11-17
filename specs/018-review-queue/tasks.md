@@ -299,7 +299,7 @@ that already exists, or a broken fixture.
   `e2e/ui/transaction-form.spec.ts`, `e2e/ui/transactions.spec.ts`, `e2e/ui/review.spec.ts`,
   `e2e/us1-ledger.spec.ts`, `e2e/us2-import.spec.ts` and any other that `grep` finds. These specs
   then fail only for want of the picker.
-- [ ] T183 [P] [US14] A new `e2e/ui/category-picker.spec.ts`, the search of
+- [X] T183 [P] [US14] A new `e2e/ui/category-picker.spec.ts`, the search of
   [contracts/ui.md](contracts/ui.md#category-picker) ([FR-148](spec.md#fr-148)), in the
   transaction form, in a Category cell on Transactions, and on a review row and group: typing
   "gro" shows only categories whose name contains it, ignoring case and spaces around it, in the
