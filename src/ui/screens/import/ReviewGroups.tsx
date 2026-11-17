@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { proposedSide } from "@/domain/import/direction";
-import type { ReviewView, VendorGroup } from "@/domain/import/groups";
+import { sharedAssignment, type ReviewView, type VendorGroup } from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
-import type { Assignment, ParsedRow, Refusal } from "@/domain/types";
+import type { ParsedRow, Refusal } from "@/domain/types";
 import { assignGroup, assignRow } from "@/store/import";
 import { useStoreApi } from "@/store/store";
 import { Button } from "@/ui/components/ui/button";
@@ -14,11 +14,6 @@ import { SuggestedTransfers } from "./SuggestedTransfers";
 
 const sideLabel = { expense: "expenses", income: "income" } as const;
 
-const assignmentKey = (assignment: Assignment) =>
-  assignment.type === "category"
-    ? `category ${assignment.categoryId}`
-    : `transfer ${assignment.counterAccountId}`;
-
 /**
  * Whether the AI suggested the row's category, which the user has not assigned since (FR-093), or
  * the row holds a suggested transfer (FR-143).
@@ -27,14 +22,6 @@ const isSuggested = (row: ParsedRow) =>
   row.assignment.type === "category"
     ? row.assignment.suggested === true
     : row.assignment.pairedTransactionId !== undefined;
-
-/** The assignment every row of the group shares, or `null` when the rows differ. */
-function sharedAssignment(rows: readonly ParsedRow[]): Assignment | null {
-  const first = rows[0]?.assignment;
-  if (!first) return null;
-  const key = assignmentKey(first);
-  return rows.every((row) => assignmentKey(row.assignment) === key) ? first : null;
-}
 
 const rowGrid = "grid grid-cols-[6rem_1fr_7rem_auto] items-center gap-3 px-4 py-2 text-sm";
 

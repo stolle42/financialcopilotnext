@@ -497,7 +497,7 @@ earlier" ([FR-146](spec.md#fr-146), [FR-147](spec.md#fr-147), [FR-158](spec.md#f
 - [X] T206 [US13] `createBatch` in `src/domain/import/batch.ts` finds usual choices after pairing
   and starts each row by the table of [data-model.md](data-model.md#state-transitions) step 4;
   T176 passes. Depends on T201 and T205.
-- [ ] T207 [US13] Marks: in `src/domain/import/review.ts`, every assignment by the user, through a
+- [X] T207 [US13] Marks: in `src/domain/import/review.ts`, every assignment by the user, through a
   row or a group, also of the same category, and every switch or counter-account change leaves no
   `usual` or `suggested`; in `src/domain/import/groups.ts`, a group carries a mark only when all
   its rows hold the same assignment with the same mark; T177 passes.

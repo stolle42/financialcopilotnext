@@ -1,5 +1,12 @@
 import { nameKey } from "../names";
-import type { ParsedRow, PendingBatch, Side, Transaction, UnparsableRow } from "../types";
+import type {
+  Assignment,
+  ParsedRow,
+  PendingBatch,
+  Side,
+  Transaction,
+  UnparsableRow,
+} from "../types";
 import { proposedSide } from "./direction";
 import { pairFits } from "./transfers";
 
@@ -123,4 +130,34 @@ export function reviewView(
     groups: groups.sort(bySize),
     plainRows: plainRows.sort(byDate),
   };
+}
+
+/** What a row's assignment holds: a category or a counter-account. */
+const target = (assignment: Assignment) =>
+  assignment.type === "category"
+    ? `category ${assignment.categoryId}`
+    : `transfer ${assignment.counterAccountId}`;
+
+/** The mark an assignment carries, if any: the AI's suggestion or the usual choice (FR-147). */
+const markOf = (assignment: Assignment): "suggested" | "usual" | null => {
+  if (assignment.usual) return "usual";
+  if (assignment.type === "category") return assignment.suggested ? "suggested" : null;
+  return assignment.pairedTransactionId === undefined ? null : "suggested";
+};
+
+/**
+ * The assignment a group shows, or `null` when its rows differ (FR-026). It carries a mark only
+ * when every row holds that same mark (FR-147): a group is "from earlier" only if each of its rows
+ * is. Without a mark, it is the plain category or transfer.
+ */
+export function sharedAssignment(rows: readonly ParsedRow[]): Assignment | null {
+  const first = rows[0]?.assignment;
+  if (!first) return null;
+  const key = target(first);
+  if (!rows.every((row) => target(row.assignment) === key)) return null;
+  const mark = markOf(first);
+  if (mark !== null && rows.every((row) => markOf(row.assignment) === mark)) return first;
+  return first.type === "category"
+    ? { type: "category", categoryId: first.categoryId }
+    : { type: "transfer", counterAccountId: first.counterAccountId };
 }
