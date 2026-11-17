@@ -447,7 +447,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
 
 **Independent Test**: `e2e/us12-suggested-transfers.spec.ts` (T174), with T169 – T173.
 
-- [ ] T199 [P] [US12] A new `src/domain/import/transfers.ts` with `pairTransfers(rows, accountId,
+- [X] T199 [P] [US12] A new `src/domain/import/transfers.ts` with `pairTransfers(rows, accountId,
   transactions, categories)` and `pairFits(row, state)`, by the three steps of [R-41](research.md#r-41):
   candidates indexed by amount in a `Map`, every candidate pair sorted by days apart, row number,
   then the transaction's date and `seq`, and taken while neither side is taken; T169 passes.

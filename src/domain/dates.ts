@@ -18,6 +18,15 @@ export function isCalendarDate(text: string): boolean {
   return month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(year, month);
 }
 
+/** The number of days from `from` to `to`, negative when `to` is earlier. Both are calendar dates. */
+export function daysFromTo(from: string, to: string): number {
+  const utcDay = (date: string) => {
+    const [year, month, day] = date.split("-").map(Number) as [number, number, number];
+    return Date.UTC(year, month - 1, day) / 86_400_000;
+  };
+  return utcDay(to) - utcDay(from);
+}
+
 /** The `YYYY-MM` month a date falls in. */
 export function monthOf(date: string): string {
   return date.slice(0, 7);

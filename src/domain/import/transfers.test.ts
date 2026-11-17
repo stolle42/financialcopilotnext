@@ -245,7 +245,7 @@ describe("pairTransfers: each side pairs once (scenario 6)", () => {
 
 describe("pairFits", () => {
   function state(transactions: Transaction[]): State {
-    const base = seedState(idCounter("seed"));
+    const base = seedState(idCounter());
     return applyValid(base, {
       accounts: {
         put: [
