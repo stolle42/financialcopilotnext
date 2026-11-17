@@ -424,7 +424,7 @@ should.
 
   Where a type can state a rule of [invariants](data-model.md#invariants) 4, 7 and 8, such as
   `true` instead of `boolean`, it does; T196 checks the rest.
-- [ ] T196 [P] Invariants 4, 7 and 8 in `src/domain/invariants.ts`, as
+- [X] T196 [P] Invariants 4, 7 and 8 in `src/domain/invariants.ts`, as
   [data-model.md](data-model.md#invariants) restates them; T164 passes.
 - [ ] T197 [P] The zod schemas of `src/files/backup.ts` accept the new optional fields, with
   [invariants 4, 7 and 8](data-model.md#invariants), and `formatVersion` stays 1

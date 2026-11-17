@@ -83,6 +83,8 @@ const brokenRules: Record<InvariantCode, string> = {
   "transaction-fields-mixed": "a transaction mixes the details of a transfer with those of a spend",
   "transaction-destination-invalid":
     "a transfer goes to an account that is not in the backup, or to the account it leaves",
+  "transaction-vendor-invalid":
+    "a transaction has an empty vendor, or a second vendor although it is not a transfer",
   "budget-category-invalid": "a budget refers to a category that cannot carry one",
   "budget-limit-out-of-range": "a budget has a limit that is not an amount above 0.00",
   "profile-name-missing": "a bank CSV format has no name",
@@ -102,9 +104,12 @@ const brokenRules: Record<InvariantCode, string> = {
     "a row of the pending import holds a category the AI suggested that it cannot suggest",
   "pending-row-transfer-invalid":
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
+  "pending-row-mark-invalid":
+    "a row of the pending import has marks that contradict each other or are not allowed",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
   "settings-account-missing": "the settings name an account that is not in the backup",
   "settings-model-invalid": "the settings name an empty model",
+  "settings-set-aside-invalid": "the settings name a set-aside amount that is not above 0.00",
   "settings-key-present": "the settings hold a key, which no backup may hold",
   "conversation-question-missing": "a question of the finance chat's conversation is empty",
   "conversation-turn-invalid":
