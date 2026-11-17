@@ -276,7 +276,7 @@ that already exists, or a broken fixture.
 
 ### Tests of User Story 14: keyboard review
 
-- [ ] T180 [P] [US14] A new `src/domain/import/items.test.ts` for the review items
+- [X] T180 [P] [US14] A new `src/domain/import/items.test.ts` for the review items
   ([data-model.md](data-model.md#derived-values), [R-44](research.md#r-44)): `reviewItems(view,
   unfolded)` lists the suggested transfers, then the vendor groups largest first, each followed by
   its rows when its key is in `unfolded`, then the plain rows by date; a row item is seen when it
