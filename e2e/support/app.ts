@@ -30,6 +30,17 @@ export async function choose(page: Page, scope: Locator, label: string, option: 
   await page.getByRole("option", { name: option, exact: true }).click();
 }
 
+/**
+ * Picks the category named `name` in the category picker inside `scope`: types the name into the
+ * field and picks the item of that name from the list (contracts/ui.md, category picker).
+ */
+export async function pickCategory(page: Page, scope: Locator, name: string) {
+  const field = scope.getByRole("combobox", { name: "Category", exact: true });
+  await field.click();
+  await field.fill(name);
+  await page.getByRole("option", { name, exact: true }).click();
+}
+
 interface NewTransaction {
   kind?: "Expense" | "Income" | "Transfer";
   /** As typed in en-US, such as "40.00". */

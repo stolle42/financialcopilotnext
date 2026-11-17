@@ -258,7 +258,7 @@ that already exists, or a broken fixture.
     "Mixed";
   - in `src/domain/import/suggestions.test.ts`: rows holding a usual category are not sent
     (scenario 5).
-- [ ] T178 [P] [US13] A new `e2e/us13-usual-choices.spec.ts`, User Story 13's seven scenarios and
+- [X] T178 [P] [US13] A new `e2e/us13-usual-choices.spec.ts`, User Story 13's seven scenarios and
   [SC-031](spec.md#sc-031) ([quickstart.md](quickstart.md#us13-usual-choices)): a restored backup
   whose ledger holds vendors in the proportions of the scenarios; REWE's rows start in Groceries
   marked "From earlier" on the rows and the group, with the sentence of
