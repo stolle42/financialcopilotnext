@@ -58,7 +58,7 @@ of Phase 2 need.
   already a dependency, so `package.json` gains no package ([R-43](research.md#r-43),
   [001 R-03](../001-finance-tracker-v1/research.md#r-03)). Nothing uses it yet; `npm run lint`
   and `npm run typecheck` pass.
-- [ ] T162 [P] Two fixtures of one month in the layout of `e2e/fixtures/mybank-2026-10.csv`, made-up
+- [X] T162 [P] Two fixtures of one month in the layout of `e2e/fixtures/mybank-2026-10.csv`, made-up
   rows only ([quickstart.md](quickstart.md#validation-scenarios), [R-46](research.md#r-46)):
   - `e2e/fixtures/checking-2026-10.csv`: 5 payments to the card; a sixth paid 5 days before the
     card books it; one whose card side carries a 1.50 fee; 50.00 to a shop; "Geldautomat"
