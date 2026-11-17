@@ -455,7 +455,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
   a transfer matches a row on its source side with money out or on its destination side with
   money in, up to 4 days apart; all other matching stays exact
   ([csv-import.md](contracts/csv-import.md#duplicate-matching)); T170 passes.
-- [ ] T201 [US12] `createBatch` in `src/domain/import/batch.ts` flags duplicates, pairs the rows
+- [X] T201 [US12] `createBatch` in `src/domain/import/batch.ts` flags duplicates, pairs the rows
   not flagged with `pairTransfers`, and starts each paired row as its suggested transfer; T171
   passes. Depends on T199 and T200.
 - [ ] T202 [P] [US12] Review of suggested transfers: in `src/domain/import/review.ts`, turning the

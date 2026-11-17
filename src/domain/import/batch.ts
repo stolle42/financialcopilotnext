@@ -4,6 +4,7 @@ import { proposedSide } from "./direction";
 import { flagDuplicates } from "./duplicates";
 import { uncategorisedAssignment } from "./review";
 import { parseRecords, type LayoutRefusalCode } from "./rows";
+import { pairTransfers } from "./transfers";
 
 export type BatchRefusalCode =
   "import-batch-pending" | "import-account-missing" | LayoutRefusalCode;
@@ -26,7 +27,8 @@ export interface BatchInput {
 /**
  * The pending batch of a tokenised file (contracts/csv-import.md, pipeline steps 4–7). Every
  * parsed row starts in its side's "Uncategorised" (FR-029), and a flagged row starts excluded
- * (FR-025). The batch holds no reference to the profile (FR-021).
+ * (FR-025). A row not flagged that has its other side in the ledger starts as the suggested
+ * transfer to that side's account (FR-142). The batch holds no reference to the profile (FR-021).
  */
 export function createBatch(
   state: State,
@@ -43,14 +45,29 @@ export function createBatch(
   if (!Array.isArray(parsed)) return parsed;
 
   const duplicates = flagDuplicates(parsed, accountId, state.transactions);
+  const pairs = pairTransfers(
+    parsed.map((row) =>
+      row.status === "parsed" ? { ...row, duplicate: duplicates.has(row.rowNumber) } : row,
+    ),
+    accountId,
+    state.transactions,
+    state.categories,
+  );
   const rows = parsed.map((row): PendingRow => {
     if (row.status === "unparsable") return row;
     const duplicate = duplicates.has(row.rowNumber);
+    const pair = pairs.get(row.rowNumber);
     return {
       ...row,
       duplicate,
       included: !duplicate,
-      assignment: uncategorisedAssignment(state.categories, proposedSide(row.amountCents)),
+      assignment: pair
+        ? {
+            type: "transfer",
+            counterAccountId: pair.accountId,
+            pairedTransactionId: pair.transactionId,
+          }
+        : uncategorisedAssignment(state.categories, proposedSide(row.amountCents)),
     };
   });
   const batch: PendingBatch = {
