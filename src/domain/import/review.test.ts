@@ -3,7 +3,7 @@ import { protectedCategory } from "../categories";
 import { seedState } from "../seed";
 import { applyValid, changesOf, idCounter } from "../testing";
 import type { Assignment, ParsedRow, Side, State } from "../types";
-import { assignGroup, assignRow, includeDuplicate } from "./review";
+import { assignGroup, assignRow, includeDuplicate, markGroupSeen, markSeen } from "./review";
 
 // FR-023, FR-025, FR-026; contracts/ui.md, review; contracts/csv-import.md, vendor groups.
 
@@ -500,5 +500,67 @@ describe("the usual mark (FR-147)", () => {
     const next = applyValid(state, changesOf(assignRow(state, 2, toCard)));
 
     expect(rowOf(next, 2).assignment).toStrictEqual(toCard);
+  });
+});
+
+// FR-151, FR-155; data-model.md, pending row; R-44: seen marks live on the rows. `seen` and
+// `groupSeen` are fields the types do not carry yet, so they are read through a cast.
+describe("seen marks (FR-151)", () => {
+  type Marked = { seen?: boolean; groupSeen?: boolean };
+  const marksOf = (state: State, rowNumber: number): Marked => rowOf(state, rowNumber) as Marked;
+
+  test("markSeen sets seen on each row named, and on nothing else", () => {
+    const state = withBatch();
+
+    const next = applyValid(state, changesOf(markSeen(state, [2, 6])));
+
+    expect(marksOf(next, 2).seen).toBe(true);
+    expect(marksOf(next, 6).seen).toBe(true);
+    for (const rowNumber of [3, 4, 5]) expect(marksOf(next, rowNumber).seen).toBeUndefined();
+    for (const rowNumber of [2, 3, 4, 5, 6]) {
+      expect(marksOf(next, rowNumber).groupSeen).toBeUndefined();
+    }
+  });
+
+  test("markGroupSeen sets groupSeen on each row named, and leaves their own seen as it was", () => {
+    const state = applyValid(withBatch(), changesOf(markSeen(withBatch(), [2])));
+
+    const next = applyValid(state, changesOf(markGroupSeen(state, [2, 3])));
+
+    expect(marksOf(next, 2)).toMatchObject({ seen: true, groupSeen: true });
+    expect(marksOf(next, 3).groupSeen).toBe(true);
+    expect(marksOf(next, 3).seen).toBeUndefined();
+    expect(marksOf(next, 4).groupSeen).toBeUndefined();
+  });
+
+  test("changes no assignment, mark of an assignment or other field of a row", () => {
+    const state = withSuggestion(withBatch(), [2], categoryNamed(withBatch(), "expense", "Travel"));
+
+    const seen = applyValid(state, changesOf(markSeen(state, [2, 3])));
+    const grouped = applyValid(seen, changesOf(markGroupSeen(seen, [2, 3])));
+
+    for (const rowNumber of [2, 3]) {
+      const copy: Record<string, unknown> = { ...rowOf(grouped, rowNumber) };
+      delete copy.seen;
+      delete copy.groupSeen;
+      expect(copy).toStrictEqual(rowOf(state, rowNumber));
+    }
+    expect(rowOf(grouped, 2).assignment).toMatchObject({ suggested: true });
+  });
+
+  test("marking again changes nothing, and a row that is not in the batch is ignored", () => {
+    const state = applyValid(withBatch(), changesOf(markSeen(withBatch(), [2])));
+
+    const next = applyValid(state, changesOf(markSeen(state, [2, 99])));
+
+    expect(next.pendingBatch).toStrictEqual(state.pendingBatch);
+  });
+
+  test("marks an unparsable row nowhere: only parsed rows can be seen", () => {
+    const state = withBatch();
+
+    const next = applyValid(state, changesOf(markSeen(state, [7])));
+
+    expect(next.pendingBatch).toStrictEqual(state.pendingBatch);
   });
 });

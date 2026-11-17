@@ -2,6 +2,8 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { openAiError, responseWith, streamed, type PostedRequest } from "@/ai/testing";
+import { reviewView } from "@/domain/import/groups";
+import { reviewItems } from "@/domain/import/items";
 import { profileOf, type ProfileDraft } from "@/domain/import/profiles";
 import { suggestsInvertedSign } from "@/domain/import/propose";
 import { parseRecords } from "@/domain/import/rows";
@@ -17,6 +19,7 @@ import {
   discardBatch,
   importFile,
   includeDuplicate,
+  markSeen,
   proposeFormat,
   saveProfile,
   suggestCategories,
@@ -213,6 +216,34 @@ describe("review actions", () => {
       expect.objectContaining({ type: "category" }),
       { type: "transfer", counterAccountId: card },
     ]);
+  });
+
+  test("seen marks are written at once, and a reloaded batch holds both kinds (FR-151, FR-155)", async () => {
+    const { db, store, profile, cash } = await setUp();
+    await importInto(store, cash, profile);
+    const items = () => {
+      const state = store.getState();
+      return reviewItems(reviewView(state.pendingBatch!, state.transactions), new Set());
+    };
+    const group = items().find((item) => item.kind === "group")!;
+    const plain = items().find((item) => item.kind === "row")!;
+
+    expect(await markSeen(store, plain)).toBeNull();
+    expect(await markSeen(store, group)).toBeNull();
+
+    db.close();
+    const state = await reopened();
+    const marks = (rowNumber: number) =>
+      state.pendingBatch!.rows.find((row) => row.rowNumber === rowNumber) as {
+        seen?: boolean;
+        groupSeen?: boolean;
+      };
+    // The Shop group is rows 2 and 3, which get groupSeen and keep their own seen; the Parking
+    // ticket, row 4, is a plain row, which gets seen.
+    expect([marks(2).groupSeen, marks(3).groupSeen]).toEqual([true, true]);
+    expect([marks(2).seen, marks(3).seen]).toEqual([undefined, undefined]);
+    expect(marks(4).seen).toBe(true);
+    expect(marks(4).groupSeen).toBeUndefined();
   });
 
   test("confirming books the rows under review and removes the batch, durably", async () => {

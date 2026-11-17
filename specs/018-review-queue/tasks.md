@@ -285,7 +285,7 @@ that already exists, or a broken fixture.
   not seen; `notSeenCount` counts the suggested transfers, groups and plain rows not seen, never
   rows inside a group; `firstNotSeen` gives the first item not seen, and the first item when all
   are seen.
-- [ ] T181 [US14] Seen marks ([FR-151](spec.md#fr-151), [FR-155](spec.md#fr-155)), after T177:
+- [X] T181 [US14] Seen marks ([FR-151](spec.md#fr-151), [FR-155](spec.md#fr-155)), after T177:
   - in `src/domain/import/review.test.ts`: `markSeen(batch, rowNumbers)` sets `seen: true` and
     `markGroupSeen(batch, rowNumbers)` sets `groupSeen: true` on each row named, on nothing else,
     and change no assignment or mark;
