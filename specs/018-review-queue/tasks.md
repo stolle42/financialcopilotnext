@@ -518,7 +518,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
 
 **Independent Test**: `e2e/us14-keyboard-review.spec.ts` (T184), with T180 – T183 and T185.
 
-- [ ] T209 [P] [US14] A new `src/domain/import/items.ts` with `reviewItems(view, unfolded)`,
+- [X] T209 [P] [US14] A new `src/domain/import/items.ts` with `reviewItems(view, unfolded)`,
   `itemSeen`, `notSeenCount` and `firstNotSeen` ([data-model.md](data-model.md#derived-values),
   [R-44](research.md#r-44)); T180 passes.
 - [ ] T210 [P] [US14] `markSeen(batch, rowNumbers)` and `markGroupSeen(batch, rowNumbers)` in
