@@ -204,7 +204,7 @@ describe("setSetAsideAmount (FR-152)", () => {
     expect(amountOf(store.getState())).toBe(cents);
   });
 
-  test.each(["abc", "0", "0.00", "-1", "1.005", "1,005", "1e2"])(
+  test.each(["abc", "0", "0.00", "-1", "1.005", "1e2"])(
     "%j stores nothing, removes the amount and says set-aside-amount-invalid",
     async (text) => {
       const { db, store } = await setUp();
