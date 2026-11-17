@@ -151,3 +151,143 @@ describe("createBatch", () => {
     expect(JSON.stringify(withBatch(seeded()).pendingBatch)).not.toContain('mybank"');
   });
 });
+
+// FR-142, FR-156, FR-158; data-model.md, state transitions, steps 1, 2 and 4: `createBatch` flags
+// duplicates first, then pairs the rows not flagged with the other side of a transfer, and starts
+// a paired row as its suggested transfer. The marks and the new transfer assignment's fields are
+// not typed yet, so the rows are read through toMatchObject and toHaveProperty.
+describe("createBatch: suggested transfers (FR-142)", () => {
+  const cash = () => seeded().accounts[0]!;
+  const checking = { id: "checking", name: "Checking", type: "checking", openingBalanceCents: 0 };
+
+  function ledger(): State {
+    const state = seeded();
+    const groceries = state.categories.find((c) => c.side === "expense" && c.name === "Groceries")!;
+    const salary = state.categories.find((c) => c.side === "income" && c.name === "Salary")!;
+    return applyValid(state, {
+      accounts: { put: [{ ...checking, type: "checking" as const }] },
+      transactions: {
+        put: [
+          // The other side of row 2, a day before it.
+          {
+            id: "withdrawal",
+            seq: 1,
+            date: "2026-08-02",
+            amountCents: 50000,
+            accountId: checking.id,
+            description: "Cash from the machine",
+            kind: "expense",
+            categoryId: groceries.id,
+          },
+          // Row 4 is a duplicate of the income on Cash, and would also pair with this expense.
+          {
+            id: "refund-in-cash",
+            seq: 2,
+            date: "2026-08-10",
+            amountCents: 3000,
+            accountId: cash().id,
+            description: "Already booked",
+            kind: "income",
+            categoryId: salary.id,
+          },
+          {
+            id: "refund-out-of-checking",
+            seq: 3,
+            date: "2026-08-10",
+            amountCents: 3000,
+            accountId: checking.id,
+            description: "Would pair",
+            kind: "expense",
+            categoryId: groceries.id,
+          },
+        ],
+      },
+    });
+  }
+
+  const file = [
+    ["Date", "Payee", "Purpose", "Amount"],
+    ["03.08.2026", "Bank", "Cash in", "500,00"],
+    ["05.08.2026", "Shop", "Groceries", "-45,20"],
+    ["10.08.2026", "Bank", "Cash in", "30,00"],
+  ];
+
+  function batchOf(state: State) {
+    const next = applyValid(
+      state,
+      changesOf(createBatch(state, input(state, { records: file }), testContext())),
+    );
+    return next.pendingBatch!.rows;
+  }
+
+  test("starts a row with its other side in the ledger as a suggested transfer, without usual", () => {
+    const rows = batchOf(ledger());
+
+    expect(rows[0]).toMatchObject({
+      rowNumber: 2,
+      duplicate: false,
+      included: true,
+      assignment: {
+        type: "transfer",
+        counterAccountId: checking.id,
+        pairedTransactionId: "withdrawal",
+      },
+    });
+    expect(rows[0]).toHaveProperty("assignment", {
+      type: "transfer",
+      counterAccountId: checking.id,
+      pairedTransactionId: "withdrawal",
+    });
+  });
+
+  test("leaves a row without other side in its side's Uncategorised", () => {
+    const state = ledger();
+    const rows = batchOf(state);
+    expect(rows[1]).toHaveProperty("assignment", {
+      type: "category",
+      categoryId: protectedCategory(state.categories, "expense", "uncategorised").id,
+    });
+  });
+
+  test("flags duplicates first: a flagged row that would pair gets no suggested transfer", () => {
+    const state = ledger();
+    const rows = batchOf(state);
+    expect(rows[2]).toMatchObject({ rowNumber: 4, duplicate: true, included: false });
+    expect(rows[2]).toHaveProperty("assignment", {
+      type: "category",
+      categoryId: protectedCategory(state.categories, "income", "uncategorised").id,
+    });
+  });
+
+  test("starts no row with keptInReview, seen or groupSeen", () => {
+    for (const row of batchOf(ledger())) {
+      expect(row).not.toHaveProperty("keptInReview");
+      expect(row).not.toHaveProperty("seen");
+      expect(row).not.toHaveProperty("groupSeen");
+    }
+  });
+
+  test("pairs a transaction with one row only, the earlier row of equal rows", () => {
+    const twice = [
+      ["Date", "Payee", "Purpose", "Amount"],
+      ["03.08.2026", "Bank", "Cash in", "500,00"],
+      ["03.08.2026", "Bank", "Cash in again", "500,00"],
+    ];
+    const state = ledger();
+    const rows = applyValid(
+      state,
+      changesOf(createBatch(state, input(state, { records: twice }), testContext())),
+    ).pendingBatch!.rows;
+
+    // The second row is flagged as a duplicate of the first (FR-024), so only one row pairs.
+    expect(rows[0]).toHaveProperty("assignment.pairedTransactionId", "withdrawal");
+    expect(rows[1]).toHaveProperty("duplicate", true);
+    expect(rows[1]).not.toHaveProperty("assignment.pairedTransactionId");
+  });
+
+  test("changes only the pending batch, and not the transaction it pairs with", () => {
+    const state = ledger();
+    const changes = changesOf(createBatch(state, input(state, { records: file }), testContext()));
+    expect(Object.keys(changes)).toEqual(["pendingBatch"]);
+  });
+});

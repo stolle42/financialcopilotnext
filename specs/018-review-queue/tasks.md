@@ -174,7 +174,7 @@ that already exists, or a broken fixture.
   up to 4 days apart; 5 days apart matches nothing; the direction must agree on that account (a
   row on Savings with money out does not match); expenses and incomes still match on the exact
   date only; and earlier rows of the same batch still match on the exact date.
-- [ ] T171 [P] [US12] In `src/domain/import/batch.test.ts`, `createBatch` flags duplicates first
+- [X] T171 [P] [US12] In `src/domain/import/batch.test.ts`, `createBatch` flags duplicates first
   and pairs only the rows not flagged, then starts each paired row as a transfer assignment with
   the paired transaction's account as `counterAccountId` and its id as `pairedTransactionId`,
   without `usual` ([data-model.md](data-model.md#state-transitions) steps 1, 2 and 4). No row
