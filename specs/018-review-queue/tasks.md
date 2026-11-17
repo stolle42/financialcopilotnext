@@ -371,7 +371,7 @@ that already exists, or a broken fixture.
 
 ### Tests of User Story 16: new category from a picker
 
-- [ ] T191 [P] [US16] In `src/store/import.test.ts`, creating a category from a review picker
+- [X] T191 [P] [US16] In `src/store/import.test.ts`, creating a category from a review picker
   ([FR-149](spec.md#fr-149)): `assignRow` and `assignGroup` with a new category's name and colour
   create the category on the row's side and assign it in one change, without marks and with
   `keptInReview`; a taken name is refused with `category-name-taken` and nothing changes; the

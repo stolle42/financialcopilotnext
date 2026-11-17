@@ -287,6 +287,128 @@ describe("review actions", () => {
   });
 });
 
+describe("creating a category from a review picker (FR-149)", () => {
+  // The choice of a new category by its name and colour is a v1.8 form of assignment the types do
+  // not carry yet, so it is written through a cast.
+  type Choice = Parameters<typeof assignRow>[2];
+  const newCategory = (name: string, color = "#845ef7") =>
+    ({ type: "new-category", name, color }) as unknown as Choice;
+  const shop = { key: "shop", side: "expense" } as const;
+
+  const rowOf = (state: State, rowNumber: number) =>
+    state.pendingBatch!.rows.find((row) => row.rowNumber === rowNumber) as ParsedRow & {
+      keptInReview?: boolean;
+    };
+  const categoryNamed = (state: State, side: "expense" | "income", name: string) =>
+    state.categories.find((c) => c.side === side && c.name === name);
+
+  test("assignGroup creates the category on the group's side and gives it to every row in one change", async () => {
+    const { db, store, profile, cash } = await setUp();
+    await importInto(store, cash, profile);
+    const before = store.getState();
+
+    expect(await assignGroup(store, shop, newCategory("  Pets "))).toBeNull();
+
+    const pets = categoryNamed(store.getState(), "expense", "Pets")!;
+    expect(pets).toMatchObject({ side: "expense", name: "Pets", color: "#845ef7", role: null });
+    expect(store.getState().categories).toHaveLength(before.categories.length + 1);
+    for (const rowNumber of [2, 3]) {
+      const row = rowOf(store.getState(), rowNumber);
+      expect(row.assignment).toStrictEqual({ type: "category", categoryId: pets.id });
+      expect(row.keptInReview).toBe(true);
+    }
+    // The rows outside the group are as they were.
+    expect(rowOf(store.getState(), 4)).toStrictEqual(rowOf(before, 4));
+
+    // Written at once: the category and the rows survive reopening the database.
+    db.close();
+    const state = await reopened();
+    expect(categoryNamed(state, "expense", "Pets")).toEqual(pets);
+    expect(rowOf(state, 2).assignment).toStrictEqual({ type: "category", categoryId: pets.id });
+  });
+
+  test("assignRow creates the category on the row's side and gives it to that row only", async () => {
+    const { store, profile, cash } = await setUp();
+    await importInto(store, cash, profile);
+    const before = store.getState();
+
+    expect(await assignRow(store, 4, newCategory("Parking fees", "#20c997"))).toBeNull();
+
+    const created = categoryNamed(store.getState(), "expense", "Parking fees")!;
+    expect(created.color).toBe("#20c997");
+    const row = rowOf(store.getState(), 4);
+    expect(row.assignment).toStrictEqual({ type: "category", categoryId: created.id });
+    expect(row.keptInReview).toBe(true);
+    for (const rowNumber of [2, 3, 6]) {
+      expect(rowOf(store.getState(), rowNumber)).toStrictEqual(rowOf(before, rowNumber));
+    }
+  });
+
+  test("an income row's new category is an income category, whatever an expense category is called", async () => {
+    const { store, profile, cash } = await setUp();
+    const bytes = new TextEncoder().encode(
+      ["Date;Payee;Purpose;Amount", "05.08.2026;Aunt;Present;100,00"].join("\r\n"),
+    );
+    await importFile(store, { accountId: cash, profile, fileName: "income.csv", bytes });
+
+    // "Groceries" exists on the expense side, which does not stand in the way of an income one.
+    expect(await assignRow(store, 2, newCategory("Groceries"))).toBeNull();
+
+    const created = categoryNamed(store.getState(), "income", "Groceries")!;
+    expect(created.side).toBe("income");
+    expect(rowOf(store.getState(), 2).assignment).toStrictEqual({
+      type: "category",
+      categoryId: created.id,
+    });
+  });
+
+  test("a name the side already has is refused with category-name-taken, and nothing changes", async () => {
+    const { db, store, profile, cash } = await setUp();
+    await importInto(store, cash, profile);
+    const before = store.getState();
+
+    // Whatever the case or the spaces: Categories treats them alike.
+    expect(await assignRow(store, 4, newCategory(" groceries "))).toEqual({
+      code: "category-name-taken",
+      details: { side: "expense" },
+    });
+    expect(await assignGroup(store, shop, newCategory("Groceries"))).toEqual({
+      code: "category-name-taken",
+      details: { side: "expense" },
+    });
+
+    expect(store.getState()).toBe(before);
+    db.close();
+    const state = await reopened();
+    expect(state.categories).toEqual(before.categories);
+    expect(state.pendingBatch).toEqual(before.pendingBatch);
+  });
+
+  test("refuses a colour that is not one, leaving everything as it was", async () => {
+    const { store, profile, cash } = await setUp();
+    await importInto(store, cash, profile);
+    const before = store.getState();
+
+    expect(await assignRow(store, 4, newCategory("Pets", "red"))).toEqual({
+      code: "category-color-invalid",
+    });
+    expect(store.getState()).toBe(before);
+  });
+
+  test("the category stays after the batch is discarded (FR-149)", async () => {
+    const { db, store, profile, cash } = await setUp();
+    await importInto(store, cash, profile);
+    expect(await assignGroup(store, shop, newCategory("Pets"))).toBeNull();
+
+    expect(await discardBatch(store)).toBeNull();
+
+    db.close();
+    const state = await reopened();
+    expect(state.pendingBatch).toBeNull();
+    expect(categoryNamed(state, "expense", "Pets")).toMatchObject({ name: "Pets" });
+  });
+});
+
 describe("suggestCategories (FR-090 – FR-094, FR-061)", () => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
