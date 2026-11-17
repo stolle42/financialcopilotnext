@@ -147,8 +147,8 @@ that already exists, or a broken fixture.
 
 ### Tests of User Story 12: suggested transfers
 
-- [ ] T169 [P] [US12] A new `src/domain/import/transfers.test.ts` for
-  `pairTransfers(rows, accountId, transactions)` and `pairFits(row, state)`
+- [X] T169 [P] [US12] A new `src/domain/import/transfers.test.ts` for
+  `pairTransfers(rows, accountId, transactions, categories)` and `pairFits(row, state)`
   ([FR-142](spec.md#fr-142), [FR-144](spec.md#fr-144), [R-41](research.md#r-41),
   [csv-import.md](contracts/csv-import.md#suggested-transfers)):
   - a row with money in pairs with an expense of equal amount on another account dated 0, 2 and 4
@@ -226,7 +226,7 @@ that already exists, or a broken fixture.
 ### Tests of User Story 13: usual choices
 
 - [ ] T175 [P] [US13] A new `src/domain/import/usual.test.ts` for
-  `usualChoices(rows, accountId, transactions)` ([FR-146](spec.md#fr-146),
+  `usualChoices(rows, accountId, transactions, categories)` ([FR-146](spec.md#fr-146),
   [R-42](research.md#r-42), [csv-import.md](contracts/csv-import.md#usual-choices)):
   - 3 of 5 REWE expenses in Groceries give Groceries; 2 of 4 Amazon expenses in Household and 2 in
     Hobbies give none; 3 of 5 in "Uncategorised" give none, as do 3 of 5 in "Unaccounted";
@@ -447,7 +447,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
 **Independent Test**: `e2e/us12-suggested-transfers.spec.ts` (T174), with T169 – T173.
 
 - [ ] T199 [P] [US12] A new `src/domain/import/transfers.ts` with `pairTransfers(rows, accountId,
-  transactions)` and `pairFits(row, state)`, by the three steps of [R-41](research.md#r-41):
+  transactions, categories)` and `pairFits(row, state)`, by the three steps of [R-41](research.md#r-41):
   candidates indexed by amount in a `Map`, every candidate pair sorted by days apart, row number,
   then the transaction's date and `seq`, and taken while neither side is taken; T169 passes.
 - [ ] T200 [P] [US12] The 4-day window for ledger transfers in `src/domain/import/duplicates.ts`:
@@ -489,7 +489,7 @@ earlier" ([FR-146](spec.md#fr-146), [FR-147](spec.md#fr-147), [FR-158](spec.md#f
 **Independent Test**: `e2e/us13-usual-choices.spec.ts` (T178), with T175 – T177 and T179.
 
 - [ ] T205 [P] [US13] A new `src/domain/import/usual.ts` with `usualChoices(rows, accountId,
-  transactions)`: one pass over the ledger into a `Map` from (vendor name key, direction) to counts
+  transactions, categories)`: one pass over the ledger into a `Map` from (vendor name key, direction) to counts
   per `category:<id>` and `transfer:<counter-account>`, then for each row with a counterparty the
   choice held by more than half, none when that is "Uncategorised" or "Unaccounted"
   ([R-42](research.md#r-42)); T175 passes.

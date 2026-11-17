@@ -66,7 +66,8 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
 ### R-41 · Pairing rows with the other side of a transfer: closest dates first, once
 
 - **Decision**, for [FR-142](spec.md#fr-142): a pure function `pairTransfers(rows, accountId,
-  transactions)` in `src/domain/import/transfers.ts`, called by `createBatch` after duplicates are
+  transactions,
+  categories)` in `src/domain/import/transfers.ts`, called by `createBatch` after duplicates are
   flagged:
   1. **Candidates**: the expenses and incomes on another account with a category whose role is not
      `unaccounted`, indexed by amount in a `Map`. A row with a non-zero amount looks up its
@@ -101,7 +102,7 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
 ### R-42 · Usual choices from one index of the ledger by vendor
 
 - **Decision**, for [FR-146](spec.md#fr-146) and [FR-158](spec.md#fr-158): a pure function
-  `usualChoices(rows, accountId, transactions)` in `src/domain/import/usual.ts`, also called by
+  `usualChoices(rows, accountId, transactions, categories)` in `src/domain/import/usual.ts`, also called by
   `createBatch`:
   1. One pass over the ledger builds a `Map` from (vendor name key, way the money moves) to a
      count per choice: `category:<id>` for an expense or income with that `vendor`;
