@@ -489,7 +489,7 @@ earlier" ([FR-146](spec.md#fr-146), [FR-147](spec.md#fr-147), [FR-158](spec.md#f
 
 **Independent Test**: `e2e/us13-usual-choices.spec.ts` (T178), with T175 – T177 and T179.
 
-- [ ] T205 [P] [US13] A new `src/domain/import/usual.ts` with `usualChoices(rows, accountId,
+- [X] T205 [P] [US13] A new `src/domain/import/usual.ts` with `usualChoices(rows, accountId,
   transactions, categories)`: one pass over the ledger into a `Map` from (vendor name key, direction) to counts
   per `category:<id>` and `transfer:<counter-account>`, then for each row with a counterparty the
   choice held by more than half, none when that is "Uncategorised" or "Unaccounted"
