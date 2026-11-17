@@ -10,7 +10,15 @@ import { openAiError } from "../../src/ai/testing";
 import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
-import { addAccount, addTransaction, choose, screenIntro, storedRecords } from "../support/app";
+import {
+  addAccount,
+  addTransaction,
+  choose,
+  pickCategory,
+  screenIntro,
+  storedRecords,
+} from "../support/app";
+import { backupText, restoreBackup, storedData } from "../support/backup";
 import {
   standInCategoriser,
   suggestBySide,
@@ -702,4 +710,108 @@ test("says once, above the rows, what the Transfer switch is for (FR-138)", asyn
   const line = (await main.getByText(TRANSFER_LINE).boundingBox())!;
   const first = (await vendorGroups(page).first().boundingBox())!;
   expect(line.y).toBeLessThan(first.y);
+});
+
+// contracts/ui.md, review, Marks; FR-147, FR-154. A ledger whose vendors were sorted before gives
+// August's rows their usual categories, marked "From earlier", beside the AI's "Suggested". The
+// vendors of v1.8 are not in the types yet, so the earlier transactions are written as plain data.
+test.describe("the marks: Suggested and From earlier (FR-147, FR-154)", () => {
+  const SENTENCE = /most earlier transactions of this vendor/i;
+  const earlier = (scope: Locator) => scope.getByText("From earlier", { exact: true });
+  const suggested = (scope: Locator) => scope.getByText("Suggested", { exact: true });
+
+  /** Cash's July: Shop all in Groceries, Bäckerei Krüger 2 of 3 in Eating out, Parking in Transport. */
+  async function withEarlierMonth(page: Page) {
+    await page.goto("/");
+    const base = await storedData(page);
+    const cash = base.accounts.find((a) => a.name === "Cash")!;
+    const expenseId = (name: string) =>
+      base.categories.find((c) => c.side === "expense" && c.name === name)!.id;
+    let seq = base.transactions.reduce((max, t) => Math.max(max, t.seq), 0);
+    const added: Transaction[] = [];
+    const add = (vendor: string, categoryName: string) => {
+      seq += 1;
+      added.push({
+        id: `july-${seq}`,
+        seq,
+        date: "2026-07-10",
+        amountCents: 1_000 + seq,
+        accountId: cash.id,
+        description: `July (${vendor})`,
+        kind: "expense",
+        categoryId: expenseId(categoryName),
+        vendor,
+      } as unknown as Transaction);
+    };
+    for (const category of ["Groceries", "Groceries", "Groceries"]) add("Shop", category);
+    for (const category of ["Eating out", "Eating out", "Groceries"]) {
+      add("Bäckerei Krüger", category);
+    }
+    for (const category of ["Transport", "Transport", "Transport"]) add("Parking", category);
+    const backup = { ...base, transactions: [...base.transactions, ...added] };
+    await restoreBackup(page, backupText(backup), undefined, { timeout: 60_000 });
+    await importAugust(page);
+  }
+
+  test("each mark differs from the other in icon and word", async ({ page }) => {
+    await standInCategoriser(page, suggestBySide("Shopping", "Gifts"));
+    await withEarlierMonth(page);
+    await turnOnAiFeatures(page);
+    await suggestCategories(page);
+    await expect(suggestButton(page)).toBeEnabled();
+
+    // Shop's rows hold Groceries from earlier; the credit card's row, which no earlier
+    // transaction names, holds the AI's suggestion.
+    const usual = assignment(page, "row 3");
+    await expect(earlier(usual)).toBeVisible();
+    await expect(usual.locator("svg.lucide-history")).toHaveCount(1);
+    await expect(usual.locator("svg.lucide-sparkles")).toHaveCount(0);
+    await expect(suggested(usual)).toHaveCount(0);
+
+    const ai = assignment(page, "row 11");
+    await expect(suggested(ai)).toBeVisible();
+    await expect(ai.locator("svg.lucide-sparkles")).toHaveCount(1);
+    await expect(ai.locator("svg.lucide-history")).toHaveCount(0);
+    await expect(earlier(ai)).toHaveCount(0);
+  });
+
+  test("the sentence shows once, above the first item that holds the mark, and describes the mark on every row", async ({
+    page,
+  }) => {
+    await withEarlierMonth(page);
+
+    await expect(reviewList(page).getByText(SENTENCE)).toHaveCount(1);
+    const sentence = (await reviewList(page).getByText(SENTENCE).boundingBox())!;
+    const first = (await vendorGroups(page).first().boundingBox())!;
+    expect(sentence.y).toBeLessThan(first.y);
+
+    const shop = group(page, "Shop, expenses");
+    await shop.getByRole("button", { name: "Show rows" }).click();
+    await expect(earlier(assignment(shop, "Shop, expenses"))).toHaveAccessibleDescription(SENTENCE);
+    for (const rowNumber of [3, 5, 7]) {
+      await expect(earlier(assignment(shop, `row ${rowNumber}`))).toHaveAccessibleDescription(
+        SENTENCE,
+      );
+    }
+    await expect(earlier(assignment(page, "row 9"))).toHaveAccessibleDescription(SENTENCE);
+  });
+
+  test("a group whose rows are mixed shows no mark, and its unfolded rows show theirs", async ({
+    page,
+  }) => {
+    await withEarlierMonth(page);
+    const bakery = group(page, "Bäckerei Krüger, expenses");
+    await expect(earlier(assignment(bakery, "Bäckerei Krüger, expenses"))).toBeVisible();
+
+    await bakery.getByRole("button", { name: "Show rows" }).click();
+    await pickCategory(page, assignment(bakery, "row 4"), "Travel");
+
+    const header = assignment(bakery, "Bäckerei Krüger, expenses");
+    await expect(header).toContainText("Mixed");
+    await expect(earlier(header)).toHaveCount(0);
+    await expect(earlier(assignment(bakery, "row 4"))).toHaveCount(0);
+    for (const rowNumber of [8, 17]) {
+      await expect(earlier(assignment(bakery, `row ${rowNumber}`))).toBeVisible();
+    }
+  });
 });

@@ -268,7 +268,7 @@ that already exists, or a broken fixture.
   transaction confirmed, then edited on Transactions to another category, counts with that
   category in the next import (scenario 6); and on T163's generated month, every row starts with
   the choice the generator listed.
-- [ ] T179 [US13] In `e2e/ui/review.spec.ts`, a block for the marks
+- [X] T179 [US13] In `e2e/ui/review.spec.ts`, a block for the marks
   ([contracts/ui.md](contracts/ui.md#review) Marks): "Suggested" with a sparkle icon and "From
   earlier" with a history icon differ in icon and word; the mark's sentence is its accessible
   description on every row that holds it; a group whose rows are mixed shows no mark and its
