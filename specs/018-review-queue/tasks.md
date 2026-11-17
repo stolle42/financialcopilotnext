@@ -48,7 +48,7 @@ of Phase 2 need.
   [installable app checks](../001-finance-tracker-v1/quickstart.md#installable-app-checks), the
   Update from v1.6 included, walked at the web address. Each step not done is done now, and this
   task records what was found.
-- [ ] T161 [P] Add shadcn/ui's combobox with its CLI (`npx shadcn@latest add combobox`) as
+- [X] T161 [P] Add shadcn/ui's combobox with its CLI (`npx shadcn@latest add combobox`) as
   `src/ui/components/ui/combobox.tsx`, built on the `Combobox` of `@base-ui/react`, which is
   already a dependency, so `package.json` gains no package ([R-43](research.md#r-43),
   [001 R-03](../001-finance-tracker-v1/research.md#r-03)). Nothing uses it yet; `npm run lint`
