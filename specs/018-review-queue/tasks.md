@@ -451,7 +451,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
   transactions, categories)` and `pairFits(row, state)`, by the three steps of [R-41](research.md#r-41):
   candidates indexed by amount in a `Map`, every candidate pair sorted by days apart, row number,
   then the transaction's date and `seq`, and taken while neither side is taken; T169 passes.
-- [ ] T200 [P] [US12] The 4-day window for ledger transfers in `src/domain/import/duplicates.ts`:
+- [X] T200 [P] [US12] The 4-day window for ledger transfers in `src/domain/import/duplicates.ts`:
   a transfer matches a row on its source side with money out or on its destination side with
   money in, up to 4 days apart; all other matching stays exact
   ([csv-import.md](contracts/csv-import.md#duplicate-matching)); T170 passes.
