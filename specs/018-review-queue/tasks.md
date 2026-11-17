@@ -306,7 +306,7 @@ that already exists, or a broken fixture.
   list's order, with the first highlighted; the arrow keys move the highlight and Enter picks;
   Escape closes the list and leaves the field as it was; "Unaccounted" and an empty choice never
   show; with nothing matching, the list says "No category matches".
-- [ ] T184 [P] [US14] A new `e2e/us14-keyboard-review.spec.ts`, User Story 14's seven scenarios,
+- [X] T184 [P] [US14] A new `e2e/us14-keyboard-review.spec.ts`, User Story 14's seven scenarios,
   with `page.keyboard` only from the moment review opens
   ([quickstart.md](quickstart.md#us14-keyboard-review)): on a batch of 40 items, the first item is
   current and its picker has focus; "gro" and Tab give the item Groceries and make the next one

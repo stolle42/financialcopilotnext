@@ -142,7 +142,7 @@ Replaces 001's [Review](../../001-finance-tracker-v1/contracts/ui.md#review) in 
   - Unfolding a group makes it current; its rows become items after it.
 - **Seen items** ([FR-151](../spec.md#fr-151)): an item becomes seen when the focus moves away
   from it, as the FR states. An item that is not current and is seen shows a check icon before
-  it, and its text in the secondary ink. An item not seen has neither. Rows of a group seen while
+  it, and its text in the secondary ink. An item not seen has neither. The icons are images named "Seen" and "Current item". While the focus is outside the items, such as on Confirm after Tab from the last item, no item is current, so that item shows the check icon. Rows of a group seen while
   folded show as not seen when it is unfolded. The header's **N not seen yet** counts the
   suggested transfers, groups and plain rows not seen, and reads **All seen** at zero.
 - **Saving**: every change is saved at once, so review progress survives closing the app,
