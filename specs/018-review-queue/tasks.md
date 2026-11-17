@@ -376,7 +376,7 @@ that already exists, or a broken fixture.
   create the category on the row's side and assign it in one change, without marks and with
   `keptInReview`; a taken name is refused with `category-name-taken` and nothing changes; the
   category stays after `discardBatch`.
-- [ ] T192 [US16] In `e2e/ui/category-picker.spec.ts`, after T183, New category…
+- [X] T192 [US16] In `e2e/ui/category-picker.spec.ts`, after T183, New category…
   ([contracts/ui.md](contracts/ui.md#category-picker)): it is always the last item, also while
   searching; with nothing matching it is the only item, highlighted, and Enter opens the dialog
   with the typed text as the name; the dialog is Categories' own, its colour the first one the

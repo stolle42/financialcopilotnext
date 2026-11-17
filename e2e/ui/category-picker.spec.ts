@@ -1,5 +1,12 @@
 import type { Locator, Page } from "@playwright/test";
-import { addTransaction, expectCategory, openTransactionForm, shownCategory } from "../support/app";
+import {
+  addTransaction,
+  expectCategory,
+  openTransactionForm,
+  shownCategory,
+  storedRecords,
+} from "../support/app";
+import type { Category } from "../../src/domain/types";
 import { importWithProfile, saveMyBankProfile } from "../support/import";
 import { expect, setToday, test } from "../support/test";
 
@@ -161,3 +168,119 @@ for (const place of places) {
     });
   });
 }
+
+// New category… (FR-149): the last item of every picker, opening Categories' own dialog.
+
+const newCategoryItem = (page: Page) => page.getByRole("option", { name: "New category…" });
+const newCategoryDialog = (page: Page) => page.getByRole("dialog", { name: "New category" });
+const header = (page: Page) => page.getByRole("region", { name: "Batch" });
+const current = (page: Page) => reviewList(page).locator('[aria-current="true"]');
+
+/** The first palette colour each side of the seed does not use yet (categories.spec.ts). */
+const FIRST_FREE = { expense: "#37b24d", income: "#40c057" } as const;
+
+for (const place of places) {
+  test.describe(`New category… in ${place.name}`, () => {
+    test("is the only item when nothing matches, highlighted, and Enter opens the dialog named by the text", async ({
+      page,
+    }) => {
+      const { scope } = await place.open(page);
+      await field(scope).click();
+      await field(scope).fill("Pets");
+      await expect(page.getByText("No category matches")).toBeVisible();
+      await expect(options(page)).toHaveCount(1);
+      await expect(newCategoryItem(page)).toBeVisible();
+      const id = await newCategoryItem(page).getAttribute("id");
+      await expect(field(scope)).toHaveAttribute("aria-activedescendant", id!);
+
+      await field(scope).press("Enter");
+
+      await expect(newCategoryDialog(page)).toBeVisible();
+      await expect(newCategoryDialog(page).getByLabel("Name")).toHaveValue("Pets");
+    });
+
+    test("opens Categories' dialog with the first free colour, and creating picks the new category", async ({
+      page,
+    }) => {
+      const { scope } = await place.open(page);
+      await field(scope).click();
+      const side = (await names(page)).includes("Salary") ? "income" : "expense";
+      await newCategoryItem(page).click();
+
+      const dialog = newCategoryDialog(page);
+      await expect(dialog.getByRole("radio", { name: FIRST_FREE[side] })).toBeChecked();
+      await dialog.getByLabel("Name").fill("Pets");
+      await dialog.getByRole("button", { name: "Create category" }).click();
+
+      await expect(dialog).toHaveCount(0);
+      await expectCategory(scope, "Pets");
+      const stored = (await storedRecords<Category>(page, "categories")).find(
+        (c) => c.side === side && c.name === "Pets",
+      );
+      expect(stored).toMatchObject({ color: FIRST_FREE[side] });
+    });
+
+    test("Cancel leaves the field as it was, and creates nothing", async ({ page }) => {
+      const { scope, shown } = await place.open(page);
+      await field(scope).click();
+      await newCategoryItem(page).click();
+      const dialog = newCategoryDialog(page);
+      await dialog.getByLabel("Name").fill("Pets");
+
+      await dialog.getByRole("button", { name: "Cancel" }).click();
+
+      await expect(dialog).toHaveCount(0);
+      expect(await shownCategory(scope)).toBe(shown);
+      const all = await storedRecords<Category>(page, "categories");
+      expect(all.some((c) => c.name === "Pets")).toBe(false);
+    });
+  });
+}
+
+test("the cell of Transactions saves the new category at once", async ({ page }) => {
+  await page.goto("/");
+  await addTransaction(page, { amount: "40.00", category: "Groceries", description: "Shop" });
+  const row = page.getByRole("listitem").filter({ hasText: "Shop" });
+  await row.getByRole("button", { name: "Groceries", exact: true }).click();
+  await field(row).click();
+  await newCategoryItem(page).click();
+  const dialog = newCategoryDialog(page);
+  await dialog.getByLabel("Name").fill("Pets");
+  await dialog.getByRole("button", { name: "Create category" }).click();
+  await expect(dialog).toHaveCount(0);
+
+  const pets = (await storedRecords<Category>(page, "categories")).find((c) => c.name === "Pets")!;
+  await expect
+    .poll(async () => {
+      const [saved] = await storedRecords<{ kind: string; categoryId?: string }>(
+        page,
+        "transactions",
+      );
+      return saved?.categoryId;
+    })
+    .toBe(pets.id);
+  await expect(row.getByRole("button", { name: "Pets", exact: true })).toBeVisible();
+});
+
+test("opening the dialog from the current review item leaves it current and not seen (FR-151)", async ({
+  page,
+}) => {
+  await saveMyBankProfile(page);
+  await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
+  const count = await header(page).textContent();
+  expect(count).toMatch(/\d+ not seen yet/);
+  const item = current(page);
+  await expect(item).toHaveCount(1);
+  const text = await item.textContent();
+
+  await field(item).click();
+  await newCategoryItem(page).click();
+  await expect(newCategoryDialog(page)).toBeVisible();
+  await newCategoryDialog(page).getByRole("button", { name: "Cancel" }).click();
+
+  await expect(newCategoryDialog(page)).toHaveCount(0);
+  await expect(current(page)).toHaveCount(1);
+  expect(await current(page).textContent()).toBe(text);
+  await expect(header(page)).toHaveText(count!);
+  await expect(page.getByRole("img", { name: "Seen" })).toHaveCount(0);
+});
