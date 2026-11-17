@@ -806,3 +806,115 @@ test.describe("the marks: Suggested and From earlier (FR-147, FR-154)", () => {
     }
   });
 });
+
+// contracts/ui.md, review, current item and seen items; FR-150, FR-151, FR-154. The icons are
+// images named "Current item" and "Seen", so they differ in shape as well as colour.
+test.describe("the current and the seen items (FR-150, FR-151)", () => {
+  const current = (page: Page) => reviewList(page).locator('[aria-current="true"]');
+  const seenIcons = (scope: Page | Locator) => scope.getByRole("img", { name: "Seen" });
+  const currentIcons = (scope: Page | Locator) => scope.getByRole("img", { name: "Current item" });
+  const textColour = (item: Locator) => item.evaluate((el) => getComputedStyle(el).color);
+
+  test.beforeEach(async ({ page }) => {
+    await importAugust(page);
+  });
+
+  test("the first item is current: a 2px outline, a 4px bar at its left and the arrow icon", async ({
+    page,
+  }) => {
+    await expect(current(page)).toHaveCount(1);
+    await expect(current(page)).toContainText("Shop");
+    await expect(current(page)).toHaveCSS("outline-width", "2px");
+    await expect(current(page)).toHaveCSS("outline-style", "solid");
+    await expect(current(page)).toHaveCSS("border-left-width", "4px");
+    await expect(currentIcons(current(page))).toHaveCount(1);
+    await expect(seenIcons(current(page))).toHaveCount(0);
+  });
+
+  test("an item not seen has neither the icons nor the outline", async ({ page }) => {
+    const other = plainRows(page).first();
+    await expect(other).not.toHaveAttribute("aria-current", "true");
+    await expect(currentIcons(other)).toHaveCount(0);
+    await expect(seenIcons(other)).toHaveCount(0);
+    await expect(other).not.toHaveCSS("border-left-width", "4px");
+    await expect(other).not.toHaveCSS("outline-width", "2px");
+  });
+
+  test("a seen item that is not current has the check icon and its text in the secondary ink", async ({
+    page,
+  }) => {
+    const other = plainRows(page).first();
+    const unseenColour = await textColour(other);
+    const shop = group(page, "Shop, expenses");
+
+    await other.click();
+
+    await expect(current(page)).toHaveCount(1);
+    await expect(other).toHaveAttribute("aria-current", "true");
+    await expect(seenIcons(shop)).toHaveCount(1);
+    await expect(currentIcons(shop)).toHaveCount(0);
+    await expect(shop).not.toHaveCSS("outline-width", "2px");
+    expect(await textColour(shop)).not.toBe(unseenColour);
+  });
+
+  test("the current item scrolls into view when it changes", async ({ page }) => {
+    await page.setViewportSize({ width: 1000, height: 420 });
+    // Tab goes through the items from the first, so the sixth is far down a short window.
+    for (let n = 0; n < 6; n++) await page.keyboard.press("Tab");
+    await expect(current(page)).toHaveCount(1);
+    await expect(current(page)).toBeInViewport();
+    await expect(current(page)).not.toContainText("Shop");
+  });
+
+  test("unfolding a group makes it current, and its rows follow it as items", async ({ page }) => {
+    const shop = group(page, "Shop, expenses");
+    await plainRows(page).first().click();
+    await expect(shop).not.toHaveAttribute("aria-current", "true");
+
+    await shop.getByRole("button", { name: "Show rows" }).click();
+
+    await expect(shop).toHaveAttribute("aria-current", "true");
+    const rows = shop.getByRole("listitem");
+    await expect(rows).toHaveCount(3);
+    await rows.nth(1).click();
+    await expect(rows.nth(1)).toHaveAttribute("aria-current", "true");
+    await expect(shop).not.toHaveAttribute("aria-current", "true");
+    await expect(current(page)).toHaveCount(1);
+  });
+
+  test("clicking another item makes the current one seen, and opening its own list does not", async ({
+    page,
+  }) => {
+    const shop = group(page, "Shop, expenses");
+    await assignment(shop, "Shop, expenses").getByLabel("Category", { exact: true }).click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await expect(seenIcons(shop)).toHaveCount(0);
+    await expect(shop).toHaveAttribute("aria-current", "true");
+    await page.keyboard.press("Escape");
+    await expect(seenIcons(shop)).toHaveCount(0);
+
+    await plainRows(page).first().click();
+
+    await expect(seenIcons(shop)).toHaveCount(1);
+  });
+
+  test("focusing Discard in the footer makes the current item seen", async ({ page }) => {
+    await expect(seenIcons(reviewList(page))).toHaveCount(0);
+
+    await footer(page).getByRole("button", { name: "Discard" }).focus();
+
+    await expect(seenIcons(group(page, "Shop, expenses"))).toHaveCount(1);
+    await expect(current(page)).toHaveCount(0);
+  });
+
+  test("a line above the items says that typing finds a category and Tab moves on (FR-154)", async ({
+    page,
+  }) => {
+    const line = page.getByRole("main").getByText(/typing finds a category/i);
+    await expect(line).toHaveCount(1);
+    await expect(line).toContainText(/Tab moves to the next row/i);
+    const lineBox = (await line.boundingBox())!;
+    const firstBox = (await vendorGroups(page).first().boundingBox())!;
+    expect(lineBox.y).toBeLessThan(firstBox.y);
+  });
+});

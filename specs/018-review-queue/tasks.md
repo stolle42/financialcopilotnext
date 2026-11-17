@@ -316,7 +316,7 @@ that already exists, or a broken fixture.
   seen, the header says 28, and the 13th is current; Tab on the last item focuses Confirm, that
   item shows the check icon, and the header's "N not seen yet" reads "All seen"; a group passed
   while folded shows its rows not seen when unfolded; clicking a row makes it current.
-- [ ] T185 [US14] In `e2e/ui/review.spec.ts`, after T179 and T182, a block for the current and
+- [X] T185 [US14] In `e2e/ui/review.spec.ts`, after T179 and T182, a block for the current and
   seen items ([contracts/ui.md](contracts/ui.md#review)): the current item has the 2px outline,
   the 4px left bar and the arrow icon; a seen item that is not current has the check icon and its
   text in the secondary ink; an item not seen has neither; the current item scrolls into view
