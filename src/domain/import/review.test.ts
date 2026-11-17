@@ -3,7 +3,14 @@ import { protectedCategory } from "../categories";
 import { seedState } from "../seed";
 import { applyValid, changesOf, idCounter } from "../testing";
 import type { Assignment, ParsedRow, Side, State } from "../types";
-import { assignGroup, assignRow, includeDuplicate, markGroupSeen, markSeen } from "./review";
+import {
+  assignGroup,
+  assignRow,
+  bringBack,
+  includeDuplicate,
+  markGroupSeen,
+  markSeen,
+} from "./review";
 
 // FR-023, FR-025, FR-026; contracts/ui.md, review; contracts/csv-import.md, vendor groups.
 
@@ -562,5 +569,77 @@ describe("seen marks (FR-151)", () => {
     const next = applyValid(state, changesOf(markSeen(state, [7])));
 
     expect(next.pendingBatch).toStrictEqual(state.pendingBatch);
+  });
+});
+
+describe("keptInReview: what keeps a row out of the set-aside rows (FR-152, FR-153)", () => {
+  const keptOf = (state: State, rowNumber: number) =>
+    (rowOf(state, rowNumber) as { keptInReview?: boolean }).keptInReview;
+
+  test("assigning a row a category sets keptInReview on it, and on no other row", () => {
+    const state = withBatch();
+    const groceries: Assignment = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Groceries"),
+    };
+
+    const next = applyValid(state, changesOf(assignRow(state, 3, groceries)));
+
+    expect(keptOf(next, 3)).toBe(true);
+    for (const rowNumber of [2, 4, 5, 6]) expect(keptOf(next, rowNumber)).toBeUndefined();
+  });
+
+  test("assigning a transfer, or Uncategorised again, sets it as well: any choice counts", () => {
+    const state = withBatch();
+
+    const asTransfer = applyValid(
+      state,
+      changesOf(assignRow(state, 6, { type: "transfer", counterAccountId: "card" })),
+    );
+    const again = applyValid(state, changesOf(assignRow(state, 2, "uncategorised")));
+
+    expect(keptOf(asTransfer, 6)).toBe(true);
+    expect(keptOf(again, 2)).toBe(true);
+    expect(rowOf(again, 2).assignment).toEqual(rowOf(state, 2).assignment);
+  });
+
+  test("assigning a group sets keptInReview on each row it reaches, and on no other", () => {
+    const state = withBatch();
+    const travel: Assignment = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Travel"),
+    };
+
+    const next = applyValid(state, changesOf(assignGroup(state, shopExpenses, travel)));
+
+    expect([2, 3].map((n) => keptOf(next, n))).toEqual([true, true]);
+    for (const rowNumber of [4, 5, 6]) expect(keptOf(next, rowNumber)).toBeUndefined();
+  });
+
+  test("bringBack sets keptInReview and keeps the assignment, with its usual mark", () => {
+    const state = withBatch();
+    const batch = state.pendingBatch!;
+    const usual = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Groceries"),
+      usual: true,
+    } as unknown as Assignment;
+    const usualRows = batch.rows.map((r) => (r.rowNumber === 2 ? { ...r, assignment: usual } : r));
+    const held = applyValid(state, { pendingBatch: { put: [{ ...batch, rows: usualRows }] } });
+
+    const next = applyValid(held, changesOf(bringBack(held, 2)));
+
+    expect(keptOf(next, 2)).toBe(true);
+    expect(rowOf(next, 2)).toStrictEqual({ ...rowOf(held, 2), keptInReview: true });
+    for (const rowNumber of [3, 4, 5, 6]) {
+      expect(rowOf(next, rowNumber)).toStrictEqual(rowOf(held, rowNumber));
+    }
+  });
+
+  test("bringBack is idempotent", () => {
+    const state = withBatch();
+    const once = applyValid(state, changesOf(bringBack(state, 3)));
+    const twice = applyValid(once, changesOf(bringBack(once, 3)));
+    expect(twice.pendingBatch).toStrictEqual(once.pendingBatch);
   });
 });

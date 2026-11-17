@@ -312,3 +312,159 @@ describe("sharedAssignment: the assignment and mark a group shows (FR-147)", () 
     expect(sharedAssignment([])).toBeNull();
   });
 });
+
+describe("reviewView: rows set aside (FR-152, FR-153)", () => {
+  // `setAsideUnderCents` and `keptInReview` are v1.8 fields the types do not carry yet.
+  const kept = (row: ParsedRow): ParsedRow => ({ ...row, keptInReview: true }) as ParsedRow;
+  const transfer = (amountCents: number, marks: Record<string, unknown>): ParsedRow =>
+    parsed({
+      amountCents,
+      assignment: {
+        type: "transfer",
+        counterAccountId: "card",
+        ...marks,
+      } as unknown as ParsedRow["assignment"],
+    });
+  const rowNumbers = (rows: readonly ParsedRow[]) => rows.map((row) => row.rowNumber);
+
+  test("sets aside expenses and income of an amount under the one set, and keeps the others under review", () => {
+    const small = parsed({ amountCents: -50, date: "2026-08-03" });
+    const smaller = parsed({ amountCents: -99, date: "2026-08-02" });
+    const income = parsed({ amountCents: 12, date: "2026-08-01" });
+    const exactly = parsed({ amountCents: -100 });
+    const large = parsed({ amountCents: -2500 });
+    const view = reviewView(batchOf([small, smaller, income, exactly, large]), [], 100);
+
+    expect(view.setAside).toEqual([income, smaller, small]);
+    expect(view.plainRows).toEqual([exactly, large]);
+    expect(view.counts).toMatchObject({ review: 2, setAside: 3 });
+  });
+
+  test("sets aside nothing while no amount is set", () => {
+    const rows = [parsed({ amountCents: -1 }), parsed({ amountCents: 1 })];
+    const view = reviewView(batchOf(rows), []);
+    expect(view.setAside).toEqual([]);
+    expect(view.counts).toMatchObject({ review: 2, setAside: 0 });
+    expect(view.plainRows).toHaveLength(2);
+  });
+
+  test("lists the rows set aside by date, then row number", () => {
+    const later = parsed({ amountCents: -10, date: "2026-08-09" });
+    const sameDayFirst = parsed({ amountCents: -20, date: "2026-08-04" });
+    const sameDayLast = parsed({ amountCents: -30, date: "2026-08-04" });
+    const earlier = parsed({ amountCents: -40, date: "2026-08-01" });
+    const view = reviewView(batchOf([later, sameDayLast, earlier, sameDayFirst]), [], 100);
+    expect(rowNumbers(view.setAside)).toEqual(
+      rowNumbers([earlier, sameDayFirst, sameDayLast, later].sort(byDateThenRow)),
+    );
+    expect(view.setAside[0]).toBe(earlier);
+    expect(view.setAside.at(-1)).toBe(later);
+  });
+
+  test("keeps a row set aside out of every group and plain row", () => {
+    const rows = [shop(-100), shop(-200), shop(-50), shop(-300), parsed({ amountCents: -40 })];
+    const view = reviewView(batchOf(rows), [], 100);
+    // Shop's 0.50 and the unnamed 0.40 are set aside; 1.00, 2.00 and 3.00 are a group of three.
+    expect(view.groups).toHaveLength(1);
+    expect(view.groups[0]).toMatchObject({ key: "shop", count: 3, totalCents: -600 });
+    expect(view.groups[0]!.rows).not.toContain(rows[2]);
+    expect(view.plainRows).toEqual([]);
+    expect(view.setAside).toHaveLength(2);
+  });
+
+  test("a group left with one row becomes a plain row", () => {
+    const rows = [shop(-100), shop(-50), shop(-20)];
+    const view = reviewView(batchOf(rows), [], 100);
+    expect(view.groups).toEqual([]);
+    expect(view.plainRows).toEqual([rows[0]]);
+    expect(view.setAside).toHaveLength(2);
+  });
+
+  test("a transfer stays under review, suggested, usual or marked", () => {
+    const suggestedTransfer = transfer(-50, { pairedTransactionId: "p1" });
+    const usualTransfer = transfer(-50, { usual: true });
+    const marked = transfer(-50, {});
+    const pairedWith: Transaction = {
+      id: "p1",
+      seq: 1,
+      date: "2026-08-01",
+      amountCents: 50,
+      accountId: "card",
+      description: "Payment received",
+      kind: "income",
+      categoryId: "salary",
+    };
+    const view = reviewView(batchOf([suggestedTransfer, usualTransfer, marked]), [pairedWith], 100);
+
+    expect(view.setAside).toEqual([]);
+    expect(view.suggestedTransfers.map((s) => s.row)).toEqual([suggestedTransfer]);
+    expect(view.plainRows).toEqual([usualTransfer, marked]);
+    expect(view.counts).toMatchObject({ setAside: 0, suggestedTransfers: 1, review: 2 });
+  });
+
+  test("a row with keptInReview stays under review, with whatever it holds", () => {
+    const gave = kept(parsed({ amountCents: -50 }));
+    const view = reviewView(batchOf([gave]), [], 100);
+    expect(view.setAside).toEqual([]);
+    expect(view.plainRows).toEqual([gave]);
+  });
+
+  test("an excluded duplicate is not set aside, and stays among the duplicates", () => {
+    const excluded = parsed({ amountCents: -50, duplicate: true, included: false });
+    const view = reviewView(batchOf([excluded]), [], 100);
+    expect(view.setAside).toEqual([]);
+    expect(view.duplicates).toEqual([excluded]);
+    expect(view.counts).toMatchObject({ setAside: 0, duplicates: 1 });
+  });
+
+  test("a row holding a category of its own is set aside while it is not kept in review", () => {
+    // A category from usual choices or the AI; the row was not given it by the user.
+    const usualCategory = parsed({
+      amountCents: -50,
+      assignment: {
+        type: "category",
+        categoryId: "groceries",
+        usual: true,
+      } as unknown as ParsedRow["assignment"],
+    });
+    const view = reviewView(batchOf([usualCategory]), [], 100);
+    expect(view.setAside).toEqual([usualCategory]);
+    expect(view.plainRows).toEqual([]);
+  });
+
+  test("lowering or clearing the amount brings rows back holding what they held, their usual category included", () => {
+    const usualCategory = parsed({
+      amountCents: -50,
+      assignment: {
+        type: "category",
+        categoryId: "groceries",
+        usual: true,
+      } as unknown as ParsedRow["assignment"],
+    });
+    const plain = parsed({ amountCents: -99 });
+    const batch = batchOf([usualCategory, plain]);
+    expect(reviewView(batch, [], 100).setAside).toHaveLength(2);
+
+    const lowered = reviewView(batch, [], 60);
+    expect(lowered.setAside).toEqual([usualCategory]);
+    expect(lowered.plainRows).toEqual([plain]);
+
+    const cleared = reviewView(batch, []);
+    expect(cleared.setAside).toEqual([]);
+    expect(cleared.plainRows).toEqual([usualCategory, plain].sort(byDateThenRow));
+    // The very row object comes back, with its usual category and mark.
+    expect(cleared.plainRows).toContain(usualCategory);
+    expect(usualCategory.assignment).toMatchObject({ categoryId: "groceries", usual: true });
+  });
+
+  test("an unparsable row is not set aside", () => {
+    const broken = unparsable();
+    const view = reviewView(batchOf([broken]), [], 100);
+    expect(view.setAside).toEqual([]);
+    expect(view.unparsable).toEqual([broken]);
+  });
+});
+
+function byDateThenRow(a: ParsedRow, b: ParsedRow): number {
+  return a.date < b.date ? -1 : a.date > b.date ? 1 : a.rowNumber - b.rowNumber;
+}

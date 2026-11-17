@@ -240,3 +240,58 @@ describe("notSeenCount and firstNotSeen (FR-151)", () => {
     expect(firstNotSeen([])).toBeUndefined();
   });
 });
+
+describe("rows set aside are no item (FR-152, FR-151)", () => {
+  const setAsideView = (rows: ParsedRow[], under = 100) => {
+    const batch: PendingBatch = {
+      id: "batch",
+      accountId: "checking",
+      fileName: "bank.csv",
+      createdAt: "",
+      rows,
+    };
+    return reviewView(batch, [], under);
+  };
+
+  test("are listed by no item, whether groups, plain rows or suggested transfers are", () => {
+    const small = parsed({ amountCents: -50 });
+    const large = parsed({ amountCents: -2500 });
+    const items = reviewItems(setAsideView([small, large]), new Set());
+    expect(idsOf(items)).toEqual([`row ${large.rowNumber}`]);
+  });
+
+  test("count as neither seen nor not seen, even when they carry seen", () => {
+    const seenSmall = withMarks(parsed({ amountCents: -50 }), { seen: true });
+    const newSmall = parsed({ amountCents: -60 });
+    const newLarge = parsed({ amountCents: -2500 });
+    const items = reviewItems(setAsideView([seenSmall, newSmall, newLarge]), new Set());
+    expect(items).toHaveLength(1);
+    expect(notSeenCount(items)).toBe(1);
+    expect(items.map(itemSeen)).toEqual([false]);
+  });
+
+  test("a batch of rows set aside only has nothing to review: no item, nothing first, none not seen", () => {
+    const items = reviewItems(
+      setAsideView([parsed({ amountCents: -50 }), parsed({ amountCents: 20 })]),
+      new Set(),
+    );
+    expect(items).toEqual([]);
+    expect(notSeenCount(items)).toBe(0);
+    expect(firstNotSeen(items)).toBeUndefined();
+  });
+
+  test("a group's rows set aside are not among its rows once unfolded", () => {
+    const rows = [
+      vendor("Shop", -100),
+      vendor("Shop", -200),
+      vendor("Shop", -300),
+      vendor("Shop", -50),
+    ];
+    const view = setAsideView(rows);
+    const items = reviewItems(view, new Set([groupItemId(view.groups[0]!)]));
+    expect(idsOf(items)).toEqual([
+      "group expense shop",
+      ...rows.slice(0, 3).map((row) => `row ${row.rowNumber}`),
+    ]);
+  });
+});

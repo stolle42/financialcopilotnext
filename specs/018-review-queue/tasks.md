@@ -334,7 +334,7 @@ that already exists, or a broken fixture.
   - in `src/store/settings.test.ts`: "1.00", "1,00" and "0.5" store 100, 100 and 50; "abc", "0",
     "-1" and "1.005" store nothing, remove the amount and give `set-aside-amount-invalid`; an
     empty field removes the amount; the amount survives a reload.
-- [ ] T187 [US15] Rows set aside ([FR-152](spec.md#fr-152), [FR-153](spec.md#fr-153),
+- [X] T187 [US15] Rows set aside ([FR-152](spec.md#fr-152), [FR-153](spec.md#fr-153),
   [data-model.md](data-model.md#derived-values)), after T181:
   - in `src/domain/import/groups.test.ts`: with 100 set, expenses of 0.50 and 0.99 and an income
     of 0.12 are set aside, and expenses of 1.00 and 25.00 stay under review; a transfer of 0.50,

@@ -490,3 +490,51 @@ describe("rows with a usual choice and the AI (FR-148)", () => {
     expect(rowOf(next, 3).assignment).toMatchObject({ suggested: true });
   });
 });
+
+describe("rows set aside and the AI (FR-152)", () => {
+  /** The mixed batch with the amount under which rows are set aside: 10.00. */
+  function withSetAside(under: number | undefined): State {
+    const state = mixedBatch();
+    const settings = { ...state.settings } as Record<string, unknown>;
+    if (under === undefined) delete settings.setAsideUnderCents;
+    else settings.setAsideUnderCents = under;
+    return applyValid(state, { settings: { put: settings as unknown as State["settings"] } });
+  }
+
+  test("rows set aside are not among the rows sent", () => {
+    // Row 6 (5.00) is under 10.00 and in Uncategorised: set aside. Row 8 has no text to send.
+    const state = withSetAside(1000);
+    expect(sentRows(state).rowNumbers).toEqual([2, 3, 9]);
+  });
+
+  test("suggestableRows leaves out the rows set aside of the view it is given", () => {
+    const state = withSetAside(1000);
+    const view = reviewView(state.pendingBatch!, [], 1000);
+    expect(rowNumbersOf(suggestableRows(view, state.categories))).toEqual([2, 3, 9]);
+  });
+
+  test("with no amount set, they are sent as before", () => {
+    expect(sentRows(withSetAside(undefined)).rowNumbers).toEqual([2, 3, 9, 6]);
+  });
+
+  test("a row brought back under review is sent again", () => {
+    const state = withSetAside(1000);
+    const batch = state.pendingBatch!;
+    const rows = batch.rows.map((r) => (r.rowNumber === 6 ? { ...r, keptInReview: true } : r));
+    const brought = applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+    expect(sentRows(brought).rowNumbers).toEqual([2, 3, 9, 6]);
+  });
+
+  test("an answer for a row set aside changes nothing", () => {
+    const state = withSetAside(1000);
+    const result = applySuggestions(state, sentRows(withSetAside(undefined)), [
+      { rowNumber: 6, category: "Groceries" },
+      { rowNumber: 3, category: "Groceries" },
+    ]);
+    if ("code" in result) throw new Error(`Refused: ${result.code}`);
+    const next = applyValid(state, result.changes);
+    expect(result.filled).toBe(1);
+    expect(rowOf(next, 6).assignment).toStrictEqual(rowOf(state, 6).assignment);
+    expect(rowOf(next, 3).assignment).toMatchObject({ suggested: true });
+  });
+});
