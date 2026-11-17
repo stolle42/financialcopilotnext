@@ -521,7 +521,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
 - [X] T209 [P] [US14] A new `src/domain/import/items.ts` with `reviewItems(view, unfolded)`,
   `itemSeen`, `notSeenCount` and `firstNotSeen` ([data-model.md](data-model.md#derived-values),
   [R-44](research.md#r-44)); T180 passes.
-- [ ] T210 [P] [US14] `markSeen(batch, rowNumbers)` and `markGroupSeen(batch, rowNumbers)` in
+- [X] T210 [P] [US14] `markSeen(batch, rowNumbers)` and `markGroupSeen(batch, rowNumbers)` in
   `src/domain/import/review.ts`, and `markSeen(store, item)` in `src/store/import.ts`, which sets
   `seen` on a row item or `groupSeen` on every row of a group and saves at once
   ([FR-151](spec.md#fr-151), [FR-155](spec.md#fr-155)); T181 passes.

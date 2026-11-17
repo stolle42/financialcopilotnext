@@ -121,3 +121,27 @@ export function includeDuplicate(
   if (!parsedRow(batch, rowNumber).duplicate) return { code: "row-not-duplicate" };
   return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, included }));
 }
+
+/**
+ * Marks each parsed row numbered in `rowNumbers` with `field`. A row that is not in the batch, is
+ * unparsable or already holds the mark is left as it is, so marking again changes nothing.
+ */
+function markRows(batch: PendingBatch, rowNumbers: readonly number[], field: "seen" | "groupSeen") {
+  const wanted = new Set(rowNumbers);
+  const rows = batch.rows.map((row) =>
+    row.status === "parsed" && wanted.has(row.rowNumber) && !row[field]
+      ? { ...row, [field]: true as const }
+      : row,
+  );
+  return { pendingBatch: { put: [{ ...batch, rows }] } } satisfies Changes;
+}
+
+/** Marks the rows seen: each was the current item and the focus moved away (FR-151). */
+export function markSeen(state: State, rowNumbers: readonly number[]): Changes {
+  return markRows(pendingBatchOf(state), rowNumbers, "seen");
+}
+
+/** Marks the rows' vendor group seen, keeping each row's own mark (FR-151). */
+export function markGroupSeen(state: State, rowNumbers: readonly number[]): Changes {
+  return markRows(pendingBatchOf(state), rowNumbers, "groupSeen");
+}

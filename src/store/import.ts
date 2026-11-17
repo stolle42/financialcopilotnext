@@ -6,6 +6,7 @@ import {
   discardBatch as decideDiscard,
 } from "@/domain/import/confirm";
 import type { VendorGroup } from "@/domain/import/groups";
+import type { ReviewItem } from "@/domain/import/items";
 import {
   deleteProfile as decideDeleteProfile,
   saveProfile as decideSaveProfile,
@@ -16,6 +17,8 @@ import {
   assignGroup as decideAssignGroup,
   assignRow as decideAssignRow,
   includeDuplicate as decideIncludeDuplicate,
+  markGroupSeen as decideMarkGroupSeen,
+  markSeen as decideMarkSeen,
   type AssignmentChoice,
 } from "@/domain/import/review";
 import { applySuggestions, suggestionRequest } from "@/domain/import/suggestions";
@@ -94,6 +97,20 @@ export function assignGroup(
 
 export function includeDuplicate(store: Store, rowNumber: number, included: boolean) {
   return store.run((state) => decideIncludeDuplicate(state, rowNumber, included));
+}
+
+/**
+ * Marks an item of review seen, written at once: a group marks each of its rows, any other item
+ * its row (FR-151). Seen items survive closing the app.
+ */
+export function markSeen(store: Store, item: ReviewItem) {
+  const rowNumbers =
+    item.kind === "group" ? item.group.rows.map((r) => r.rowNumber) : [item.row.rowNumber];
+  return store.run<never>((state) =>
+    item.kind === "group"
+      ? decideMarkGroupSeen(state, rowNumbers)
+      : decideMarkSeen(state, rowNumbers),
+  );
 }
 
 export function confirmBatch(store: Store) {
