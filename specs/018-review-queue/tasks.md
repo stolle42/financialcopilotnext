@@ -240,7 +240,7 @@ that already exists, or a broken fixture.
   - " rewe " matches "REWE"; a row without counterparty, and transactions without vendor, count
     for nothing;
   - rows flagged as duplicates get their usual choice too.
-- [ ] T176 [US13] In `src/domain/import/batch.test.ts`, after T171, the starting assignments of
+- [X] T176 [US13] In `src/domain/import/batch.test.ts`, after T171, the starting assignments of
   [data-model.md](data-model.md#state-transitions) step 4 and [FR-158](spec.md#fr-158): a usual
   category starts as that category with `usual: true`; a usual transfer as a transfer with that
   counter-account and `usual: true`; a row with both a suggested transfer and a usual category
