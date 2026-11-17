@@ -463,7 +463,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
   drops `pairedTransactionId`; in `src/domain/import/groups.ts`, `reviewView` also takes the
   ledger, leaves paired rows out of the groups, and lists the suggested transfers with their pair
   and whether it fits ([csv-import.md](contracts/csv-import.md#vendor-groups)); T172 passes.
-- [ ] T203 [P] [US12] Confirmation in `src/domain/import/confirm.ts`: a fitting pair converts the
+- [X] T203 [P] [US12] Confirmation in `src/domain/import/confirm.ts`: a fitting pair converts the
   paired transaction, one that no longer fits books as an ordinary transfer, every new transaction
   keeps the row's counterparty as `vendor` or `destinationVendor`, and `confirmationCounts` gives
   the counts of the modal ([data-model.md](data-model.md#state-transitions)); `confirmBatch` in

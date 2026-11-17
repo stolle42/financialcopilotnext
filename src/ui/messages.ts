@@ -267,6 +267,29 @@ export const messages: Record<MessageCode, Wording> = {
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
 
+/**
+ * What the Confirm modal states (FR-157): the rows entering the ledger, how many of them in
+ * "Uncategorised" because they were set aside, and the transactions becoming transfers.
+ */
+export function confirmationSummary(counts: {
+  entering: number;
+  setAside: number;
+  becomingTransfers: number;
+}): string {
+  const rows = `${counts.entering} row${counts.entering === 1 ? "" : "s"}`;
+  const aside =
+    counts.setAside > 0
+      ? `, ${counts.setAside} of them in “Uncategorised” because they were set aside`
+      : "";
+  const transfers =
+    counts.becomingTransfers === 0
+      ? ""
+      : counts.becomingTransfers === 1
+        ? " 1 transaction will become a transfer."
+        : ` ${counts.becomingTransfers} transactions will become transfers.`;
+  return `${rows} will enter the ledger${aside}.${transfers}`;
+}
+
 /** What AI features do, where their data goes and who pays, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
   "Suggest categories in review, and the finance chat. AI features send data to OpenAI, which " +
@@ -362,8 +385,12 @@ export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on
 
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {
-  importConfirmed: (count: number, accountName: string) =>
-    `Added ${transactions(count)} to ${accountName}.`,
+  /** `becameTransfers` of the transactions are transfers, which changes paired ones (FR-144, FR-157). */
+  importConfirmed: (count: number, accountName: string, becameTransfers = 0) =>
+    `Added ${transactions(count)} to ${accountName}.` +
+    (becameTransfers > 0
+      ? ` ${becameTransfers === 1 ? "1 became a transfer" : `${becameTransfers} became transfers`}.`
+      : ""),
   importDiscarded: (fileName: string) =>
     `Discarded the import of ${fileName}. Nothing entered the ledger.`,
   reconciled: (kind: Side, cents: number, categoryName: string) =>
