@@ -392,7 +392,7 @@ that already exists, or a broken fixture.
 
 ### Red run
 
-- [ ] T194 Run the tests of Phase 2: `npm run lint` passes on them, `npm test` and
+- [X] T194 Run the tests of Phase 2: `npm run lint` passes on them, `npm test` and
   `npm run test:e2e` run. Every assertion of new behaviour written in T163 – T193 fails for the
   right reason, a missing module, export or behaviour. Assertions that guard what v1.7 already
   does may pass, such as T165's v1.7 backup restore, T170's exact-date matching of expenses and
