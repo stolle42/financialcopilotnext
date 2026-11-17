@@ -139,7 +139,7 @@ that already exists, or a broken fixture.
   - in `src/ai/faq.test.ts`: still twelve questions; the answer on reviewing an import names
     suggested transfers, "From earlier" and setting small amounts aside, and never says
     "profile".
-- [ ] T168 [P] In `e2e/performance.spec.ts`, the [SC-010](../001-finance-tracker-v1/spec.md#sc-010)
+- [X] T168 [P] In `e2e/performance.spec.ts`, the [SC-010](../001-finance-tracker-v1/spec.md#sc-010)
   check first restores T163's backup of 10,000 transactions with vendors on two accounts, then
   imports the generated 5,000-row file, so pairing and usual choices are inside the 10 s
   ([quickstart.md](quickstart.md#performance), [R-41](research.md#r-41),
