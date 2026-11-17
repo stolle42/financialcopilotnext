@@ -327,7 +327,7 @@ that already exists, or a broken fixture.
 
 ### Tests of User Story 15: set aside
 
-- [ ] T186 [P] [US15] The set-aside amount ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)):
+- [X] T186 [P] [US15] The set-aside amount ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)):
   - in `src/domain/settings.test.ts`: `setSetAsideAmount(state, cents)` stores
     `setAsideUnderCents` ([Settings](data-model.md#settings)), and `undefined` removes it; 0, a
     negative amount and a fraction of a cent are refused;
