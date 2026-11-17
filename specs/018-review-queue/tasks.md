@@ -362,7 +362,7 @@ that already exists, or a broken fixture.
   and every balance equals the same file's with nothing set aside; the next import sets rows under
   1.00 aside from the start. In `e2e/messages.spec.ts`, `set-aside-amount-invalid` is triggered
   and shows its catalogue text ([contracts/ui.md](contracts/ui.md#message-catalogue)).
-- [ ] T190 [US15] In `e2e/ui/review.spec.ts`, after T185, a block for the set-aside field and
+- [X] T190 [US15] In `e2e/ui/review.spec.ts`, after T185, a block for the set-aside field and
   drawer ([contracts/ui.md](contracts/ui.md#review)): the field sits between the header and the
   suggestions, empty at first, with the sentence of [FR-154](spec.md#fr-154) beside it; the
   header's set-aside count shows only when not zero and opens the drawer; the drawer lists date,

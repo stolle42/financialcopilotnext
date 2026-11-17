@@ -918,3 +918,130 @@ test.describe("the current and the seen items (FR-150, FR-151)", () => {
     expect(lineBox.y).toBeLessThan(firstBox.y);
   });
 });
+
+// contracts/ui.md, review, Set aside rows under and the set aside drawer; FR-152, FR-153, FR-154.
+// August's file gives, with 5.00 set, four rows set aside: the two of Bäckerei Krüger's 4.50, the
+// parking ticket and the account fee. The second ticket is a flagged duplicate, which is not set
+// aside. `setAsideUnderCents` and the seen marks are v1.8 fields, read as they are stored.
+test.describe("rows set aside: the field and the drawer (FR-152, FR-153, FR-154)", () => {
+  const field = (page: Page) => page.getByLabel("Set aside rows under", { exact: true });
+  const suggestions = (page: Page) => page.getByRole("region", { name: "Suggestions" });
+  const drawer = (page: Page) => page.getByRole("dialog", { name: "Rows set aside" });
+  const SENTENCE = /rows under this amount are left out of review and saved in Uncategorised/i;
+
+  test.beforeEach(async ({ page }) => {
+    await standInCategoriser(page);
+  });
+
+  test("the field sits between the header and the suggestions, empty at first, with its sentence beside it", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    await expect(field(page)).toHaveValue("");
+    const [headerBox, fieldBox, suggestionsBox, listBox] = await Promise.all(
+      [header(page), field(page), suggestions(page), reviewList(page)].map((locator) =>
+        locator.boundingBox(),
+      ),
+    );
+    expect(headerBox!.y + headerBox!.height).toBeLessThanOrEqual(fieldBox!.y + 1);
+    expect(fieldBox!.y).toBeLessThan(suggestionsBox!.y);
+    expect(suggestionsBox!.y).toBeLessThan(listBox!.y);
+
+    const sentence = page.getByText(SENTENCE);
+    await expect(sentence).toHaveCount(1);
+    const sentenceBox = (await sentence.boundingBox())!;
+    expect(Math.abs(sentenceBox.y - fieldBox!.y)).toBeLessThan(fieldBox!.height + 40);
+  });
+
+  test("the header's set-aside count shows only when it is not zero, and opens the drawer", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    await expect(header(page)).not.toContainText("set aside");
+
+    await field(page).fill("5.00");
+    await expect(header(page)).toContainText("9 rows to review");
+    await header(page).getByRole("button", { name: "4 set aside", exact: true }).click();
+    await expect(drawer(page)).toBeVisible();
+    await expect(drawer(page).getByRole("listitem")).toHaveCount(4);
+    await page.keyboard.press("Escape");
+
+    await field(page).fill("");
+    await expect(header(page)).not.toContainText("set aside");
+    await expect(header(page)).toContainText("13 rows to review");
+  });
+
+  test("the line under the field names the amount and opens the same drawer", async ({ page }) => {
+    await importAugust(page);
+    await field(page).fill("5");
+    const line = page.getByRole("button", { name: "4 rows under €5.00 set aside", exact: true });
+    await expect(line).toBeVisible();
+    await line.click();
+    await expect(drawer(page)).toBeVisible();
+  });
+
+  test("the drawer lists date, description, vendor and amount by date, each with Bring back", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    await field(page).fill("5.00");
+    await header(page).getByRole("button", { name: "4 set aside", exact: true }).click();
+
+    const rows = drawer(page).getByRole("listitem");
+    await expect(rows).toHaveCount(4);
+    const expected = [
+      ["Aug 2, 2026", "Brötchen", "Bäckerei Krüger", "-€4.50"],
+      ["Aug 9, 2026", "Brötchen", "Bäckerei Krüger", "-€4.50"],
+      ["Aug 12, 2026", "Ticket", "Parking", "-€2.00"],
+      ["Aug 21, 2026", "Account fee €", null, "-€3.50"],
+    ] as const;
+    for (const [index, [date, description, vendor, amount]] of expected.entries()) {
+      const item = rows.nth(index);
+      await expect(item).toContainText(date);
+      await expect(item).toContainText(description);
+      if (vendor) await expect(item).toContainText(vendor);
+      await expect(item).toContainText(amount);
+      await expect(item.getByRole("button", { name: "Bring back", exact: true })).toBeVisible();
+    }
+    // The flagged duplicate stays in the duplicates drawer, and the other rows in review.
+    await expect(drawer(page)).not.toContainText("Monthly plan");
+  });
+
+  test("Suggest categories counts neither the rows set aside", async ({ page }) => {
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
+
+    await field(page).fill("5.00");
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 9 rows");
+  });
+
+  test("Suggest categories counts neither the rows holding a usual category", async ({ page }) => {
+    // Shop's three purchases held Groceries in July, so they hold it now and are not sent.
+    await page.goto("/");
+    const base = await storedData(page);
+    const cash = base.accounts.find((a) => a.name === "Cash")!;
+    const groceries = base.categories.find((c) => c.side === "expense" && c.name === "Groceries")!;
+    const july = [1, 2, 3].map((n) => ({
+      id: `july-${n}`,
+      seq: 1000 + n,
+      date: "2026-07-10",
+      amountCents: 1_000 + n,
+      accountId: cash.id,
+      description: "July (Shop)",
+      kind: "expense",
+      categoryId: groceries.id,
+      vendor: "Shop",
+    }));
+    const backup = { ...base, transactions: [...base.transactions, ...july] };
+    await restoreBackup(page, backupText(backup as unknown as typeof base), undefined, {
+      timeout: 60_000,
+    });
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 10 rows");
+
+    await field(page).fill("5.00");
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 6 rows");
+  });
+});
