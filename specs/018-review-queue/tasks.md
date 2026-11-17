@@ -247,7 +247,7 @@ that already exists, or a broken fixture.
   starts with the suggested transfer and keeps the category as `usualCategoryId`; a row with a
   suggested transfer and a usual transfer starts with the suggested transfer, without `usual`; any
   other row starts in its side's "Uncategorised".
-- [ ] T177 [US13] Marks from earlier ([FR-147](spec.md#fr-147),
+- [X] T177 [US13] Marks from earlier ([FR-147](spec.md#fr-147),
   [contracts/ui.md](contracts/ui.md#review) Marks), after T172:
   - in `src/domain/import/review.test.ts`: assigning a row any category, even its usual one,
     directly or through its group, removes `usual` and `suggested`; turning the switch on or off,

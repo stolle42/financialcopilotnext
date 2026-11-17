@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { PendingBatch, ParsedRow, PendingRow, Transaction, UnparsableRow } from "../types";
-import { reviewView } from "./groups";
+import { reviewView, sharedAssignment } from "./groups";
 
 // FR-025, FR-026, FR-028; contracts/csv-import.md, vendor groups; contracts/ui.md, review.
 
@@ -257,5 +257,58 @@ describe("reviewView: suggested transfers (FR-143)", () => {
     const view = reviewView(batchOf([shop(-100), shop(-200)]), [pair("p1", 100)]);
     expect(view.suggestedTransfers).toEqual([]);
     expect(view.counts.suggestedTransfers).toBe(0);
+  });
+});
+
+// FR-147, FR-148; contracts/ui.md, review: a group header shows a mark only when all its rows hold
+// the same assignment with the same mark. The marks of v1.8 are fields the types do not carry yet,
+// so the assignments are written through casts.
+describe("sharedAssignment: the assignment and mark a group shows (FR-147)", () => {
+  const category = (categoryId: string, marks: object = {}) =>
+    ({ type: "category", categoryId, ...marks }) as unknown as ParsedRow["assignment"];
+  const transfer = (counterAccountId: string, marks: object = {}) =>
+    ({ type: "transfer", counterAccountId, ...marks }) as unknown as ParsedRow["assignment"];
+  const rowsOf = (...assignments: ParsedRow["assignment"][]): ParsedRow[] =>
+    assignments.map((assignment) => ({ ...shop(-100), assignment }));
+
+  test("the shared assignment with its mark, when every row holds both", () => {
+    const usual = category("groceries", { usual: true });
+    expect(sharedAssignment(rowsOf(usual, usual, usual))).toStrictEqual(usual);
+
+    const suggested = category("groceries", { suggested: true });
+    expect(sharedAssignment(rowsOf(suggested, suggested))).toStrictEqual(suggested);
+
+    const toCard = transfer("card", { usual: true });
+    expect(sharedAssignment(rowsOf(toCard, toCard))).toStrictEqual(toCard);
+  });
+
+  test("the shared assignment without a mark, when only some rows hold the mark", () => {
+    const usual = category("groceries", { usual: true });
+    const plain = category("groceries");
+    expect(sharedAssignment(rowsOf(usual, plain))).toStrictEqual(plain);
+    expect(sharedAssignment(rowsOf(plain, usual, usual))).toStrictEqual(plain);
+  });
+
+  test("the shared assignment without a mark, when the rows hold different marks", () => {
+    const usual = category("groceries", { usual: true });
+    const suggested = category("groceries", { suggested: true });
+    expect(sharedAssignment(rowsOf(usual, suggested))).toStrictEqual(category("groceries"));
+  });
+
+  test("the same counter-account is shared, whatever the marks", () => {
+    const usual = transfer("card", { usual: true });
+    const plain = transfer("card");
+    expect(sharedAssignment(rowsOf(usual, plain))).toStrictEqual(plain);
+  });
+
+  test("nothing is shared when the rows hold different categories or kinds of assignment", () => {
+    const groceries = category("groceries", { usual: true });
+    expect(sharedAssignment(rowsOf(groceries, category("travel", { usual: true })))).toBeNull();
+    expect(sharedAssignment(rowsOf(groceries, transfer("card", { usual: true })))).toBeNull();
+    expect(sharedAssignment(rowsOf(transfer("card"), transfer("savings")))).toBeNull();
+  });
+
+  test("nothing is shared by a group without rows", () => {
+    expect(sharedAssignment([])).toBeNull();
   });
 });

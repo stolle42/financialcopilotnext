@@ -515,7 +515,7 @@ describe("confirmBatch: vendors of the new transactions (FR-145)", () => {
       pairedRow(s, 2, -5000, "card", "gone", { counterparty: "Card issuer" }),
     ]);
     const [created] = added(state, confirmed(state)) as WithVendors[];
-    expect(created.vendor).toBe("Card issuer");
+    expect(created!.vendor).toBe("Card issuer");
     expect(created).not.toHaveProperty("destinationVendor");
   });
 });

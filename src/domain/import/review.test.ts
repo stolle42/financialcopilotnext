@@ -382,3 +382,123 @@ describe("review of a suggested transfer (FR-143)", () => {
     expect(rowOf(next, 5).assignment).toEqual({ type: "category", categoryId: groceries });
   });
 });
+
+// FR-147; contracts/ui.md, review: a mark "From earlier" goes as soon as the user chooses for the
+// row, even the very same choice. The mark `usual` is a field of v1.8 the types do not carry yet,
+// so the assignments are written through casts.
+describe("the usual mark (FR-147)", () => {
+  /** `state` with the rows numbered `rowNumbers` holding `assignment` as their usual choice. */
+  function withUsual(state: State, rowNumbers: number[], assignment: Assignment): State {
+    const batch = state.pendingBatch!;
+    const usual = { ...assignment, usual: true } as unknown as Assignment;
+    const rows = batch.rows.map((row) =>
+      row.status === "parsed" && rowNumbers.includes(row.rowNumber)
+        ? { ...row, assignment: usual }
+        : row,
+    );
+    return applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+  }
+
+  const groceriesOf = (state: State): Assignment => ({
+    type: "category",
+    categoryId: categoryNamed(state, "expense", "Groceries"),
+  });
+  const toCard: Assignment = { type: "transfer", counterAccountId: "card" };
+
+  test("choosing the usual category itself for a row removes the mark", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2], groceriesOf(base));
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, groceriesOf(base))));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(groceriesOf(base));
+  });
+
+  test("choosing another category for a row removes the mark", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2], groceriesOf(base));
+    const travel: Assignment = {
+      type: "category",
+      categoryId: categoryNamed(base, "expense", "Travel"),
+    };
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, travel)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(travel);
+  });
+
+  test("a choice that carries the mark is stored without it", () => {
+    const base = withBatch();
+    const choice = { ...groceriesOf(base), usual: true } as unknown as Assignment;
+
+    const next = applyValid(base, changesOf(assignRow(base, 2, choice)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(groceriesOf(base));
+  });
+
+  test("choosing for the group removes the marks of its rows, the usual category included", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2, 3], groceriesOf(base));
+
+    const next = applyValid(state, changesOf(assignGroup(state, shopExpenses, groceriesOf(base))));
+
+    for (const rowNumber of [2, 3]) {
+      expect(rowOf(next, rowNumber).assignment).toStrictEqual(groceriesOf(base));
+    }
+  });
+
+  test("keeps the mark of a row the choice does not reach", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2, 3], groceriesOf(base));
+    const travel: Assignment = {
+      type: "category",
+      categoryId: categoryNamed(base, "expense", "Travel"),
+    };
+
+    const next = applyValid(state, changesOf(assignRow(state, 3, travel)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual({ ...groceriesOf(base), usual: true });
+  });
+
+  test("turning Transfer on for a row with a usual category removes the mark", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2], groceriesOf(base));
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, toCard)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(toCard);
+  });
+
+  test("turning Transfer off for a usual transfer removes the mark, back to Uncategorised", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2], toCard);
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, "uncategorised")));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(uncategorised(base, "expense"));
+  });
+
+  test("choosing another counter-account for a usual transfer removes the mark", () => {
+    const base = withBatch();
+    const withSavings = applyValid(base, {
+      accounts: {
+        put: [{ id: "savings", name: "Savings", type: "savings", openingBalanceCents: 0 }],
+      },
+    });
+    const state = withUsual(withSavings, [2], toCard);
+    const other: Assignment = { type: "transfer", counterAccountId: "savings" };
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, other)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(other);
+  });
+
+  test("choosing the same counter-account for a usual transfer also removes the mark", () => {
+    const base = withBatch();
+    const state = withUsual(base, [2], toCard);
+
+    const next = applyValid(state, changesOf(assignRow(state, 2, toCard)));
+
+    expect(rowOf(next, 2).assignment).toStrictEqual(toCard);
+  });
+});
