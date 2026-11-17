@@ -494,7 +494,7 @@ earlier" ([FR-146](spec.md#fr-146), [FR-147](spec.md#fr-147), [FR-158](spec.md#f
   per `category:<id>` and `transfer:<counter-account>`, then for each row with a counterparty the
   choice held by more than half, none when that is "Uncategorised" or "Unaccounted"
   ([R-42](research.md#r-42)); T175 passes.
-- [ ] T206 [US13] `createBatch` in `src/domain/import/batch.ts` finds usual choices after pairing
+- [X] T206 [US13] `createBatch` in `src/domain/import/batch.ts` finds usual choices after pairing
   and starts each row by the table of [data-model.md](data-model.md#state-transitions) step 4;
   T176 passes. Depends on T201 and T205.
 - [ ] T207 [US13] Marks: in `src/domain/import/review.ts`, every assignment by the user, through a

@@ -1,10 +1,19 @@
 import type { Changes, Context } from "../changes";
-import type { MappingProfile, PendingBatch, PendingRow, Refusal, State } from "../types";
+import type {
+  Assignment,
+  MappingProfile,
+  PendingBatch,
+  PendingRow,
+  Refusal,
+  Side,
+  State,
+} from "../types";
 import { proposedSide } from "./direction";
 import { flagDuplicates } from "./duplicates";
 import { uncategorisedAssignment } from "./review";
 import { parseRecords, type LayoutRefusalCode } from "./rows";
-import { pairTransfers } from "./transfers";
+import { pairTransfers, type Pair } from "./transfers";
+import { usualChoices, type UsualChoice } from "./usual";
 
 export type BatchRefusalCode =
   "import-batch-pending" | "import-account-missing" | LayoutRefusalCode;
@@ -25,10 +34,35 @@ export interface BatchInput {
 }
 
 /**
- * The pending batch of a tokenised file (contracts/csv-import.md, pipeline steps 4–7). Every
- * parsed row starts in its side's "Uncategorised" (FR-029), and a flagged row starts excluded
+ * What a parsed row starts with (data-model.md, creating a batch): its suggested transfer, which
+ * keeps a usual category for turning the switch off, else its usual choice marked as such, else its
+ * side's "Uncategorised" (FR-142, FR-146, FR-158).
+ */
+function startingAssignment(
+  state: State,
+  side: Side,
+  pair: Pair | undefined,
+  usual: UsualChoice | undefined,
+): Assignment {
+  if (pair) {
+    return {
+      type: "transfer",
+      counterAccountId: pair.accountId,
+      pairedTransactionId: pair.transactionId,
+      ...(usual?.type === "category" ? { usualCategoryId: usual.categoryId } : {}),
+    };
+  }
+  if (usual?.type === "category") return { ...usual, usual: true };
+  if (usual?.type === "transfer") return { ...usual, usual: true };
+  return uncategorisedAssignment(state.categories, side);
+}
+
+/**
+ * The pending batch of a tokenised file (contracts/csv-import.md, pipeline steps 4–7). Any
+ * other parsed row starts in its side's "Uncategorised" (FR-029), and a flagged row starts excluded
  * (FR-025). A row not flagged that has its other side in the ledger starts as the suggested
- * transfer to that side's account (FR-142). The batch holds no reference to the profile (FR-021).
+ * transfer to that side's account (FR-142); a row whose vendor was usually put somewhere starts
+ * there, marked as from earlier (FR-146). The batch holds no reference to the profile (FR-021).
  */
 export function createBatch(
   state: State,
@@ -53,21 +87,20 @@ export function createBatch(
     state.transactions,
     state.categories,
   );
+  const usual = usualChoices(parsed, accountId, state.transactions, state.categories);
   const rows = parsed.map((row): PendingRow => {
     if (row.status === "unparsable") return row;
     const duplicate = duplicates.has(row.rowNumber);
-    const pair = pairs.get(row.rowNumber);
     return {
       ...row,
       duplicate,
       included: !duplicate,
-      assignment: pair
-        ? {
-            type: "transfer",
-            counterAccountId: pair.accountId,
-            pairedTransactionId: pair.transactionId,
-          }
-        : uncategorisedAssignment(state.categories, proposedSide(row.amountCents)),
+      assignment: startingAssignment(
+        state,
+        proposedSide(row.amountCents),
+        pairs.get(row.rowNumber),
+        usual.get(row.rowNumber),
+      ),
     };
   });
   const batch: PendingBatch = {
