@@ -10,6 +10,7 @@ import { formatAmount } from "@/ui/format";
 import type { MessageCode } from "@/ui/messages";
 import { AssignmentControl } from "./AssignmentControl";
 import { RowSummary } from "./RowSummary";
+import { SuggestedTransfers } from "./SuggestedTransfers";
 
 const sideLabel = { expense: "expenses", income: "income" } as const;
 
@@ -18,9 +19,14 @@ const assignmentKey = (assignment: Assignment) =>
     ? `category ${assignment.categoryId}`
     : `transfer ${assignment.counterAccountId}`;
 
-/** Whether the AI suggested the row's category, which the user has not assigned since (FR-093). */
+/**
+ * Whether the AI suggested the row's category, which the user has not assigned since (FR-093), or
+ * the row holds a suggested transfer (FR-143).
+ */
 const isSuggested = (row: ParsedRow) =>
-  row.assignment.type === "category" && row.assignment.suggested === true;
+  row.assignment.type === "category"
+    ? row.assignment.suggested === true
+    : row.assignment.pairedTransactionId !== undefined;
 
 /** The assignment every row of the group shares, or `null` when the rows differ. */
 function sharedAssignment(rows: readonly ParsedRow[]): Assignment | null {
@@ -113,7 +119,8 @@ function GroupCard({
 }
 
 /**
- * The rows under review: vendor groups, largest first and collapsed, then the plain rows by date
+ * The rows under review: the suggested transfers, vendor groups, largest first and collapsed, then
+ * the plain rows by date
  * (contracts/ui.md, review). Every choice is saved at once (FR-022).
  */
 export function ReviewGroups({
@@ -148,6 +155,13 @@ export function ReviewGroups({
         </p>
       )}
       <section aria-label="Rows to review" className="flex flex-col gap-3">
+        {view.suggestedTransfers.length > 0 && (
+          <SuggestedTransfers
+            items={view.suggestedTransfers}
+            batchAccountId={batchAccountId}
+            onChooseRow={chooseRow}
+          />
+        )}
         {view.groups.map((group) => (
           <GroupCard
             key={`${group.side} ${group.key}`}

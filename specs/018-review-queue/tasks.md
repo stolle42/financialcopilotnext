@@ -469,7 +469,7 @@ confirming turns the two into one transfer ([FR-142](spec.md#fr-142) –
   the counts of the modal ([data-model.md](data-model.md#state-transitions)); `confirmBatch` in
   `src/store/import.ts` writes it in one storage transaction and its notification says how many
   transactions were added and how many became transfers; T173 passes.
-- [ ] T204 [US12] The screens ([contracts/ui.md](contracts/ui.md#review)): a new
+- [X] T204 [US12] The screens ([contracts/ui.md](contracts/ui.md#review)): a new
   `src/ui/screens/import/SuggestedTransfers.tsx` with the heading "Suggested transfers", the
   sentence of [FR-154](spec.md#fr-154), and each row by date with its assignment control, the mark
   "Suggested" and "Pairs with:" or the line saying the paired transaction has changed;

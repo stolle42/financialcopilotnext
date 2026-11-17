@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { confirmationCounts } from "@/domain/import/confirm";
 import { reviewView } from "@/domain/import/groups";
 import type { ParsedRow, PendingBatch, Refusal, UnparsableRow } from "@/domain/types";
 import { confirmBatch, discardBatch, includeDuplicate } from "@/store/import";
@@ -17,7 +18,7 @@ import {
 } from "@/ui/components/ui/sheet";
 import { Switch } from "@/ui/components/ui/switch";
 import { toast } from "@/ui/components/ui/toast";
-import { messageFor, notifications, type MessageCode } from "@/ui/messages";
+import { confirmationSummary, messageFor, notifications, type MessageCode } from "@/ui/messages";
 import { ReviewGroups } from "./ReviewGroups";
 import { RowSummary } from "./RowSummary";
 import { SuggestCategories } from "./SuggestCategories";
@@ -125,14 +126,21 @@ function ReviewFooter({
 }) {
   const store = useStoreApi();
   const [asking, setAsking] = useState<"confirm" | "discard" | null>(null);
+  // What the modal states is counted from the state when it opens (FR-157).
+  const [counts, setCounts] = useState(() => confirmationCounts(store.getState()));
   const added = plural(count, "transaction");
 
   async function confirm() {
     setAsking(null);
+    const before = store.getState().transactions.length;
     const refusal = await confirmBatch(store);
     onRefusal(refusal);
     if (refusal) return;
-    toast.add({ title: notifications.importConfirmed(count, accountName), type: "success" });
+    const entered = store.getState().transactions.length - before;
+    toast.add({
+      title: notifications.importConfirmed(entered, accountName, counts.becomingTransfers),
+      type: "success",
+    });
     navigate("/");
   }
 
@@ -150,13 +158,19 @@ function ReviewFooter({
       <Button variant="outline" onClick={() => setAsking("discard")}>
         Discard
       </Button>
-      <Button disabled={aiAnswering} onClick={() => setAsking("confirm")}>
+      <Button
+        disabled={aiAnswering}
+        onClick={() => {
+          setCounts(confirmationCounts(store.getState()));
+          setAsking("confirm");
+        }}
+      >
         Confirm {added}
       </Button>
       <ConfirmDialog
         open={asking === "confirm"}
         title={`Add ${added} to ${accountName}?`}
-        description="They enter the ledger with the categories and transfers shown here. A confirmed import cannot be undone as a whole."
+        description={`${confirmationSummary(counts)} A confirmed import cannot be undone as a whole.`}
         confirmLabel={`Add ${added}`}
         onConfirm={() => void confirm()}
         onCancel={() => setAsking(null)}
@@ -175,7 +189,8 @@ function ReviewFooter({
 
 function BatchReview({ batch }: { batch: PendingBatch }) {
   const account = useStore((state) => state.accounts.find((a) => a.id === batch.accountId));
-  const view = useMemo(() => reviewView(batch), [batch]);
+  const transactions = useStore((state) => state.transactions);
+  const view = useMemo(() => reviewView(batch, transactions), [batch, transactions]);
   const [drawer, setDrawer] = useState<"duplicates" | "unparsable" | null>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const [askingAi, setAskingAi] = useState(false);
@@ -194,6 +209,9 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="font-medium">{plural(counts.review, "row")} to review</span>
+          {counts.suggestedTransfers > 0 && (
+            <span>{plural(counts.suggestedTransfers, "suggested transfer")}</span>
+          )}
           <Button variant="outline" size="sm" onClick={() => setDrawer("duplicates")}>
             {plural(counts.duplicates, "duplicate")}
           </Button>

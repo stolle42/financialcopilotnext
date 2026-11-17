@@ -54,7 +54,8 @@ function netOf(path: string): number {
 
 async function balanceOf(page: Page, name: string) {
   await page.goto("/#/accounts");
-  return page.getByRole("row").filter({ has: page.getByRole("cell", { name, exact: true }) });
+  // The second cell of a row holds the account's type, which is "Checking" for the card too.
+  return page.getByRole("row", { name: new RegExp(`^${name} `) });
 }
 
 /** Imports the file at `path` into `account` with the saved format and waits for review. */
@@ -155,6 +156,11 @@ test("suggests the other side of each transfer, confirms them as 5 transfers and
   // are not suggested; they stay in review as rows of "Checking" and no pair is saved for them.
   await expect(suggested(page)).not.toContainText("€95.00");
   await expect(suggested(page)).not.toContainText("€58.50");
+  // Both are payments from Checking, so they form one folded group of two.
+  await reviewList(page)
+    .getByRole("group", { name: "Checking, income", exact: true })
+    .getByRole("button", { name: "Show rows" })
+    .click();
   await expect(reviewList(page)).toContainText("€95.00");
   await expect(reviewList(page)).toContainText("€58.50");
   for (const rowNumber of [14, 15]) {

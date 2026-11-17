@@ -21,7 +21,7 @@ interface AssignmentControlProps {
   side: Side;
   /** `null` when the rows of a group differ. */
   assignment: Assignment | null;
-  /** The AI suggested the category, and the user has not assigned it since (FR-093). */
+  /** The AI suggested the category, or the row holds a suggested transfer (FR-093, FR-143). */
   suggested: boolean;
   batchAccountId: string;
   onChoose: (choice: AssignmentChoice) => void;
@@ -29,7 +29,8 @@ interface AssignmentControlProps {
 
 /**
  * A review row's category, of its side and without "Unaccounted" (FR-029, FR-030), or a transfer
- * to another account (FR-023). Turning the transfer off restores the side's "Uncategorised".
+ * to another account (FR-023). Turning the transfer off restores the row's usual category, or
+ * the side's "Uncategorised" (FR-143).
  */
 export function AssignmentControl({
   label,
@@ -98,7 +99,7 @@ export function AssignmentControl({
           </>
         )}
       </div>
-      {suggested && !isTransfer && (
+      {suggested && !choosingAccount && (
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Sparkles aria-hidden className="size-3.5" />
           Suggested
