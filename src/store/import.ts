@@ -85,7 +85,7 @@ export async function importFile(store: Store, input: ImportInput) {
 }
 
 export function assignRow(store: Store, rowNumber: number, choice: AssignmentChoice) {
-  return store.run((state) => decideAssignRow(state, rowNumber, choice));
+  return store.run((state, context) => decideAssignRow(state, rowNumber, choice, context));
 }
 
 export function assignGroup(
@@ -93,7 +93,7 @@ export function assignGroup(
   group: Pick<VendorGroup, "key" | "side">,
   choice: AssignmentChoice,
 ) {
-  return store.run((state) => decideAssignGroup(state, group, choice));
+  return store.run((state, context) => decideAssignGroup(state, group, choice, context));
 }
 
 /** Brings a row set aside back under review, written at once (FR-153). */

@@ -598,7 +598,7 @@ once ([FR-149](spec.md#fr-149)).
   category's id through `onCreated`, and refuses names as Categories does
   ([FR-032](../001-finance-tracker-v1/spec.md#fr-032)). `CategoriesScreen.tsx` imports it from
   there, and `npm run check:architecture` passes.
-- [ ] T218 [US16] In `src/store/import.ts`, `assignRow` and `assignGroup` take a new category
+- [X] T218 [US16] In `src/store/import.ts`, `assignRow` and `assignGroup` take a new category
   (name and colour) as a choice, create it and assign it in one change, without marks and with
   `keptInReview`; T191 passes.
 - [ ] T219 [US16] New category… as the last item of `CategoryPicker.tsx`, always kept by the

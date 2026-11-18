@@ -1,5 +1,5 @@
-import type { Changes } from "../changes";
-import { protectedCategory } from "../categories";
+import type { Changes, Context } from "../changes";
+import { createCategory, protectedCategory, type CategoryRefusalCode } from "../categories";
 import type { Assignment, Category, ParsedRow, PendingBatch, Refusal, Side, State } from "../types";
 import { proposedSide } from "./direction";
 import { reviewView, type VendorGroup } from "./groups";
@@ -11,8 +11,44 @@ import { reviewView, type VendorGroup } from "./groups";
  */
 export type ReviewRefusalCode = "assignment-not-allowed" | "row-not-duplicate";
 
-/** A category or a transfer, or "uncategorised", which turning the Transfer switch off restores. */
-export type AssignmentChoice = Assignment | "uncategorised";
+/** A category to create on the side of the row or group, with the colour it gets (FR-149). */
+export interface NewCategoryChoice {
+  type: "new-category";
+  name: string;
+  color: string;
+}
+
+/**
+ * A category or a transfer, "uncategorised", which turning the Transfer switch off restores, or a
+ * new category, which is created and given in one change.
+ */
+export type AssignmentChoice = Assignment | "uncategorised" | NewCategoryChoice;
+
+/**
+ * What a choice does to the state before it is resolved: a new category is created on `side` and
+ * becomes a choice of that category, refused as Categories refuses it (FR-032, FR-149).
+ */
+function withNewCategory(
+  state: State,
+  side: Side,
+  choice: AssignmentChoice,
+  context: Context | undefined,
+):
+  | { state: State; choice: Exclude<AssignmentChoice, NewCategoryChoice>; changes: Changes }
+  | Refusal<CategoryRefusalCode> {
+  if (typeof choice === "string" || choice.type !== "new-category") {
+    return { state, choice, changes: {} };
+  }
+  if (!context) throw new Error("A new category needs the context's ids");
+  const created = createCategory(state, { side, name: choice.name, color: choice.color }, context);
+  if ("code" in created) return created;
+  const category = created.categories!.put![0]!;
+  return {
+    state: { ...state, categories: [...state.categories, category] },
+    choice: { type: "category", categoryId: category.id },
+    changes: created,
+  };
+}
 
 /** The side's "Uncategorised": where every imported row starts (FR-029). */
 export function uncategorisedAssignment(categories: readonly Category[], side: Side): Assignment {
@@ -38,7 +74,7 @@ function resolve(
   batch: PendingBatch,
   row: ParsedRow,
   side: Side,
-  choice: AssignmentChoice,
+  choice: Exclude<AssignmentChoice, NewCategoryChoice>,
 ): Assignment | null {
   if (choice === "uncategorised") {
     const { assignment } = row;
@@ -82,16 +118,23 @@ export function assignRow(
   state: State,
   rowNumber: number,
   choice: AssignmentChoice,
-): Changes | Refusal<"assignment-not-allowed"> {
+  context?: Context,
+): Changes | Refusal<"assignment-not-allowed" | CategoryRefusalCode> {
   const batch = pendingBatchOf(state);
   const row = parsedRow(batch, rowNumber);
-  const assignment = resolve(state, batch, row, proposedSide(row.amountCents), choice);
+  const side = proposedSide(row.amountCents);
+  const given = withNewCategory(state, side, choice, context);
+  if ("code" in given) return given;
+  const assignment = resolve(given.state, batch, row, side, given.choice);
   if (!assignment) return { code: "assignment-not-allowed" };
-  return updateRows(batch, new Set([rowNumber]), (r) => ({
-    ...r,
-    assignment,
-    keptInReview: true,
-  }));
+  return {
+    ...given.changes,
+    ...updateRows(batch, new Set([rowNumber]), (r) => ({
+      ...r,
+      assignment,
+      keptInReview: true,
+    })),
+  };
 }
 
 /** Gives every row currently in the vendor group the same assignment (FR-026). */
@@ -99,23 +142,29 @@ export function assignGroup(
   state: State,
   group: Pick<VendorGroup, "key" | "side">,
   choice: AssignmentChoice,
-): Changes | Refusal<"assignment-not-allowed"> {
+  context?: Context,
+): Changes | Refusal<"assignment-not-allowed" | CategoryRefusalCode> {
   const batch = pendingBatchOf(state);
   const found = reviewView(batch, [], state.settings.setAsideUnderCents).groups.find(
     (g) => g.key === group.key && g.side === group.side,
   );
   if (!found) throw new Error(`No ${group.side} group ${group.key}`);
+  const given = withNewCategory(state, found.side, choice, context);
+  if ("code" in given) return given;
   const assignments = new Map<number, Assignment>();
   for (const row of found.rows) {
-    const assignment = resolve(state, batch, row, found.side, choice);
+    const assignment = resolve(given.state, batch, row, found.side, given.choice);
     if (!assignment) return { code: "assignment-not-allowed" };
     assignments.set(row.rowNumber, assignment);
   }
-  return updateRows(batch, new Set(assignments.keys()), (r) => ({
-    ...r,
-    assignment: assignments.get(r.rowNumber)!,
-    keptInReview: true,
-  }));
+  return {
+    ...given.changes,
+    ...updateRows(batch, new Set(assignments.keys()), (r) => ({
+      ...r,
+      assignment: assignments.get(r.rowNumber)!,
+      keptInReview: true,
+    })),
+  };
 }
 
 /**
