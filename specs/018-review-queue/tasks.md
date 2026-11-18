@@ -525,7 +525,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   `src/domain/import/review.ts`, and `markSeen(store, item)` in `src/store/import.ts`, which sets
   `seen` on a row item or `groupSeen` on every row of a group and saves at once
   ([FR-151](spec.md#fr-151), [FR-155](spec.md#fr-155)); T181 passes.
-- [ ] T211 [US14] A new `src/ui/components/CategoryPicker.tsx` on T161's combobox: the items are
+- [X] T211 [US14] A new `src/ui/components/CategoryPicker.tsx` on T161's combobox: the items are
   `pickerCategories(categories, side)`, our filter keeps those whose name contains the trimmed text
   ignoring case, `autoHighlight` highlights the first, "No category matches" shows when none
   does, each item carries its colour swatch, and the picker exposes its highlighted category to

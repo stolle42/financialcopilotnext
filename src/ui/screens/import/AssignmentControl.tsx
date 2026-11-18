@@ -5,7 +5,7 @@ import { markOf } from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
 import type { Assignment, Side } from "@/domain/types";
 import { useStore } from "@/store/store";
-import { CategorySelect } from "@/ui/components/CategorySelect";
+import { CategoryPicker } from "@/ui/components/CategoryPicker";
 import { Label } from "@/ui/components/ui/label";
 import {
   Select,
@@ -92,7 +92,7 @@ export function AssignmentControl({
             <Label htmlFor={ids.category} className="sr-only">
               Category
             </Label>
-            <CategorySelect
+            <CategoryPicker
               id={ids.category}
               side={side}
               value={assignment?.type === "category" ? assignment.categoryId : null}

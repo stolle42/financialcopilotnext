@@ -13,7 +13,7 @@ import { todayLocal } from "@/store/clock";
 import { useStore, useStoreApi } from "@/store/store";
 import { removeTransaction, saveTransaction } from "@/store/transactions";
 import { AmountField, amountText, parseAmountText } from "@/ui/components/AmountField";
-import { CategorySelect } from "@/ui/components/CategorySelect";
+import { CategoryPicker } from "@/ui/components/CategoryPicker";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
 import { Button } from "@/ui/components/ui/button";
 import {
@@ -189,7 +189,7 @@ export function TransactionForm({
             ) : (
               <Field>
                 <FieldLabel htmlFor={ids.category}>Category</FieldLabel>
-                <CategorySelect
+                <CategoryPicker
                   id={ids.category}
                   side={draft.kind}
                   value={draft.categoryId}

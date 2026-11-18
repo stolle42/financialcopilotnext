@@ -51,7 +51,17 @@ export function shownCategory(scope: Locator): Promise<string> {
 
 /** Expects the category picker inside `scope` to show `name`. */
 export async function expectCategory(scope: Locator, name: string) {
-  await expect.poll(() => shownCategory(scope)).toBe(name);
+  await expect
+    .poll(async () => {
+      if ((await scope.getByLabel("Category", { exact: true }).count()) > 0) {
+        return shownCategory(scope);
+      }
+      // A cell of Transactions that is not being edited shows its category as a button.
+      return (await scope.getByRole("button", { name, exact: true }).count()) > 0
+        ? name
+        : "(no category shown)";
+    })
+    .toBe(name);
 }
 
 interface NewTransaction {

@@ -1,11 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import {
-  addTransaction,
-  expectCategory,
-  openTransactionForm,
-  shownCategory,
-  storedRecords,
-} from "../support/app";
+import { addTransaction, expectCategory, openTransactionForm, storedRecords } from "../support/app";
 import type { Category } from "../../src/domain/types";
 import { importWithProfile, saveMyBankProfile } from "../support/import";
 import { expect, setToday, test } from "../support/test";
@@ -62,7 +56,8 @@ const places: Place[] = [
     async open(page) {
       await saveMyBankProfile(page);
       await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
-      return { scope: plainRows(page).first(), shown: "Uncategorised" };
+      // The first plain row is the income row, so the search is tried on an expense one.
+      return { scope: plainRows(page).filter({ hasText: "Ticket" }), shown: "Uncategorised" };
     },
   },
   {
@@ -154,7 +149,7 @@ for (const place of places) {
       await field(scope).press("Escape");
 
       await expect(page.getByRole("listbox")).toHaveCount(0);
-      expect(await shownCategory(scope)).toBe(shown);
+      await expectCategory(scope, shown);
     });
 
     test("says No category matches, still offering New category…, and never finds Unaccounted", async ({
@@ -230,7 +225,7 @@ for (const place of places) {
       await dialog.getByRole("button", { name: "Cancel" }).click();
 
       await expect(dialog).toHaveCount(0);
-      expect(await shownCategory(scope)).toBe(shown);
+      await expectCategory(scope, shown);
       const all = await storedRecords<Category>(page, "categories");
       expect(all.some((c) => c.name === "Pets")).toBe(false);
     });
