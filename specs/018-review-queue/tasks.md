@@ -593,7 +593,7 @@ once ([FR-149](spec.md#fr-149)).
 
 **Independent Test**: `e2e/us16-new-category.spec.ts` (T193), with T191 and T192.
 
-- [ ] T217 [US16] Move `src/ui/screens/categories/NewCategoryDialog.tsx` to
+- [X] T217 [US16] Move `src/ui/screens/categories/NewCategoryDialog.tsx` to
   `src/ui/components/NewCategoryDialog.tsx`; it takes an initial name and returns the new
   category's id through `onCreated`, and refuses names as Categories does
   ([FR-032](../001-finance-tracker-v1/spec.md#fr-032)). `CategoriesScreen.tsx` imports it from
