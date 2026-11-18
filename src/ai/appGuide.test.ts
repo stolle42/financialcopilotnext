@@ -60,7 +60,7 @@ describe("APP_GUIDE", () => {
   // FR-142 – FR-153 (v1.8): what review does by itself, in the guide's part on review.
   test("says review suggests transfers, and that turning Transfer off keeps the two apart (FR-142, FR-143)", () => {
     expect(APP_GUIDE).toMatch(/suggested transfers?/i);
-    expect(APP_GUIDE).toMatch(/Transfer[^.]*off[^.]*(separate|apart|stay)/i);
+    expect(APP_GUIDE).toMatch(/Transfer[^.]*\boff\b[^.]*(separate|apart|stay)/i);
   });
 
   test('names the mark "From earlier" and the choice "Set aside rows under" (FR-147, FR-152)', () => {
@@ -70,7 +70,7 @@ describe("APP_GUIDE", () => {
 
   test("says typing finds a category and Tab moves to the next row (FR-148, FR-150)", () => {
     expect(APP_GUIDE).toMatch(/typing[^.]*(finds|find|narrows)[^.]*categor/i);
-    expect(APP_GUIDE).toMatch(/Tab[^.]*next row/i);
+    expect(APP_GUIDE).toMatch(/\bTab\b[^.]*next row/i);
   });
 
   test("ends with the line FAQ and FAQ as plain text (FR-141)", () => {

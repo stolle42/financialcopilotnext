@@ -613,7 +613,7 @@ once ([FR-149](spec.md#fr-149)).
 
 ## Phase 9: Polish & cross-cutting concerns
 
-- [ ] T220 [P] The guide in `src/ai/appGuide.ts` and the FAQ answer on reviewing an import in
+- [X] T220 [P] The guide in `src/ai/appGuide.ts` and the FAQ answer on reviewing an import in
   `src/ai/faq.ts` describe v1.8, in plain words for someone who is not an IT person, and add no
   question ([Assumptions](spec.md#assumptions)); T167 passes.
 - [ ] T221 `npm run verify` passes: lint, architecture, typecheck, every unit test and every
