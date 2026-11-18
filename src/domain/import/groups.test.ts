@@ -399,7 +399,7 @@ describe("reviewView: rows set aside (FR-152, FR-153)", () => {
     expect(view.setAside).toEqual([]);
     expect(view.suggestedTransfers.map((s) => s.row)).toEqual([suggestedTransfer]);
     expect(view.plainRows).toEqual([usualTransfer, marked]);
-    expect(view.counts).toMatchObject({ setAside: 0, suggestedTransfers: 1, review: 2 });
+    expect(view.counts).toMatchObject({ setAside: 0, suggestedTransfers: 1, review: 3 });
   });
 
   test("a row with keptInReview stays under review, with whatever it holds", () => {

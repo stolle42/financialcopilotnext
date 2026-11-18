@@ -3,7 +3,7 @@ import { protectedCategory, sortCategories } from "../categories";
 import { nameKey } from "../names";
 import type { Category, CategorisedTransaction, ParsedRow, Refusal, Side, State } from "../types";
 import { proposedSide } from "./direction";
-import { reviewView, type ReviewView } from "./groups";
+import { isSetAside, reviewView, type ReviewView } from "./groups";
 
 // Category suggestions by the AI: which rows a request sends, what it holds, and how an answer
 // fills the batch (FR-090 – FR-093, contracts/ai.md).
@@ -101,7 +101,10 @@ export function suggestionExamples(state: State): SuggestionRequest["examples"] 
  */
 export function suggestionRequest(state: State): SuggestionRequest {
   if (!state.pendingBatch) throw new Error("No pending batch");
-  const rows = suggestableRows(reviewView(state.pendingBatch), state.categories);
+  const rows = suggestableRows(
+    reviewView(state.pendingBatch, [], state.settings.setAsideUnderCents),
+    state.categories,
+  );
   return {
     rows: rows.map((row) => ({
       rowNumber: row.rowNumber,
@@ -140,6 +143,8 @@ export function applySuggestions(
       return row;
     }
     if (!holdsUncategorised(row, state.categories)) return row;
+    // A row set aside is not under review, so no suggestion reaches it (FR-152).
+    if (isSetAside(row, state.settings.setAsideUnderCents)) return row;
     const category = ordinaryCategories(state.categories, proposedSide(row.amountCents)).find(
       (c) => nameKey(c.name) === nameKey(name),
     );

@@ -16,6 +16,7 @@ import { proposeProfile } from "@/domain/import/propose";
 import {
   assignGroup as decideAssignGroup,
   assignRow as decideAssignRow,
+  bringBack as decideBringBack,
   includeDuplicate as decideIncludeDuplicate,
   markGroupSeen as decideMarkGroupSeen,
   markSeen as decideMarkSeen,
@@ -93,6 +94,11 @@ export function assignGroup(
   choice: AssignmentChoice,
 ) {
   return store.run((state) => decideAssignGroup(state, group, choice));
+}
+
+/** Brings a row set aside back under review, written at once (FR-153). */
+export function bringBack(store: Store, rowNumber: number) {
+  return store.run<never>((state) => decideBringBack(state, rowNumber));
 }
 
 export function includeDuplicate(store: Store, rowNumber: number, included: boolean) {

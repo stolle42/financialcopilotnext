@@ -34,7 +34,14 @@ export interface SuggestedTransfer {
 
 /** What review shows of a pending batch (contracts/ui.md, review). */
 export interface ReviewView {
-  counts: { review: number; suggestedTransfers: number; duplicates: number; unparsable: number };
+  counts: {
+    review: number;
+    /** The rows set aside (FR-152); they are not among `review`. */
+    setAside: number;
+    suggestedTransfers: number;
+    duplicates: number;
+    unparsable: number;
+  };
   /** Every flagged row, included or not (FR-025). */
   duplicates: ParsedRow[];
   unparsable: UnparsableRow[];
@@ -44,6 +51,8 @@ export interface ReviewView {
   groups: VendorGroup[];
   /** Rows under review without a vendor or in a group of one, by date. */
   plainRows: ParsedRow[];
+  /** The rows set aside, by date, then row number; outside groups, plain rows and items (FR-152). */
+  setAside: ParsedRow[];
 }
 
 const byDate = (a: ParsedRow, b: ParsedRow) =>
@@ -60,18 +69,39 @@ export function isSuggestedTransfer(row: ParsedRow): boolean {
 }
 
 /**
+ * Whether review sets the row aside: it is included, its amount is under `setAsideUnderCents`,
+ * it holds a category, and the user has not assigned it anything or brought it back (FR-152,
+ * data-model.md, derived values). With no amount, nothing is set aside.
+ */
+export function isSetAside(row: ParsedRow, setAsideUnderCents: number | undefined): boolean {
+  return (
+    setAsideUnderCents !== undefined &&
+    row.included &&
+    Math.abs(row.amountCents) < setAsideUnderCents &&
+    row.assignment.type === "category" &&
+    row.keptInReview !== true
+  );
+}
+
+/**
  * The counts, the drawers' rows, and the rows under review grouped by vendor and side (FR-026,
  * contracts/csv-import.md, vendor groups). An included duplicate is a row under review like any
  * other, so it joins its group (R-12). The rows that hold a suggested transfer stay out of every
- * group and are listed apart with their pair from `transactions`, the ledger (FR-143).
+ * group and are listed apart with their pair from `transactions`, the ledger (FR-143). The rows
+ * under `setAsideUnderCents` are listed apart and are in no group, plain row or count of review
+ * (FR-152).
  */
 export function reviewView(
   batch: PendingBatch,
   transactions: readonly Transaction[] = [],
+  setAsideUnderCents?: number,
 ): ReviewView {
   const parsed = batch.rows.filter((row): row is ParsedRow => row.status === "parsed");
   const unparsable = batch.rows.filter((row): row is UnparsableRow => row.status === "unparsable");
-  const underReview = parsed.filter((row) => row.included);
+  const included = parsed.filter((row) => row.included);
+  const setAside = included.filter((row) => isSetAside(row, setAsideUnderCents)).sort(byDate);
+  const asideRows = new Set(setAside);
+  const underReview = included.filter((row) => !asideRows.has(row));
   const suggestedTransfers = underReview
     .filter(isSuggestedTransfer)
     .sort(byDate)
@@ -120,6 +150,7 @@ export function reviewView(
   return {
     counts: {
       review: underReview.length,
+      setAside: setAside.length,
       suggestedTransfers: suggestedTransfers.length,
       duplicates: duplicates.length,
       unparsable: unparsable.length,
@@ -129,6 +160,7 @@ export function reviewView(
     suggestedTransfers,
     groups: groups.sort(bySize),
     plainRows: plainRows.sort(byDate),
+    setAside,
   };
 }
 

@@ -520,7 +520,9 @@ describe("rows set aside and the AI (FR-152)", () => {
   test("a row brought back under review is sent again", () => {
     const state = withSetAside(1000);
     const batch = state.pendingBatch!;
-    const rows = batch.rows.map((r) => (r.rowNumber === 6 ? { ...r, keptInReview: true } : r));
+    const rows = batch.rows.map((r) =>
+      r.rowNumber === 6 ? { ...r, keptInReview: true as const } : r,
+    );
     const brought = applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
     expect(sentRows(brought).rowNumbers).toEqual([2, 3, 9, 6]);
   });

@@ -87,7 +87,11 @@ export function assignRow(
   const row = parsedRow(batch, rowNumber);
   const assignment = resolve(state, batch, row, proposedSide(row.amountCents), choice);
   if (!assignment) return { code: "assignment-not-allowed" };
-  return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, assignment }));
+  return updateRows(batch, new Set([rowNumber]), (r) => ({
+    ...r,
+    assignment,
+    keptInReview: true,
+  }));
 }
 
 /** Gives every row currently in the vendor group the same assignment (FR-026). */
@@ -97,7 +101,9 @@ export function assignGroup(
   choice: AssignmentChoice,
 ): Changes | Refusal<"assignment-not-allowed"> {
   const batch = pendingBatchOf(state);
-  const found = reviewView(batch).groups.find((g) => g.key === group.key && g.side === group.side);
+  const found = reviewView(batch, [], state.settings.setAsideUnderCents).groups.find(
+    (g) => g.key === group.key && g.side === group.side,
+  );
   if (!found) throw new Error(`No ${group.side} group ${group.key}`);
   const assignments = new Map<number, Assignment>();
   for (const row of found.rows) {
@@ -108,7 +114,18 @@ export function assignGroup(
   return updateRows(batch, new Set(assignments.keys()), (r) => ({
     ...r,
     assignment: assignments.get(r.rowNumber)!,
+    keptInReview: true,
   }));
+}
+
+/**
+ * Brings a row set aside back under review, holding what it holds (FR-153). Bringing back a row
+ * again, or one that never was set aside, changes nothing more.
+ */
+export function bringBack(state: State, rowNumber: number): Changes {
+  const batch = pendingBatchOf(state);
+  parsedRow(batch, rowNumber);
+  return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, keptInReview: true }));
 }
 
 /** Includes a flagged row among the rows under review, or excludes it again (FR-025). */

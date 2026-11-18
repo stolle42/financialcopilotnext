@@ -566,7 +566,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   [amount grammar](../001-finance-tracker-v1/contracts/csv-import.md#amount-grammar), stores a
   valid amount, and removes it when the field is empty or invalid, returning
   `set-aside-amount-invalid` for the latter ([R-45](research.md#r-45)); T186 passes.
-- [ ] T214 [US15] Rows set aside: in `src/domain/import/groups.ts`, `reviewView` also takes
+- [X] T214 [US15] Rows set aside: in `src/domain/import/groups.ts`, `reviewView` also takes
   `setAsideUnderCents` and derives the rows set aside by the rule of
   [data-model.md](data-model.md#derived-values), leaving them out of groups, plain rows and items;
   in `src/domain/import/review.ts`, every assignment sets `keptInReview`, and `bringBack(batch,
