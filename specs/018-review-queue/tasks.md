@@ -561,7 +561,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
 
 **Independent Test**: `e2e/us15-set-aside.spec.ts` (T189), with T186 – T188 and T190.
 
-- [ ] T213 [P] [US15] `setSetAsideAmount` in `src/domain/settings.ts`, and in
+- [X] T213 [P] [US15] `setSetAsideAmount` in `src/domain/settings.ts`, and in
   `src/store/settings.ts`, which parses the field with the shared
   [amount grammar](../001-finance-tracker-v1/contracts/csv-import.md#amount-grammar), stores a
   valid amount, and removes it when the field is empty or invalid, returning
