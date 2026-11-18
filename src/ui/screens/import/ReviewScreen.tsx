@@ -20,6 +20,7 @@ import { Switch } from "@/ui/components/ui/switch";
 import { toast } from "@/ui/components/ui/toast";
 import { confirmationSummary, messageFor, notifications, type MessageCode } from "@/ui/messages";
 import { ReviewGroups } from "./ReviewGroups";
+import { useReviewFocus } from "./useReviewFocus";
 import { RowSummary } from "./RowSummary";
 import { SuggestCategories } from "./SuggestCategories";
 
@@ -154,10 +155,12 @@ function ReviewFooter({
   }
 
   return (
-    <section aria-label="Finish review" className="flex items-center justify-between border-t pt-4">
-      <Button variant="outline" onClick={() => setAsking("discard")}>
-        Discard
-      </Button>
+    // Confirm comes first in the DOM, so Tab from the last item reaches it (FR-150); the row is
+    // reversed, so Discard stays on the left.
+    <section
+      aria-label="Finish review"
+      className="flex flex-row-reverse items-center justify-between border-t pt-4"
+    >
       <Button
         disabled={aiAnswering}
         onClick={() => {
@@ -166,6 +169,9 @@ function ReviewFooter({
         }}
       >
         Confirm {added}
+      </Button>
+      <Button variant="outline" onClick={() => setAsking("discard")}>
+        Discard
       </Button>
       <ConfirmDialog
         open={asking === "confirm"}
@@ -194,6 +200,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
   const [drawer, setDrawer] = useState<"duplicates" | "unparsable" | null>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const [askingAi, setAskingAi] = useState(false);
+  const focus = useReviewFocus(view);
   const { counts } = view;
 
   return (
@@ -209,6 +216,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="font-medium">{plural(counts.review, "row")} to review</span>
+          <span>{focus.notSeen === 0 ? "All seen" : `${focus.notSeen} not seen yet`}</span>
           {counts.suggestedTransfers > 0 && (
             <span>{plural(counts.suggestedTransfers, "suggested transfer")}</span>
           )}
@@ -226,7 +234,12 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           <RefusalMessage refusal={refusal} />
         </p>
       )}
-      <ReviewGroups view={view} batchAccountId={batch.accountId} onRefusal={setRefusal} />
+      <ReviewGroups
+        view={view}
+        batchAccountId={batch.accountId}
+        focus={focus}
+        onRefusal={setRefusal}
+      />
       <ReviewFooter
         batch={batch}
         count={counts.review}

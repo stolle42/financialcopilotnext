@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 import type { Category, ParsedRow, PendingBatch } from "../src/domain/types";
-import { expectCategory, storedRecords } from "./support/app";
+import { addAccount, expectCategory, storedRecords } from "./support/app";
 import { saveMyBankProfile } from "./support/import";
 import { expect, setToday, test } from "./support/test";
 
@@ -145,6 +145,8 @@ test("Shift+Tab goes back one item (scenario 4)", async ({ page }, testInfo) => 
 test("on a row holding a transfer, the Transfer switch takes the picker's place (scenario 5)", async ({
   page,
 }, testInfo) => {
+  // A transfer needs another account to move money to (FR-011).
+  await addAccount(page, "Savings");
   await openReview(page, testInfo);
   await tab(page, 2); // Vendor 01 is left, Vendor 02, row 6, is current
   // The switch is reached with the mouse, since Tab would leave the item; one click turns it on.
@@ -230,7 +232,8 @@ test("a group passed while folded shows its rows not seen when unfolded (scenari
   // Unfolding makes the group current (FR-150), and the rows follow it.
   await expect(current(page)).toHaveCount(1);
   await expect(shop).toHaveAttribute("aria-current", "true");
-  await expect(header(page)).toContainText(`${ITEMS - 1} not seen yet`);
+  // The click on Show rows left Vendor 01, whose picker had the focus, so it is seen as well.
+  await expect(header(page)).toContainText(`${ITEMS - 2} not seen yet`);
 });
 
 test("clicking a row makes it current, and the item left counts as seen (FR-150, FR-151)", async ({

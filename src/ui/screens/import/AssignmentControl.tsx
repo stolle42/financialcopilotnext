@@ -1,5 +1,5 @@
 import { History, Sparkles } from "lucide-react";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import { sortAccounts } from "@/domain/accounts";
 import { markOf } from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
@@ -24,6 +24,14 @@ interface AssignmentControlProps {
   assignment: Assignment | null;
   batchAccountId: string;
   onChoose: (choice: AssignmentChoice) => void;
+  /**
+   * Review's Tab (FR-150): registers the field, the picker or, on a transfer, the Transfer switch,
+   * and is told when Tab or Shift+Tab is pressed in it. Without it the control is a plain one.
+   */
+  field?: {
+    ref: (element: HTMLElement | null) => void;
+    onTab: (direction: "next" | "previous", event: KeyboardEvent) => void;
+  };
 }
 
 /** The element holding the sentence of the mark "From earlier", which describes the mark (FR-154). */
@@ -40,6 +48,7 @@ export function AssignmentControl({
   assignment,
   batchAccountId,
   onChoose,
+  field,
 }: AssignmentControlProps) {
   const accounts = useStore((state) => state.accounts);
   const counterAccounts = useMemo(
@@ -52,6 +61,13 @@ export function AssignmentControl({
   // The assignment carries its mark: of a group, only when all its rows hold it (FR-147).
   const mark = assignment && !choosingAccount ? markOf(assignment) : null;
   const ids = { category: useId(), account: useId(), transfer: useId() };
+
+  /** Tab in the field picks the category the open list highlights, then moves on (FR-148, R-44). */
+  function onFieldKeyDown(event: KeyboardEvent<HTMLElement>, highlighted: string | null = null) {
+    if (!field || event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (!isTransfer && highlighted) onChoose({ type: "category", categoryId: highlighted });
+    field.onTab(event.shiftKey ? "previous" : "next", event);
+  }
 
   return (
     <div role="group" aria-label={`Assignment of ${label}`} className="flex items-center gap-3">
@@ -97,6 +113,9 @@ export function AssignmentControl({
               side={side}
               value={assignment?.type === "category" ? assignment.categoryId : null}
               placeholder="Mixed"
+              inputRef={field?.ref}
+              triggerTabIndex={field ? -1 : undefined}
+              onKeyDown={onFieldKeyDown}
               onValueChange={(categoryId) => onChoose({ type: "category", categoryId })}
             />
           </>
@@ -121,6 +140,11 @@ export function AssignmentControl({
         <Switch
           id={ids.transfer}
           checked={isTransfer}
+          // With review's Tab the field is the picker, or the switch on a transfer; the switch of
+          // a category is reached with the mouse, so Tab goes from item to item.
+          ref={isTransfer ? field?.ref : undefined}
+          {...(field && !isTransfer ? { tabIndex: -1 } : {})}
+          onKeyDown={(event) => onFieldKeyDown(event)}
           // A transfer needs another account to move money to (FR-011).
           disabled={counterAccounts.length === 0}
           onCheckedChange={(checked) => {

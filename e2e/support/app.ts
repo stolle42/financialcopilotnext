@@ -43,10 +43,14 @@ export async function pickCategory(page: Page, scope: Locator, name: string) {
 
 /** What a category picker shows: its field's text, or its placeholder (such as "Mixed") when empty. */
 export function shownCategory(scope: Locator): Promise<string> {
-  return scope.getByLabel("Category", { exact: true }).evaluate((field) => {
-    if (field instanceof HTMLInputElement) return field.value || field.placeholder;
-    return field.textContent?.trim() ?? "";
-  });
+  // The first, when the scope holds several, as an unfolded group does: its own picker comes first.
+  return scope
+    .getByLabel("Category", { exact: true })
+    .first()
+    .evaluate((field) => {
+      if (field instanceof HTMLInputElement) return field.value || field.placeholder;
+      return field.textContent?.trim() ?? "";
+    });
 }
 
 /** Expects the category picker inside `scope` to show `name`. */

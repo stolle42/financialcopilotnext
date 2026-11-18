@@ -51,10 +51,13 @@ function ComboboxInput({
   disabled = false,
   showTrigger = true,
   showClear = false,
+  triggerTabIndex,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean;
   showClear?: boolean;
+  /** `-1` takes the trigger out of the Tab order, as review's Tab from item to item needs. */
+  triggerTabIndex?: number;
 }) {
   return (
     <InputGroup className={cn("w-auto", className)}>
@@ -66,6 +69,7 @@ function ComboboxInput({
             variant="ghost"
             render={<ComboboxTrigger />}
             data-slot="input-group-button"
+            tabIndex={triggerTabIndex}
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
             disabled={disabled}
           />

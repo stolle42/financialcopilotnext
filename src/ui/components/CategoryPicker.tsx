@@ -24,6 +24,12 @@ function matches(entry: Entry, query: string): boolean {
   return entry.category.name.toLowerCase().includes(query.trim().toLowerCase());
 }
 
+/** The category the list of `input` highlights, which the combobox names by `aria-activedescendant`. */
+function highlightedCategory(input: HTMLInputElement): string | null {
+  const id = input.getAttribute("aria-activedescendant");
+  return (id && document.getElementById(id)?.getAttribute("data-category-id")) || null;
+}
+
 interface CategoryPickerProps {
   /** For a visible label; a picker without one, as in a list cell, takes `aria-label` instead. */
   id?: string;
@@ -44,12 +50,15 @@ interface CategoryPickerProps {
   autoFocus?: boolean;
   onOpenChange?: (open: boolean, details: { reason: string }) => void;
   /**
-   * The category the list highlights, or `null`: what review's Tab picks first (R-43, R-44). It
-   * is also `null` once the list closes.
+   * Called for every key pressed in the field, before the list handles it, with the category the
+   * open list highlights, or `null`: what review's Tab picks first (R-43, R-44).
    */
-  onHighlightedChange?: (categoryId: string | null) => void;
-  /** Called for every key pressed in the field, before the list handles it. */
-  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  /** `-1` keeps the list's button out of the Tab order, as review's Tab from item to item needs. */
+  triggerTabIndex?: number;
+  onKeyDown?: (
+    event: KeyboardEvent<HTMLInputElement>,
+    highlightedCategoryId: string | null,
+  ) => void;
   inputRef?: Ref<HTMLInputElement>;
 }
 
@@ -70,7 +79,7 @@ export function CategoryPicker({
   defaultOpen,
   autoFocus,
   onOpenChange,
-  onHighlightedChange,
+  triggerTabIndex,
   onKeyDown,
   inputRef,
 }: CategoryPickerProps) {
@@ -121,15 +130,11 @@ export function CategoryPicker({
       }}
       onOpenChange={(open, details) => {
         if (!open) {
-          onHighlightedChange?.(null);
           typed.current = "";
           setQuery("");
         }
         onOpenChange?.(open, details);
       }}
-      onItemHighlighted={(entry) =>
-        onHighlightedChange?.(entry?.kind === "category" ? entry.category.id : null)
-      }
     >
       <ComboboxInput
         id={id}
@@ -137,8 +142,13 @@ export function CategoryPicker({
         placeholder={placeholder}
         autoFocus={autoFocus}
         autoComplete="off"
+        // Typing replaces the category shown, so a field focused by Tab or by review searches at once.
+        onFocus={(event) => event.currentTarget.select()}
+        triggerTabIndex={triggerTabIndex}
         ref={inputRef}
-        onKeyDown={onKeyDown}
+        onKeyDown={
+          onKeyDown && ((event) => onKeyDown(event, highlightedCategory(event.currentTarget)))
+        }
         className="w-full"
       >
         {current && (
@@ -157,7 +167,11 @@ export function CategoryPicker({
         )}
         <ComboboxList>
           {(entry: Entry) => (
-            <ComboboxItem key={entry.kind === "new" ? "new" : entry.category.id} value={entry}>
+            <ComboboxItem
+              key={entry.kind === "new" ? "new" : entry.category.id}
+              value={entry}
+              data-category-id={entry.kind === "category" ? entry.category.id : undefined}
+            >
               {entry.kind === "new" ? (
                 NEW_CATEGORY_LABEL
               ) : (

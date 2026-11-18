@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { proposedSide } from "@/domain/import/direction";
 import {
   markOf,
@@ -13,9 +12,13 @@ import { useStoreApi } from "@/store/store";
 import { Button } from "@/ui/components/ui/button";
 import { formatAmount } from "@/ui/format";
 import { usualMarkSentence, type MessageCode } from "@/ui/messages";
+import { groupItemId, rowItemId } from "@/domain/import/items";
+import { cn } from "@/ui/lib/utils";
 import { AssignmentControl, usualSentenceId } from "./AssignmentControl";
+import { ItemStatusIcon, RowStatusIcon, itemStatusClass } from "./ItemStatus";
 import { RowSummary } from "./RowSummary";
 import { SuggestedTransfers } from "./SuggestedTransfers";
+import type { ReviewFocus } from "./useReviewFocus";
 
 const sideLabel = { expense: "expenses", income: "income" } as const;
 
@@ -24,14 +27,27 @@ const rowGrid = "grid grid-cols-[6rem_1fr_7rem_auto] items-center gap-3 px-4 py-
 function ReviewRow({
   row,
   batchAccountId,
+  focus,
   onChoose,
 }: {
   row: ParsedRow;
   batchAccountId: string;
+  focus: ReviewFocus;
   onChoose: (row: ParsedRow, choice: AssignmentChoice) => void;
 }) {
+  const id = rowItemId(row);
+  const status = focus.statusOf(id);
   return (
-    <li className={`${rowGrid} [contain-intrinsic-size:auto_3.5rem] [content-visibility:auto]`}>
+    <li
+      {...focus.itemProps(id)}
+      className={cn(
+        rowGrid,
+        "relative [contain-intrinsic-size:auto_3.5rem] [content-visibility:auto]",
+        itemStatusClass[status],
+        status === "current" && "pl-3",
+      )}
+    >
+      <RowStatusIcon status={status} />
       <RowSummary row={row} />
       <AssignmentControl
         label={`row ${row.rowNumber}`}
@@ -39,6 +55,10 @@ function ReviewRow({
         assignment={row.assignment}
         batchAccountId={batchAccountId}
         onChoose={(choice) => onChoose(row, choice)}
+        field={{
+          ref: focus.fieldRef(id),
+          onTab: (direction, event) => focus.moveFrom(id, direction, event),
+        }}
       />
     </li>
   );
@@ -48,22 +68,37 @@ function ReviewRow({
 function GroupCard({
   group,
   batchAccountId,
+  focus,
   onChooseGroup,
   onChooseRow,
 }: {
   group: VendorGroup;
   batchAccountId: string;
+  focus: ReviewFocus;
   onChooseGroup: (group: VendorGroup, choice: AssignmentChoice) => void;
   onChooseRow: (row: ParsedRow, choice: AssignmentChoice) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const id = groupItemId(group);
+  const open = focus.isUnfolded(id);
+  const status = focus.statusOf(id);
   const name = `${group.counterparty}, ${sideLabel[group.side]}`;
   const shared = sharedAssignment(group.rows);
   return (
-    <div role="group" aria-label={name} className="surface">
+    <div
+      role="group"
+      aria-label={name}
+      {...focus.itemProps(id)}
+      className={cn("surface", itemStatusClass[status])}
+    >
       <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <ItemStatusIcon status={status} />
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-expanded={open}
+            onClick={() => focus.toggleUnfolded(id)}
+          >
             {open ? "Hide rows" : "Show rows"}
           </Button>
           <span className="font-medium">{group.counterparty}</span>
@@ -80,6 +115,10 @@ function GroupCard({
             // Marked only when every row holds the same category as a suggestion.
             batchAccountId={batchAccountId}
             onChoose={(choice) => onChooseGroup(group, choice)}
+            field={{
+              ref: focus.fieldRef(id),
+              onTab: (direction, event) => focus.moveFrom(id, direction, event),
+            }}
           />
         </div>
       </div>
@@ -90,6 +129,7 @@ function GroupCard({
               key={row.rowNumber}
               row={row}
               batchAccountId={batchAccountId}
+              focus={focus}
               onChoose={onChooseRow}
             />
           ))}
@@ -107,10 +147,12 @@ function GroupCard({
 export function ReviewGroups({
   view,
   batchAccountId,
+  focus,
   onRefusal,
 }: {
   view: ReviewView;
   batchAccountId: string;
+  focus: ReviewFocus;
   onRefusal: (refusal: Refusal<MessageCode> | null) => void;
 }) {
   const store = useStoreApi();
@@ -133,13 +175,18 @@ export function ReviewGroups({
   return (
     <>
       {/* Above the region, whose every child is a card (FR-114). */}
+      {focus.items.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Typing finds a category, and Tab moves to the next row. Shift+Tab goes back.
+        </p>
+      )}
       {view.groups.length > 0 && (
         <p className="text-sm text-muted-foreground">
           Transfer is for money moved between two of your own accounts. It counts as neither
           spending nor income.
         </p>
       )}
-      <section aria-label="Rows to review" className="flex flex-col gap-3">
+      <section aria-label="Rows to review" className="flex flex-col gap-3" {...focus.regionProps}>
         {holdsUsual && (
           <p id={usualSentenceId} className="surface px-4 py-3 text-sm text-muted-foreground">
             {usualMarkSentence}
@@ -149,6 +196,7 @@ export function ReviewGroups({
           <SuggestedTransfers
             items={view.suggestedTransfers}
             batchAccountId={batchAccountId}
+            focus={focus}
             onChooseRow={chooseRow}
           />
         )}
@@ -157,6 +205,7 @@ export function ReviewGroups({
             key={`${group.side} ${group.key}`}
             group={group}
             batchAccountId={batchAccountId}
+            focus={focus}
             onChooseGroup={chooseGroup}
             onChooseRow={chooseRow}
           />
@@ -168,6 +217,7 @@ export function ReviewGroups({
                 key={row.rowNumber}
                 row={row}
                 batchAccountId={batchAccountId}
+                focus={focus}
                 onChoose={chooseRow}
               />
             ))}

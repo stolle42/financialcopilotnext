@@ -536,7 +536,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   deleted. The SC-002 path of
   [contracts/ui.md](contracts/ui.md#transaction-form) still takes: amount, Tab, a few letters,
   Enter, Enter. T182 and T183 pass.
-- [ ] T212 [US14] The current and seen items: a new `src/ui/screens/import/useReviewFocus.ts`
+- [X] T212 [US14] The current and seen items: a new `src/ui/screens/import/useReviewFocus.ts`
   keeps the current item and the unfolded groups as React state, starts on `firstNotSeen`, and
   holds a map of refs to each item's field; Tab and Shift+Tab in an item's picker or Transfer
   switch call `preventDefault`, pick the highlighted category when a search is open, make the

@@ -514,12 +514,14 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
       await standInCategoriser(page, reply);
       await importAugust(page);
       await turnOnAiFeatures(page);
-      const before = await storedRows(page);
+      // The assignments only: leaving a field marks its item seen, which is no change to a row's category.
+      const assignments = async () => (await storedRows(page)).map((row) => row.assignment);
+      const before = await assignments();
 
       await suggestCategories(page);
 
       await expect(page.getByRole("main").getByRole("alert")).toHaveText(messageFor({ code }));
-      expect(await storedRows(page)).toEqual(before);
+      expect(await assignments()).toEqual(before);
       await expect(suggestButton(page)).toBeEnabled();
     });
   }
@@ -749,11 +751,12 @@ test.describe("the marks: Suggested and From earlier (FR-147, FR-154)", () => {
     await withEarlierMonth(page);
     await turnOnAiFeatures(page);
     await suggestCategories(page);
-    await expect(suggestButton(page)).toBeEnabled();
+    // The AI's suggestions fill every row the earlier months left in Uncategorised.
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 0 rows");
 
-    // Shop's rows hold Groceries from earlier; the credit card's row, which no earlier
-    // transaction names, holds the AI's suggestion.
-    const usual = assignment(page, "row 3");
+    // Shop's rows hold Groceries from earlier, which their collapsed group shows; the credit
+    // card's row, which no earlier transaction names, holds the AI's suggestion.
+    const usual = assignment(page, "Shop, expenses");
     await expect(earlier(usual)).toBeVisible();
     await expect(usual.locator("svg.lucide-history")).toHaveCount(1);
     await expect(usual.locator("svg.lucide-sparkles")).toHaveCount(0);
