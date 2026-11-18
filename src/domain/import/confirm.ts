@@ -1,6 +1,8 @@
 import type { Changes, Context } from "../changes";
+import { protectedCategory } from "../categories";
 import type { ParsedRow, State, Transaction } from "../types";
 import { proposedSide } from "./direction";
+import { isSetAside } from "./groups";
 import { pairFits } from "./transfers";
 
 /** The vendor fields a row's counterparty gives; none when the file named no counterparty. */
@@ -13,6 +15,8 @@ function toTransaction(
   batchAccountId: string,
   seq: number,
   id: string,
+  /** The category a row set aside enters with, whatever it holds: its side's Uncategorised. */
+  uncategorisedId?: string,
 ): Transaction {
   const fields = {
     id,
@@ -27,7 +31,7 @@ function toTransaction(
       ...fields,
       accountId: batchAccountId,
       kind: proposedSide(row.amountCents),
-      categoryId: assignment.categoryId,
+      categoryId: uncategorisedId ?? assignment.categoryId,
       ...vendorOf(row.counterparty),
     };
   }
@@ -90,7 +94,8 @@ function enteringRows(state: State): ParsedRow[] {
  * Books every row under review into the ledger, in file order with consecutive `seq` values, and
  * removes the batch, all in one change (FR-027). A row that holds a suggested transfer whose pair
  * still fits changes that transaction into the transfer and adds none; one whose pair no longer
- * fits is booked as an ordinary transfer (FR-144). The settings stay as they are (FR-006). With no
+ * fits is booked as an ordinary transfer (FR-144). A row set aside is booked in its side's
+ * "Uncategorised", whatever it holds (FR-152). The settings stay as they are (FR-006). With no
  * batch pending there is nothing to do, so a repeated confirmation changes nothing.
  */
 export function confirmBatch(state: State, context: Context): Changes {
@@ -107,7 +112,10 @@ export function confirmBatch(state: State, context: Context): Changes {
     if (paired && paired.kind !== "transfer" && !converted.has(paired.id) && pairFits(row, state)) {
       converted.set(paired.id, convertPaired(paired, row, batch.accountId));
     } else {
-      added.push(toTransaction(row, batch.accountId, ++seq, context.newId()));
+      const uncategorisedId = isSetAside(row, state.settings.setAsideUnderCents)
+        ? protectedCategory(state.categories, proposedSide(row.amountCents), "uncategorised").id
+        : undefined;
+      added.push(toTransaction(row, batch.accountId, ++seq, context.newId(), uncategorisedId));
     }
   }
   const put = [...converted.values(), ...added];
@@ -129,7 +137,7 @@ export function confirmationCounts(state: State): ConfirmationCounts {
   const rows = enteringRows(state);
   return {
     entering: rows.length,
-    setAside: 0,
+    setAside: rows.filter((row) => isSetAside(row, state.settings.setAsideUnderCents)).length,
     becomingTransfers: rows.filter((row) => row.assignment.type === "transfer").length,
   };
 }

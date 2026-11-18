@@ -572,7 +572,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   in `src/domain/import/review.ts`, every assignment sets `keptInReview`, and `bringBack(batch,
   rowNumber)` sets it; in `src/domain/import/suggestions.ts`, rows set aside are not sent; in
   `src/store/import.ts`, `bringBack(store, rowNumber)`. T187 passes.
-- [ ] T215 [US15] Confirmation of rows set aside in `src/domain/import/confirm.ts`: each in its
+- [X] T215 [US15] Confirmation of rows set aside in `src/domain/import/confirm.ts`: each in its
   side's "Uncategorised", and `confirmationCounts` counts them; T188 passes.
 - [ ] T216 [US15] The screens: `set-aside-amount-invalid` in `src/ui/messages.ts`, with the text
   of [contracts/ui.md](contracts/ui.md#message-catalogue); a new
