@@ -616,7 +616,7 @@ once ([FR-149](spec.md#fr-149)).
 - [X] T220 [P] The guide in `src/ai/appGuide.ts` and the FAQ answer on reviewing an import in
   `src/ai/faq.ts` describe v1.8, in plain words for someone who is not an IT person, and add no
   question ([Assumptions](spec.md#assumptions)); T167 passes.
-- [ ] T221 `npm run verify` passes: lint, architecture, typecheck, every unit test and every
+- [X] T221 `npm run verify` passes: lint, architecture, typecheck, every unit test and every
   end-to-end test of v1.0 – v1.8 on Chromium and Firefox, the performance check (T168) included.
   Every link in `specs/018-review-queue/` and every "Replaced in v1.8 by" link in
   `specs/001-finance-tracker-v1/` resolves.
