@@ -193,6 +193,7 @@ export function TransactionForm({
                   id={ids.category}
                   side={draft.kind}
                   value={draft.categoryId}
+                  canCreate
                   onValueChange={(categoryId) => setDraft({ ...draft, categoryId })}
                 />
               </Field>

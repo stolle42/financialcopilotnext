@@ -133,7 +133,7 @@ test("with nothing matching, Enter opens the dialog named by the typed text (sce
   await expect(newCategoryDialog(page).getByLabel("Name")).toHaveValue("pets");
 });
 
-test("in the transaction form with kind Income, New category… creates the income category Gifts (scenario 3)", async ({
+test("in the transaction form with kind Income, New category… creates the income category Refunds (scenario 3)", async ({
   page,
 }) => {
   await page.goto("/");
@@ -144,13 +144,13 @@ test("in the transaction form with kind Income, New category… creates the inco
   await form.getByRole("combobox", { name: "Category", exact: true }).click();
   await newCategoryItem(page).click();
   const dialog = newCategoryDialog(page);
-  await dialog.getByLabel("Name").fill("Gifts");
+  await dialog.getByLabel("Name").fill("Refunds");
   await dialog.getByRole("button", { name: "Create category" }).click();
   await expect(dialog).toHaveCount(0);
 
-  await expectCategory(form, "Gifts");
-  expect(await storedCategory(page, "income", "Gifts")).toBeTruthy();
-  expect(await storedCategory(page, "expense", "Gifts")).toBeUndefined();
+  await expectCategory(form, "Refunds");
+  expect(await storedCategory(page, "income", "Refunds")).toBeTruthy();
+  expect(await storedCategory(page, "expense", "Refunds")).toBeUndefined();
 });
 
 test("Cancel keeps the field as it was (scenario 4)", async ({ page }, testInfo) => {

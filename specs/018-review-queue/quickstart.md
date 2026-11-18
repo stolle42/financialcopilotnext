@@ -105,10 +105,10 @@ loaded through the backup restore, as in 001.
 - **Run**: `e2e/us16-new-category.spec.ts`
 - **Covers**: [User Story 16](spec.md#user-story-16)
 - **Steps**: in review, choose New category… on a group and create "Pets"; type "pets" in a
-  row's picker and press Enter; in the transaction form with kind Income, create "Gifts"; on
+  row's picker and press Enter; in the transaction form with kind Income, create "Refunds"; on
   Transactions, create one from a cell.
 - **Expected**: every row of the group holds Pets, without marks, and Pets is on Categories; Enter
-  with no match opens the dialog named "pets", which refuses it as taken; Gifts is an income
+  with no match opens the dialog named "pets", which refuses it as taken; Refunds is an income
   category held by the form; Cancel leaves each field as it was; the categories stay after
   discarding the batch.
 

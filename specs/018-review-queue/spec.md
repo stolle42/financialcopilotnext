@@ -225,7 +225,7 @@ needed less often than the stories above, but it removes a detour that breaks a 
 middle.
 
 **Independent Test**: In review, choose New category… on a group, create "Pets", and see every row
-of the group in Pets. In the manual-entry form, do the same for "Gifts".
+of the group in Pets. In the manual-entry form, do the same for "Refunds".
 
 **Acceptance Scenarios**:
 
@@ -234,8 +234,8 @@ of the group in Pets. In the manual-entry form, do the same for "Gifts".
    Categories ([FR-149](#fr-149)).
 2. **Given** the user typed "pets" and no category matches, **When** they press Enter, **Then** New
    category opens with "pets" as the name ([FR-148](#fr-148), [FR-149](#fr-149)).
-3. **Given** the manual-entry form with kind income, **When** the user creates "Gifts" from the
-   category list, **Then** Gifts is an income category and the form holds it ([FR-149](#fr-149)).
+3. **Given** the manual-entry form with kind income, **When** the user creates "Refunds" from the
+   category list, **Then** Refunds is an income category and the form holds it ([FR-149](#fr-149)).
 4. **Given** an expense category "Pets" exists, **When** the user creates "pets" from an expense
    list, **Then** the dialog refuses it and says why, as on Categories
    ([FR-032](../001-finance-tracker-v1/spec.md#fr-032)).

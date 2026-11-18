@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { pickerCategories } from "@/domain/categories";
-import type { Category, Side } from "@/domain/types";
+import type { Category, Refusal, Side } from "@/domain/types";
+import type { MessageCode } from "@/ui/messages";
 import { useStore } from "@/store/store";
 import {
   Combobox,
@@ -9,6 +10,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/ui/components/ui/combobox";
+import { NewCategoryDialog } from "@/ui/components/NewCategoryDialog";
 import { InputGroupAddon } from "@/ui/components/ui/input-group";
 
 /** What the list holds: a category of the side, or the last item, New category… (FR-149). */
@@ -41,10 +43,15 @@ interface CategoryPickerProps {
   placeholder?: string;
   onValueChange: (categoryId: string) => void;
   /**
-   * Opens the New category dialog with the text typed so far as its name. Without it, the list
-   * has no New category… item.
+   * Ends the list with New category…, which opens the dialog with the text typed so far as its
+   * name; creating picks the new category through `onValueChange` (FR-149).
    */
-  onNewCategory?: (typedName: string) => void;
+  canCreate?: boolean;
+  /**
+   * Creates the category itself, as review does in one change with the assignment, and so takes
+   * the place of `canCreate` and of `onValueChange` for the new category.
+   */
+  onCreate?: (input: { name: string; color: string }) => Promise<Refusal<MessageCode> | null>;
   /** Opens the list on mount, as editing a cell in place does (contracts/ui.md). */
   defaultOpen?: boolean;
   autoFocus?: boolean;
@@ -75,7 +82,8 @@ export function CategoryPicker({
   value,
   placeholder,
   onValueChange,
-  onNewCategory,
+  canCreate,
+  onCreate,
   defaultOpen,
   autoFocus,
   onOpenChange,
@@ -84,14 +92,17 @@ export function CategoryPicker({
   inputRef,
 }: CategoryPickerProps) {
   const categories = useStore((state) => state.categories);
+  const offersNew = canCreate === true || onCreate !== undefined;
+  // The name the New category dialog opens with, or `null` while it is closed.
+  const [creating, setCreating] = useState<string | null>(null);
   const entries = useMemo<Entry[]>(() => {
     const list: Entry[] = pickerCategories(categories, side).map((category) => ({
       kind: "category",
       category,
     }));
-    if (onNewCategory) list.push({ kind: "new" });
+    if (offersNew) list.push({ kind: "new" });
     return list;
-  }, [categories, side, onNewCategory]);
+  }, [categories, side, offersNew]);
   const current = categories.find((category) => category.id === value);
   // Stable between renders: a new object would make the combobox rewrite what the user typed.
   const selected = useMemo<Entry | null>(
@@ -107,87 +118,98 @@ export function CategoryPicker({
     !entries.some((entry) => entry.kind === "category" && matches(entry, query));
 
   return (
-    <Combobox<Entry>
-      items={entries}
-      value={selected}
-      defaultOpen={defaultOpen}
-      autoHighlight
-      filter={matches}
-      itemToStringLabel={labelOf}
-      isItemEqualToValue={(a, b) => labelOf(a) === labelOf(b) && a.kind === b.kind}
-      onValueChange={(entry) => {
-        if (!entry) return;
-        if (entry.kind === "new") {
-          onNewCategory?.(typed.current.trim());
-          return;
-        }
-        onValueChange(entry.category.id);
-      }}
-      onInputValueChange={(text, details) => {
-        if (details.reason !== "input-change") return;
-        typed.current = text;
-        setQuery(text);
-      }}
-      onOpenChange={(open, details) => {
-        if (!open) {
-          typed.current = "";
-          setQuery("");
-        }
-        onOpenChange?.(open, details);
-      }}
-    >
-      <ComboboxInput
-        id={id}
-        aria-label={ariaLabel}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        autoComplete="off"
-        // Typing replaces the category shown, so a field focused by Tab or by review searches at once.
-        onFocus={(event) => event.currentTarget.select()}
-        triggerTabIndex={triggerTabIndex}
-        ref={inputRef}
-        onKeyDown={
-          onKeyDown && ((event) => onKeyDown(event, highlightedCategory(event.currentTarget)))
-        }
-        className="w-full"
+    <>
+      <Combobox<Entry>
+        items={entries}
+        value={selected}
+        defaultOpen={defaultOpen}
+        autoHighlight
+        filter={matches}
+        itemToStringLabel={labelOf}
+        isItemEqualToValue={(a, b) => labelOf(a) === labelOf(b) && a.kind === b.kind}
+        onValueChange={(entry) => {
+          if (!entry) return;
+          if (entry.kind === "new") {
+            setCreating(typed.current.trim());
+            return;
+          }
+          onValueChange(entry.category.id);
+        }}
+        onInputValueChange={(text, details) => {
+          if (details.reason !== "input-change") return;
+          typed.current = text;
+          setQuery(text);
+        }}
+        onOpenChange={(open, details) => {
+          if (!open) {
+            typed.current = "";
+            setQuery("");
+          }
+          onOpenChange?.(open, details);
+        }}
       >
-        {current && (
-          <InputGroupAddon align="inline-start">
-            <span
-              aria-hidden="true"
-              className="size-3 shrink-0 rounded-full"
-              style={{ backgroundColor: current.color }}
-            />
-          </InputGroupAddon>
-        )}
-      </ComboboxInput>
-      <ComboboxContent>
-        {noMatch && (
-          <p className="py-2 text-center text-sm text-muted-foreground">No category matches</p>
-        )}
-        <ComboboxList>
-          {(entry: Entry) => (
-            <ComboboxItem
-              key={entry.kind === "new" ? "new" : entry.category.id}
-              value={entry}
-              data-category-id={entry.kind === "category" ? entry.category.id : undefined}
-            >
-              {entry.kind === "new" ? (
-                NEW_CATEGORY_LABEL
-              ) : (
-                <span className="inline-flex min-w-0 items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="size-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: entry.category.color }}
-                  />
-                  <span className="truncate">{entry.category.name}</span>
-                </span>
-              )}
-            </ComboboxItem>
+        <ComboboxInput
+          id={id}
+          aria-label={ariaLabel}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          autoComplete="off"
+          // Typing replaces the category shown, so a field focused by Tab or by review searches at once.
+          onFocus={(event) => event.currentTarget.select()}
+          triggerTabIndex={triggerTabIndex}
+          ref={inputRef}
+          onKeyDown={
+            onKeyDown && ((event) => onKeyDown(event, highlightedCategory(event.currentTarget)))
+          }
+          className="w-full"
+        >
+          {current && (
+            <InputGroupAddon align="inline-start">
+              <span
+                aria-hidden="true"
+                className="size-3 shrink-0 rounded-full"
+                style={{ backgroundColor: current.color }}
+              />
+            </InputGroupAddon>
           )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+        </ComboboxInput>
+        <ComboboxContent>
+          {noMatch && (
+            <p className="py-2 text-center text-sm text-muted-foreground">No category matches</p>
+          )}
+          <ComboboxList>
+            {(entry: Entry) => (
+              <ComboboxItem
+                key={entry.kind === "new" ? "new" : entry.category.id}
+                value={entry}
+                data-category-id={entry.kind === "category" ? entry.category.id : undefined}
+              >
+                {entry.kind === "new" ? (
+                  NEW_CATEGORY_LABEL
+                ) : (
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="size-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: entry.category.color }}
+                    />
+                    <span className="truncate">{entry.category.name}</span>
+                  </span>
+                )}
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+      {creating !== null && (
+        <NewCategoryDialog
+          side={side}
+          initialName={creating}
+          create={onCreate}
+          onCreated={onValueChange}
+          onClose={() => setCreating(null)}
+        />
+      )}
+    </>
   );
 }

@@ -14,7 +14,7 @@ import { formatAmount } from "@/ui/format";
 import { usualMarkSentence, type MessageCode } from "@/ui/messages";
 import { groupItemId, rowItemId } from "@/domain/import/items";
 import { cn } from "@/ui/lib/utils";
-import { AssignmentControl, usualSentenceId } from "./AssignmentControl";
+import { AssignmentControl, usualSentenceId, type NewCategoryInput } from "./AssignmentControl";
 import { ItemStatusIcon, RowStatusIcon, itemStatusClass } from "./ItemStatus";
 import { RowSummary } from "./RowSummary";
 import { SuggestedTransfers } from "./SuggestedTransfers";
@@ -29,11 +29,13 @@ function ReviewRow({
   batchAccountId,
   focus,
   onChoose,
+  onCreate,
 }: {
   row: ParsedRow;
   batchAccountId: string;
   focus: ReviewFocus;
   onChoose: (row: ParsedRow, choice: AssignmentChoice) => void;
+  onCreate: (row: ParsedRow, input: NewCategoryInput) => Promise<Refusal<MessageCode> | null>;
 }) {
   const id = rowItemId(row);
   const status = focus.statusOf(id);
@@ -55,6 +57,7 @@ function ReviewRow({
         assignment={row.assignment}
         batchAccountId={batchAccountId}
         onChoose={(choice) => onChoose(row, choice)}
+        onCreateCategory={(input) => onCreate(row, input)}
         field={{
           ref: focus.fieldRef(id),
           onTab: (direction, event) => focus.moveFrom(id, direction, event),
@@ -71,12 +74,19 @@ function GroupCard({
   focus,
   onChooseGroup,
   onChooseRow,
+  onCreateGroup,
+  onCreateRow,
 }: {
   group: VendorGroup;
   batchAccountId: string;
   focus: ReviewFocus;
   onChooseGroup: (group: VendorGroup, choice: AssignmentChoice) => void;
   onChooseRow: (row: ParsedRow, choice: AssignmentChoice) => void;
+  onCreateGroup: (
+    group: VendorGroup,
+    input: NewCategoryInput,
+  ) => Promise<Refusal<MessageCode> | null>;
+  onCreateRow: (row: ParsedRow, input: NewCategoryInput) => Promise<Refusal<MessageCode> | null>;
 }) {
   const id = groupItemId(group);
   const open = focus.isUnfolded(id);
@@ -115,6 +125,7 @@ function GroupCard({
             // Marked only when every row holds the same category as a suggestion.
             batchAccountId={batchAccountId}
             onChoose={(choice) => onChooseGroup(group, choice)}
+            onCreateCategory={(input) => onCreateGroup(group, input)}
             field={{
               ref: focus.fieldRef(id),
               onTab: (direction, event) => focus.moveFrom(id, direction, event),
@@ -131,6 +142,7 @@ function GroupCard({
               batchAccountId={batchAccountId}
               focus={focus}
               onChoose={onChooseRow}
+              onCreate={onCreateRow}
             />
           ))}
         </ul>
@@ -171,6 +183,17 @@ export function ReviewGroups({
     void saved(assignRow(store, row.rowNumber, choice));
   const chooseGroup = (group: VendorGroup, choice: AssignmentChoice) =>
     void saved(assignGroup(store, group, choice));
+  // A new category is created with the assignment; a refused name goes back to the dialog, which
+  // offers nothing else the rules refuse.
+  async function created(result: ReturnType<typeof assignRow>) {
+    const refusal = await result;
+    if (refusal?.code === "assignment-not-allowed") throw new Error(`Refused: ${refusal.code}`);
+    return refusal as Refusal<MessageCode> | null;
+  }
+  const createForRow = (row: ParsedRow, input: NewCategoryInput) =>
+    created(assignRow(store, row.rowNumber, { type: "new-category", ...input }));
+  const createForGroup = (group: VendorGroup, input: NewCategoryInput) =>
+    created(assignGroup(store, group, { type: "new-category", ...input }));
 
   return (
     <>
@@ -198,6 +221,7 @@ export function ReviewGroups({
             batchAccountId={batchAccountId}
             focus={focus}
             onChooseRow={chooseRow}
+            onCreateRow={createForRow}
           />
         )}
         {view.groups.map((group) => (
@@ -208,6 +232,8 @@ export function ReviewGroups({
             focus={focus}
             onChooseGroup={chooseGroup}
             onChooseRow={chooseRow}
+            onCreateGroup={createForGroup}
+            onCreateRow={createForRow}
           />
         ))}
         {view.plainRows.length > 0 && (
@@ -219,6 +245,7 @@ export function ReviewGroups({
                 batchAccountId={batchAccountId}
                 focus={focus}
                 onChoose={chooseRow}
+                onCreate={createForRow}
               />
             ))}
           </ul>

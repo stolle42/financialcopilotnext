@@ -3,7 +3,8 @@ import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import { sortAccounts } from "@/domain/accounts";
 import { markOf } from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
-import type { Assignment, Side } from "@/domain/types";
+import type { Assignment, Refusal, Side } from "@/domain/types";
+import type { MessageCode } from "@/ui/messages";
 import { useStore } from "@/store/store";
 import { CategoryPicker } from "@/ui/components/CategoryPicker";
 import { Label } from "@/ui/components/ui/label";
@@ -16,6 +17,9 @@ import {
 } from "@/ui/components/ui/select";
 import { Switch } from "@/ui/components/ui/switch";
 
+/** What the New category dialog hands over (FR-149). */
+export type NewCategoryInput = { name: string; color: string };
+
 interface AssignmentControlProps {
   /** Names the row or group the control belongs to, for its accessible name. */
   label: string;
@@ -24,6 +28,8 @@ interface AssignmentControlProps {
   assignment: Assignment | null;
   batchAccountId: string;
   onChoose: (choice: AssignmentChoice) => void;
+  /** Creates a category and gives it in one change; resolves to the refusal, or `null` (FR-149). */
+  onCreateCategory: (input: NewCategoryInput) => Promise<Refusal<MessageCode> | null>;
   /**
    * Review's Tab (FR-150): registers the field, the picker or, on a transfer, the Transfer switch,
    * and is told when Tab or Shift+Tab is pressed in it. Without it the control is a plain one.
@@ -48,6 +54,7 @@ export function AssignmentControl({
   assignment,
   batchAccountId,
   onChoose,
+  onCreateCategory,
   field,
 }: AssignmentControlProps) {
   const accounts = useStore((state) => state.accounts);
@@ -117,6 +124,7 @@ export function AssignmentControl({
               triggerTabIndex={field ? -1 : undefined}
               onKeyDown={onFieldKeyDown}
               onValueChange={(categoryId) => onChoose({ type: "category", categoryId })}
+              onCreate={onCreateCategory}
             />
           </>
         )}

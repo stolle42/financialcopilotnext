@@ -166,6 +166,7 @@ export function CellEditor({
         aria-label="Category"
         side={transaction.kind}
         value={value}
+        canCreate
         onOpenChange={selectProps.onOpenChange}
         onValueChange={(categoryId) => selectProps.onValueChange(categoryId)}
       />

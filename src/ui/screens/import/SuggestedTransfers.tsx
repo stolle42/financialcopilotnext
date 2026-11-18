@@ -1,12 +1,13 @@
 import type { SuggestedTransfer } from "@/domain/import/groups";
 import type { AssignmentChoice } from "@/domain/import/review";
 import { proposedSide } from "@/domain/import/direction";
-import type { ParsedRow } from "@/domain/types";
+import type { ParsedRow, Refusal } from "@/domain/types";
+import type { MessageCode } from "@/ui/messages";
 import { useStore } from "@/store/store";
 import { formatAmount, formatDate } from "@/ui/format";
 import { rowItemId } from "@/domain/import/items";
 import { cn } from "@/ui/lib/utils";
-import { AssignmentControl } from "./AssignmentControl";
+import { AssignmentControl, type NewCategoryInput } from "./AssignmentControl";
 import { RowStatusIcon, itemStatusClass } from "./ItemStatus";
 import type { ReviewFocus } from "./useReviewFocus";
 import { RowSummary } from "./RowSummary";
@@ -41,11 +42,13 @@ export function SuggestedTransfers({
   batchAccountId,
   focus,
   onChooseRow,
+  onCreateRow,
 }: {
   items: SuggestedTransfer[];
   batchAccountId: string;
   focus: ReviewFocus;
   onChooseRow: (row: ParsedRow, choice: AssignmentChoice) => void;
+  onCreateRow: (row: ParsedRow, input: NewCategoryInput) => Promise<Refusal<MessageCode> | null>;
 }) {
   return (
     <section aria-label="Suggested transfers" className="surface flex flex-col gap-3 p-4">
@@ -77,6 +80,7 @@ export function SuggestedTransfers({
                   assignment={item.row.assignment}
                   batchAccountId={batchAccountId}
                   onChoose={(choice) => onChooseRow(item.row, choice)}
+                  onCreateCategory={(input) => onCreateRow(item.row, input)}
                   field={{
                     ref: focus.fieldRef(id),
                     onTab: (direction, event) => focus.moveFrom(id, direction, event),

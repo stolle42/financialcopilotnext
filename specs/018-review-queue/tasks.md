@@ -387,7 +387,7 @@ that already exists, or a broken fixture.
   ([quickstart.md](quickstart.md#us16-new-category)): New category… on a review group creates
   "Pets", every row of the group holds it without marks, and Pets is on Categories; "pets" and
   Enter open the dialog named "pets", which says the name is taken; with kind Income, the form
-  creates "Gifts" as an income category and holds it; Cancel keeps the field; after Discard, Pets
+  creates "Refunds" as an income category and holds it; Cancel keeps the field; after Discard, Pets
   is still on Categories.
 
 ### Red run
@@ -601,7 +601,7 @@ once ([FR-149](spec.md#fr-149)).
 - [X] T218 [US16] In `src/store/import.ts`, `assignRow` and `assignGroup` take a new category
   (name and colour) as a choice, create it and assign it in one change, without marks and with
   `keptInReview`; T191 passes.
-- [ ] T219 [US16] New category… as the last item of `CategoryPicker.tsx`, always kept by the
+- [X] T219 [US16] New category… as the last item of `CategoryPicker.tsx`, always kept by the
   filter, so Enter with no match opens the dialog with the typed text as its name; creating picks
   the category in the transaction form, in the cell editor (which saves), and on a review row or
   group through T218; Cancel leaves the field as it was ([R-43](research.md#r-43)). T192 and T193
