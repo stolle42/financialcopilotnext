@@ -102,7 +102,14 @@ test("organises categories without breaking transactions or budgets", async ({ p
   const form = page.getByRole("dialog", { name: "Edit transaction" });
   const category = form.getByLabel("Category", { exact: true });
   await expectCategory(form, "Restaurants");
-  expect(await chipColour(category, "Restaurants")).toBe(orange);
+  // The picker shows the category in its field, with the colour as a swatch before it.
+  expect(
+    await category
+      .locator("xpath=ancestor::*[@data-slot='input-group']")
+      .locator("[style*='background-color']")
+      .first()
+      .evaluate((swatch) => getComputedStyle(swatch).backgroundColor),
+  ).toBe(orange);
   await category.click();
   await expect(page.getByRole("option", { name: "Restaurants", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: "Eating out", exact: true })).toHaveCount(0);
