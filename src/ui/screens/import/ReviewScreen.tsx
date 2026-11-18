@@ -22,6 +22,7 @@ import { confirmationSummary, messageFor, notifications, type MessageCode } from
 import { ReviewGroups } from "./ReviewGroups";
 import { useReviewFocus } from "./useReviewFocus";
 import { RowSummary } from "./RowSummary";
+import { SetAside, SetAsideDrawer } from "./SetAside";
 import { SuggestCategories } from "./SuggestCategories";
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
@@ -196,8 +197,9 @@ function ReviewFooter({
 function BatchReview({ batch }: { batch: PendingBatch }) {
   const account = useStore((state) => state.accounts.find((a) => a.id === batch.accountId));
   const transactions = useStore((state) => state.transactions);
-  const view = useMemo(() => reviewView(batch, transactions), [batch, transactions]);
-  const [drawer, setDrawer] = useState<"duplicates" | "unparsable" | null>(null);
+  const under = useStore((state) => state.settings.setAsideUnderCents);
+  const view = useMemo(() => reviewView(batch, transactions, under), [batch, transactions, under]);
+  const [drawer, setDrawer] = useState<"duplicates" | "unparsable" | "set-aside" | null>(null);
   const [refusal, setRefusal] = useState<Refusal<MessageCode> | null>(null);
   const [askingAi, setAskingAi] = useState(false);
   const focus = useReviewFocus(view);
@@ -220,6 +222,11 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           {counts.suggestedTransfers > 0 && (
             <span>{plural(counts.suggestedTransfers, "suggested transfer")}</span>
           )}
+          {counts.setAside > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setDrawer("set-aside")}>
+              {counts.setAside} set aside
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setDrawer("duplicates")}>
             {plural(counts.duplicates, "duplicate")}
           </Button>
@@ -228,6 +235,7 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           </Button>
         </div>
       </section>
+      <SetAside under={under} count={counts.setAside} onOpen={() => setDrawer("set-aside")} />
       <SuggestCategories view={view} onRefusal={setRefusal} onAskingChange={setAskingAi} />
       {refusal && (
         <p role="alert" className="text-sm text-destructive">
@@ -245,6 +253,12 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
         count={counts.review}
         accountName={account?.name ?? ""}
         aiAnswering={askingAi}
+        onRefusal={setRefusal}
+      />
+      <SetAsideDrawer
+        rows={view.setAside}
+        open={drawer === "set-aside"}
+        onOpenChange={(open) => setDrawer(open ? "set-aside" : null)}
         onRefusal={setRefusal}
       />
       <DuplicatesDrawer

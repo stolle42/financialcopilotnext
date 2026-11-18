@@ -574,7 +574,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   `src/store/import.ts`, `bringBack(store, rowNumber)`. T187 passes.
 - [X] T215 [US15] Confirmation of rows set aside in `src/domain/import/confirm.ts`: each in its
   side's "Uncategorised", and `confirmationCounts` counts them; T188 passes.
-- [ ] T216 [US15] The screens: `set-aside-amount-invalid` in `src/ui/messages.ts`, with the text
+- [X] T216 [US15] The screens: `set-aside-amount-invalid` in `src/ui/messages.ts`, with the text
   of [contracts/ui.md](contracts/ui.md#message-catalogue); a new
   `src/ui/screens/import/SetAside.tsx` with the field "Set aside rows under" and its sentence, the
   line "N rows under €X set aside" as the button that opens the drawer, and the drawer listing the

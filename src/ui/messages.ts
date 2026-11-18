@@ -45,7 +45,8 @@ export type MessageCode =
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
-  | BackupRefusalCode;
+  | BackupRefusalCode
+  | "set-aside-amount-invalid";
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -250,6 +251,8 @@ export const messages: Record<MessageCode, Wording> = {
   "suggestions-outdated":
     "The import changed while the AI was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
+  "set-aside-amount-invalid":
+    "The amount must be above 0.00, with at most two decimals. No rows are set aside.",
   "category-name-empty": "The category needs a name.",
   "category-name-taken": (details) =>
     `There is already ${details.side === "income" ? "an income" : "an expense"} category with this ` +
