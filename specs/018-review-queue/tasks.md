@@ -642,7 +642,7 @@ once ([FR-149](spec.md#fr-149)).
   end-to-end test of v1.0 – v1.8 on Chromium and Firefox, the performance check (T168) included.
   Every link in `specs/018-review-queue/` and every "Replaced in v1.8 by" link in
   `specs/001-finance-tracker-v1/` resolves.
-- [ ] T222 (Project owner, manual) On the branch, before the merge, on `localhost` (`npm start`):
+- [X] T222 (Project owner, manual) On the branch, before the merge, on `localhost` (`npm start`):
   walk the [manual checks](quickstart.md#manual-checks) of [SC-032](spec.md#sc-032),
   [SC-033](spec.md#sc-033), [SC-035](spec.md#sc-035) and [SC-036](spec.md#sc-036) (with `npm run
   fixtures:sc036`), and the sentences of [FR-154](spec.md#fr-154). Its commit sets the version to
