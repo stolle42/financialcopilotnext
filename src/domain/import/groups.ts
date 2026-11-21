@@ -53,6 +53,8 @@ export interface ReviewView {
   plainRows: ParsedRow[];
   /** The rows set aside, by date, then row number; outside groups, plain rows and items (FR-152). */
   setAside: ParsedRow[];
+  /** What the rows set aside come to, their amounts added without sign, for the live line (FR-161). */
+  setAsideTotalCents: number;
 }
 
 const byDate = (a: ParsedRow, b: ParsedRow) =>
@@ -161,6 +163,7 @@ export function reviewView(
     groups: groups.sort(bySize),
     plainRows: plainRows.sort(byDate),
     setAside,
+    setAsideTotalCents: setAside.reduce((sum, row) => sum + Math.abs(row.amountCents), 0),
   };
 }
 

@@ -591,7 +591,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   sentence, Under 1, Under 5, Under 10 and Skip none pressed as the amount says, the live line, the
   header "N skipped" or "None skipped", the drawer "Skipped rows" with Review this row. Run them
   and confirm they fail.
-- [ ] T224 [US15] The total of the skipped rows: `reviewView` in `src/domain/import/groups.ts`
+- [X] T224 [US15] The total of the skipped rows: `reviewView` in `src/domain/import/groups.ts`
   also returns the sum of their amounts without sign; T223's unit test passes.
 - [ ] T225 [US15] The screens: `src/ui/screens/import/SetAside.tsx` says "Skip rows under" with the
   sentence, the four buttons and the live line of [FR-161](spec.md#fr-161), and its drawer
