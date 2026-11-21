@@ -6,7 +6,7 @@ import { addAccount, expectCategory, storedRecord, storedRecords } from "./suppo
 import { saveMyBankProfile } from "./support/import";
 import { euros, expect, setToday, test } from "./support/test";
 
-// User Story 15 (FR-152, FR-153, FR-154, FR-157, FR-159) and SC-034, on the scenarios of
+// User Story 15 (FR-152, FR-153, FR-154, FR-157, FR-159, FR-161) and SC-034, on the scenarios of
 // quickstart.md (US15): a file with 30 rows under 1.00 among others. `setAsideUnderCents` and
 // `keptInReview` are v1.8 fields the types do not carry yet, so they are read as they are stored
 // (data-model.md, Settings and the pending row).
@@ -18,15 +18,26 @@ const plainRows = (page: Page) =>
   reviewList(page).getByRole("list", { name: "Plain rows" }).getByRole("listitem");
 const assignment = (scope: Page | Locator, name: string) =>
   scope.getByRole("group", { name: `Assignment of ${name}`, exact: true });
-/** The field "Set aside rows under" (FR-152). */
-const amountField = (page: Page) => page.getByLabel("Set aside rows under", { exact: true });
-/** The line under the field, which is also the button that opens the drawer (FR-153). */
-const line = (page: Page, count: number, under = "€1.00") =>
-  page.getByRole("button", {
-    name: `${count} ${count === 1 ? "row" : "rows"} under ${under} set aside`,
-    exact: true,
-  });
-const drawer = (page: Page) => page.getByRole("dialog", { name: "Rows set aside" });
+/** The field "Skip rows under" (FR-152). */
+const amountField = (page: Page) => page.getByLabel("Skip rows under", { exact: true });
+const skipSection = (page: Page) => page.getByRole("region", { name: "Skip small rows" });
+/** A button of the section: Under 1, Under 5, Under 10 or Skip none (FR-161). */
+const preset = (page: Page, name: string) =>
+  skipSection(page).getByRole("button", { name, exact: true });
+/** The live line under the field (FR-161), with the number of rows, of all `of`, and what they come to. */
+const line = (page: Page, count: number, of: number, comes: string, under = "€1.00") =>
+  skipSection(page).getByText(
+    count === 1
+      ? `1 of ${of} rows is under ${under}. It comes to ${comes}, and it is imported as Uncategorised.`
+      : `${count} of ${of} rows are under ${under}. Together they come to ${comes}, and they are imported as Uncategorised.`,
+    { exact: true },
+  );
+const noLine = (page: Page) => skipSection(page).getByText("No rows are skipped.", { exact: true });
+/** The header's status: the button that opens the drawer, or "None skipped" (FR-153). */
+const skippedButton = (page: Page, count: number) =>
+  header(page).getByRole("button", { name: `${count} skipped`, exact: true });
+const noneSkipped = (page: Page) => header(page).getByText("None skipped", { exact: true });
+const drawer = (page: Page) => page.getByRole("dialog", { name: "Skipped rows" });
 
 /** The expenses and incomes under 1.00, and the rows that stay under review. */
 const SMALL_EXPENSES = 20;
@@ -34,6 +45,9 @@ const SMALL_INCOMES = 10;
 const SMALL = SMALL_EXPENSES + SMALL_INCOMES;
 /** Row numbers, which are CSV line numbers: the header is line 1. */
 const FIRST_SMALL = 7;
+/** All the rows of the August file, and what the 30 small ones come to without sign: 20 expenses of 0.50 – 0.69, 10 incomes of 0.10 – 0.19. */
+const ALL = 35;
+const SMALL_TOTAL = "€13.35";
 
 const comma = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
@@ -138,21 +152,23 @@ async function openReview(page: Page, testInfo: TestInfo) {
   await importFrom(page, "Cash", writeFile(testInfo, "mybank-2026-08.csv", augustLines()));
 }
 
-test("entering 1.00 takes the 30 rows under 1.00 out of review, and the line says so (scenario 1)", async ({
+test("entering 1.00 takes the 30 rows under 1.00 out of review, and the status and the line say so (scenario 1)", async ({
   page,
 }, testInfo) => {
   await openReview(page, testInfo);
   await expect(amountField(page)).toHaveValue("");
-  await expect(header(page)).not.toContainText("set aside");
-  await expect(line(page, SMALL)).toHaveCount(0);
-  // Nothing is set aside while the field is empty, so the 32 rows outside the group are plain rows.
+  // The status is there before anything is skipped (FR-153), and the line says none are (FR-161).
+  await expect(noneSkipped(page)).toBeVisible();
+  await expect(noLine(page)).toBeVisible();
+  await expect(skippedButton(page, SMALL)).toHaveCount(0);
+  // Nothing is skipped while the field is empty, so the 32 rows outside the group are plain rows.
   await expect(plainRows(page)).toHaveCount(2 + SMALL);
 
   await amountField(page).fill("1.00");
 
-  await expect(line(page, SMALL)).toBeVisible();
-  await expect(line(page, SMALL)).toHaveText(`${SMALL} rows under €1.00 set aside`);
-  await expect(header(page).getByRole("button", { name: `${SMALL} set aside` })).toBeVisible();
+  await expect(line(page, SMALL, ALL, SMALL_TOTAL)).toBeVisible();
+  await expect(skippedButton(page, SMALL)).toBeVisible();
+  await expect(noneSkipped(page)).toHaveCount(0);
   // The Shop group, the bakery and the kiosk's 1.00 stay; none of the 30 is a group or a plain row.
   await expect(plainRows(page)).toHaveCount(2);
   await expect(header(page)).toContainText("5 rows to review");
@@ -168,19 +184,91 @@ test("entering 1.00 takes the 30 rows under 1.00 out of review, and the line say
   await expect.poll(() => storedAmount(page)).toBe(100);
   expect((await storedRows(page)).filter((row) => row.keptInReview)).toEqual([]);
 
-  // The amount and what it set aside survive a reload.
+  // The amount and what it skipped survive a reload.
   await page.reload();
   await expect(amountField(page)).toHaveValue("1.00");
-  await expect(line(page, SMALL)).toBeVisible();
+  await expect(skippedButton(page, SMALL)).toBeVisible();
 });
 
-test("explains beside the field that rows under the amount are left out of review (FR-154)", async ({
+test("explains beside the field that rows under the amount are not reviewed but still imported (FR-154)", async ({
   page,
 }, testInfo) => {
   await openReview(page, testInfo);
   await expect(
-    page.getByText(/rows under this amount are left out of review and saved in Uncategorised/i),
+    skipSection(page).getByText(
+      "Rows under this amount are not reviewed. They are still imported, as Uncategorised, so your balances stay right.",
+      { exact: true },
+    ),
   ).toBeVisible();
+});
+
+test("Under 1, Under 5 and Under 10 set their amount and show pressed; Skip none clears it and shows every row (FR-161, scenario 8)", async ({
+  page,
+}, testInfo) => {
+  await openReview(page, testInfo);
+  const names = ["Under 1", "Under 5", "Under 10", "Skip none"];
+  const pressed = async (expected: string) => {
+    for (const name of names) {
+      await expect(preset(page, name)).toHaveAttribute(
+        "aria-pressed",
+        name === expected ? "true" : "false",
+      );
+    }
+  };
+  // No amount: only Skip none is pressed.
+  await pressed("Skip none");
+
+  await preset(page, "Under 1").click();
+  await expect(amountField(page)).toHaveValue("1.00");
+  await pressed("Under 1");
+  await expect(skippedButton(page, SMALL)).toBeVisible();
+  await expect(line(page, SMALL, ALL, SMALL_TOTAL)).toBeVisible();
+  await expect.poll(() => storedAmount(page)).toBe(100);
+
+  // 5.00 also skips the kiosk's 1.00; the Shop group's 10.00 and up stay.
+  await preset(page, "Under 5").click();
+  await expect(amountField(page)).toHaveValue("5.00");
+  await pressed("Under 5");
+  await expect(skippedButton(page, SMALL + 1)).toBeVisible();
+  await expect.poll(() => storedAmount(page)).toBe(500);
+
+  await preset(page, "Under 10").click();
+  await expect(amountField(page)).toHaveValue("10.00");
+  await pressed("Under 10");
+  await expect(skippedButton(page, SMALL + 1)).toBeVisible();
+  await expect.poll(() => storedAmount(page)).toBe(1000);
+
+  // An amount typed in the field that no button stands for leaves them all unpressed.
+  await amountField(page).fill("2.50");
+  for (const name of names) await expect(preset(page, name)).toHaveAttribute("aria-pressed", "false");
+  await expect(skippedButton(page, SMALL + 1)).toBeVisible();
+
+  // Skip none: no amount, every row under review, nothing dropped.
+  await preset(page, "Skip none").click();
+  await expect(amountField(page)).toHaveValue("");
+  await pressed("Skip none");
+  await expect(noneSkipped(page)).toBeVisible();
+  await expect(noLine(page)).toBeVisible();
+  await expect(plainRows(page)).toHaveCount(2 + SMALL);
+  await expect.poll(() => storedAmount(page)).toBeUndefined();
+});
+
+test("with an amount and no row under it, the line says so, and the header says none are skipped (FR-153, FR-161)", async ({
+  page,
+}, testInfo) => {
+  await openReview(page, testInfo);
+  await amountField(page).fill("0.10");
+  await expect(skipSection(page).getByText("No rows are under €0.10.", { exact: true })).toBeVisible();
+  await expect(noneSkipped(page)).toBeVisible();
+  await expect(plainRows(page)).toHaveCount(2 + SMALL);
+});
+
+test("a single skipped row is said in the singular (FR-161)", async ({ page }, testInfo) => {
+  await openReview(page, testInfo);
+  await amountField(page).fill("0.11");
+  // Only the income of 0.10 is under 0.11.
+  await expect(line(page, 1, ALL, "€0.10", "€0.11")).toBeVisible();
+  await expect(skippedButton(page, 1)).toBeVisible();
 });
 
 test("a row given a category before the amount is entered stays under review (scenario 2)", async ({
@@ -195,7 +283,7 @@ test("a row given a category before the amount is entered stays under review (sc
 
   await amountField(page).fill("1.00");
 
-  await expect(line(page, SMALL - 1)).toBeVisible();
+  await expect(skippedButton(page, SMALL - 1)).toBeVisible();
   await expect(plainRows(page)).toHaveCount(3);
   await expect(plainRows(page).filter({ hasText: "Tiny 03" })).toHaveCount(1);
   await expectCategory(assignment(page, `row ${FIRST_SMALL + 3}`), "Groceries");
@@ -204,7 +292,7 @@ test("a row given a category before the amount is entered stays under review (sc
   });
 });
 
-test("abc and 0 show the message of set-aside-amount-invalid, and set nothing aside (scenario 3)", async ({
+test("abc and 0 show the message of set-aside-amount-invalid, and skip nothing (scenario 3)", async ({
   page,
 }, testInfo) => {
   await openReview(page, testInfo);
@@ -218,29 +306,29 @@ test("abc and 0 show the message of set-aside-amount-invalid, and set nothing as
         .filter({ has: amountField(page) })
         .getByRole("alert"),
     ).toContainText(message);
-    await expect(header(page)).not.toContainText("set aside");
+    await expect(noneSkipped(page)).toBeVisible();
     await expect(plainRows(page)).toHaveCount(2 + SMALL);
     await expect.poll(() => storedAmount(page)).toBeUndefined();
   }
 
-  // A valid amount takes the message away, and clearing the field sets nothing aside again.
+  // A valid amount takes the message away, and clearing the field skips nothing again.
   await amountField(page).fill("1.00");
-  await expect(line(page, SMALL)).toBeVisible();
+  await expect(skippedButton(page, SMALL)).toBeVisible();
   await expect(page.getByText(message)).toHaveCount(0);
   await amountField(page).fill("");
-  await expect(line(page, SMALL)).toHaveCount(0);
+  await expect(noneSkipped(page)).toBeVisible();
   await expect(plainRows(page)).toHaveCount(2 + SMALL);
   await expect.poll(() => storedAmount(page)).toBeUndefined();
 });
 
-test("the drawer lists the rows by date, and one brought back is under review with what it held (scenario 4)", async ({
+test("the drawer lists the rows by date, and one chosen for review is under review with what it held (scenario 4)", async ({
   page,
 }, testInfo) => {
   await openReview(page, testInfo);
   await amountField(page).fill("1.00");
-  await expect(line(page, SMALL)).toBeVisible();
+  await expect(skippedButton(page, SMALL)).toBeVisible();
 
-  await line(page, SMALL).click();
+  await skippedButton(page, SMALL).click();
 
   const rows = drawer(page).getByRole("listitem");
   await expect(rows).toHaveCount(SMALL);
@@ -250,17 +338,17 @@ test("the drawer lists the rows by date, and one brought back is under review wi
   await expect(rows.first()).toContainText("-€0.50");
   await expect(rows.nth(1)).toContainText("Tiny 01");
   await expect(rows.last()).toContainText("Tiny 19");
-  await expect(rows.first().getByRole("button", { name: "Bring back" })).toBeVisible();
+  await expect(rows.first().getByRole("button", { name: "Review this row" })).toBeVisible();
 
   await rows
     .filter({ hasText: "Tiny 05" })
-    .getByRole("button", { name: "Bring back", exact: true })
+    .getByRole("button", { name: "Review this row", exact: true })
     .click();
 
   await expect(rows).toHaveCount(SMALL - 1);
   await expect(drawer(page).getByText("Tiny 05")).toHaveCount(0);
   await drawer(page).press("Escape");
-  await expect(line(page, SMALL - 1)).toBeVisible();
+  await expect(skippedButton(page, SMALL - 1)).toBeVisible();
   await expect(plainRows(page).filter({ hasText: "Tiny 05" })).toHaveCount(1);
   await expectCategory(assignment(page, `row ${FIRST_SMALL + 5}`), "Uncategorised");
   expect((await storedRows(page)).find((r) => r.rowNumber === FIRST_SMALL + 5)).toMatchObject({
@@ -268,7 +356,7 @@ test("the drawer lists the rows by date, and one brought back is under review wi
   });
 });
 
-test("confirming says how many rows enter in Uncategorised because they were set aside, and the balances equal a file with nothing set aside (scenarios 5, 6; SC-034)", async ({
+test("confirming says how many rows enter in Uncategorised because they were skipped, and the balances equal a file with nothing skipped (scenarios 5, 6; SC-034)", async ({
   page,
 }, testInfo) => {
   const lines = augustLines();
@@ -276,29 +364,29 @@ test("confirming says how many rows enter in Uncategorised because they were set
   await addAccount(page, "Checking");
   const file = writeFile(testInfo, "mybank-2026-08.csv", lines);
 
-  // Checking gets the same file with nothing set aside, Cash with 1.00 set and one row brought back.
+  // Checking gets the same file with nothing skipped, Cash with 1.00 set and one row chosen for review.
   await importFrom(page, "Checking", file);
   const withNothing = await confirmReview(page);
-  expect(withNothing).not.toMatch(/because they were set aside/);
+  expect(withNothing).not.toMatch(/because they were skipped/);
 
   await importFrom(page, "Cash", file);
-  await amountField(page).fill("1.00");
-  await line(page, SMALL).click();
+  await preset(page, "Under 1").click();
+  await skippedButton(page, SMALL).click();
   await drawer(page)
     .getByRole("listitem")
     .filter({ hasText: "Tiny 05" })
-    .getByRole("button", { name: "Bring back", exact: true })
+    .getByRole("button", { name: "Review this row", exact: true })
     .click();
   await drawer(page).press("Escape");
 
   const said = await confirmReview(page);
   expect(said).toMatch(new RegExp(`${lines.length} (rows|transactions)`));
   expect(said).toMatch(
-    new RegExp(`${SMALL - 1} of them in .?Uncategorised.? because they were set aside`),
+    new RegExp(`${SMALL - 1} of them in .?Uncategorised.? because they were skipped`),
   );
 
-  // The 29 set aside are expenses and incomes in their side's Uncategorised; the one brought back
-  // is too, since the user gave it nothing.
+  // The 29 skipped are expenses and incomes in their side's Uncategorised; the one chosen for
+  // review is too, since the user gave it nothing. No row is dropped.
   const categories = await storedRecords<{ id: string; side: string; role: string | null }>(
     page,
     "categories",
@@ -316,18 +404,18 @@ test("confirming says how many rows enter in Uncategorised because they were set
   expect(small.every((t) => t.kind !== "transfer" && uncategorised.has(t.categoryId))).toBe(true);
   expect(small.filter((t) => t.kind === "income")).toHaveLength(SMALL_INCOMES);
 
-  // Every balance equals the one the same file gives with nothing set aside (SC-034).
+  // Every balance equals the one the same file gives with nothing skipped (SC-034).
   const expected = euros(total(lines));
   await expect(await balanceOf(page, "Cash")).toContainText(expected);
   await expect(await balanceOf(page, "Checking")).toContainText(expected);
 });
 
-test("the next import sets rows under 1.00 aside from the start (scenario 7)", async ({
+test("the next import skips rows under 1.00 from the start (scenario 7)", async ({
   page,
 }, testInfo) => {
   await openReview(page, testInfo);
   await amountField(page).fill("1.00");
-  await expect(line(page, SMALL)).toBeVisible();
+  await expect(skippedButton(page, SMALL)).toBeVisible();
   await confirmReview(page);
 
   const september: Line[] = [
@@ -338,9 +426,9 @@ test("the next import sets rows under 1.00 aside from the start (scenario 7)", a
   await importFrom(page, "Cash", writeFile(testInfo, "mybank-2026-09.csv", september));
 
   await expect(amountField(page)).toHaveValue("1.00");
-  await expect(line(page, 2)).toBeVisible();
+  await expect(line(page, 2, 3, "€0.70")).toBeVisible();
   await expect(plainRows(page)).toHaveCount(1);
   await expect(reviewList(page)).toContainText("Market");
   await expect(reviewList(page)).not.toContainText("Gift shop");
-  await expect(header(page).getByRole("button", { name: "2 set aside" })).toBeVisible();
+  await expect(skippedButton(page, 2)).toBeVisible();
 });

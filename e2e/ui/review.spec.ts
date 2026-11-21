@@ -922,15 +922,16 @@ test.describe("the current and the seen items (FR-150, FR-151)", () => {
   });
 });
 
-// contracts/ui.md, review, Set aside rows under and the set aside drawer; FR-152, FR-153, FR-154.
-// August's file gives, with 5.00 set, four rows set aside: the two of Bäckerei Krüger's 4.50, the
-// parking ticket and the account fee. The second ticket is a flagged duplicate, which is not set
-// aside. `setAsideUnderCents` and the seen marks are v1.8 fields, read as they are stored.
-test.describe("rows set aside: the field and the drawer (FR-152, FR-153, FR-154)", () => {
-  const field = (page: Page) => page.getByLabel("Set aside rows under", { exact: true });
+// contracts/ui.md, review, Skip rows under and the skipped rows drawer; FR-152, FR-153, FR-154,
+// FR-161. August's file gives, with 5.00 set, four skipped rows: the two of Bäckerei Krüger's 4.50,
+// the parking ticket and the account fee. The second ticket is a flagged duplicate, which is not
+// skipped. `setAsideUnderCents` and the seen marks are v1.8 fields, read as they are stored.
+test.describe("skipped rows: the field, the buttons and the drawer (FR-152, FR-153, FR-154, FR-161)", () => {
+  const field = (page: Page) => page.getByLabel("Skip rows under", { exact: true });
   const suggestions = (page: Page) => page.getByRole("region", { name: "Suggestions" });
-  const drawer = (page: Page) => page.getByRole("dialog", { name: "Rows set aside" });
-  const SENTENCE = /rows under this amount are left out of review and saved in Uncategorised/i;
+  const drawer = (page: Page) => page.getByRole("dialog", { name: "Skipped rows" });
+  const SENTENCE =
+    /rows under this amount are not reviewed\. They are still imported, as Uncategorised, so your balances stay right\./i;
 
   test.beforeEach(async ({ page }) => {
     await standInCategoriser(page);
@@ -956,39 +957,72 @@ test.describe("rows set aside: the field and the drawer (FR-152, FR-153, FR-154)
     expect(Math.abs(sentenceBox.y - fieldBox!.y)).toBeLessThan(fieldBox!.height + 40);
   });
 
-  test("the header's set-aside count shows only when it is not zero, and opens the drawer", async ({
+  test("the header always says how many rows are skipped, and the count opens the drawer", async ({
     page,
   }) => {
     await importAugust(page);
-    await expect(header(page)).not.toContainText("set aside");
+    await expect(header(page).getByText("None skipped", { exact: true })).toBeVisible();
 
     await field(page).fill("5.00");
     await expect(header(page)).toContainText("9 rows to review");
-    await header(page).getByRole("button", { name: "4 set aside", exact: true }).click();
+    await expect(header(page).getByText("None skipped", { exact: true })).toHaveCount(0);
+    await header(page).getByRole("button", { name: "4 skipped", exact: true }).click();
     await expect(drawer(page)).toBeVisible();
     await expect(drawer(page).getByRole("listitem")).toHaveCount(4);
     await page.keyboard.press("Escape");
 
     await field(page).fill("");
-    await expect(header(page)).not.toContainText("set aside");
+    await expect(header(page).getByText("None skipped", { exact: true })).toBeVisible();
     await expect(header(page)).toContainText("13 rows to review");
   });
 
-  test("the line under the field names the amount and opens the same drawer", async ({ page }) => {
+  test("the buttons Under 1, Under 5, Under 10 and Skip none sit beside the field, in a row of toggle buttons", async ({
+    page,
+  }) => {
     await importAugust(page);
-    await field(page).fill("5");
-    const line = page.getByRole("button", { name: "4 rows under €5.00 set aside", exact: true });
-    await expect(line).toBeVisible();
-    await line.click();
-    await expect(drawer(page)).toBeVisible();
+    const section = page.getByRole("region", { name: "Skip small rows" });
+    const buttons = section.getByRole("button");
+    await expect(buttons).toHaveText(["Under 1", "Under 5", "Under 10", "Skip none"]);
+    for (const name of ["Under 1", "Under 5", "Under 10", "Skip none"]) {
+      await expect(section.getByRole("button", { name, exact: true })).toHaveAttribute(
+        "aria-pressed",
+        name === "Skip none" ? "true" : "false",
+      );
+    }
+    await section.getByRole("button", { name: "Under 5", exact: true }).click();
+    await expect(field(page)).toHaveValue("5.00");
+    await expect(header(page)).toContainText("9 rows to review");
+    await expect(section.getByRole("button", { name: "Under 5", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
-  test("the drawer lists date, description, vendor and amount by date, each with Bring back", async ({
+  test("the live line under the field says what the amount does to this batch", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    const section = page.getByRole("region", { name: "Skip small rows" });
+    await expect(section.getByText("No rows are skipped.", { exact: true })).toBeVisible();
+    await field(page).fill("5");
+    await expect(
+      section.getByText(
+        "4 of 13 rows are under €5.00. Together they come to €14.50, and they are imported as Uncategorised.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await field(page).fill("0.5");
+    await expect(
+      section.getByText("No rows are under €0.50.", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("the drawer lists date, description, vendor and amount by date, each with Review this row", async ({
     page,
   }) => {
     await importAugust(page);
     await field(page).fill("5.00");
-    await header(page).getByRole("button", { name: "4 set aside", exact: true }).click();
+    await header(page).getByRole("button", { name: "4 skipped", exact: true }).click();
 
     const rows = drawer(page).getByRole("listitem");
     await expect(rows).toHaveCount(4);
@@ -1004,13 +1038,13 @@ test.describe("rows set aside: the field and the drawer (FR-152, FR-153, FR-154)
       await expect(item).toContainText(description);
       if (vendor) await expect(item).toContainText(vendor);
       await expect(item).toContainText(amount);
-      await expect(item.getByRole("button", { name: "Bring back", exact: true })).toBeVisible();
+      await expect(item.getByRole("button", { name: "Review this row", exact: true })).toBeVisible();
     }
     // The flagged duplicate stays in the duplicates drawer, and the other rows in review.
     await expect(drawer(page)).not.toContainText("Monthly plan");
   });
 
-  test("Suggest categories counts neither the rows set aside", async ({ page }) => {
+  test("Suggest categories counts neither the skipped rows", async ({ page }) => {
     await importAugust(page);
     await turnOnAiFeatures(page);
     await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");

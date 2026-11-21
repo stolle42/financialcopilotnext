@@ -63,9 +63,17 @@ describe("APP_GUIDE", () => {
     expect(APP_GUIDE).toMatch(/Transfer[^.]*\boff\b[^.]*(separate|apart|stay)/i);
   });
 
-  test('names the mark "From earlier" and the choice "Set aside rows under" (FR-147, FR-152)', () => {
+  test('names the mark "From earlier" and the choice "Skip rows under" (FR-147, FR-152)', () => {
     expect(APP_GUIDE).toContain("From earlier");
-    expect(APP_GUIDE).toContain("Set aside rows under");
+    expect(APP_GUIDE).toContain("Skip rows under");
+  });
+
+  test("names the buttons, the skipped rows and the status, and no longer says set aside (FR-153, FR-161)", () => {
+    for (const name of ["Under 1", "Under 5", "Under 10", "Skip none", "Skipped rows"]) {
+      expect(APP_GUIDE).toContain(name);
+    }
+    expect(APP_GUIDE).toMatch(/skipped rows[^.]*still imported|still imported[^.]*Uncategorised/i);
+    expect(APP_GUIDE).not.toMatch(/set aside|Bring back/i);
   });
 
   test("says typing finds a category and Tab moves to the next row (FR-148, FR-150)", () => {

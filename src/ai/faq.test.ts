@@ -118,9 +118,10 @@ describe("FAQ", () => {
     const [, importing] = FAQ[0]!.questions;
     expect(importing!.answer).toMatch(/suggested transfers?/i);
     expect(importing!.answer).toContain("From earlier");
-    expect(importing!.answer).toMatch(
-      /set (small amounts )?aside|sets? aside|Set aside rows under/i,
-    );
+    expect(importing!.answer).toContain("Skip rows under");
+    expect(importing!.answer).toContain("Skip none");
+    expect(importing!.answer).toMatch(/still imported/i);
+    expect(importing!.answer).not.toMatch(/set aside|Bring back/i);
   });
 });
 

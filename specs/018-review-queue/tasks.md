@@ -581,7 +581,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   rows with Bring back; `ReviewScreen.tsx` places it between the header and the suggestions, shows
   the header count when not zero, and the Confirm modal's count of rows set aside. T189 and T190
   pass.
-- [ ] T223 [US15] Tests first for the owner's change after trying v1.8: skip in the owner's words,
+- [X] T223 [US15] Tests first for the owner's change after trying v1.8: skip in the owner's words,
   the buttons and the status ([FR-152](spec.md#fr-152), [FR-153](spec.md#fr-153),
   [FR-154](spec.md#fr-154), [FR-161](spec.md#fr-161)). Unit: `reviewView` returns the total of the
   skipped rows (`src/domain/import/groups.test.ts`), the guide and the FAQ say "Skip rows under"

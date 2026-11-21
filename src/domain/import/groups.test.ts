@@ -340,6 +340,18 @@ describe("reviewView: rows set aside (FR-152, FR-153)", () => {
     expect(view.counts).toMatchObject({ review: 2, setAside: 3 });
   });
 
+  test("adds up the amounts of the skipped rows without their sign, for the live line (FR-161)", () => {
+    const rows = [
+      parsed({ amountCents: -50 }),
+      parsed({ amountCents: -99 }),
+      parsed({ amountCents: 12 }),
+      parsed({ amountCents: -100 }),
+    ];
+    expect(reviewView(batchOf(rows), [], 100).setAsideTotalCents).toBe(161);
+    expect(reviewView(batchOf(rows), []).setAsideTotalCents).toBe(0);
+    expect(reviewView(batchOf(rows), [], 50).setAsideTotalCents).toBe(12);
+  });
+
   test("sets aside nothing while no amount is set", () => {
     const rows = [parsed({ amountCents: -1 }), parsed({ amountCents: 1 })];
     const view = reviewView(batchOf(rows), []);

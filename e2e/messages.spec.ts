@@ -112,22 +112,22 @@ test.describe("a field error, under its field", () => {
 });
 
 test.describe("a field error in review, under its field", () => {
-  test("set-aside-amount-invalid: the set-aside amount is zero, negative, too precise or not a number (FR-152)", async ({
+  test("set-aside-amount-invalid: the skip amount is zero, negative, too precise or not a number (FR-152)", async ({
     page,
   }) => {
     await saveMyBankProfile(page);
     await importWithProfile(page, { account: "Cash", file: "mybank-2026-08.csv" });
-    const field = page.getByLabel("Set aside rows under", { exact: true });
+    const field = page.getByLabel("Skip rows under", { exact: true });
 
     for (const text of ["abc", "0", "1.005"]) {
       await field.fill(text);
       await expectWording(
-        fieldError(page.getByRole("main"), "Set aside rows under"),
+        fieldError(page.getByRole("main"), "Skip rows under"),
         "set-aside-amount-invalid",
       );
     }
     await field.fill("1.00");
-    await expect(fieldError(page.getByRole("main"), "Set aside rows under")).toHaveCount(0);
+    await expect(fieldError(page.getByRole("main"), "Skip rows under")).toHaveCount(0);
   });
 });
 
