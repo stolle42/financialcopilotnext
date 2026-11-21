@@ -121,7 +121,7 @@ and a side. This section adds what review shows and how later changes behave.
 - A row that is included later ([FR-025](../../001-finance-tracker-v1/spec.md#fr-025)), brought
   back ([FR-153](../spec.md#fr-153)), or whose suggested transfer ends
   ([FR-143](../spec.md#fr-143)), joins its group with its own assignment unchanged.
-- A row set aside leaves its group ([FR-152](../spec.md#fr-152)). A group left with one row shows it
+- A skipped row leaves its group ([FR-152](../spec.md#fr-152)). A group left with one row shows it
   as a plain row.
 - A group shows a mark only when all its rows hold the same mark and the same assignment
   ([FR-147](../spec.md#fr-147), [FR-093](../../001-finance-tracker-v1/spec.md#fr-093)).
@@ -130,5 +130,5 @@ and a side. This section adds what review shows and how later changes behave.
 ## Outcomes
 
 001's [Outcomes](../../001-finance-tracker-v1/contracts/csv-import.md#outcomes) stay. The batch's
-counts add the suggested transfers ([FR-143](../spec.md#fr-143)) and the rows set aside
+counts add the suggested transfers ([FR-143](../spec.md#fr-143)) and the skipped rows
 ([FR-153](../spec.md#fr-153)).

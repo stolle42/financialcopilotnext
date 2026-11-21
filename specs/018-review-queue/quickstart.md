@@ -27,9 +27,9 @@ The commands of 001's
 |---|---|
 | `src/domain/import/transfers.test.ts` | Every rule of [FR-142](spec.md#fr-142): the 4-day window, other account, opposite direction, equal non-zero amount, no "Unaccounted", one-to-one, closest first, ties by row and transaction, duplicates left out |
 | `src/domain/import/usual.test.ts` | [FR-146](spec.md#fr-146): more than half, exactly half, "Uncategorised" winning, transfers per counter-account, each side of a transfer by its own vendor, rows without vendor |
-| Changed domain tests | Duplicates with the 4-day window for transfers ([FR-156](spec.md#fr-156)); confirmation converting a fitting pair and booking one that no longer fits ([FR-144](spec.md#fr-144)); set-aside rows ([FR-152](spec.md#fr-152)); groups without paired rows; marks cleared by assignments and category deletion ([FR-147](spec.md#fr-147)); the new invariants ([data-model.md](data-model.md#invariants)) |
+| Changed domain tests | Duplicates with the 4-day window for transfers ([FR-156](spec.md#fr-156)); confirmation converting a fitting pair and booking one that no longer fits ([FR-144](spec.md#fr-144)); skipped rows ([FR-152](spec.md#fr-152)); groups without paired rows; marks cleared by assignments and category deletion ([FR-147](spec.md#fr-147)); the new invariants ([data-model.md](data-model.md#invariants)) |
 | `src/files/backup.test.ts` | A v1.7 backup restores; a v1.8 backup round-trips with every new field ([SC-014](../001-finance-tracker-v1/spec.md#sc-014), [contracts/backup-file.md](contracts/backup-file.md)) |
-| `e2e/ui/review.spec.ts`, `e2e/ui/category-picker.spec.ts` | The behaviour of [contracts/ui.md](contracts/ui.md): marks, the set-aside field and drawer, the current and seen look, the picker's search and New category… |
+| `e2e/ui/review.spec.ts`, `e2e/ui/category-picker.spec.ts` | The behaviour of [contracts/ui.md](contracts/ui.md): marks, the skip field and drawer, the current and seen look, the picker's search and New category… |
 
 ## Validation scenarios
 
@@ -88,16 +88,18 @@ loaded through the backup restore, as in 001.
   group passed while folded shows its rows not seen when unfolded.
 
 <a id="us15-set-aside"></a>
-### US15: Set aside
+### US15: Skip small rows
 
 - **Run**: `e2e/us15-set-aside.spec.ts`
 - **Covers**: [User Story 15](spec.md#user-story-15), [SC-034](spec.md#sc-034)
-- **Steps**: import a file with 30 rows under 1.00 among others, enter 1.00, bring one row back,
-  confirm; import another file.
-- **Expected**: the 30 rows leave the review and the line says 30 are set aside; "abc" and 0 show
-  `set-aside-amount-invalid` and set nothing aside; the brought-back row stays under review; the
+- **Steps**: import a file with 30 rows under 1.00 among others, enter 1.00, choose to review one row,
+  then Under 5, Skip none, confirm; import another file.
+- **Expected**: the 30 rows leave the review and the header and the live line say 30 are skipped
+  ([FR-153](spec.md#fr-153), [FR-161](spec.md#fr-161)); "abc" and 0 show
+  `set-aside-amount-invalid` and skip nothing; Under 1, Under 5 and Under 10 set their amounts and
+  show pressed, Skip none empties the amount and the header says None skipped; the row chosen for review stays under review; the
   29 others enter the ledger in "Uncategorised", and every balance equals the balance the same
-  file gives with nothing set aside; the next import sets rows under 1.00 aside from the start.
+  file gives with nothing skipped; the next import skips rows under 1.00 from the start.
 
 <a id="us16-new-category"></a>
 ### US16: New category from a picker
@@ -142,7 +144,7 @@ push and at the web address after the release.
 | [SC-033](spec.md#sc-033) | Show 5 people a review in which about a third of the items are seen | Each points out the current item and the seen ones within 5 s |
 | [SC-035](spec.md#sc-035) | In review, create a category from a group's picker and assign it | Under 20 s, without leaving review, and every other choice in review is unchanged |
 | [SC-036](spec.md#sc-036) | With a saved bank CSV format and one month confirmed in v1.8, import the next month (`npm run fixtures:sc036` writes both to `tmp/`) and review it until no row is in "Uncategorised" | Under 3 min from choosing the file to confirming |
-| Explanations ([FR-154](spec.md#fr-154)) | Read review with suggested transfers, marks from earlier and the set-aside field | Each sentence of FR-154 is shown where it applies, with nothing to open |
+| Explanations ([FR-154](spec.md#fr-154)) | Read review with suggested transfers, marks from earlier and the skip field | Each sentence of FR-154 is shown where it applies, with nothing to open |
 
 ## Release checklist
 

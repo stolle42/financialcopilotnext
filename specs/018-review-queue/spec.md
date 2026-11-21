@@ -34,7 +34,7 @@ replaces one of 001's.
   usual; when the second is reviewed, a row whose other side is already in the ledger is proposed
   as a transfer, and confirming makes the two sides one transfer ([FR-142](#fr-142) –
   [FR-144](#fr-144)).
-- Q: What should the amount under which review sets rows aside start at? → A: Nothing is set aside
+- Q: What should the amount under which review skips rows start at? → A: Nothing is skipped
   until the user enters an amount, which is then remembered ([FR-152](#fr-152)).
 - Q: The manual-entry form has no way to add a category today; only Categories has New category.
   Where should adding a category from a picker be possible? → A: In every category picker of one
@@ -47,8 +47,8 @@ replaces one of 001's.
   withdrawals into Cash, should its new rows start as a transfer to that account? → A: Yes, by the
   same more-than-half rule as categories; such a row starts as a transfer to that account, marked as
   from earlier transactions ([FR-146](#fr-146), [FR-147](#fr-147)).
-- Q: Should Set aside rows under also set aside small incomes, such as interest of 0.12, or only
-  small expenses? → A: Both: a row is set aside by its amount, whichever way the money moves
+- Q: Should Skip rows under also skip small incomes, such as interest of 0.12, or only
+  small expenses? → A: Both: a row is skipped by its amount, whichever way the money moves
   ([FR-152](#fr-152)).
 
 ## User Scenarios & Testing *(mandatory)*
@@ -179,37 +179,43 @@ of items left falls to zero.
 ---
 
 <a id="user-story-15"></a>
-### User Story 15 - Set small amounts aside (Priority: P15)
+### User Story 15 - Skip small amounts (Priority: P15)
 
-A user who does not want to sort every coffee enters 1.00 under "Set aside rows under". Rows below
-that amount leave the rows under review, review says how many were set aside, and on confirmation
-they enter the ledger in "Uncategorised". The amount is remembered for the next import.
+A user who does not want to sort every coffee picks "Under 1" under "Skip rows under". Rows below
+that amount leave the rows under review, review says how many were skipped and what they come to,
+and on confirmation they enter the ledger in "Uncategorised". No row is ever dropped. The amount
+is remembered for the next import.
 
-**Why this priority**: Small amounts are many rows and little money. Setting them aside lets a user
+**Why this priority**: Small amounts are many rows and little money. Skipping them lets a user
 who wants a quick monthly review spend their time on the rows that change the picture.
 
-**Independent Test**: Enter 1.00 in review of a batch with 30 rows under 1.00. The 30 rows leave
-review, the count says 30, confirming puts them in "Uncategorised", and the next import sets rows
-under 1.00 aside without asking.
+**Independent Test**: Pick "Under 1" in review of a batch with 30 rows under 1.00. The 30 rows leave
+review, the status says 30 are skipped, confirming puts them in "Uncategorised", and the next
+import skips rows under 1.00 without asking. "Skip none" puts all 30 back under review.
 
 **Acceptance Scenarios**:
 
 1. **Given** a batch with expenses of 0.50, 0.99, 1.00 and 25.00 and an income of 0.12 interest,
-   **When** the user enters 1.00, **Then** the expenses of 0.50 and 0.99 and the income of 0.12 are
-   set aside, review says 3 rows under 1.00 are set aside, and the expenses of 1.00 and 25.00 stay
-   under review ([FR-152](#fr-152)).
-2. **Given** rows set aside, **When** the user confirms, **Then** they enter the ledger in their
+   **When** the user picks "Under 1", **Then** the expenses of 0.50 and 0.99 and the income of 0.12
+   are skipped, review says 3 of 6 rows are under 1.00 and what they come to, and the expenses of
+   1.00 and 25.00 stay under review ([FR-152](#fr-152), [FR-161](#fr-161)).
+2. **Given** skipped rows, **When** the user confirms, **Then** they enter the ledger in their
    side's "Uncategorised", and every balance holds them ([FR-157](#fr-157), [FR-159](#fr-159)).
-3. **Given** the count of rows set aside, **When** the user selects it, **Then** the rows set aside
-   show, and the user can bring any one back under review ([FR-153](#fr-153)).
+3. **Given** the count of skipped rows, **When** the user selects it, **Then** the skipped rows
+   show, and the user can choose to review any one ([FR-153](#fr-153)).
 4. **Given** the user entered 1.00 for one import, **When** they review the next import, **Then**
-   rows under 1.00 are set aside from the start ([FR-152](#fr-152)).
-5. **Given** the user gave a row of 0.80 a category, **When** they then enter 1.00, **Then** that row
-   stays under review with its category ([FR-152](#fr-152)).
-6. **Given** a suggested transfer of 0.50, **When** the user enters 1.00, **Then** it stays under
-   review ([FR-152](#fr-152)).
-7. **Given** the user enters "abc" or 0, **Then** nothing is set aside and the field says what it
+   rows under 1.00 are skipped from the start ([FR-152](#fr-152)).
+5. **Given** the user gave a row of 0.80 a category, **When** they then skip rows under 1.00,
+   **Then** that row stays under review with its category ([FR-152](#fr-152)).
+6. **Given** a suggested transfer of 0.50, **When** the user skips rows under 1.00, **Then** it
+   stays under review ([FR-152](#fr-152)).
+7. **Given** the user enters "abc" or 0, **Then** nothing is skipped and the field says what it
    needs ([FR-152](#fr-152)).
+8. **Given** rows skipped under 1.00, **When** the user chooses "Skip none", **Then** every row is
+   under review again, the amount is empty and review says none are skipped
+   ([FR-161](#fr-161)).
+9. **Given** any review, **Then** the header always says how many rows are skipped, also when none
+   are ([FR-153](#fr-153)).
 
 ---
 
@@ -276,9 +282,9 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
 - Transactions confirmed before v1.8, and those entered by hand, have no vendor and count for no
   vendor ([FR-145](#fr-145)). The first import after the update starts every row in
   "Uncategorised", as before.
-- A row set aside would have had a usual category: it still enters the ledger in "Uncategorised"
-  ([FR-159](#fr-159)). Brought back under review, it holds its usual category again.
-- Setting rows aside empties a vendor group but one: the remaining row shows as a plain row
+- A skipped row would have had a usual category: it still enters the ledger in "Uncategorised"
+  ([FR-159](#fr-159)). Put back under review, it holds its usual category again.
+- Skipping rows empties a vendor group but one: the remaining row shows as a plain row
   ([FR-026](../001-finance-tracker-v1/spec.md#fr-026)).
 - The user clears the amount or lowers it: rows no longer under it come back under review with
   what they held before ([FR-152](#fr-152)).
@@ -406,23 +412,38 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
 
 **Setting small amounts aside**
 
-- <a id="fr-152"></a>**FR-152**: Review MUST offer **Set aside rows under**, an amount, empty until
+- <a id="fr-152"></a>**FR-152**: Review MUST offer **Skip rows under**, an amount, empty until
   the user enters one. While it holds an amount, every row under review whose amount is less than
-  it, whichever way the money moves, MUST be set aside, expenses and incomes alike: it leaves the
+  it, whichever way the money moves, MUST be skipped, expenses and incomes alike: it leaves the
   rows under review, so it is in no group, no request for suggestions ([FR-090](../001-finance-tracker-v1/spec.md#fr-090)) and no step of Tab. These rows
-  MUST NOT be set aside: a row holding a transfer, suggested, usual or marked, a row the user has
+  MUST NOT be skipped: a row holding a transfer, suggested, usual or marked, a row the user has
   assigned anything,
-  and a row the user brought back ([FR-153](#fr-153)).
+  and a row the user chose to review ([FR-153](#fr-153)).
   - The amount MUST be more than zero, with at most two decimals. Anything else MUST set nothing
     aside, and the field MUST say what it needs
     ([FR-068](../001-finance-tracker-v1/spec.md#fr-068)). Clearing it sets nothing aside.
-  - Changing the amount MUST apply at once: rows that are now under it are set aside, and rows that
+  - Changing the amount MUST apply at once: rows that are now under it are skipped, and rows that
     no longer are come back under review holding what they held before.
   - The amount MUST be remembered for every later review, of every account, until the user
     changes it.
-- <a id="fr-153"></a>**FR-153**: Review MUST show how many rows are set aside, and the amount.
-  Selecting the number MUST present them, and the user MUST be able to bring any one back under
-  review. Rows set aside MUST be included in confirmation ([FR-157](#fr-157)).
+  - Skipping MUST change only what review lists: no row is dropped, and every skipped row is
+    imported ([FR-157](#fr-157)).
+- <a id="fr-153"></a>**FR-153**: Review MUST always show how many rows are skipped, in its header:
+  **N skipped**, or **None skipped** when there are none. Selecting the number MUST present the
+  skipped rows, and the user MUST be able to choose **Review this row** for any one, putting it
+  back under review. Skipped rows MUST be included in confirmation ([FR-157](#fr-157)).
+- <a id="fr-161"></a>**FR-161**: Beside the amount, **Skip rows under** MUST offer buttons for the
+  amounts **Under 1**, **Under 5** and **Under 10** (1.00, 5.00 and 10.00), and **Skip none**.
+  Choosing one MUST do what entering that amount does ([FR-152](#fr-152)); **Skip none** MUST
+  clear the amount, so every row is under review. The button matching the amount MUST show as
+  chosen, and **Skip none** while there is no amount; an amount typed in the field that matches
+  no button leaves all of them unchosen. Under the field, a line MUST say what the amount does to
+  this batch, with its numbers as they are now:
+  - with an amount and skipped rows: "N of M rows are under X. Together they come to Y, and they
+    are imported as Uncategorised.", where M counts the rows under review and the skipped rows,
+    and Y adds the amounts of the skipped rows without their sign;
+  - with an amount and no row under it: "No rows are under X.";
+  - with no amount: "No rows are skipped."
 
 **Explanations**
 
@@ -434,8 +455,8 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
     keeps them apart;
   - the mark from earlier transactions: that most earlier transactions of this vendor are in this
     category, or are transfers with this account;
-  - beside Set aside rows under: that rows under the amount are left out of review and saved in
-    Uncategorised;
+  - beside Skip rows under: that rows under the amount are not reviewed, and are still imported, as
+    Uncategorised, so the balances stay right;
   - on review, above the rows: that typing finds a category, and Tab moves to the next row.
 
 **Requirements that replace 001's**
@@ -444,7 +465,7 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   on balances, figures, or budgets until confirmed. The pending batch MUST survive closing and
   reopening the app, together with every choice made in review and its progress: categories, rows
   marked as transfers, suggested transfers and whether each still holds
-  ([FR-143](#fr-143)), flagged rows included, rows set aside that were brought back
+  ([FR-143](#fr-143)), flagged rows included, skipped rows the user chose to review
   ([FR-153](#fr-153)), the categories the AI suggested and the usual choices, with their marks
   ([FR-093](../001-finance-tracker-v1/spec.md#fr-093), [FR-147](#fr-147)), and which items were
   seen ([FR-151](#fr-151)). At most one pending batch MAY exist at any time, across all accounts;
@@ -460,7 +481,7 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   computed once, when the batch is created, and MUST NOT change while it is pending. Replaces
   [FR-024](../001-finance-tracker-v1/spec.md#fr-024).
 - <a id="fr-157"></a>**FR-157**: Confirming a batch MUST move its included rows into the ledger: the
-  rows under review with the categories shown in review, and the rows set aside in their side's
+  rows under review with the categories shown in review, and the skipped rows in their side's
   "Uncategorised" ([FR-152](#fr-152)). A row holding a suggested transfer changes the paired
   transaction instead ([FR-144](#fr-144)). Confirming MUST first state how many rows will enter the
   ledger and how many transactions will become transfers. While the AI answers a request for
@@ -476,7 +497,7 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   category. Replaces [FR-029](../001-finance-tracker-v1/spec.md#fr-029).
 - <a id="fr-159"></a>**FR-159**: System MUST itself assign "Uncategorised" to imported rows that hold
   no category the user chose, the AI suggested ([FR-092](../001-finance-tracker-v1/spec.md#fr-092))
-  or that is their usual category ([FR-146](#fr-146)), to rows set aside ([FR-152](#fr-152)), and
+  or that is their usual category ([FR-146](#fr-146)), to skipped rows ([FR-152](#fr-152)), and
   to transactions whose category is deleted, and "Unaccounted" to reconciliation differences.
   Replaces [FR-035](../001-finance-tracker-v1/spec.md#fr-035).
 - <a id="fr-160"></a>**FR-160**: Users MUST be able to save a backup: one file holding all data the
@@ -489,7 +510,7 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   ([FR-104](../001-finance-tracker-v1/spec.md#fr-104)). The OpenAI API key MUST NOT be part of a
   backup ([FR-126](../001-finance-tracker-v1/spec.md#fr-126)). A backup saved before v1.8 restores
   its transactions without vendors, its pending batch without suggested transfers, usual choices
-  or seen items, and no amount for setting rows aside. Replaces
+  or seen items, and no skip amount. Replaces
   [FR-070](../001-finance-tracker-v1/spec.md#fr-070).
 
 <a id="key-entities"></a>
@@ -504,10 +525,10 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   group, its proposed kind, its category or counter-account, whether the AI suggested that category
   or its category or transfer is the row's usual choice ([FR-147](#fr-147)), whether it holds a suggested transfer and
   the transaction it pairs with ([FR-142](#fr-142)), whether it is flagged as a duplicate, whether
-  it failed to parse, whether it was brought back from the rows set aside ([FR-153](#fr-153)),
+  it failed to parse, whether the user chose to review it from the skipped rows ([FR-153](#fr-153)),
   whether it was seen and whether its vendor group was seen ([FR-151](#fr-151)), and whether it is
   included in confirmation.
-- **Set-aside amount**: the amount under which review sets rows aside, or none. There is one, for
+- **Skip amount**: the amount under which review skips rows, or none. There is one, for
   every account; it is stored and is part of a backup ([FR-152](#fr-152), [FR-160](#fr-160)).
 
 ## Success Criteria *(mandatory)*
@@ -528,8 +549,8 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
 - <a id="sc-033"></a>**SC-033**: Shown a review part way through, 5 of 5 test users point out the
   current item and the items already seen within 5 seconds.
 - <a id="sc-034"></a>**SC-034**: With 1.00 set, a file with 30 rows under 1.00 shows none of them
-  under review; after confirming, all 30 are in "Uncategorised" and every balance equals the
-  balance the same file gives with nothing set aside.
+  under review, and review says 30 are skipped; after confirming, all 30 are in "Uncategorised"
+  and every balance equals the balance the same file gives with nothing skipped.
 - <a id="sc-035"></a>**SC-035**: A user creates a category from the review list and assigns it to a
   group in under 20 seconds, without leaving review and without losing any choice made in it.
 - <a id="sc-036"></a>**SC-036**: A user with a saved mapping profile and one earlier month confirmed
@@ -547,15 +568,15 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
 - The ledger keeps no vendor for transactions confirmed before v1.8, so usual choices start
   with the first batch confirmed in v1.8. Guessing a vendor from old descriptions would be
   unreliable, since descriptions often carry references and dates.
-- One amount for setting rows aside suits every account; the app has one currency.
-- Setting rows aside changes only review. Rows set aside are ordinary transactions on Transactions,
+- One amount for skipping rows suits every account; the app has one currency.
+- Skipping rows changes only review. Skipped rows are ordinary transactions on Transactions,
   Insights and budgets, in "Uncategorised".
 - The user reviewing with the keyboard has a physical keyboard. On touch screens, tapping selects
   the current item, and review works as before.
 - The guide to the app and FAQ describe this version, as
   [FR-136](../001-finance-tracker-v1/spec.md#fr-136) and
   [FR-139](../001-finance-tracker-v1/spec.md#fr-139) require; no new FAQ question is added.
-- Keeping vendors, the new review progress and the set-aside amount needs no MAJOR version
+- Keeping vendors, the new review progress and the skip amount needs no MAJOR version
   ([constitution IX](../../.specify/memory/constitution.md#ix-versioning)): they are additions
   that v1.7 drops when it reads a v1.8 backup or database, so v1.7 still reads v1.8's data, without
   them ([research R-39](research.md#r-39)).
@@ -569,4 +590,4 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   such as "REWE Markt 123" and "REWE Markt 456".
 - Usual choices learned from the AI's suggestions before they are confirmed, or from rows of
   the batch under review.
-- Setting rows aside on screens other than review.
+- Skipping rows on screens other than review.

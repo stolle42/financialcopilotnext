@@ -45,33 +45,38 @@ bullets stay.
 Replaces 001's [Review](../../001-finance-tracker-v1/contracts/ui.md#review) in full.
 
 - **Header**: the account, the file, and these counts: rows to review, **suggested transfers**
-  ([FR-143](../spec.md#fr-143)), **N not seen yet** ([FR-151](../spec.md#fr-151)), **set aside**,
+  ([FR-143](../spec.md#fr-143)), **N not seen yet** ([FR-151](../spec.md#fr-151)), **skipped**,
   **duplicates** and **unparsable** ([FR-025](../../001-finance-tracker-v1/spec.md#fr-025),
-  [FR-028](../../001-finance-tracker-v1/spec.md#fr-028)). Suggested transfers and set aside show
-  only when not zero. The set-aside, duplicates and unparsable counts are buttons.
-  - The **set aside** drawer, a dialog named "Rows set aside", lists the rows set aside by date, each with its date, description,
-    vendor and amount, and a **Bring back** button ([FR-153](../spec.md#fr-153)). A row brought
-    back leaves the drawer and joins the rows under review with what it held.
+  [FR-028](../../001-finance-tracker-v1/spec.md#fr-028)). Suggested transfers show only when not
+  zero. Skipped always shows, as **N skipped** or **None skipped** ([FR-153](../spec.md#fr-153)).
+  The skipped (when not zero), duplicates and unparsable counts are buttons.
+  - The **skipped rows** drawer, a dialog named "Skipped rows", lists the skipped rows by date, each with its date, description,
+    vendor and amount, and a **Review this row** button ([FR-153](../spec.md#fr-153)). A row put
+    back under review leaves the drawer and joins the rows under review with what it held.
   - The **duplicates** drawer lists the flagged rows, each with an **Include** switch. An included
     row joins the review list.
   - The **unparsable** drawer lists the row number, the raw cells and the reason. These rows cannot
     be included.
-- **Set aside rows under** ([FR-152](../spec.md#fr-152)), between the header and the suggestions:
+- **Skip rows under** ([FR-152](../spec.md#fr-152)), between the header and the suggestions:
   an amount field, empty until the user enters an amount, with the shared
   [amount input](../../001-finance-tracker-v1/contracts/ui.md#shared-patterns). Beside it, the
-  sentence of [FR-154](../spec.md#fr-154): rows under this amount are left out of review and saved
-  in Uncategorised. While it holds an amount, a line under it says how many rows under that amount
-  are set aside, such as "3 rows under €1.00 set aside", as the button that opens the drawer.
+  sentence of [FR-154](../spec.md#fr-154): rows under this amount are not reviewed, and are still
+  imported, as Uncategorised, so the balances stay right.
+  - Beside the field, the buttons **Under 1**, **Under 5**, **Under 10** and **Skip none**
+    ([FR-161](../spec.md#fr-161)): toggle buttons, the one matching the amount pressed.
+  - Under the field, the live line of [FR-161](../spec.md#fr-161), such as "3 of 48 rows are under
+    €1.00. Together they come to €2.40, and they are imported as Uncategorised.", "No rows are
+    under €1.00." or "No rows are skipped.".
   - Every valid change applies at once and is saved in the settings, for every later review
     ([R-45](../research.md#r-45)).
   - Zero, a negative amount, more than two decimals or text show `set-aside-amount-invalid` under
-    the field, and nothing is set aside. Clearing the field sets nothing aside.
-- **Suggestions**, between the set-aside field and the body
+    the field, and nothing is skipped. Clearing the field, or **Skip none**, skips nothing.
+- **Suggestions**, between the skip field and the body
   ([FR-090](../../001-finance-tracker-v1/spec.md#fr-090) –
   [FR-094](../../001-finance-tracker-v1/spec.md#fr-094),
   [001 ai.md](../../001-finance-tracker-v1/contracts/ai.md#category-suggestions)):
   - An outline button **Suggest categories for N rows**, where N is the number of rows a request
-    would send. Rows set aside, and rows holding a usual category, are not among them, since they
+    would send. Skipped rows, and rows holding a usual category, are not among them, since they
     are not under review or not in "Uncategorised". It is unavailable when N is 0.
   - While AI features are off ([FR-095](../../001-finance-tracker-v1/spec.md#fr-095)), the button
     is unavailable, and a line beside it says that suggestions need AI features, with a link to
@@ -152,7 +157,7 @@ Replaces 001's [Review](../../001-finance-tracker-v1/contracts/ui.md#review) in 
   - **Discard** asks for confirmation. Categories created during review stay
     ([FR-149](../spec.md#fr-149)).
   - **Confirm N transactions** opens a modal stating how many rows will enter the ledger, how many
-    of them in "Uncategorised" because they were set aside, and how many transactions will become
+    of them in "Uncategorised" because they were skipped, and how many transactions will become
     transfers ([FR-157](../spec.md#fr-157)). After confirmation, a notification reports what was
     added and changed, and the app opens Transactions. It is unavailable while the AI answers a
     request for suggestions.
@@ -177,7 +182,7 @@ Adds one row to 001's
 
 | Code | Raised when | The message tells the user |
 |---|---|---|
-| `set-aside-amount-invalid` | [FR-152](../spec.md#fr-152): the set-aside amount is zero, negative, has more than two decimals or is not a number | The amount must be more than 0.00 with at most two decimals; nothing is set aside |
+| `set-aside-amount-invalid` | [FR-152](../spec.md#fr-152): the skip amount is zero, negative, has more than two decimals or is not a number | The amount must be more than 0.00 with at most two decimals; nothing is skipped |
 
 A name refused in the new-category dialog uses the codes `category-name-empty` and
 `category-name-taken`, as on Categories.

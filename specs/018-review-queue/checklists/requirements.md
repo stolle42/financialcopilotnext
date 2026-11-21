@@ -31,7 +31,7 @@
 
 ## Notes
 
-- The three open questions (how two files find transfers, the starting set-aside amount, where New
+- The three open questions (how two files find transfers, the starting skip amount, where New
   category… goes) were answered by the owner on 2026-11-14 and are recorded under Clarifications.
 - Keys (Tab, Shift+Tab, Enter, Escape) are named because they are what the user does, not how the
   app is built.

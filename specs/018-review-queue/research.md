@@ -10,7 +10,7 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
 ### R-39 · v1.8 is a MINOR release: optional fields, backup format 1, database schema 1
 
 - **Decision**: everything v1.8 stores is a new **optional** field of a record that exists
-  already: the vendors of a transaction, the marks and flags of a pending row, and the set-aside
+  already: the vendors of a transaction, the marks and flags of a pending row, and the skip amount
   amount in the settings ([data-model.md](data-model.md)). The backup keeps `formatVersion` 1 and
   the database keeps schema version 1. A v1.7 file or database lacks the fields and is complete.
   The version becomes **1.8**, `package.json` `1.8.0`, tag `v1.8`.
@@ -22,7 +22,7 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
     added. This is how v1.2 (`suggested`, `aiFeatures`), v1.3 (`conversation`) and v1.6 (`model`)
     grew the format ([001 backup-file.md](../001-finance-tracker-v1/contracts/backup-file.md#compatibility)).
   - Read by v1.7, a v1.8 state is valid: a row holding a suggested transfer becomes a row marked
-    as a transfer, a usual category an ordinary category, and nothing is set aside. The one loss
+    as a transfer, a usual category an ordinary category, and nothing is skipped. The one loss
     is meaning, not data: confirming in v1.7 a batch whose suggested transfers are still pending
     books each as a new transfer and leaves the paired expense or income in place. Going back to
     v1.7 needs an old build, since the app only updates forward
@@ -186,13 +186,13 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
 - **Rationale**:
   - The current item is where the user is now; storing it would make every Tab a second write
     with nothing to restore, since review opens on the first unseen item anyway.
-  - Marks on rows, not on groups: groups are derived and change when rows are set aside or brought
-    back, rows are not. A group's mark is a second flag on its rows, because a group seen while
+  - Marks on rows, not on groups: groups are derived and change when rows are skipped or chosen for review,
+    rows are not. A group's mark is a second flag on its rows, because a group seen while
     folded never showed its rows, so they are not seen.
   - Seen on leaving the focus, not on Tab only: Tab from the last item goes to Confirm, and
     clicking elsewhere leaves an item too; both must count, or "All seen" could not be reached.
   - Tab handled per item, not by a global key listener, so Tab elsewhere on the screen (the
-    set-aside field, the drawers, the footer) moves focus as browsers do.
+    skip field, the drawers, the footer) moves focus as browsers do.
 - **Alternatives considered**:
   - **Arrow keys between items**: the arrow keys already move the highlight inside an open
     picker; the owner asked for Tab.
@@ -205,7 +205,7 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
     page focused, and an item marked seen this way is still current when the user comes back.
 
 <a id="r-45"></a>
-### R-45 · Setting rows aside is derived from the amount; one flag keeps a row in review
+### R-45 · Skipping rows is derived from the amount; one flag keeps a row in review
 
 - **Decision**, for [FR-152](spec.md#fr-152) and [FR-153](spec.md#fr-153):
   - The amount is `settings.setAsideUnderCents`, a positive number of cents, absent while the
@@ -213,15 +213,15 @@ The numbers continue after R-38 ([.claude/rules/specs.md](../../.claude/rules/sp
     ([001 csv-import.md](../001-finance-tracker-v1/contracts/csv-import.md#amount-grammar)) and
     saves on every change that is valid; an empty or invalid field removes it, so nothing is set
     aside.
-  - Whether a row is set aside is computed by the review view each time, never stored: a parsed,
+  - Whether a row is skipped is computed by the review view each time, never stored: a parsed,
     included row holding a category, without `keptInReview`, whose absolute amount is less than
     the amount. Changing the amount therefore applies at once, and rows come back holding what
     they held.
-  - `keptInReview: true` on a row records the two things that keep it from being set aside: the
-    user assigned it anything, or brought it back.
+  - `keptInReview: true` on a row records the two things that keep it from being skipped: the
+    user assigned it anything, or chose to review it.
 - **Rationale**:
-  - Deriving means no row ever holds a stale "set aside" flag after the amount changes, and a
-    backup restored with another amount sets aside what that amount says.
+  - Deriving means no row ever holds a stale "skipped" flag after the amount changes, and a
+    backup restored with another amount skips what that amount says.
   - One flag, because FR-152 treats both cases the same and nothing else reads them.
 - **Alternatives considered**:
   - **A `setAside` flag on each row, written when the amount changes**: a write of the whole batch

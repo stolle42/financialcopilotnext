@@ -553,7 +553,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
 
 ---
 
-## Phase 7: User Story 15 - Set aside (Priority: P15)
+## Phase 7: User Story 15 - Skip small rows (Priority: P15)
 
 **Goal**: rows under an amount leave review and enter the ledger in "Uncategorised"
 ([FR-152](spec.md#fr-152), [FR-153](spec.md#fr-153), [FR-157](spec.md#fr-157),
@@ -581,6 +581,28 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   rows with Bring back; `ReviewScreen.tsx` places it between the header and the suggestions, shows
   the header count when not zero, and the Confirm modal's count of rows set aside. T189 and T190
   pass.
+- [ ] T223 [US15] Tests first for the owner's change after trying v1.8: skip in the owner's words,
+  the buttons and the status ([FR-152](spec.md#fr-152), [FR-153](spec.md#fr-153),
+  [FR-154](spec.md#fr-154), [FR-161](spec.md#fr-161)). Unit: `reviewView` returns the total of the
+  skipped rows (`src/domain/import/groups.test.ts`), the guide and the FAQ say "Skip rows under"
+  and "Skipped rows" and no longer "Set aside" (`src/ai/appGuide.test.ts`,
+  `src/ai/faq.test.ts`). End to end: `e2e/us15-set-aside.spec.ts`, `e2e/ui/review.spec.ts` and
+  `e2e/messages.spec.ts` follow [contracts/ui.md](contracts/ui.md#review): the label, the
+  sentence, Under 1, Under 5, Under 10 and Skip none pressed as the amount says, the live line, the
+  header "N skipped" or "None skipped", the drawer "Skipped rows" with Review this row. Run them
+  and confirm they fail.
+- [ ] T224 [US15] The total of the skipped rows: `reviewView` in `src/domain/import/groups.ts`
+  also returns the sum of their amounts without sign; T223's unit test passes.
+- [ ] T225 [US15] The screens: `src/ui/screens/import/SetAside.tsx` says "Skip rows under" with the
+  sentence, the four buttons and the live line of [FR-161](spec.md#fr-161), and its drawer
+  "Skipped rows" has Review this row; `ReviewScreen.tsx` always shows "N skipped" or "None
+  skipped" in the header; `src/ui/messages.ts` says skipped in the amount message and in the
+  Confirm modal. T223's end-to-end tests pass.
+- [ ] T226 [P] [US15] The guide in `src/ai/appGuide.ts` and the FAQ in `src/ai/faq.ts` use the
+  skip wording, the buttons and the status, in plain words; T223's guide and FAQ tests pass.
+- [ ] T227 `npm run verify` passes again after T223 – T226: lint, architecture, typecheck, every
+  unit test and every end-to-end test on Chromium and Firefox. Every link in
+  `specs/018-review-queue/` resolves.
 
 **Checkpoint**: User Stories 12 – 15 work on their own.
 

@@ -53,7 +53,7 @@ Replaces 001's
   [R-31](../../001-finance-tracker-v1/research.md#r-31)).
 - v1.8 added the optional fields [above](#file) ([FR-160](../spec.md#fr-160)). A file without
   them is complete: it restores transactions without vendors, a pending batch without suggested
-  transfers, usual choices, rows brought back or seen items, and no set-aside amount. v1.7 drops
+  transfers, usual choices, rows chosen for review or seen items, and no skip amount. v1.7 drops
   them on loading, so the format stays version 1 ([R-39](../research.md#r-39)). A v1.8 file
   restored in v1.7 loses only what they hold; a row still holding a suggested transfer is then an
   ordinary transfer, which on confirmation adds a transaction instead of changing the paired one.

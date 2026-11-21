@@ -66,7 +66,7 @@ row 1, as a spreadsheet shows it. It identifies the row within the batch and in 
 | `duplicate` | boolean | Set once when the batch is created, never recomputed ([FR-156](spec.md#fr-156)) |
 | `included` | boolean | Starts as `!duplicate` ([FR-025](../001-finance-tracker-v1/spec.md#fr-025)) |
 | `assignment` | see below | Starts as [FR-158](spec.md#fr-158) says ([State transitions](#state-transitions)) |
-| `keptInReview` | `true`, or absent | Present once the user assigned the row anything or brought it back, so it is never set aside ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)) |
+| `keptInReview` | `true`, or absent | Present once the user assigned the row anything or chose to review it, so it is never skipped ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)) |
 | `seen` | `true`, or absent | Present once the row itself was current, as a suggested transfer, a plain row or a row of an unfolded group, and the focus moved away from it ([FR-151](spec.md#fr-151), [R-44](research.md#r-44)) |
 | `groupSeen` | `true`, or absent | Present once the vendor group holding the row was current and the focus moved away from it. It says nothing about the row itself ([FR-151](spec.md#fr-151), [R-44](research.md#r-44)) |
 
@@ -93,7 +93,7 @@ Replaces 001's [Settings](../001-finance-tracker-v1/data-model.md#settings).
 | `manualEntryAccountId` | Account id | Default account of the manual-entry form ([FR-006](../001-finance-tracker-v1/spec.md#fr-006)) |
 | `aiFeatures` | `true`, or absent | Present while the user has the AI features switch on ([FR-095](../001-finance-tracker-v1/spec.md#fr-095)); never `false`. AI features are on only while it is present and a key is stored ([001 OpenAI key](../001-finance-tracker-v1/data-model.md#openai-key)) |
 | `model` | model id, or absent | The chosen model ([FR-129](../001-finance-tracker-v1/spec.md#fr-129), [FR-130](../001-finance-tracker-v1/spec.md#fr-130)). Absent means the default. Any non-empty string is kept, also one no longer in the list; the model in use is then the default ([R-32](../001-finance-tracker-v1/research.md#r-32)) |
-| `setAsideUnderCents` | positive safe integer, or absent | The amount under which review sets rows aside, for every account; absent while the field is empty ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)) |
+| `setAsideUnderCents` | positive safe integer, or absent | The amount under which review skips rows, for every account; absent while the field is empty ([FR-152](spec.md#fr-152), [R-45](research.md#r-45)) |
 
 Settings is part of a backup, `model` and `setAsideUnderCents` included
 ([FR-160](spec.md#fr-160)). Since v1.6 it never holds the key, so nothing that saves
@@ -106,10 +106,10 @@ Replaces the bullet **Rows under review** of 001's
 [Derived values](../001-finance-tracker-v1/data-model.md#derived-values), and adds the values below
 it. Like every derived value, they are computed by domain functions and never stored.
 
-- **Set aside**: a parsed row is set aside while all of these hold ([FR-152](spec.md#fr-152)):
+- **Skipped**: a parsed row is skipped while all of these hold ([FR-152](spec.md#fr-152)):
   `included` is true; `settings.setAsideUnderCents` is present and the absolute `amountCents` is
   less than it; its assignment is a category; and it has no `keptInReview`.
-- **Rows under review**: parsed rows with `included` true that are not set aside
+- **Rows under review**: parsed rows with `included` true that are not skipped
   ([FR-025](../001-finance-tracker-v1/spec.md#fr-025)).
 - **Vendor groups** are formed over the rows under review that do not hold a suggested transfer,
   per side ([FR-026](../001-finance-tracker-v1/spec.md#fr-026), [FR-143](spec.md#fr-143)). A row
@@ -185,8 +185,8 @@ No row starts with `keptInReview`, `seen` or `groupSeen`.
 | The user picks a category, for the row or its group, also by creating one ([FR-149](spec.md#fr-149)) | That category, without marks; `keptInReview` |
 | The user turns the Transfer switch on, or picks a counter-account | A transfer with that account, without marks; `keptInReview` ([FR-143](spec.md#fr-143)) |
 | The user turns the Transfer switch off | The category in `usualCategoryId` if the row held a suggested transfer with one, otherwise the side's "Uncategorised", without marks; `keptInReview` ([FR-143](spec.md#fr-143), [FR-147](spec.md#fr-147)) |
-| The user brings a row set aside back ([FR-153](spec.md#fr-153)) | `keptInReview`; the assignment stays |
-| The set-aside amount changes ([FR-152](spec.md#fr-152)) | Nothing stored on the row: whether it is set aside is derived |
+| The user chooses to review a skipped row ([FR-153](spec.md#fr-153)) | `keptInReview`; the assignment stays |
+| The skip amount changes ([FR-152](spec.md#fr-152)) | Nothing stored on the row: whether it is skipped is derived |
 | Applying AI suggestions ([FR-092](../001-finance-tracker-v1/spec.md#fr-092)) | A row under review still in "Uncategorised" gets the suggested category with `suggested: true` |
 | The focus moves away from this row while it is the current item ([FR-151](spec.md#fr-151)) | `seen` |
 | The focus moves away from the row's vendor group while the group is the current item ([FR-151](spec.md#fr-151)) | `groupSeen`; `seen` stays as it was |
@@ -203,7 +203,7 @@ No row starts with `keptInReview`, `seen` or `groupSeen`.
 
 | Row | `amountCents` ≤ 0 | `amountCents` > 0 |
 |---|---|---|
-| set aside | expense in the side's "Uncategorised" | income in the side's "Uncategorised" |
+| skipped | expense in the side's "Uncategorised" | income in the side's "Uncategorised" |
 | category | expense with that category | income with that category |
 | transfer, or a suggested transfer whose pair no longer fits | transfer from the batch account to the counter-account | transfer from the counter-account to the batch account |
 

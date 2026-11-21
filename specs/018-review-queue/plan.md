@@ -27,7 +27,7 @@ v1.8 makes a monthly review take fewer decisions ([spec](spec.md)):
 - **Keyboard review**: review lists its items in one order; Tab picks the highlighted category and
   moves the current item, which stands out by an outline, a bar and an arrow; an item the focus
   leaves is marked seen on its rows and stored ([R-44](research.md#r-44)).
-- **Set aside**: one stored amount; whether a row is set aside is derived each time, and one flag
+- **Skip**: one stored amount; whether a row is skipped is derived each time, and one flag
   keeps a row the user touched in review ([R-45](research.md#r-45)).
 - **Version**: every new field is optional and v1.7 drops fields it does not know, so the backup
   format and the database schema stay at version 1 and v1.8 is a MINOR release
@@ -44,7 +44,7 @@ copied in with its CLI, as its other components were; it is built on the `Combob
 
 **Storage**: IndexedDB through `idb`, schema version 1, unchanged. New fields are optional
 additions to records the stores already hold: vendors on transactions, review progress on the
-pending batch's rows, the set-aside amount in the settings
+pending batch's rows, the skip amount in the settings
 ([data-model.md](data-model.md#storage-layout)). Backups keep format version 1
 ([contracts/backup-file.md](contracts/backup-file.md)).
 
@@ -90,13 +90,13 @@ The check is against the constitution 1.3.0.
 | Principle | How this plan complies | Before research | After design |
 |---|---|---|---|
 | I. Single Source of Truth | This feature's documents state only what v1.8 changes and link to 001 for the rest. Each replaced section of 001's data model and contracts becomes a link to its new statement, so each rule is stated once ([.claude/rules/specs.md](../../.claude/rules/specs.md)). The corrected version assumption lives in the spec, with its reason in [R-39](research.md#r-39) | Pass | Pass |
-| II. KISS | No dependency added: the picker uses Base UI's Combobox, already installed. Set aside is derived, not stored per row; the current item is screen state, not stored. Pairing is a greedy walk the spec states, not a matching algorithm ([R-41](research.md#r-41), [R-44](research.md#r-44), [R-45](research.md#r-45)) | Pass | Pass |
+| II. KISS | No dependency added: the picker uses Base UI's Combobox, already installed. Skipping is derived, not stored per row; the current item is screen state, not stored. Pairing is a greedy walk the spec states, not a matching algorithm ([R-41](research.md#r-41), [R-44](research.md#r-44), [R-45](research.md#r-45)) | Pass | Pass |
 | III. DRY | `NewCategoryDialog` is shared now that the pickers are its second user; `CategoryPicker` replaces `CategorySelect` in all four places rather than sitting beside it. Nothing else is extracted ahead ([R-43](research.md#r-43)) | Pass | Pass |
 | IV. SOLID | No interface added. Pairing, usual choices and the review's items are one domain module each ([R-41](research.md#r-41), [R-42](research.md#r-42), [R-44](research.md#r-44)) | Pass | Pass |
 | V. Clean Architecture | Every new rule is a pure function in `src/domain`; the store calls it, writes, then applies; the UI only reads derived values. dependency-cruiser keeps checking it | Pass | Pass |
-| VI. Clean Code | Names follow the spec's terms: suggested transfer, usual choice, set aside, seen | Pass | Pass |
+| VI. Clean Code | Names follow the spec's terms: suggested transfer, usual choice, skip, seen | Pass | Pass |
 | VII. Test-Driven Development | Every user story's tests are written first and seen to fail, then implemented ([R-46](research.md#r-46)) | Pass | Pass |
-| VIII. User Experience & Defensive Error Handling | Each new term gets its sentence on screen ([FR-154](spec.md#fr-154)); the current and seen items differ by shape, not only colour; an invalid set-aside amount has its own message code ([contracts/ui.md](contracts/ui.md#message-catalogue)). A pair that changed while pending is shown and booked safely ([FR-144](spec.md#fr-144)) | Pass | Pass |
+| VIII. User Experience & Defensive Error Handling | Each new term gets its sentence on screen ([FR-154](spec.md#fr-154)); the current and seen items differ by shape, not only colour; an invalid skip amount has its own message code ([contracts/ui.md](contracts/ui.md#message-catalogue)). A pair that changed while pending is shown and booked safely ([FR-144](spec.md#fr-144)) | Pass | Pass |
 | IX. Versioning | No feature is removed, and v1.7 reads v1.8's data, so v1.8 bumps MINOR: `package.json` 1.8.0, tag `v1.8` ([R-39](research.md#r-39)) | Pass | Pass |
 
 | Quality gate | Enforced by |
@@ -142,7 +142,7 @@ src/
 │   │                            # setAsideUnderCents (data-model.md)
 │   ├── transactions.ts          # A kind change away from transfer drops destinationVendor
 │   ├── categories.ts            # Deletion also clears marks and usualCategoryId in the batch
-│   ├── settings.ts              # Setting and clearing the set-aside amount
+│   ├── settings.ts              # Setting and clearing the skip amount
 │   ├── invariants.ts            # Invariants 4, 7 and 8 as restated
 │   └── import/
 │       ├── transfers.ts         # NEW: pairTransfers, pairFits (R-41)
@@ -150,11 +150,11 @@ src/
 │       ├── items.ts             # NEW: review items in display order, seen and not-seen counts (R-44)
 │       ├── batch.ts             # createBatch: duplicates, pairs, usual choices, starting assignments
 │       ├── duplicates.ts        # The 4-day window for ledger transfers
-│       ├── review.ts            # Assignments without marks, keptInReview, bring back, mark seen;
-│       │                        # the set-aside rows in the review view (R-45)
-│       ├── groups.ts            # Groups leave out paired and set-aside rows; marks on groups
-│       ├── suggestions.ts       # Rows set aside are not sent
-│       └── confirm.ts           # Converts fitting pairs; books set-aside rows; keeps vendors
+│       ├── review.ts            # Assignments without marks, keptInReview, review a skipped row, mark seen;
+│       │                        # the skipped rows in the review view (R-45)
+│       ├── groups.ts            # Groups leave out paired and skipped rows; marks on groups
+│       ├── suggestions.ts       # Skipped rows are not sent
+│       └── confirm.ts           # Converts fitting pairs; books skipped rows; keeps vendors
 ├── files/
 │   └── backup.ts                # Schemas accept the new optional fields; format stays 1 (R-39)
 ├── store/
@@ -172,13 +172,13 @@ src/
     │   ├── categories/CategoriesScreen.tsx  # Imports the moved dialog
     │   ├── transactions/TransactionForm.tsx, CellEditor.tsx  # Use CategoryPicker
     │   └── import/
-    │       ├── ReviewScreen.tsx       # Header counts, set-aside field, keyboard line, body order,
+    │       ├── ReviewScreen.tsx       # Header counts, skip field, keyboard line, body order,
     │       │                          # current item and focus (R-44)
     │       ├── ReviewGroups.tsx       # Current and seen look; Tab between items
     │       ├── AssignmentControl.tsx  # CategoryPicker; switch-off to the usual category; marks
     │       ├── RowSummary.tsx         # Current and seen look
     │       ├── SuggestedTransfers.tsx # NEW: the block, its sentence and "Pairs with" (contracts/ui.md)
-    │       ├── SetAside.tsx           # NEW: the field, its sentence, count and drawer with Bring back
+    │       ├── SetAside.tsx           # NEW: the field, the preset buttons, the live line, the count and the drawer with Review this row
     │       └── useReviewFocus.ts      # NEW: current item, refs, Tab and Shift+Tab (R-44)
     └── messages.ts              # set-aside-amount-invalid
 
@@ -186,7 +186,7 @@ e2e/
 ├── fixtures/checking-2026-10.csv, card-2026-10.csv   # NEW (quickstart.md)
 ├── support/generate.ts          # Ledgers with vendors; the SC-031 and SC-036 data
 ├── support/write-sc036.ts       # NEW: npm run fixtures:sc036 writes the SC-036 backup and file to tmp/
-├── ui/review.spec.ts            # Changed: marks, set aside, current and seen items
+├── ui/review.spec.ts            # Changed: marks, skipping, current and seen items
 ├── ui/category-picker.spec.ts   # NEW: search, keys, New category… in each picker
 ├── us12-suggested-transfers.spec.ts … us16-new-category.spec.ts   # NEW: one per user story
 ├── messages.spec.ts             # Adds set-aside-amount-invalid
