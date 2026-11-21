@@ -598,7 +598,7 @@ and seen items that look seen ([FR-148](spec.md#fr-148), [FR-150](spec.md#fr-150
   "Skipped rows" has Review this row; `ReviewScreen.tsx` always shows "N skipped" or "None
   skipped" in the header; `src/ui/messages.ts` says skipped in the amount message and in the
   Confirm modal. T223's end-to-end tests pass.
-- [ ] T226 [P] [US15] The guide in `src/ai/appGuide.ts` and the FAQ in `src/ai/faq.ts` use the
+- [X] T226 [P] [US15] The guide in `src/ai/appGuide.ts` and the FAQ in `src/ai/faq.ts` use the
   skip wording, the buttons and the status, in plain words; T223's guide and FAQ tests pass.
 - [ ] T227 `npm run verify` passes again after T223 – T226: lint, architecture, typecheck, every
   unit test and every end-to-end test on Chromium and Firefox. Every link in
