@@ -71,6 +71,8 @@ const transactionFields = {
   amountCents: z.number(),
   accountId: z.string(),
   description: z.string(),
+  // Optional since v1.8; the counterparty as booked on `accountId` (FR-145).
+  vendor: z.string().min(1).optional(),
 };
 
 const transactionSchema = z.discriminatedUnion("kind", [
@@ -80,6 +82,7 @@ const transactionSchema = z.discriminatedUnion("kind", [
     ...transactionFields,
     kind: z.literal("transfer"),
     destinationAccountId: z.string(),
+    destinationVendor: z.string().min(1).optional(),
   }),
 ]);
 
@@ -125,13 +128,25 @@ const pendingRowSchema = z.discriminatedUnion("status", [
     duplicate: z.boolean(),
     included: z.boolean(),
     assignment: z.discriminatedUnion("type", [
-      z.object({
+      // Closed shapes: a mark of the other kind, such as a pair on a category, is damage.
+      z.strictObject({
         type: z.literal("category"),
         categoryId: z.string(),
         suggested: z.literal(true).optional(),
+        usual: z.literal(true).optional(),
       }),
-      z.object({ type: z.literal("transfer"), counterAccountId: z.string() }),
+      z.strictObject({
+        type: z.literal("transfer"),
+        counterAccountId: z.string(),
+        usual: z.literal(true).optional(),
+        pairedTransactionId: z.string().optional(),
+        usualCategoryId: z.string().optional(),
+      }),
     ]),
+    // Marks of v1.8, each absent or `true` (data-model.md, Pending row).
+    keptInReview: z.literal(true).optional(),
+    seen: z.literal(true).optional(),
+    groupSeen: z.literal(true).optional(),
   }),
   z.object({
     rowNumber: z.number(),
@@ -178,6 +193,8 @@ const dataSchema: z.ZodType<Omit<State, "apiKey">> = z.object({
     aiFeatures: z.literal(true).optional(),
     // A file of v1.5 or earlier has none. A model no longer listed is kept (FR-130).
     model: z.string().min(1).optional(),
+    // A file of v1.7 or earlier has none; the schema holds the amount's kind, the invariant its range.
+    setAsideUnderCents: z.number().int().positive().optional(),
   }),
   // A file of an earlier version has none, and restores an empty conversation (R-26).
   conversation: z.array(turnSchema).default([]),

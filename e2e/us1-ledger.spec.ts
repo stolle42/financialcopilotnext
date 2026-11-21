@@ -4,6 +4,7 @@ import {
   addAccount,
   addTransaction,
   choose,
+  expectCategory,
   openTransactionForm,
   storedRecords,
 } from "./support/app";
@@ -68,7 +69,7 @@ test("keeps a trustworthy ledger by hand", async ({ page }) => {
   );
   await expect(form.getByLabel("Amount")).toHaveValue("0.00");
   await expect(form.getByLabel("Account", { exact: true })).toHaveText("Cash");
-  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+  await expectCategory(form, "Uncategorised");
   await expect(form.getByLabel("Date")).toHaveValue("2026-09-03");
   await expect(form.getByLabel("Description")).toHaveValue("");
   await form.getByRole("button", { name: "Save" }).click();

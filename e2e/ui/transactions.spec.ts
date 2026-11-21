@@ -1,7 +1,14 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Account, Category } from "../../src/domain/types";
 import { messageFor } from "../../src/ui/messages";
-import { addAccount, addTransaction, choose, screenIntro, storedRecords } from "../support/app";
+import {
+  addAccount,
+  addTransaction,
+  choose,
+  expectCategory,
+  screenIntro,
+  storedRecords,
+} from "../support/app";
 import { euros, expect, setToday, test } from "../support/test";
 
 // contracts/ui.md, transactions; FR-016, FR-063, FR-073, FR-080 – FR-083 and FR-110.
@@ -496,7 +503,7 @@ test("the Edit transaction button opens the form, and saving changes the row", a
   await editButton(rows(page).filter({ hasText: "Shop" })).click();
   const form = page.getByRole("dialog", { name: "Edit transaction" });
   await expect(form.getByLabel("Amount")).toHaveValue("40.00");
-  await expect(form.getByLabel("Category", { exact: true })).toHaveText("Groceries");
+  await expectCategory(form, "Groceries");
   await form.getByLabel("Amount").fill("42.50");
   await form.getByRole("button", { name: "Save" }).click();
   await expect(form).toHaveCount(0);

@@ -45,22 +45,7 @@ The protected categories are found by `role`, never by name, because they can be
 
 ### Transaction
 
-| Field | Type | Present when | Notes |
-|---|---|---|---|
-| `id` | string | always | |
-| `seq` | positive integer | always | Creation order, unique; breaks ties between equal dates in the list ([FR-016](spec.md#fr-016)) |
-| `date` | calendar date | always | |
-| `amountCents` | integer ≥ 0 | always | [FR-010](spec.md#fr-010) |
-| `accountId` | Account id | always | For a transfer, the account the money leaves |
-| `description` | string, may be empty | always | |
-| `kind` | `expense` \| `income` \| `transfer` | always | |
-| `categoryId` | Category id | expense, income | Category of the same side ([FR-011](spec.md#fr-011)) |
-| `destinationAccountId` | Account id | transfer | Differs from `accountId` ([FR-011](spec.md#fr-011)) |
-
-A transaction never holds both `categoryId` and `destinationAccountId`. Kind changes follow
-[FR-015](spec.md#fr-015). Saving from the manual-entry form refuses the "Unaccounted" category
-unless the transaction already held it (editing a reconciliation entry;
-[FR-030](spec.md#fr-030), [contracts/ui.md](contracts/ui.md#transaction-form)).
+Replaced in v1.8 by [Transaction](../018-review-queue/data-model.md#transaction).
 
 ### Budget
 
@@ -120,42 +105,11 @@ profile cannot change the batch ([FR-021](spec.md#fr-021)).
 
 ### Pending row
 
-Every row has a `rowNumber`: its record number in the file, counting the header (when present) as
-row 1, as a spreadsheet shows it. It identifies the row within the batch and in messages. The row's
-`status` decides its other fields.
-
-**`status: "unparsable"`** ([FR-028](spec.md#fr-028)):
-
-| Field | Type | Notes |
-|---|---|---|
-| `cells` | string list | The raw cells, shown next to the reason |
-| `failure` | failure code + details | Codes in [contracts/csv-import.md](contracts/csv-import.md#unparsable-rows) |
-
-**`status: "parsed"`**:
-
-| Field | Type | Notes |
-|---|---|---|
-| `date` | calendar date | |
-| `amountCents` | integer, any sign | Signed effect on the batch account after sign inversion: negative is money out ([FR-023](spec.md#fr-023)) |
-| `description` | string, may be empty | |
-| `counterparty` | string \| `null` | Trimmed cell text; `null` when unmapped or empty, so the row has no vendor ([FR-026](spec.md#fr-026)) |
-| `duplicate` | boolean | Set once when the batch is created, never recomputed ([FR-024](spec.md#fr-024)) |
-| `included` | boolean | Starts as `!duplicate` ([FR-025](spec.md#fr-025)) |
-| `assignment` | `{ type: "category", categoryId, suggested? }` \| `{ type: "transfer", counterAccountId }` | Starts as the row side's "Uncategorised" ([FR-029](spec.md#fr-029)). `suggested` is `true` when the AI suggested the category, and absent otherwise: never `false`, never on a transfer ([FR-093](spec.md#fr-093)) |
-
-A category assignment uses the row's side: expense when `amountCents` ≤ 0, income otherwise
-([R-12](research.md#r-12)). A transfer's counter-account differs from the batch account.
+Replaced in v1.8 by [Pending row](../018-review-queue/data-model.md#pending-row).
 
 ### Settings
 
-| Field | Type | Notes |
-|---|---|---|
-| `manualEntryAccountId` | Account id | Default account of the manual-entry form ([FR-006](spec.md#fr-006)) |
-| `aiFeatures` | `true`, or absent | Present while the user has the AI features switch on ([FR-095](spec.md#fr-095)); never `false`. AI features are on only while it is present and a key is stored ([OpenAI key](#openai-key)) |
-| `model` | model id, or absent | The chosen model ([FR-129](spec.md#fr-129), [FR-130](spec.md#fr-130)). Absent means the default. Any non-empty string is kept, also one no longer in the list; the model in use is then the default ([R-32](research.md#r-32)) |
-
-Settings is part of a backup, `model` included ([FR-070](spec.md#fr-070)). Since v1.6 it never
-holds the key, so nothing that saves `state.settings` can carry it.
+Replaced in v1.8 by [Settings](../018-review-queue/data-model.md#settings).
 
 <a id="openai-key"></a>
 ### OpenAI key
@@ -223,8 +177,8 @@ Derived values are computed by domain functions from the state above and never s
   ([FR-023](spec.md#fr-023), [R-12](research.md#r-12)).
 - **Vendor key** of a parsed row: the name key of `counterparty`, or none when it is `null`
   ([FR-026](spec.md#fr-026)).
-- **Rows under review**: parsed rows with `included` true ([FR-025](spec.md#fr-025)). Vendor groups
-  are formed over these rows, per side ([FR-026](spec.md#fr-026)).
+- **Rows under review**: replaced in v1.8 by
+  [Derived values](../018-review-queue/data-model.md#derived-values).
 - **Budget progress** and **Insights aggregates**: see [R-14](research.md#r-14).
 - **Finance chat context**: the data one question of the finance chat sends, built when it is
   asked and never stored ([FR-102](spec.md#fr-102), [R-25](research.md#r-25)).
@@ -244,23 +198,14 @@ fails ([FR-072](spec.md#fr-072)); domain tests assert that no operation can brea
 3. Each side has exactly one category with role `uncategorised` and exactly one with role
    `unaccounted`. Category names are non-empty and unique by name key within a side. Colours match
    `#rrggbb`.
-4. Every transaction has a valid calendar date, a safe-integer `amountCents` ≥ 0, and an existing
-   `accountId`. An expense or income references an existing category of its own side and has no
-   destination. A transfer references an existing destination account different from `accountId`
-   and has no category.
+4. Replaced in v1.8 by [invariant 4](../018-review-queue/data-model.md#invariants).
 5. Every budget references an existing expense category with role `null`, and has a safe-integer
    `limitCents` > 0.
 6. Mapping profile names are unique by name key. Each profile's column refs match its
    `hasHeaderRow` variant, and its date format, decimal separator and encoding come from the
    supported lists.
-7. At most one pending batch exists, and it references an existing account. Its row numbers are
-   unique. Every parsed row has a valid date and a safe-integer amount. A category assignment
-   references an existing category of the row's side with a role other than `unaccounted`
-   ([FR-030](spec.md#fr-030)). A suggested category assignment references a category with role
-   `null` ([FR-092](spec.md#fr-092)). A transfer assignment references an existing account other
-   than the batch account. Every unparsable row carries a known failure code.
-8. `settings.manualEntryAccountId` references an existing account. `settings.model`, when
-   present, is a non-empty string. Settings holds no field for the key.
+7. Replaced in v1.8 by [invariant 7](../018-review-queue/data-model.md#invariants).
+8. Replaced in v1.8 by [invariant 8](../018-review-queue/data-model.md#invariants).
 9. Every turn of the conversation has a question that is non-empty after trimming. A turn out of
    scope has an empty answer, no sources and no `stopped`. A stopped turn has no sources. Any
    other turn has a non-empty answer. A turn's follow-ups, when present, are one to three distinct
@@ -280,28 +225,14 @@ pending ── discard ───────────────────
 pending ── import another file ───────▶ refused, unchanged FR-022
 ```
 
-**Pending row**: an unparsable row never changes and is never confirmed. In a parsed row,
-`assignment` switches between a category of the row's side and a transfer
-([FR-023](spec.md#fr-023)). The UI offers the `included` toggle only for duplicate rows
-([FR-025](spec.md#fr-025)). Applying suggestions turns a row's "Uncategorised" into a suggested
-category ([FR-092](spec.md#fr-092)). Every assignment the user makes, and every category deletion,
-stores an assignment without `suggested` ([FR-093](spec.md#fr-093)).
+**Pending row**: replaced in v1.8 by
+[State transitions](../018-review-queue/data-model.md#state-transitions).
 
-**Confirmation** turns each row under review into a transaction on the batch account, all in one
-storage transaction ([FR-027](spec.md#fr-027)):
+**Confirmation**: replaced in v1.8 by
+[State transitions](../018-review-queue/data-model.md#state-transitions).
 
-| Assignment | `amountCents` ≤ 0 | `amountCents` > 0 |
-|---|---|---|
-| category | expense, `accountId` = batch account | income, `accountId` = batch account |
-| transfer | transfer from the batch account to the counter-account | transfer from the counter-account to the batch account |
-
-The amount becomes the absolute value. New transactions get consecutive `seq` values in file
-order. Confirmation does not change `settings` ([FR-006](spec.md#fr-006)). A suggested category
-books exactly as a chosen one, and the transaction keeps no mark ([FR-093](spec.md#fr-093)).
-
-**Category deletion** ([FR-034](spec.md#fr-034)): the category's transactions move to the same
-side's "Uncategorised", its budget is removed, and pending rows assigned to it move to the same
-side's "Uncategorised". The last part keeps invariant 7 true ([R-12](research.md#r-12)).
+**Category deletion**: replaced in v1.8 by
+[State transitions](../018-review-queue/data-model.md#state-transitions).
 
 **Manual-entry default** ([FR-006](spec.md#fr-006)): `settings.manualEntryAccountId` changes only
 when a transaction is created from the manual-entry form. It becomes that transaction's `accountId`.

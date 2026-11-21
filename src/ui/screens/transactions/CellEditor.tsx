@@ -12,7 +12,7 @@ import { changeAccount, draftOf, type Draft } from "@/domain/transactions";
 import type { Transaction } from "@/domain/types";
 import { useStore } from "@/store/store";
 import { AmountField, amountText, parseAmountText } from "@/ui/components/AmountField";
-import { CategorySelect } from "@/ui/components/CategorySelect";
+import { CategoryPicker } from "@/ui/components/CategoryPicker";
 import { FieldError } from "@/ui/components/ui/field";
 import { Input } from "@/ui/components/ui/input";
 import {
@@ -158,7 +158,19 @@ export function CellEditor({
       />
     );
   } else if (column === "category" && transaction.kind !== "transfer") {
-    editor = <CategorySelect {...selectProps} aria-label="Category" side={transaction.kind} />;
+    // Open, with its search in focus; only picking a category saves (contracts/ui.md).
+    editor = (
+      <CategoryPicker
+        defaultOpen
+        autoFocus
+        aria-label="Category"
+        side={transaction.kind}
+        value={value}
+        canCreate
+        onOpenChange={selectProps.onOpenChange}
+        onValueChange={(categoryId) => selectProps.onValueChange(categoryId)}
+      />
+    );
   } else {
     // A transfer's destination never equals its account (FR-011), so each select leaves out the
     // other's account.

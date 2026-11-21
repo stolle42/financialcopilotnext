@@ -30,6 +30,44 @@ export async function choose(page: Page, scope: Locator, label: string, option: 
   await page.getByRole("option", { name: option, exact: true }).click();
 }
 
+/**
+ * Picks the category named `name` in the category picker inside `scope`: types the name into the
+ * field and picks the item of that name from the list (contracts/ui.md, category picker).
+ */
+export async function pickCategory(page: Page, scope: Locator, name: string) {
+  const field = scope.getByRole("combobox", { name: "Category", exact: true });
+  await field.click();
+  await field.fill(name);
+  await page.getByRole("option", { name, exact: true }).click();
+}
+
+/** What a category picker shows: its field's text, or its placeholder (such as "Mixed") when empty. */
+export function shownCategory(scope: Locator): Promise<string> {
+  // The first, when the scope holds several, as an unfolded group does: its own picker comes first.
+  return scope
+    .getByLabel("Category", { exact: true })
+    .first()
+    .evaluate((field) => {
+      if (field instanceof HTMLInputElement) return field.value || field.placeholder;
+      return field.textContent?.trim() ?? "";
+    });
+}
+
+/** Expects the category picker inside `scope` to show `name`. */
+export async function expectCategory(scope: Locator, name: string) {
+  await expect
+    .poll(async () => {
+      if ((await scope.getByLabel("Category", { exact: true }).count()) > 0) {
+        return shownCategory(scope);
+      }
+      // A cell of Transactions that is not being edited shows its category as a button.
+      return (await scope.getByRole("button", { name, exact: true }).count()) > 0
+        ? name
+        : "(no category shown)";
+    })
+    .toBe(name);
+}
+
 interface NewTransaction {
   kind?: "Expense" | "Income" | "Transfer";
   /** As typed in en-US, such as "40.00". */

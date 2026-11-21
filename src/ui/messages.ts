@@ -45,7 +45,8 @@ export type MessageCode =
   | BudgetRefusalCode
   | ReconcileRefusalCode
   | CategoryRefusalCode
-  | BackupRefusalCode;
+  | BackupRefusalCode
+  | "set-aside-amount-invalid";
 
 /** Plain wording, or wording built from the refusal's details, which may be absent. */
 type Wording = string | ((details: RefusalDetails) => string);
@@ -83,6 +84,8 @@ const brokenRules: Record<InvariantCode, string> = {
   "transaction-fields-mixed": "a transaction mixes the details of a transfer with those of a spend",
   "transaction-destination-invalid":
     "a transfer goes to an account that is not in the backup, or to the account it leaves",
+  "transaction-vendor-invalid":
+    "a transaction has an empty vendor, or a second vendor although it is not a transfer",
   "budget-category-invalid": "a budget refers to a category that cannot carry one",
   "budget-limit-out-of-range": "a budget has a limit that is not an amount above 0.00",
   "profile-name-missing": "a bank CSV format has no name",
@@ -102,9 +105,12 @@ const brokenRules: Record<InvariantCode, string> = {
     "a row of the pending import holds a category the AI suggested that it cannot suggest",
   "pending-row-transfer-invalid":
     "a row of the pending import is a transfer to an account that is not in the backup, or to the import's own account",
+  "pending-row-mark-invalid":
+    "a row of the pending import has marks that contradict each other or are not allowed",
   "pending-row-failure-unknown": "an unreadable row of the pending import has an unknown reason",
   "settings-account-missing": "the settings name an account that is not in the backup",
   "settings-model-invalid": "the settings name an empty model",
+  "settings-set-aside-invalid": "the settings name a set-aside amount that is not above 0.00",
   "settings-key-present": "the settings hold a key, which no backup may hold",
   "conversation-question-missing": "a question of the finance chat's conversation is empty",
   "conversation-turn-invalid":
@@ -245,6 +251,8 @@ export const messages: Record<MessageCode, Wording> = {
   "suggestions-outdated":
     "The import changed while the AI was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
+  "set-aside-amount-invalid":
+    "The amount must be above 0.00, with at most two decimals. No rows are skipped.",
   "category-name-empty": "The category needs a name.",
   "category-name-taken": (details) =>
     `There is already ${details.side === "income" ? "an income" : "an expense"} category with this ` +
@@ -261,6 +269,33 @@ export const messages: Record<MessageCode, Wording> = {
 };
 
 const transactions = (count: number) => `${count} transaction${count === 1 ? "" : "s"}`;
+
+/** The mark "From earlier" in one plain sentence, shown once above the rows (FR-154). */
+export const usualMarkSentence =
+  "From earlier: most earlier transactions of this vendor are in this category, or are transfers with this account.";
+
+/**
+ * What the Confirm modal states (FR-157): the rows entering the ledger, how many of them in
+ * "Uncategorised" because they were skipped, and the transactions becoming transfers.
+ */
+export function confirmationSummary(counts: {
+  entering: number;
+  setAside: number;
+  becomingTransfers: number;
+}): string {
+  const rows = `${counts.entering} row${counts.entering === 1 ? "" : "s"}`;
+  const aside =
+    counts.setAside > 0
+      ? `, ${counts.setAside} of them in “Uncategorised” because they were skipped`
+      : "";
+  const transfers =
+    counts.becomingTransfers === 0
+      ? ""
+      : counts.becomingTransfers === 1
+        ? " 1 transaction will become a transfer."
+        : ` ${counts.becomingTransfers} transactions will become transfers.`;
+  return `${rows} will enter the ledger${aside}.${transfers}`;
+}
 
 /** What AI features do, where their data goes and who pays, on the Settings screen (FR-095). */
 export const aiFeaturesDescription =
@@ -357,8 +392,12 @@ export const aiFeaturesNeeded = "Suggestions need AI features, which you turn on
 
 /** Brief success messages after a write that leaves the screen (contracts/ui.md, shared patterns). */
 export const notifications = {
-  importConfirmed: (count: number, accountName: string) =>
-    `Added ${transactions(count)} to ${accountName}.`,
+  /** `becameTransfers` of the transactions are transfers, which changes paired ones (FR-144, FR-157). */
+  importConfirmed: (count: number, accountName: string, becameTransfers = 0) =>
+    `Added ${transactions(count)} to ${accountName}.` +
+    (becameTransfers > 0
+      ? ` ${becameTransfers === 1 ? "1 became a transfer" : `${becameTransfers} became transfers`}.`
+      : ""),
   importDiscarded: (fileName: string) =>
     `Discarded the import of ${fileName}. Nothing entered the ledger.`,
   reconciled: (kind: Side, cents: number, categoryName: string) =>

@@ -1,7 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { seedState } from "./seed";
-import { maskKey, removeKey, setAiFeatures, setModel, turnOnWithKey } from "./settings";
-import { applyValid, idCounter } from "./testing";
+import {
+  maskKey,
+  removeKey,
+  setAiFeatures,
+  setModel,
+  setSetAsideAmount,
+  turnOnWithKey,
+} from "./settings";
+import { applyValid, changesOf, idCounter } from "./testing";
 
 // FR-095, FR-126; data-model.md, settings, OpenAI key and state transitions (AI features).
 
@@ -154,5 +161,54 @@ describe("the OpenAI key (FR-126; data-model.md, OpenAI key)", () => {
   test("maskKey shows sk-… and the last 4 characters only", () => {
     expect(maskKey(key)).toBe("sk-…a1b2");
     expect(maskKey("sk-abcdefghijklmnopqrstuvwxyz0123456789WXYZ")).toBe("sk-…WXYZ");
+  });
+});
+
+// FR-152; data-model.md, settings; R-45: the amount under which review sets rows aside. The field
+// `setAsideUnderCents` is not in the types yet, so it is read through a cast.
+describe("setSetAsideAmount (FR-152)", () => {
+  const amountOf = (settings: object) =>
+    (settings as { setAsideUnderCents?: number }).setAsideUnderCents;
+
+  test("there is no amount on first launch", () => {
+    expect(seedState(idCounter()).settings).not.toHaveProperty("setAsideUnderCents");
+  });
+
+  test("stores the amount in cents and keeps the other settings", () => {
+    const state = applyValid(seedState(idCounter()), setAiFeatures(seedState(idCounter()), true));
+
+    const next = applyValid(state, changesOf(setSetAsideAmount(state, 100)));
+
+    expect(amountOf(next.settings)).toBe(100);
+    expect(next.settings).toStrictEqual({ ...state.settings, setAsideUnderCents: 100 });
+    expect(Object.keys(changesOf(setSetAsideAmount(state, 100)))).toEqual(["settings"]);
+  });
+
+  test("a new amount replaces the old one", () => {
+    const state = seedState(idCounter());
+    const first = applyValid(state, changesOf(setSetAsideAmount(state, 100)));
+
+    const next = applyValid(first, changesOf(setSetAsideAmount(first, 50)));
+
+    expect(amountOf(next.settings)).toBe(50);
+  });
+
+  test("undefined removes the amount rather than storing it", () => {
+    const state = seedState(idCounter());
+    const set = applyValid(state, changesOf(setSetAsideAmount(state, 100)));
+
+    const next = applyValid(set, changesOf(setSetAsideAmount(set, undefined)));
+
+    expect(next.settings).toStrictEqual(state.settings);
+    expect(next.settings).not.toHaveProperty("setAsideUnderCents");
+  });
+
+  test("refuses zero, a negative amount and a fraction of a cent", () => {
+    const state = seedState(idCounter());
+    for (const cents of [0, -100, 0.5, 100.5, Number.NaN, Infinity]) {
+      expect(setSetAsideAmount(state, cents)).toStrictEqual({
+        code: "set-aside-amount-invalid",
+      });
+    }
   });
 });

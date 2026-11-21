@@ -599,9 +599,8 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
 - The user adds, edits, or deletes a ledger transaction while a batch is pending: duplicate flags are
   not recomputed ([FR-024](#fr-024)), so a manual entry matching a pending row goes unflagged and
   confirming adds a duplicate, which the user deletes.
-- A row is marked as a transfer after the counter-account already holds the other leg as a plain
-  expense or income: both stay in the ledger and the counter-account's balance is off until the user
-  deletes the stray row.
+- Replaced in v1.8 by the [edge cases of 018](../018-review-queue/spec.md#edge-cases): a row
+  whose other side the counter-account already holds as a plain expense or income.
 - An import file has a header only, or no rows: the user is told the file contained no transactions
   and no batch is created.
 - The Insights period spans more than one calendar month: budget progress covers only the most
@@ -788,24 +787,12 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
     batch exists.
   - Users MUST be able to edit, rename, and delete a profile. Doing so MUST NOT change a pending
     batch, which keeps its parsed rows.
-- <a id="fr-022"></a>**FR-022**: System MUST place parsed rows in a pending batch that has no effect on balances,
-  figures, or budgets until confirmed. The pending batch MUST survive closing and reopening the app,
-  together with every choice made in review: categories, rows marked as transfers, flagged rows
-  included, and the categories the AI suggested, with their marks ([FR-093](#fr-093)).
-  At most one pending batch MAY exist at any time, across all accounts; starting an import while one
-  is pending MUST be refused with a message that leads the user to review or discard it. Changed in
-  v1.2: [FR-093](#fr-093). Changed in v1.3: [FR-105](#fr-105).
+- <a id="fr-022"></a>**FR-022**: Replaced in v1.8 by [FR-155](../018-review-queue/spec.md#fr-155).
 - <a id="fr-023"></a>**FR-023**: System MUST propose the kind of each row from the direction of its amount, after
   applying the profile's sign inversion (money out is an expense, money in is an income, and a zero
   amount is an expense), and MUST let the user change any row to a transfer with a
   counter-account during review.
-- <a id="fr-024"></a>**FR-024**: System MUST flag a pending row as a duplicate when it matches an existing ledger
-  transaction or an earlier row in the same batch. Two entries match only when they agree on all
-  four of: account, date, amount, and direction, meaning whether the money leaves or enters that
-  account. Dates MUST match exactly, and descriptions play no part. A transfer moves money out of
-  its source account and into its destination account, so a pending row can match a transfer on
-  either account. Flags MUST be computed once, when the batch is created, and MUST NOT change
-  while it is pending.
+- <a id="fr-024"></a>**FR-024**: Replaced in v1.8 by [FR-156](../018-review-queue/spec.md#fr-156).
 - <a id="fr-025"></a>**FR-025**: Flagged rows MUST be excluded from confirmation by default and MUST NOT appear among
   the rows under review. Review MUST show how many rows are flagged; selecting that number MUST
   present them, and the user MUST be able to include any individual one.
@@ -821,12 +808,7 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
   - A group of only one row is shown as a plain row.
   - Assigning a category to a group MUST assign it to every row in the group. The user MUST be able
     to unfold a group and assign categories per row.
-- <a id="fr-027"></a>**FR-027**: Confirming a batch MUST move its included rows into the ledger with the categories
-  shown in review, and MUST first state how many rows will enter the ledger. While the AI answers a
-  request for suggestions, confirming MUST wait for the answer, so no suggestion enters the ledger
-  unseen ([FR-090](#fr-090)). Discarding a batch MUST leave the ledger unchanged. A confirmed batch
-  cannot be undone as a whole ([Out of Scope](#out-of-scope)). Changed in v1.2:
-  [FR-090](#fr-090). Changed in v1.3: [FR-105](#fr-105).
+- <a id="fr-027"></a>**FR-027**: Replaced in v1.8 by [FR-157](../018-review-queue/spec.md#fr-157).
 - <a id="fr-028"></a>**FR-028**: Rows the profile cannot parse MUST NOT appear among the rows under review and MUST
   NOT be confirmable. Review MUST show how many there are; selecting that number MUST present them
   with the reason each failed. The remaining rows MUST stay reviewable.
@@ -836,9 +818,7 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
     when neither does, or when either holds a negative one.
   - The profile's decimal separator also decides the thousands separator (the other one), so
     `1.250,00` and `1,250.00` each parse as 1250.00 under their matching profile.
-- <a id="fr-029"></a>**FR-029**: Every row under review MUST hold a category, initially its side's
-  "Uncategorised"; the category dropdown MUST offer no empty state, so no row can be confirmed
-  without a category.
+- <a id="fr-029"></a>**FR-029**: Replaced in v1.8 by [FR-158](../018-review-queue/spec.md#fr-158).
 
 **Categories**
 
@@ -857,10 +837,7 @@ the chat, turn AI features on from it with a key, and ask how to set a budget.
   allowing them to be renamed and recoloured.
 - <a id="fr-034"></a>**FR-034**: Deleting a category MUST move its transactions to "Uncategorised" on the same side and
   MUST remove any budget attached to it.
-- <a id="fr-035"></a>**FR-035**: System MUST itself assign "Uncategorised" to imported rows that
-  hold no category the user chose or the AI suggested ([FR-029](#fr-029), [FR-092](#fr-092)) and to
-  transactions whose category is deleted, and "Unaccounted" to reconciliation differences. Changed
-  in v1.2: [FR-092](#fr-092). Changed in v1.3: [FR-105](#fr-105).
+- <a id="fr-035"></a>**FR-035**: Replaced in v1.8 by [FR-159](../018-review-queue/spec.md#fr-159).
 
 **Budgets**
 
@@ -949,13 +926,7 @@ testable for v1.
 
 **Backup**
 
-- <a id="fr-070"></a>**FR-070**: Users MUST be able to save a backup: one file holding all data the
-  app holds, including accounts, transactions, categories, budgets, mapping profiles, the pending
-  batch, the manual-entry default account ([FR-006](#fr-006)), whether AI features are on
-  ([FR-095](#fr-095)), the chosen model ([FR-130](#fr-130)) and the finance chat's conversation
-  ([FR-104](#fr-104)). The OpenAI API key MUST NOT be part of a backup ([FR-126](#fr-126)).
-  Changed in v1.2: [FR-095](#fr-095). Changed in v1.3: [FR-104](#fr-104). Changed in v1.6:
-  [FR-126](#fr-126), [FR-130](#fr-130).
+- <a id="fr-070"></a>**FR-070**: Replaced in v1.8 by [FR-160](../018-review-queue/spec.md#fr-160).
 - <a id="fr-071"></a>**FR-071**: Users MUST be able to load a backup file. Loading MUST replace all
   current data with the file's contents, not merge them, and MUST require the user to confirm a
   warning that all current data will be replaced.
@@ -1578,9 +1549,7 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   balance, and a computed balance. Cash is an ordinary account; one is predefined on first launch
   ([FR-006](#fr-006)). Manual entry defaults to the last account used for manual entry
   ([FR-006](#fr-006)).
-- **Transaction**: One movement of money. Has a date, an amount of zero or more, an optional
-  description, a kind (expense, income, transfer), and an account. An expense or income has one
-  category from its side. A transfer has a destination account instead of a category.
+- **Transaction**: Replaced in v1.8 by [Transaction](../018-review-queue/spec.md#key-entities).
 - **Category**: A label for expenses or incomes. Has a name, a colour, a side (expense or income),
   and whether it is protected. Each side has the protected "Uncategorised" (a to-do) and
   "Unaccounted" (a final answer).
@@ -1591,10 +1560,7 @@ It changes nothing in what the app stores, puts in a backup or sends ([FR-061](#
   ([FR-138](#fr-138)).
 - **Pending batch**: The result of one import, held outside the ledger until confirmed or
   discarded. Belongs to one account and one profile. At most one exists at a time.
-- **Pending row**: One parsed line in a pending batch: its parsed fields, its vendor group, its
-  proposed kind, its category or counter-account, whether the AI suggested that category
-  ([FR-093](#fr-093)), whether it is flagged as a duplicate, whether it failed to parse, and whether
-  it is included in confirmation.
+- **Pending row**: Replaced in v1.8 by [Pending row](../018-review-queue/spec.md#key-entities).
 - **Conversation**: The finance chat's questions, each with its answer, in the order asked. An
   answer has its text, whether it was stopped, its sources and its follow-up questions. A source
   has a name, a range of

@@ -12,7 +12,7 @@ import {
   standInChat,
   turnOnAiFeatures,
 } from "./support/ai";
-import { generateBackup, generateBankCsv } from "./support/generate";
+import { generateBackup, generateBankCsv, generateVendorBackup } from "./support/generate";
 import { saveMyBankProfile } from "./support/import";
 import { euros, expect, setToday, test } from "./support/test";
 
@@ -124,6 +124,16 @@ test("Insights renders every section within 2 s for a period of 5,000 transactio
 
 test("A 5,000-row bank file is in review within 10 s (SC-010)", async ({ page }) => {
   test.setTimeout(180_000);
+  // The ledger is big and holds vendors on two accounts, so the import also pairs transfers and
+  // finds usual choices against 10,000 transactions (FR-142, FR-146, R-41, R-42). The restore
+  // replaces the stored bank CSV formats, so the format is saved after it.
+  const base = await freshData(page);
+  const ledger = generateVendorBackup(base, {
+    count: 10_000,
+    start: "2026-07-01",
+    end: "2026-09-03",
+  });
+  await restoreBackup(page, backupText(ledger), undefined, { timeout: RESTORE_TIMEOUT });
   await saveMyBankProfile(page);
   const csv = generateBankCsv({ rows: 5_000, vendors: 100 });
 

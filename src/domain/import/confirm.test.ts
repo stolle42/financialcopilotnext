@@ -4,7 +4,7 @@ import { protectedCategory } from "../categories";
 import { seedState } from "../seed";
 import { applyValid, idCounter, testContext } from "../testing";
 import type { Assignment, ParsedRow, PendingRow, Side, State, Transaction } from "../types";
-import { confirmBatch, discardBatch } from "./confirm";
+import { confirmBatch, confirmationCounts, discardBatch } from "./confirm";
 
 // FR-027; data-model.md, state transitions (confirmation).
 
@@ -214,5 +214,487 @@ describe("discardBatch (FR-027)", () => {
 
   test("changes nothing when no batch is pending", () => {
     expect(discardBatch(seedState(idCounter()))).toEqual({});
+  });
+});
+
+// FR-144, FR-145, FR-157; data-model.md, state transitions (confirmation), suggested transfers.
+// The fields v1.8 adds are written through casts, because their types come with the code.
+
+/** The vendor fields of a transaction (FR-145). */
+type WithVendors = Transaction & { vendor?: string; destinationVendor?: string };
+
+/** A transfer row that holds the suggestion to pair with the transaction `pairedTransactionId`. */
+function pairedRow(
+  state: State,
+  rowNumber: number,
+  amountCents: number,
+  counterAccountId: string,
+  pairedTransactionId: string,
+  fields: Partial<ParsedRow> = {},
+): ParsedRow {
+  return row(state, rowNumber, amountCents, {
+    assignment: { type: "transfer", counterAccountId, pairedTransactionId } as Assignment,
+    ...fields,
+  });
+}
+
+/** `withBatch`, plus transactions already in the ledger, which the rows may pair with. */
+function withLedgerAnd(
+  extra: (state: State) => Transaction[],
+  rows: (state: State) => PendingRow[],
+): State {
+  const base = withBatch(rows);
+  return applyValid(base, { transactions: { put: extra(base) } });
+}
+
+const byId = (state: State, id: string): WithVendors =>
+  state.transactions.find((t) => t.id === id) as WithVendors;
+
+/** Money out of Cash that the card's side recorded as an income: the payment of the card. */
+const cardPaymentLedger = (s: State): Transaction[] => [
+  {
+    id: "card-in",
+    seq: 3,
+    date: "2026-07-31",
+    amountCents: 50000,
+    accountId: "card",
+    description: "Payment received",
+    kind: "income",
+    categoryId: categoryNamed(s, "income", "Salary"),
+  },
+];
+
+/** An expense on the card, which a row of money in on Cash can pair with. */
+const cardExpense = (s: State, amountCents: number, vendor?: string): Transaction[] => [
+  {
+    id: "card-out",
+    seq: 3,
+    date: "2026-07-31",
+    amountCents,
+    accountId: "card",
+    description: "To my account",
+    kind: "expense",
+    categoryId: categoryNamed(s, "expense", "Groceries"),
+    ...(vendor ? { vendor } : {}),
+  } as WithVendors,
+];
+
+describe("confirmBatch: a suggested transfer changes the paired transaction (FR-144)", () => {
+  test("an expense on the counter-account becomes a transfer from there into the batch account", () => {
+    const state = withLedgerAnd(
+      (s) => cardExpense(s, 50000),
+      (s) => [pairedRow(s, 2, 50000, "card", "card-out", { description: "From the card" })],
+    );
+    const next = confirmed(state);
+
+    // The transaction keeps its identity and its own text; the row adds nothing to the ledger.
+    expect(byId(next, "card-out")).toEqual({
+      id: "card-out",
+      seq: 3,
+      date: "2026-07-31",
+      amountCents: 50000,
+      accountId: "card",
+      description: "To my account",
+      kind: "transfer",
+      destinationAccountId: state.pendingBatch!.accountId,
+    });
+    expect(byId(next, "card-out")).not.toHaveProperty("categoryId");
+    expect(next.transactions).toHaveLength(state.transactions.length);
+    expect(next.pendingBatch).toBeNull();
+  });
+
+  test("an income on the counter-account becomes a transfer from the batch account into it", () => {
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50000, "card", "card-in", { description: "Card payment" }),
+    ]);
+    const next = confirmed(state);
+
+    expect(byId(next, "card-in")).toEqual({
+      id: "card-in",
+      seq: 3,
+      date: "2026-07-31",
+      amountCents: 50000,
+      description: "Payment received",
+      kind: "transfer",
+      accountId: state.pendingBatch!.accountId,
+      destinationAccountId: "card",
+    });
+    expect(next.transactions).toHaveLength(state.transactions.length);
+  });
+
+  test("a row left out changes nothing, so the transaction it was paired with stays", () => {
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50000, "card", "card-in", { included: false }),
+    ]);
+    const next = confirmed(state);
+    expect(next.transactions).toBe(state.transactions);
+  });
+
+  test("a pair that no longer fits books an ordinary transfer, and the transaction is untouched", () => {
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50100, "card", "card-in"),
+    ]);
+    const next = confirmed(state);
+
+    expect(byId(next, "card-in")).toBe(byId(state, "card-in"));
+    expect(added(state, next)).toEqual([
+      expect.objectContaining({
+        id: "new-1",
+        seq: 8,
+        amountCents: 50100,
+        kind: "transfer",
+        accountId: state.pendingBatch!.accountId,
+        destinationAccountId: "card",
+      }),
+    ]);
+  });
+
+  test("a pair whose transaction was deleted books an ordinary transfer", () => {
+    const state = withBatch((s) => [pairedRow(s, 2, 50000, "card", "gone")]);
+    const next = confirmed(state);
+    expect(added(state, next)).toEqual([
+      expect.objectContaining({
+        kind: "transfer",
+        accountId: "card",
+        destinationAccountId: state.pendingBatch!.accountId,
+        amountCents: 50000,
+      }),
+    ]);
+  });
+
+  test("a transaction that moved to another account no longer fits", () => {
+    const state = withLedgerAnd(
+      (s) => cardPaymentLedger(s).map((t) => ({ ...t, accountId: s.accounts[0]!.id })),
+      (s) => [pairedRow(s, 2, -50000, "card", "card-in")],
+    );
+    const next = confirmed(state);
+    expect(byId(next, "card-in")).toBe(byId(state, "card-in"));
+    expect(added(state, next)).toHaveLength(1);
+  });
+
+  test("the rows after a pair take the next seq values, as the pair itself keeps its own", () => {
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50000, "card", "card-in"),
+      row(s, 3, -999),
+      row(s, 4, -888),
+    ]);
+    const next = confirmed(state);
+    expect(byId(next, "card-in").seq).toBe(3);
+    expect(added(state, next).filter((t) => t.id !== "card-in")).toEqual([
+      expect.objectContaining({ seq: 8, amountCents: 999 }),
+      expect.objectContaining({ seq: 9, amountCents: 888 }),
+    ]);
+  });
+
+  test("both balances are right once the batch is confirmed (scenario 2)", () => {
+    // The card's side recorded the payment as an income; the bank's file shows it as money out.
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50000, "card", "card-in"),
+    ]);
+    const cash = state.pendingBatch!.accountId;
+    expect(accountBalance(state, "card")).toBe(50000);
+    expect(accountBalance(state, cash)).toBe(-500);
+
+    const next = confirmed(state);
+    // Money left Cash and reached the card once: not twice, and not on the card's side only.
+    expect(accountBalance(next, cash)).toBe(-500 - 50000);
+    expect(accountBalance(next, "card")).toBe(50000);
+  });
+
+  test("the balances stay right when the other side was an expense", () => {
+    const state = withLedgerAnd(
+      (s) => cardExpense(s, 20000),
+      (s) => [pairedRow(s, 2, 20000, "card", "card-out")],
+    );
+    const cash = state.pendingBatch!.accountId;
+    const next = confirmed(state);
+    expect(accountBalance(next, "card")).toBe(-20000);
+    expect(accountBalance(next, cash)).toBe(-500 + 20000);
+  });
+});
+
+describe("confirmBatch: vendors of the new transactions (FR-145)", () => {
+  test("the counterparty becomes the vendor of an expense and of an income", () => {
+    const state = withBatch((s) => [
+      row(s, 2, -4520, { counterparty: "Market" }),
+      row(s, 3, 245000, { counterparty: "Employer GmbH" }),
+    ]);
+    expect(added(state, confirmed(state)).map((t) => (t as WithVendors).vendor)).toEqual([
+      "Market",
+      "Employer GmbH",
+    ]);
+  });
+
+  test("a row without counterparty gives a transaction with no vendor field at all", () => {
+    const state = withBatch((s) => [row(s, 2, -4520)]);
+    const [created] = added(state, confirmed(state));
+    expect(created).not.toHaveProperty("vendor");
+    expect(created).not.toHaveProperty("destinationVendor");
+  });
+
+  test("money out as a transfer: the counterparty is the vendor, as the batch account is the source", () => {
+    const state = withBatch((s) => [
+      row(s, 2, -5000, {
+        counterparty: "Card issuer",
+        assignment: { type: "transfer", counterAccountId: "card" },
+      }),
+    ]);
+    const [created] = added(state, confirmed(state)) as WithVendors[];
+    expect(created).toEqual(
+      expect.objectContaining({
+        kind: "transfer",
+        accountId: state.pendingBatch!.accountId,
+        destinationAccountId: "card",
+        vendor: "Card issuer",
+      }),
+    );
+    expect(created).not.toHaveProperty("destinationVendor");
+  });
+
+  test("money in as a transfer: the counterparty is the destination vendor, as the batch account is the destination", () => {
+    const state = withBatch((s) => [
+      row(s, 2, 5000, {
+        counterparty: "Card issuer",
+        assignment: { type: "transfer", counterAccountId: "card" },
+      }),
+    ]);
+    const [created] = added(state, confirmed(state)) as WithVendors[];
+    expect(created).toEqual(
+      expect.objectContaining({
+        kind: "transfer",
+        accountId: "card",
+        destinationAccountId: state.pendingBatch!.accountId,
+        destinationVendor: "Card issuer",
+      }),
+    );
+    expect(created).not.toHaveProperty("vendor");
+  });
+
+  test("a transfer without counterparty has neither vendor", () => {
+    const state = withBatch((s) => [
+      row(s, 2, -5000, { assignment: { type: "transfer", counterAccountId: "card" } }),
+    ]);
+    const [created] = added(state, confirmed(state));
+    expect(created).not.toHaveProperty("vendor");
+    expect(created).not.toHaveProperty("destinationVendor");
+  });
+
+  test("a paired expense keeps its own vendor on its own side; the counterparty fills the batch account's side", () => {
+    const state = withLedgerAnd(
+      (s) => cardExpense(s, 50000, "My bank"),
+      (s) => [pairedRow(s, 2, 50000, "card", "card-out", { counterparty: "Card issuer" })],
+    );
+    const paired = byId(confirmed(state), "card-out");
+    // The source is the card (its own side), the destination the batch account.
+    expect(paired.vendor).toBe("My bank");
+    expect(paired.destinationVendor).toBe("Card issuer");
+  });
+
+  test("a paired income keeps its own vendor on its own side, now the destination", () => {
+    const state = withLedgerAnd(
+      (s) => cardPaymentLedger(s).map((t) => ({ ...t, vendor: "My bank" }) as WithVendors),
+      (s) => [pairedRow(s, 2, -50000, "card", "card-in", { counterparty: "Card issuer" })],
+    );
+    const paired = byId(confirmed(state), "card-in");
+    // The source is the batch account, the destination the card (its own side).
+    expect(paired.vendor).toBe("Card issuer");
+    expect(paired.destinationVendor).toBe("My bank");
+  });
+
+  test("a paired transaction without vendor and a row without counterparty stay without vendors", () => {
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50000, "card", "card-in"),
+    ]);
+    const paired = byId(confirmed(state), "card-in");
+    expect(paired).not.toHaveProperty("vendor");
+    expect(paired).not.toHaveProperty("destinationVendor");
+  });
+
+  test("a pair that no longer fits books its row as an ordinary transfer, with the counterparty by its side", () => {
+    const state = withBatch((s) => [
+      pairedRow(s, 2, -5000, "card", "gone", { counterparty: "Card issuer" }),
+    ]);
+    const [created] = added(state, confirmed(state)) as WithVendors[];
+    expect(created!.vendor).toBe("Card issuer");
+    expect(created).not.toHaveProperty("destinationVendor");
+  });
+});
+
+describe("confirmationCounts: what the confirmation states (FR-157)", () => {
+  test("counts the rows entering the ledger, none set aside, and the transactions becoming transfers", () => {
+    const state = withLedgerAnd(cardPaymentLedger, (s) => [
+      pairedRow(s, 2, -50000, "card", "card-in"),
+      row(s, 3, -999),
+      row(s, 4, -5000, { assignment: { type: "transfer", counterAccountId: "card" } }),
+      row(s, 5, -123, { included: false }),
+      {
+        rowNumber: 6,
+        status: "unparsable",
+        cells: ["x"],
+        failure: { code: "date-missing", details: {} },
+      } as unknown as PendingRow,
+    ]);
+    expect(confirmationCounts(state)).toEqual({ entering: 3, setAside: 0, becomingTransfers: 2 });
+  });
+
+  test("counts a pair that no longer fits as a transfer too, as it will be booked as one", () => {
+    const state = withBatch((s) => [pairedRow(s, 2, 50000, "card", "gone")]);
+    expect(confirmationCounts(state)).toEqual({ entering: 1, setAside: 0, becomingTransfers: 1 });
+  });
+
+  test("is all zeros with no batch pending", () => {
+    expect(confirmationCounts(seedState(idCounter()))).toEqual({
+      entering: 0,
+      setAside: 0,
+      becomingTransfers: 0,
+    });
+  });
+});
+
+describe("confirmBatch: rows set aside (FR-152, FR-157, FR-159, SC-034)", () => {
+  /** `state` with the amount under which rows are set aside, or none: `settings.setAsideUnderCents`. */
+  function withSetAside(state: State, under: number | undefined): State {
+    const settings = { ...state.settings } as Record<string, unknown>;
+    if (under === undefined) delete settings.setAsideUnderCents;
+    else settings.setAsideUnderCents = under;
+    return applyValid(state, { settings: { put: settings as unknown as State["settings"] } });
+  }
+  /** The category a booked income or expense holds. */
+  const categoryOf = (state: State, t: Transaction) => {
+    if (t.kind === "transfer") throw new Error("A transfer has no category");
+    return state.categories.find((c) => c.id === t.categoryId)!;
+  };
+  const usual = (categoryId: string) =>
+    ({ type: "category", categoryId, usual: true }) as unknown as Assignment;
+
+  test("a row set aside enters the ledger in its side's Uncategorised, as an expense or an income", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50),
+        row(s, 3, 12),
+        row(s, 4, -4520, {
+          assignment: { type: "category", categoryId: categoryNamed(s, "expense", "Groceries") },
+        }),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+
+    const [small, tiny, large] = added(state, next);
+    expect(small).toMatchObject({ kind: "expense", amountCents: 50, description: "Row 2" });
+    expect(categoryOf(next, small!).name).toBe("Uncategorised");
+    expect(tiny).toMatchObject({ kind: "income", amountCents: 12, description: "Row 3" });
+    expect(categoryOf(next, tiny!)).toMatchObject({
+      name: "Uncategorised",
+      side: "income",
+    });
+    expect(categoryOf(next, large!).name).toBe("Groceries");
+  });
+
+  test("a row set aside whose usual category is Groceries still enters in Uncategorised", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, { assignment: usual(categoryNamed(s, "expense", "Groceries")) }),
+      ]),
+      100,
+    );
+    const [entered] = added(state, confirmed(state));
+    expect(categoryOf(confirmed(state), entered!).name).toBe("Uncategorised");
+  });
+
+  test("the same row keeps its usual category when it is not set aside", () => {
+    const state = withBatch((s) => [
+      row(s, 2, -50, { assignment: usual(categoryNamed(s, "expense", "Groceries")) }),
+    ]);
+    const next = confirmed(state);
+    const [entered] = added(state, next);
+    expect(categoryOf(next, entered!).name).toBe("Groceries");
+  });
+
+  test("a row brought back confirms with what it holds", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, {
+          keptInReview: true,
+          assignment: usual(categoryNamed(s, "expense", "Groceries")),
+        } as Partial<ParsedRow>),
+        row(s, 3, -60, { keptInReview: true } as Partial<ParsedRow>),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+    const [first, second] = added(state, next);
+    expect(categoryOf(next, first!).name).toBe("Groceries");
+    expect(categoryOf(next, second!).name).toBe("Uncategorised");
+  });
+
+  test("a row given a category before the amount was set is not set aside, and keeps it", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, {
+          keptInReview: true,
+          assignment: { type: "category", categoryId: categoryNamed(s, "expense", "Travel") },
+        } as Partial<ParsedRow>),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+    expect(categoryOf(next, added(state, next)[0]!).name).toBe("Travel");
+  });
+
+  test("a transfer under the amount stays a transfer", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50, { assignment: { type: "transfer", counterAccountId: "card" } }),
+      ]),
+      100,
+    );
+    const next = confirmed(state);
+    const entered = added(state, next);
+    expect(entered).toHaveLength(1);
+    expect(entered[0]).toMatchObject({ kind: "transfer", amountCents: 50 });
+  });
+
+  test("confirmationCounts gives the rows set aside, which also enter the ledger", () => {
+    const state = withSetAside(
+      withBatch((s) => [
+        row(s, 2, -50),
+        row(s, 3, 12),
+        row(s, 4, -4520),
+        row(s, 5, -60, { keptInReview: true } as Partial<ParsedRow>),
+        row(s, 6, -70, { included: false }),
+      ]),
+      100,
+    );
+    expect(confirmationCounts(state)).toEqual({ entering: 4, setAside: 2, becomingTransfers: 0 });
+  });
+
+  test("confirmationCounts counts none set aside when no amount is set", () => {
+    const state = withBatch((s) => [row(s, 2, -50), row(s, 3, 12)]);
+    expect(confirmationCounts(state)).toEqual({ entering: 2, setAside: 0, becomingTransfers: 0 });
+  });
+
+  test("30 rows under 1.00 change every balance exactly as they do with nothing set aside (SC-034)", () => {
+    const rows = (s: State): PendingRow[] => [
+      ...Array.from({ length: 30 }, (_, n) =>
+        row(s, 2 + n, n % 3 === 0 ? 10 + n : -(50 + n), {
+          date: `2026-08-${String(1 + (n % 28)).padStart(2, "0")}`,
+        }),
+      ),
+      row(s, 32, -4520),
+      row(s, 33, 245000),
+      row(s, 34, -3000, { assignment: { type: "transfer", counterAccountId: "card" } }),
+    ];
+    const plain = withBatch(rows);
+    const aside = withSetAside(plain, 100);
+    expect(confirmationCounts(aside).setAside).toBe(30);
+
+    const without = confirmed(plain);
+    const withSet = confirmed(aside);
+
+    for (const account of plain.accounts) {
+      expect(accountBalance(withSet, account.id)).toBe(accountBalance(without, account.id));
+    }
+    expect(withSet.transactions).toHaveLength(without.transactions.length);
   });
 });

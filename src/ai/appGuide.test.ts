@@ -57,6 +57,30 @@ describe("APP_GUIDE", () => {
     expect(APP_GUIDE).not.toMatch(/profile/i);
   });
 
+  // FR-142 – FR-153 (v1.8): what review does by itself, in the guide's part on review.
+  test("says review suggests transfers, and that turning Transfer off keeps the two apart (FR-142, FR-143)", () => {
+    expect(APP_GUIDE).toMatch(/suggested transfers?/i);
+    expect(APP_GUIDE).toMatch(/Transfer[^.]*\boff\b[^.]*(separate|apart|stay)/i);
+  });
+
+  test('names the mark "From earlier" and the choice "Skip rows under" (FR-147, FR-152)', () => {
+    expect(APP_GUIDE).toContain("From earlier");
+    expect(APP_GUIDE).toContain("Skip rows under");
+  });
+
+  test("names the buttons, the skipped rows and the status, and no longer says set aside (FR-153, FR-161)", () => {
+    for (const name of ["Under 1", "Under 5", "Under 10", "Skip none", "Skipped rows"]) {
+      expect(APP_GUIDE).toContain(name);
+    }
+    expect(APP_GUIDE).toMatch(/skipped rows[^.]*still imported|still imported[^.]*Uncategorised/i);
+    expect(APP_GUIDE).not.toMatch(/set aside|Bring back/i);
+  });
+
+  test("says typing finds a category and Tab moves to the next row (FR-148, FR-150)", () => {
+    expect(APP_GUIDE).toMatch(/typing[^.]*(finds|find|narrows)[^.]*categor/i);
+    expect(APP_GUIDE).toMatch(/\bTab\b[^.]*next row/i);
+  });
+
   test("ends with the line FAQ and FAQ as plain text (FR-141)", () => {
     const faqAsText = (faqModule as Record<string, unknown>).faqAsText as () => string;
     expect(APP_GUIDE.endsWith(["", "FAQ", faqAsText()].join("\n"))).toBe(true);

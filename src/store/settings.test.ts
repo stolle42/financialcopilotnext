@@ -2,7 +2,14 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loadState, openDatabase } from "@/persistence/db";
-import { aiFeaturesOn, chooseModel, removeKey, setAiFeatures, turnOnWithKey } from "./settings";
+import {
+  aiFeaturesOn,
+  chooseModel,
+  removeKey,
+  setAiFeatures,
+  setSetAsideAmount,
+  turnOnWithKey,
+} from "./settings";
 import { createStore } from "./store";
 
 // FR-095, FR-126: the AI features switch and the key save at once.
@@ -175,5 +182,65 @@ describe("turnOnWithKey and removeKey (FR-126)", () => {
     expect(store.getState().apiKey).toBe(key);
     db.close();
     expect((await reopened()).apiKey).toBe(key);
+  });
+});
+
+// FR-152, R-45; contracts/ui.md, review: the field "Set aside rows under" saves what it holds at
+// once. The field `setAsideUnderCents` is not in the types yet, so it is read through a cast.
+describe("setSetAsideAmount (FR-152)", () => {
+  const amountOf = (state: { settings: object }) =>
+    (state.settings as { setAsideUnderCents?: number }).setAsideUnderCents;
+
+  test.each([
+    ["1.00", 100],
+    ["1,00", 100],
+    ["0.5", 50],
+    ["  2  ", 200],
+  ])("%j stores %i cents", async (text, cents) => {
+    const { store } = await setUp();
+
+    expect(await setSetAsideAmount(store, text)).toBeNull();
+
+    expect(amountOf(store.getState())).toBe(cents);
+  });
+
+  test.each(["abc", "0", "0.00", "-1", "1.005", "1e2"])(
+    "%j stores nothing, removes the amount and says set-aside-amount-invalid",
+    async (text) => {
+      const { db, store } = await setUp();
+      await setSetAsideAmount(store, "1.00");
+
+      expect(await setSetAsideAmount(store, text)).toStrictEqual({
+        code: "set-aside-amount-invalid",
+      });
+
+      expect(store.getState().settings).not.toHaveProperty("setAsideUnderCents");
+      db.close();
+      expect((await reopened()).settings).not.toHaveProperty("setAsideUnderCents");
+    },
+  );
+
+  test("an empty field removes the amount", async () => {
+    const { store } = await setUp();
+    await setSetAsideAmount(store, "1.00");
+
+    expect(await setSetAsideAmount(store, "")).toBeNull();
+    expect(store.getState().settings).not.toHaveProperty("setAsideUnderCents");
+
+    await setSetAsideAmount(store, "1.00");
+    expect(await setSetAsideAmount(store, "   ")).toBeNull();
+    expect(store.getState().settings).not.toHaveProperty("setAsideUnderCents");
+  });
+
+  test("the amount survives closing the app, and the other settings stay", async () => {
+    const { db, store } = await setUp();
+    await setAiFeatures(store, true);
+
+    expect(await setSetAsideAmount(store, "1.50")).toBeNull();
+
+    db.close();
+    const state = await reopened();
+    expect(amountOf(state)).toBe(150);
+    expect(state.settings.aiFeatures).toBe(true);
   });
 });

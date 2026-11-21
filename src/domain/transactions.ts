@@ -11,6 +11,12 @@ interface DraftFields {
   accountId: string;
   date: string;
   description: string;
+  /**
+   * The vendors of an edited transaction, which no screen shows and no edit changes, so saving
+   * keeps them (FR-145). A kind change away from transfer drops `destinationVendor`.
+   */
+  vendor?: string;
+  destinationVendor?: string;
 }
 
 /**
@@ -47,8 +53,19 @@ export function changeKind(
     accountId: draft.accountId,
     date: draft.date,
     description: draft.description,
+    ...(draft.vendor === undefined ? {} : { vendor: draft.vendor }),
   };
-  if (kind === "transfer") return { ...fields, kind, destinationAccountId: null };
+  if (kind === "transfer") {
+    return {
+      ...fields,
+      kind,
+      destinationAccountId: null,
+      // Only a transfer holds a destination vendor, so it stays through a change to a transfer.
+      ...(draft.destinationVendor === undefined
+        ? {}
+        : { destinationVendor: draft.destinationVendor }),
+    };
+  }
   return { ...fields, kind, categoryId: protectedCategory(categories, kind, "uncategorised").id };
 }
 
@@ -86,9 +103,17 @@ export function draftOf(transaction: Transaction): Draft {
     accountId: transaction.accountId,
     date: transaction.date,
     description: transaction.description,
+    ...(transaction.vendor === undefined ? {} : { vendor: transaction.vendor }),
   };
   return transaction.kind === "transfer"
-    ? { ...fields, kind: "transfer", destinationAccountId: transaction.destinationAccountId }
+    ? {
+        ...fields,
+        kind: "transfer",
+        destinationAccountId: transaction.destinationAccountId,
+        ...(transaction.destinationVendor === undefined
+          ? {}
+          : { destinationVendor: transaction.destinationVendor }),
+      }
     : { ...fields, kind: transaction.kind, categoryId: transaction.categoryId };
 }
 
@@ -144,10 +169,18 @@ export function saveDraft(
     amountCents: draft.amountCents as number,
     accountId: draft.accountId,
     description: draft.description.trim(),
+    ...(draft.vendor === undefined ? {} : { vendor: draft.vendor }),
   };
   const transaction: Transaction =
     draft.kind === "transfer"
-      ? { ...fields, kind: "transfer", destinationAccountId: draft.destinationAccountId as string }
+      ? {
+          ...fields,
+          kind: "transfer",
+          destinationAccountId: draft.destinationAccountId as string,
+          ...(draft.destinationVendor === undefined
+            ? {}
+            : { destinationVendor: draft.destinationVendor }),
+        }
       : { ...fields, kind: draft.kind, categoryId: draft.categoryId };
 
   return edited

@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from "react";
-import type { Side } from "@/domain/types";
+import type { Refusal, Side } from "@/domain/types";
 import { createCategory } from "@/store/categories";
 import { useStoreApi } from "@/store/store";
 import { ColourPicker, firstFreeColour } from "@/ui/components/ColourPicker";
@@ -16,11 +16,31 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/components/ui/fi
 import { Input } from "@/ui/components/ui/input";
 import { messageFor, type MessageCode } from "@/ui/messages";
 
-/** Asks for a name and a colour, which starts as the first one the side does not use (FR-032). */
-export function NewCategoryDialog({ side, onClose }: { side: Side; onClose: () => void }) {
+/**
+ * Asks for a name, which may start filled in, and a colour, which starts as the first one the side
+ * does not use (FR-032, FR-149). A name is refused as Categories refuses it. `onCreated` gets the
+ * new category's id, and `onClose` is called after it, or when the dialog is cancelled.
+ */
+export function NewCategoryDialog({
+  side,
+  initialName = "",
+  create,
+  onCreated,
+  onClose,
+}: {
+  side: Side;
+  initialName?: string;
+  /**
+   * Creates the category in place of Categories' own way, as review does when it creates and
+   * assigns in one change. Resolves to the refusal, or `null`; `onCreated` is then not called.
+   */
+  create?: (input: { name: string; color: string }) => Promise<Refusal<MessageCode> | null>;
+  onCreated?: (categoryId: string) => void;
+  onClose: () => void;
+}) {
   const store = useStoreApi();
   const id = useId();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   // Chosen once, when the dialog opens: the colours the side uses do not change while it is open.
   const [color, setColor] = useState(() =>
     firstFreeColour(
@@ -35,9 +55,19 @@ export function NewCategoryDialog({ side, onClose }: { side: Side; onClose: () =
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const refusal = await createCategory(store, { side, name, color });
-    if (!refusal) onClose();
-    else if (refusal.code === "save-failed") setFormError(refusal.code);
+    // The dialog sits in the React tree of a form when a picker opens it; its submit is not that form's.
+    event.stopPropagation();
+    const refusal = create
+      ? await create({ name, color })
+      : await createCategory(store, { side, name, color });
+    if (!refusal) {
+      // Names are unique within a side, so the new category is the one with this name.
+      const created = store
+        .getState()
+        .categories.find((c) => c.side === side && c.name === name.trim());
+      if (created && !create) onCreated?.(created.id);
+      onClose();
+    } else if (refusal.code === "save-failed") setFormError(refusal.code);
     else setNameError(refusal.code);
   }
 
