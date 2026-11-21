@@ -433,3 +433,126 @@ describe("listTransactions (FR-016)", () => {
     expect(ids(input)).toEqual(["old", "shop", "move", "pay"]);
   });
 });
+
+// The vendor fields of v1.8 (FR-145, data-model.md, Transaction): the ledger keeps the counterparty
+// a transaction was confirmed from, and only a kind change touches it. The types of the fields
+// come with the code, so the tests write them through a cast.
+describe("vendors of a transaction (FR-145)", () => {
+  type WithVendors = Transaction & { vendor?: string; destinationVendor?: string };
+
+  function ledgerWith(transaction: WithVendors): { state: State; transaction: WithVendors } {
+    const state = applyValid(withChecking(), { transactions: { put: [transaction] } });
+    return { state, transaction };
+  }
+
+  const expense = (state: State): WithVendors => ({
+    id: "bakery",
+    seq: 1,
+    date: "2026-09-03",
+    amountCents: 450,
+    accountId: state.accounts[0]!.id,
+    description: "Brot",
+    kind: "expense",
+    categoryId: categoryNamed(state, "expense", "Groceries"),
+    vendor: "Bäckerei Krüger",
+  });
+
+  const transfer = (state: State): WithVendors => ({
+    id: "move",
+    seq: 1,
+    date: "2026-09-03",
+    amountCents: 10000,
+    accountId: state.accounts[0]!.id,
+    description: "To bank",
+    kind: "transfer",
+    destinationAccountId: "checking",
+    vendor: "Cash desk",
+    destinationVendor: "Incoming Cash desk",
+  });
+
+  const edit = (state: State, id: string, change: (draft: Draft) => Draft): WithVendors => {
+    const before = state.transactions.find((t) => t.id === id)!;
+    const next = saved(state, change(draftOf(before)));
+    return next.transactions.find((t) => t.id === id)!;
+  };
+
+  test("a transfer with both vendors changed into an expense keeps vendor and drops destinationVendor", () => {
+    const { state } = ledgerWith(transfer(withChecking()));
+
+    const after = edit(state, "move", (draft) => ({
+      ...changeKind(draft, "expense", state.categories),
+      categoryId: categoryNamed(state, "expense", "Groceries"),
+    }));
+
+    expect(after.kind).toBe("expense");
+    expect(after.vendor).toBe("Cash desk");
+    expect(after).not.toHaveProperty("destinationVendor");
+  });
+
+  test("a transfer changed into an income keeps vendor too", () => {
+    const { state } = ledgerWith(transfer(withChecking()));
+
+    const after = edit(state, "move", (draft) => ({
+      ...changeKind(draft, "income", state.categories),
+      categoryId: categoryNamed(state, "income", "Salary"),
+    }));
+
+    expect(after.kind).toBe("income");
+    expect(after.vendor).toBe("Cash desk");
+    expect(after).not.toHaveProperty("destinationVendor");
+  });
+
+  test("an expense with a vendor changed into a transfer keeps the vendor and has no destinationVendor", () => {
+    const { state } = ledgerWith(expense(withChecking()));
+
+    const after = edit(state, "bakery", (draft) => ({
+      ...changeKind(draft, "transfer", state.categories),
+      destinationAccountId: "checking",
+    }));
+
+    expect(after.kind).toBe("transfer");
+    expect(after.vendor).toBe("Bäckerei Krüger");
+    expect(after).not.toHaveProperty("destinationVendor");
+  });
+
+  test("editing date, amount, description, account or category changes neither field", () => {
+    const state = withChecking();
+    const { state: withExpense } = ledgerWith(expense(state));
+    const groceries = categoryNamed(state, "expense", "Groceries");
+    const other = state.categories.find(
+      (c) => c.side === "expense" && c.role === null && c.id !== groceries,
+    )!.id;
+
+    const changed = edit(withExpense, "bakery", (draft) => ({
+      ...draft,
+      date: "2026-09-10",
+      amountCents: 999,
+      description: "Brot und Brötchen",
+      accountId: "checking",
+      categoryId: other,
+    }));
+    expect(changed).toMatchObject({ date: "2026-09-10", amountCents: 999, accountId: "checking" });
+    expect(changed.vendor).toBe("Bäckerei Krüger");
+
+    const { state: withTransfer } = ledgerWith(transfer(state));
+    const moved = edit(withTransfer, "move", (draft) => ({
+      ...draft,
+      date: "2026-09-12",
+      amountCents: 12000,
+      description: "More to bank",
+    }));
+    expect(moved).toMatchObject({ date: "2026-09-12", amountCents: 12000 });
+    expect(moved.vendor).toBe("Cash desk");
+    expect(moved.destinationVendor).toBe("Incoming Cash desk");
+  });
+
+  test("a transaction entered with the form has neither field", () => {
+    const state = withChecking();
+    const draft: Draft = { ...newDraft(state, "2026-09-03"), amountCents: 1250 };
+
+    const created = saved(state, draft).transactions[0]!;
+
+    expect(created).not.toHaveProperty("vendor");
+    expect(created).not.toHaveProperty("destinationVendor");
+  });
+});

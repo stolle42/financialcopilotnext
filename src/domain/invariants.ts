@@ -8,10 +8,12 @@ import {
   type Category,
   type ChatTurn,
   type MappingProfile,
+  type ParsedRow,
   type PendingRow,
   type Refusal,
   type RefusalDetails,
   type State,
+  type Transaction,
 } from "./types";
 
 /** One code per way a state can break the invariants of data-model.md. */
@@ -31,6 +33,7 @@ export type InvariantCode =
   | "transaction-category-invalid"
   | "transaction-fields-mixed"
   | "transaction-destination-invalid"
+  | "transaction-vendor-invalid"
   | "budget-category-invalid"
   | "budget-limit-out-of-range"
   | "profile-name-missing"
@@ -43,10 +46,12 @@ export type InvariantCode =
   | "pending-row-amount-invalid"
   | "pending-row-category-invalid"
   | "pending-row-suggestion-invalid"
+  | "pending-row-mark-invalid"
   | "pending-row-transfer-invalid"
   | "pending-row-failure-unknown"
   | "settings-account-missing"
   | "settings-model-invalid"
+  | "settings-set-aside-invalid"
   | "settings-key-present"
   | "conversation-question-missing"
   | "conversation-turn-invalid"
@@ -131,6 +136,14 @@ const categories: Check = (state) => {
     : null;
 };
 
+/** Whether the transaction's vendors, if it has any, are non-empty and `destinationVendor` is on a transfer. */
+function vendorsFit(t: Transaction): boolean {
+  const filled = (vendor: unknown) => typeof vendor === "string" && vendor.trim() !== "";
+  if (t.vendor !== undefined && !filled(t.vendor)) return false;
+  if (t.kind !== "transfer") return !("destinationVendor" in t);
+  return t.destinationVendor === undefined || filled(t.destinationVendor);
+}
+
 // 4. Every transaction is well-formed and references existing records.
 const transactions: Check = (state) => {
   const accountIds = new Set(state.accounts.map((a) => a.id));
@@ -146,6 +159,7 @@ const transactions: Check = (state) => {
     if (!accountIds.has(t.accountId)) {
       return violation("transaction-account-missing", { transactionId, accountId: t.accountId });
     }
+    if (!vendorsFit(t)) return violation("transaction-vendor-invalid", { transactionId });
     if (t.kind === "transfer") {
       if ("categoryId" in t) return violation("transaction-fields-mixed", { transactionId });
       if (!accountIds.has(t.destinationAccountId) || t.destinationAccountId === t.accountId) {
@@ -217,6 +231,18 @@ const profiles: Check = (state) => {
   return null;
 };
 
+/** Whether every mark of a parsed row is `true` or absent, and the marks of an assignment agree. */
+function marksFit(row: ParsedRow): boolean {
+  const { assignment } = row;
+  const flags: unknown[] = [row.keptInReview, row.seen, row.groupSeen, assignment.usual];
+  if (assignment.type === "category") flags.push(assignment.suggested);
+  if (!flags.every((flag) => flag === undefined || flag === true)) return false;
+  if (assignment.type === "category") return !(assignment.suggested && assignment.usual);
+  const paired = assignment.pairedTransactionId;
+  if (paired !== undefined && (typeof paired !== "string" || assignment.usual)) return false;
+  return assignment.usualCategoryId === undefined || paired !== undefined;
+}
+
 function checkRow(
   row: PendingRow,
   batchAccountId: string,
@@ -231,6 +257,7 @@ function checkRow(
   if (!isCalendarDate(row.date)) return violation("pending-row-date-invalid", { rowNumber });
   if (!isSafeAmount(row.amountCents)) return violation("pending-row-amount-invalid", { rowNumber });
   const assignment = row.assignment;
+  if (!marksFit(row)) return violation("pending-row-mark-invalid", { rowNumber });
   if (assignment.type === "category") {
     const category = categoriesById.get(assignment.categoryId);
     if (category?.side !== proposedSide(row.amountCents) || category.role === "unaccounted") {
@@ -240,11 +267,20 @@ function checkRow(
     if (assignment.suggested && category.role !== null) {
       return violation("pending-row-suggestion-invalid", { rowNumber });
     }
-  } else if (
-    !accountIds.has(assignment.counterAccountId) ||
-    assignment.counterAccountId === batchAccountId
-  ) {
-    return violation("pending-row-transfer-invalid", { rowNumber });
+  } else {
+    if (
+      !accountIds.has(assignment.counterAccountId) ||
+      assignment.counterAccountId === batchAccountId
+    ) {
+      return violation("pending-row-transfer-invalid", { rowNumber });
+    }
+    // The row's usual category, kept for turning the Transfer switch off (FR-143).
+    if (assignment.usualCategoryId !== undefined) {
+      const usual = categoriesById.get(assignment.usualCategoryId);
+      if (usual?.side !== proposedSide(row.amountCents) || usual.role !== null) {
+        return violation("pending-row-category-invalid", { rowNumber });
+      }
+    }
   }
   return null;
 }
@@ -268,14 +304,17 @@ const pendingBatch: Check = (state) => {
 };
 
 // 8. The manual-entry default account exists; `settings.model`, when present, is a non-empty
-// string; the settings hold no field for the key, which lives beside them (FR-126).
+// string; `settings.setAsideUnderCents`, when present, is a positive safe integer; the settings hold no field for the key, which lives beside them (FR-126).
 const settings: Check = (state) => {
-  const { manualEntryAccountId: accountId, model } = state.settings;
+  const { manualEntryAccountId: accountId, model, setAsideUnderCents: setAside } = state.settings;
   if (!state.accounts.some((a) => a.id === accountId)) {
     return violation("settings-account-missing", { accountId });
   }
   if (model !== undefined && (typeof model !== "string" || model === "")) {
     return violation("settings-model-invalid", { model });
+  }
+  if (setAside !== undefined && !(Number.isSafeInteger(setAside) && setAside > 0)) {
+    return violation("settings-set-aside-invalid", { setAsideUnderCents: setAside });
   }
   if ("apiKey" in state.settings) return violation("settings-key-present", { field: "apiKey" });
   return null;

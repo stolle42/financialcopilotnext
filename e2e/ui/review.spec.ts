@@ -10,7 +10,16 @@ import { openAiError } from "../../src/ai/testing";
 import { messageFor, notifications, type MessageCode } from "../../src/ui/messages";
 // A namespace import, so the spec loads even before the catalogue words a new message.
 import * as catalogue from "../../src/ui/messages";
-import { addAccount, addTransaction, choose, screenIntro, storedRecords } from "../support/app";
+import {
+  addAccount,
+  addTransaction,
+  choose,
+  expectCategory,
+  pickCategory,
+  screenIntro,
+  storedRecords,
+} from "../support/app";
+import { backupText, restoreBackup, storedData } from "../support/backup";
 import {
   standInCategoriser,
   suggestBySide,
@@ -154,7 +163,7 @@ test("starts every row in its side's Uncategorised, and offers no Unaccounted (F
 }) => {
   await importAugust(page);
   const category = assignment(page, "Shop, expenses").getByLabel("Category", { exact: true });
-  await expect(category).toHaveText("Uncategorised");
+  await expectCategory(assignment(page, "Shop, expenses"), "Uncategorised");
   await category.click();
   await expect(page.getByRole("option", { name: "Groceries", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: "Unaccounted", exact: true })).toHaveCount(0);
@@ -165,7 +174,7 @@ test("assigning a category to a group assigns it to every row in it, at once (sc
   page,
 }) => {
   await importAugust(page);
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
   const groceries = {
     type: "category",
     categoryId: await categoryId(page, "expense", "Groceries"),
@@ -185,10 +194,10 @@ test("an unfolded group gives each row its own category without affecting the ot
 }) => {
   await importAugust(page);
   const shop = group(page, "Shop, expenses");
-  await choose(page, assignment(shop, "Shop, expenses"), "Category", "Groceries");
+  await pickCategory(page, assignment(shop, "Shop, expenses"), "Groceries");
   await shop.getByRole("button", { name: "Show rows" }).click();
-  await expect(shop).toContainText("Groceries");
-  await choose(page, assignment(shop, "row 5"), "Category", "Eating out");
+  await expectCategory(shop, "Groceries");
+  await pickCategory(page, assignment(shop, "row 5"), "Eating out");
 
   const eatingOut = await categoryId(page, "expense", "Eating out");
   await expect
@@ -199,9 +208,7 @@ test("an unfolded group gives each row its own category without affecting the ot
     type: "category",
     categoryId: groceries,
   });
-  await expect(
-    assignment(shop, "Shop, expenses").getByLabel("Category", { exact: true }),
-  ).toHaveText("Mixed");
+  await expectCategory(assignment(shop, "Shop, expenses"), "Mixed");
 });
 
 test("without a counterparty column, every row is a plain row with its own category (scenario 6)", async ({
@@ -237,7 +244,7 @@ test("marks a payment to the user's own credit card as a transfer, and back (sce
 
   // Switching back restores the side's Uncategorised.
   await control.getByRole("switch", { name: "Transfer" }).click();
-  await expect(control.getByLabel("Category", { exact: true })).toHaveText("Uncategorised");
+  await expectCategory(control, "Uncategorised");
   const uncategorised = await categoryId(page, "expense", "Uncategorised");
   await expect
     .poll(async () => (await storedRow(page, 11)).assignment)
@@ -246,18 +253,12 @@ test("marks a payment to the user's own credit card as a transfer, and back (sce
 
 test("assignments survive a reload (FR-022)", async ({ page }) => {
   await importAugust(page);
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
-  await choose(page, assignment(page, "row 2"), "Category", "Salary");
-  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
-    "Salary",
-  );
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
+  await pickCategory(page, assignment(page, "row 2"), "Salary");
+  await expectCategory(assignment(page, "row 2"), "Salary");
   await page.reload();
-  await expect(
-    assignment(page, "Shop, expenses").getByLabel("Category", { exact: true }),
-  ).toHaveText("Groceries");
-  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
-    "Salary",
-  );
+  await expectCategory(assignment(page, "Shop, expenses"), "Groceries");
+  await expectCategory(assignment(page, "row 2"), "Salary");
 });
 
 const footer = (page: Page) => page.getByRole("region", { name: "Finish review" });
@@ -266,11 +267,9 @@ test("confirming states the count, books the rows as reviewed and opens Transact
   page,
 }) => {
   await importAugust(page);
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
-  await choose(page, assignment(page, "row 2"), "Category", "Salary");
-  await expect(assignment(page, "row 2").getByLabel("Category", { exact: true })).toHaveText(
-    "Salary",
-  );
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
+  await pickCategory(page, assignment(page, "row 2"), "Salary");
+  await expectCategory(assignment(page, "row 2"), "Salary");
 
   // Cancelling the confirmation keeps the batch.
   await footer(page).getByRole("button", { name: "Confirm 13 transactions" }).click();
@@ -461,7 +460,7 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
     await expect(suggestButton(page)).toHaveText("Asking the AI…");
     await expect(suggestButton(page)).toBeDisabled();
     await expect(confirmButton(page)).toBeDisabled();
-    await choose(page, assignment(page, "Shop, expenses"), "Category", "Travel");
+    await pickCategory(page, assignment(page, "Shop, expenses"), "Travel");
     const travel = await categoryId(page, "expense", "Travel");
     await expect
       .poll(async () => (await storedRow(page, 3)).assignment)
@@ -515,12 +514,14 @@ test.describe("Suggest categories (FR-090 – FR-094)", () => {
       await standInCategoriser(page, reply);
       await importAugust(page);
       await turnOnAiFeatures(page);
-      const before = await storedRows(page);
+      // The assignments only: leaving a field marks its item seen, which is no change to a row's category.
+      const assignments = async () => (await storedRows(page)).map((row) => row.assignment);
+      const before = await assignments();
 
       await suggestCategories(page);
 
       await expect(page.getByRole("main").getByRole("alert")).toHaveText(messageFor({ code }));
-      expect(await storedRows(page)).toEqual(before);
+      expect(await assignments()).toEqual(before);
       await expect(suggestButton(page)).toBeEnabled();
     });
   }
@@ -574,7 +575,7 @@ test.describe("the suggested mark (FR-093)", () => {
     await withSuggestions(page);
 
     const parking = assignment(page, "row 9");
-    await expect(parking).toContainText("Transport");
+    await expectCategory(parking, "Transport");
     await expect(mark(parking)).toBeVisible();
     await expect(mark(assignment(page, "row 11"))).toHaveCount(0);
   });
@@ -585,11 +586,11 @@ test.describe("the suggested mark (FR-093)", () => {
     await withSuggestions(page);
 
     const shop = assignment(page, "Shop, expenses");
-    await expect(shop).toContainText("Groceries");
+    await expectCategory(shop, "Groceries");
     await expect(mark(shop)).toBeVisible();
 
     const bakery = group(page, "Bäckerei Krüger, expenses");
-    await expect(assignment(bakery, "Bäckerei Krüger, expenses")).toContainText("Mixed");
+    await expectCategory(assignment(bakery, "Bäckerei Krüger, expenses"), "Mixed");
     await expect(mark(assignment(bakery, "Bäckerei Krüger, expenses"))).toHaveCount(0);
     await bakery.getByRole("button", { name: "Show rows" }).click();
     for (const rowNumber of [4, 8, 17]) {
@@ -603,7 +604,7 @@ test.describe("the suggested mark (FR-093)", () => {
     await withSuggestions(page);
     const transport = await categoryId(page, "expense", "Transport");
 
-    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+    await pickCategory(page, assignment(page, "row 9"), "Transport");
 
     await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
     await expect
@@ -618,10 +619,10 @@ test.describe("the suggested mark (FR-093)", () => {
     const shop = group(page, "Shop, expenses");
     await shop.getByRole("button", { name: "Show rows" }).click();
 
-    await choose(page, assignment(shop, "row 3"), "Category", "Groceries");
+    await pickCategory(page, assignment(shop, "row 3"), "Groceries");
 
     await expect(mark(assignment(shop, "row 3"))).toHaveCount(0);
-    await expect(assignment(shop, "Shop, expenses")).toContainText("Groceries");
+    await expectCategory(assignment(shop, "Shop, expenses"), "Groceries");
     await expect(mark(assignment(shop, "Shop, expenses"))).toHaveCount(0);
     for (const rowNumber of [5, 7]) {
       await expect(mark(assignment(shop, `row ${rowNumber}`))).toBeVisible();
@@ -631,7 +632,7 @@ test.describe("the suggested mark (FR-093)", () => {
   test("a choice for the group removes the marks of all its rows", async ({ page }) => {
     await withSuggestions(page);
 
-    await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
+    await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
 
     await expect(mark(assignment(page, "Shop, expenses"))).toHaveCount(0);
     for (const rowNumber of [3, 5, 7]) {
@@ -643,7 +644,7 @@ test.describe("the suggested mark (FR-093)", () => {
 
   test("the marks survive a reload, and a removed mark stays removed", async ({ page }) => {
     await withSuggestions(page);
-    await choose(page, assignment(page, "row 9"), "Category", "Transport");
+    await pickCategory(page, assignment(page, "row 9"), "Transport");
     await expect(mark(assignment(page, "row 9"))).toHaveCount(0);
 
     await page.reload();
@@ -702,4 +703,382 @@ test("says once, above the rows, what the Transfer switch is for (FR-138)", asyn
   const line = (await main.getByText(TRANSFER_LINE).boundingBox())!;
   const first = (await vendorGroups(page).first().boundingBox())!;
   expect(line.y).toBeLessThan(first.y);
+});
+
+// contracts/ui.md, review, Marks; FR-147, FR-154. A ledger whose vendors were sorted before gives
+// August's rows their usual categories, marked "From earlier", beside the AI's "Suggested". The
+// vendors of v1.8 are not in the types yet, so the earlier transactions are written as plain data.
+test.describe("the marks: Suggested and From earlier (FR-147, FR-154)", () => {
+  const SENTENCE = /most earlier transactions of this vendor/i;
+  const earlier = (scope: Locator) => scope.getByText("From earlier", { exact: true });
+  const suggested = (scope: Locator) => scope.getByText("Suggested", { exact: true });
+
+  /** Cash's July: Shop all in Groceries, Bäckerei Krüger 2 of 3 in Eating out, Parking in Transport. */
+  async function withEarlierMonth(page: Page) {
+    await page.goto("/");
+    const base = await storedData(page);
+    const cash = base.accounts.find((a) => a.name === "Cash")!;
+    const expenseId = (name: string) =>
+      base.categories.find((c) => c.side === "expense" && c.name === name)!.id;
+    let seq = base.transactions.reduce((max, t) => Math.max(max, t.seq), 0);
+    const added: Transaction[] = [];
+    const add = (vendor: string, categoryName: string) => {
+      seq += 1;
+      added.push({
+        id: `july-${seq}`,
+        seq,
+        date: "2026-07-10",
+        amountCents: 1_000 + seq,
+        accountId: cash.id,
+        description: `July (${vendor})`,
+        kind: "expense",
+        categoryId: expenseId(categoryName),
+        vendor,
+      } as unknown as Transaction);
+    };
+    for (const category of ["Groceries", "Groceries", "Groceries"]) add("Shop", category);
+    for (const category of ["Eating out", "Eating out", "Groceries"]) {
+      add("Bäckerei Krüger", category);
+    }
+    for (const category of ["Transport", "Transport", "Transport"]) add("Parking", category);
+    const backup = { ...base, transactions: [...base.transactions, ...added] };
+    await restoreBackup(page, backupText(backup), undefined, { timeout: 60_000 });
+    await importAugust(page);
+  }
+
+  test("each mark differs from the other in icon and word", async ({ page }) => {
+    await standInCategoriser(page, suggestBySide("Shopping", "Gifts"));
+    await withEarlierMonth(page);
+    await turnOnAiFeatures(page);
+    await suggestCategories(page);
+    // The AI's suggestions fill every row the earlier months left in Uncategorised.
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 0 rows");
+
+    // Shop's rows hold Groceries from earlier, which their collapsed group shows; the credit
+    // card's row, which no earlier transaction names, holds the AI's suggestion.
+    const usual = assignment(page, "Shop, expenses");
+    await expect(earlier(usual)).toBeVisible();
+    await expect(usual.locator("svg.lucide-history")).toHaveCount(1);
+    await expect(usual.locator("svg.lucide-sparkles")).toHaveCount(0);
+    await expect(suggested(usual)).toHaveCount(0);
+
+    const ai = assignment(page, "row 11");
+    await expect(suggested(ai)).toBeVisible();
+    await expect(ai.locator("svg.lucide-sparkles")).toHaveCount(1);
+    await expect(ai.locator("svg.lucide-history")).toHaveCount(0);
+    await expect(earlier(ai)).toHaveCount(0);
+  });
+
+  test("the sentence shows once, above the first item that holds the mark, and describes the mark on every row", async ({
+    page,
+  }) => {
+    await withEarlierMonth(page);
+
+    await expect(reviewList(page).getByText(SENTENCE)).toHaveCount(1);
+    const sentence = (await reviewList(page).getByText(SENTENCE).boundingBox())!;
+    const first = (await vendorGroups(page).first().boundingBox())!;
+    expect(sentence.y).toBeLessThan(first.y);
+
+    const shop = group(page, "Shop, expenses");
+    await shop.getByRole("button", { name: "Show rows" }).click();
+    await expect(earlier(assignment(shop, "Shop, expenses"))).toHaveAccessibleDescription(SENTENCE);
+    for (const rowNumber of [3, 5, 7]) {
+      await expect(earlier(assignment(shop, `row ${rowNumber}`))).toHaveAccessibleDescription(
+        SENTENCE,
+      );
+    }
+    await expect(earlier(assignment(page, "row 9"))).toHaveAccessibleDescription(SENTENCE);
+  });
+
+  test("a group whose rows are mixed shows no mark, and its unfolded rows show theirs", async ({
+    page,
+  }) => {
+    await withEarlierMonth(page);
+    const bakery = group(page, "Bäckerei Krüger, expenses");
+    await expect(earlier(assignment(bakery, "Bäckerei Krüger, expenses"))).toBeVisible();
+
+    await bakery.getByRole("button", { name: "Show rows" }).click();
+    await pickCategory(page, assignment(bakery, "row 4"), "Travel");
+
+    const header = assignment(bakery, "Bäckerei Krüger, expenses");
+    await expectCategory(header, "Mixed");
+    await expect(earlier(header)).toHaveCount(0);
+    await expect(earlier(assignment(bakery, "row 4"))).toHaveCount(0);
+    for (const rowNumber of [8, 17]) {
+      await expect(earlier(assignment(bakery, `row ${rowNumber}`))).toBeVisible();
+    }
+  });
+});
+
+// contracts/ui.md, review, current item and seen items; FR-150, FR-151, FR-154. The icons are
+// images named "Current item" and "Seen", so they differ in shape as well as colour.
+test.describe("the current and the seen items (FR-150, FR-151)", () => {
+  const current = (page: Page) => reviewList(page).locator('[aria-current="true"]');
+  const seenIcons = (scope: Page | Locator) => scope.getByRole("img", { name: "Seen" });
+  const currentIcons = (scope: Page | Locator) => scope.getByRole("img", { name: "Current item" });
+  const textColour = (item: Locator) => item.evaluate((el) => getComputedStyle(el).color);
+
+  test.beforeEach(async ({ page }) => {
+    await importAugust(page);
+  });
+
+  test("the first item is current: a 2px outline, a 4px bar at its left and the arrow icon", async ({
+    page,
+  }) => {
+    await expect(current(page)).toHaveCount(1);
+    await expect(current(page)).toContainText("Shop");
+    await expect(current(page)).toHaveCSS("outline-width", "2px");
+    await expect(current(page)).toHaveCSS("outline-style", "solid");
+    await expect(current(page)).toHaveCSS("border-left-width", "4px");
+    await expect(currentIcons(current(page))).toHaveCount(1);
+    await expect(seenIcons(current(page))).toHaveCount(0);
+  });
+
+  test("an item not seen has neither the icons nor the outline", async ({ page }) => {
+    const other = plainRows(page).first();
+    await expect(other).not.toHaveAttribute("aria-current", "true");
+    await expect(currentIcons(other)).toHaveCount(0);
+    await expect(seenIcons(other)).toHaveCount(0);
+    await expect(other).not.toHaveCSS("border-left-width", "4px");
+    await expect(other).not.toHaveCSS("outline-width", "2px");
+  });
+
+  test("a seen item that is not current has the check icon and its text in the secondary ink", async ({
+    page,
+  }) => {
+    const other = plainRows(page).first();
+    const unseenColour = await textColour(other);
+    const shop = group(page, "Shop, expenses");
+
+    await other.click();
+
+    await expect(current(page)).toHaveCount(1);
+    await expect(other).toHaveAttribute("aria-current", "true");
+    await expect(seenIcons(shop)).toHaveCount(1);
+    await expect(currentIcons(shop)).toHaveCount(0);
+    await expect(shop).not.toHaveCSS("outline-width", "2px");
+    expect(await textColour(shop)).not.toBe(unseenColour);
+  });
+
+  test("the current item scrolls into view when it changes", async ({ page }) => {
+    await page.setViewportSize({ width: 1000, height: 420 });
+    // Tab goes through the items from the first, so the sixth is far down a short window.
+    for (let n = 0; n < 6; n++) await page.keyboard.press("Tab");
+    await expect(current(page)).toHaveCount(1);
+    await expect(current(page)).toBeInViewport();
+    await expect(current(page)).not.toContainText("Shop");
+  });
+
+  test("unfolding a group makes it current, and its rows follow it as items", async ({ page }) => {
+    const shop = group(page, "Shop, expenses");
+    await plainRows(page).first().click();
+    await expect(shop).not.toHaveAttribute("aria-current", "true");
+
+    await shop.getByRole("button", { name: "Show rows" }).click();
+
+    await expect(shop).toHaveAttribute("aria-current", "true");
+    const rows = shop.getByRole("listitem");
+    await expect(rows).toHaveCount(3);
+    await rows.nth(1).click();
+    await expect(rows.nth(1)).toHaveAttribute("aria-current", "true");
+    await expect(shop).not.toHaveAttribute("aria-current", "true");
+    await expect(current(page)).toHaveCount(1);
+  });
+
+  test("clicking another item makes the current one seen, and opening its own list does not", async ({
+    page,
+  }) => {
+    const shop = group(page, "Shop, expenses");
+    await assignment(shop, "Shop, expenses").getByLabel("Category", { exact: true }).click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await expect(seenIcons(shop)).toHaveCount(0);
+    await expect(shop).toHaveAttribute("aria-current", "true");
+    await page.keyboard.press("Escape");
+    await expect(seenIcons(shop)).toHaveCount(0);
+
+    await plainRows(page).first().click();
+
+    await expect(seenIcons(shop)).toHaveCount(1);
+  });
+
+  test("focusing Discard in the footer makes the current item seen", async ({ page }) => {
+    await expect(seenIcons(reviewList(page))).toHaveCount(0);
+
+    await footer(page).getByRole("button", { name: "Discard" }).focus();
+
+    await expect(seenIcons(group(page, "Shop, expenses"))).toHaveCount(1);
+    await expect(current(page)).toHaveCount(0);
+  });
+
+  test("a line above the items says that typing finds a category and Tab moves on (FR-154)", async ({
+    page,
+  }) => {
+    const line = page.getByRole("main").getByText(/typing finds a category/i);
+    await expect(line).toHaveCount(1);
+    await expect(line).toContainText(/Tab moves to the next row/i);
+    const lineBox = (await line.boundingBox())!;
+    const firstBox = (await vendorGroups(page).first().boundingBox())!;
+    expect(lineBox.y).toBeLessThan(firstBox.y);
+  });
+});
+
+// contracts/ui.md, review, Skip rows under and the skipped rows drawer; FR-152, FR-153, FR-154,
+// FR-161. August's file gives, with 5.00 set, four skipped rows: the two of Bäckerei Krüger's 4.50,
+// the parking ticket and the account fee. The second ticket is a flagged duplicate, which is not
+// skipped. `setAsideUnderCents` and the seen marks are v1.8 fields, read as they are stored.
+test.describe("skipped rows: the field, the buttons and the drawer (FR-152, FR-153, FR-154, FR-161)", () => {
+  const field = (page: Page) => page.getByLabel("Skip rows under", { exact: true });
+  const suggestions = (page: Page) => page.getByRole("region", { name: "Suggestions" });
+  const drawer = (page: Page) => page.getByRole("dialog", { name: "Skipped rows" });
+  const SENTENCE =
+    /rows under this amount are not reviewed\. They are still imported, as Uncategorised, so your balances stay right\./i;
+
+  test.beforeEach(async ({ page }) => {
+    await standInCategoriser(page);
+  });
+
+  test("the field sits between the header and the suggestions, empty at first, with its sentence beside it", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    await expect(field(page)).toHaveValue("");
+    const [headerBox, fieldBox, suggestionsBox, listBox] = await Promise.all(
+      [header(page), field(page), suggestions(page), reviewList(page)].map((locator) =>
+        locator.boundingBox(),
+      ),
+    );
+    expect(headerBox!.y + headerBox!.height).toBeLessThanOrEqual(fieldBox!.y + 1);
+    expect(fieldBox!.y).toBeLessThan(suggestionsBox!.y);
+    expect(suggestionsBox!.y).toBeLessThan(listBox!.y);
+
+    const sentence = page.getByText(SENTENCE);
+    await expect(sentence).toHaveCount(1);
+    const sentenceBox = (await sentence.boundingBox())!;
+    expect(Math.abs(sentenceBox.y - fieldBox!.y)).toBeLessThan(fieldBox!.height + 40);
+  });
+
+  test("the header always says how many rows are skipped, and the count opens the drawer", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    await expect(header(page).getByText("None skipped", { exact: true })).toBeVisible();
+
+    await field(page).fill("5.00");
+    await expect(header(page)).toContainText("9 rows to review");
+    await expect(header(page).getByText("None skipped", { exact: true })).toHaveCount(0);
+    await header(page).getByRole("button", { name: "4 skipped", exact: true }).click();
+    await expect(drawer(page)).toBeVisible();
+    await expect(drawer(page).getByRole("listitem")).toHaveCount(4);
+    await page.keyboard.press("Escape");
+
+    await field(page).fill("");
+    await expect(header(page).getByText("None skipped", { exact: true })).toBeVisible();
+    await expect(header(page)).toContainText("13 rows to review");
+  });
+
+  test("the buttons Under 1, Under 5, Under 10 and Skip none sit beside the field, in a row of toggle buttons", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    const section = page.getByRole("region", { name: "Skip small rows" });
+    const buttons = section.getByRole("button");
+    await expect(buttons).toHaveText(["Under 1", "Under 5", "Under 10", "Skip none"]);
+    for (const name of ["Under 1", "Under 5", "Under 10", "Skip none"]) {
+      await expect(section.getByRole("button", { name, exact: true })).toHaveAttribute(
+        "aria-pressed",
+        name === "Skip none" ? "true" : "false",
+      );
+    }
+    await section.getByRole("button", { name: "Under 5", exact: true }).click();
+    await expect(field(page)).toHaveValue("5.00");
+    await expect(header(page)).toContainText("9 rows to review");
+    await expect(section.getByRole("button", { name: "Under 5", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  test("the live line under the field says what the amount does to this batch", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    const section = page.getByRole("region", { name: "Skip small rows" });
+    await expect(section.getByText("No rows are skipped.", { exact: true })).toBeVisible();
+    await field(page).fill("5");
+    await expect(
+      section.getByText(
+        "4 of 13 rows are under €5.00. Together they come to €14.50, and they are imported as Uncategorised.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await field(page).fill("0.5");
+    await expect(section.getByText("No rows are under €0.50.", { exact: true })).toBeVisible();
+  });
+
+  test("the drawer lists date, description, vendor and amount by date, each with Review this row", async ({
+    page,
+  }) => {
+    await importAugust(page);
+    await field(page).fill("5.00");
+    await header(page).getByRole("button", { name: "4 skipped", exact: true }).click();
+
+    const rows = drawer(page).getByRole("listitem");
+    await expect(rows).toHaveCount(4);
+    const expected = [
+      ["Aug 2, 2026", "Brötchen", "Bäckerei Krüger", "-€4.50"],
+      ["Aug 9, 2026", "Brötchen", "Bäckerei Krüger", "-€4.50"],
+      ["Aug 12, 2026", "Ticket", "Parking", "-€2.00"],
+      ["Aug 21, 2026", "Account fee €", null, "-€3.50"],
+    ] as const;
+    for (const [index, [date, description, vendor, amount]] of expected.entries()) {
+      const item = rows.nth(index);
+      await expect(item).toContainText(date);
+      await expect(item).toContainText(description);
+      if (vendor) await expect(item).toContainText(vendor);
+      await expect(item).toContainText(amount);
+      await expect(
+        item.getByRole("button", { name: "Review this row", exact: true }),
+      ).toBeVisible();
+    }
+    // The flagged duplicate stays in the duplicates drawer, and the other rows in review.
+    await expect(drawer(page)).not.toContainText("Monthly plan");
+  });
+
+  test("Suggest categories counts neither the skipped rows", async ({ page }) => {
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 13 rows");
+
+    await field(page).fill("5.00");
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 9 rows");
+  });
+
+  test("Suggest categories counts neither the rows holding a usual category", async ({ page }) => {
+    // Shop's three purchases held Groceries in July, so they hold it now and are not sent.
+    await page.goto("/");
+    const base = await storedData(page);
+    const cash = base.accounts.find((a) => a.name === "Cash")!;
+    const groceries = base.categories.find((c) => c.side === "expense" && c.name === "Groceries")!;
+    const july = [1, 2, 3].map((n) => ({
+      id: `july-${n}`,
+      seq: 1000 + n,
+      date: "2026-07-10",
+      amountCents: 1_000 + n,
+      accountId: cash.id,
+      description: "July (Shop)",
+      kind: "expense",
+      categoryId: groceries.id,
+      vendor: "Shop",
+    }));
+    const backup = { ...base, transactions: [...base.transactions, ...july] };
+    await restoreBackup(page, backupText(backup as unknown as typeof base), undefined, {
+      timeout: 60_000,
+    });
+    await importAugust(page);
+    await turnOnAiFeatures(page);
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 10 rows");
+
+    await field(page).fill("5.00");
+    await expect(suggestButton(page)).toHaveText("Suggest categories for 6 rows");
+  });
 });

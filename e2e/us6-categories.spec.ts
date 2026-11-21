@@ -4,6 +4,7 @@ import { messageFor } from "../src/ui/messages";
 import {
   addTransaction,
   budgetRow,
+  expectCategory,
   openTransactionForm,
   setBudgetLimit,
   storedBudgets,
@@ -100,8 +101,15 @@ test("organises categories without breaking transactions or budgets", async ({ p
   await restaurantRows.first().getByRole("button", { name: "Edit transaction" }).click();
   const form = page.getByRole("dialog", { name: "Edit transaction" });
   const category = form.getByLabel("Category", { exact: true });
-  await expect(category).toHaveText("Restaurants");
-  expect(await chipColour(category, "Restaurants")).toBe(orange);
+  await expectCategory(form, "Restaurants");
+  // The picker shows the category in its field, with the colour as a swatch before it.
+  expect(
+    await category
+      .locator("xpath=ancestor::*[@data-slot='input-group']")
+      .locator("[style*='background-color']")
+      .first()
+      .evaluate((swatch) => getComputedStyle(swatch).backgroundColor),
+  ).toBe(orange);
   await category.click();
   await expect(page.getByRole("option", { name: "Restaurants", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: "Eating out", exact: true })).toHaveCount(0);
@@ -165,7 +173,7 @@ test("organises categories without breaking transactions or budgets", async ({ p
   await page.goto("/");
   await expect(ledgerRows(page).filter({ hasText: "To sort" })).toHaveCount(12);
   const newForm = await openTransactionForm(page);
-  await expect(newForm.getByLabel("Category", { exact: true })).toHaveText("To sort");
+  await expectCategory(newForm, "To sort");
   await newForm.getByRole("button", { name: "Cancel" }).click();
 
   // 5. "Refunds" may exist once on each side, but not twice on one.

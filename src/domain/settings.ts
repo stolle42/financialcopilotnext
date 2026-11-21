@@ -1,5 +1,5 @@
 import type { Changes } from "./changes";
-import type { Settings, State } from "./types";
+import type { Refusal, Settings, State } from "./types";
 
 /**
  * Turns AI features on or off (FR-095). Off removes the setting rather than storing `false`, so
@@ -33,4 +33,23 @@ export function maskKey(key: string): string {
 /** Chooses the model that answers, and changes nothing else (FR-129). */
 export function setModel(state: State, model: string): Changes {
   return { settings: { put: { ...state.settings, model } } };
+}
+
+/**
+ * Sets the amount under which review sets rows aside, in cents, or removes it with `undefined`
+ * (FR-152). Zero, a negative amount and a fraction of a cent are refused, so a stored amount is
+ * always a positive whole number of cents (data-model.md, settings).
+ */
+export function setSetAsideAmount(
+  state: State,
+  cents: number | undefined,
+): Changes | Refusal<"set-aside-amount-invalid"> {
+  const settings: Settings = { ...state.settings };
+  if (cents === undefined) {
+    delete settings.setAsideUnderCents;
+  } else {
+    if (!Number.isSafeInteger(cents) || cents <= 0) return { code: "set-aside-amount-invalid" };
+    settings.setAsideUnderCents = cents;
+  }
+  return { settings: { put: settings } };
 }

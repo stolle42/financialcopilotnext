@@ -535,3 +535,119 @@ describe("deleteCategory (FR-033, FR-034)", () => {
     });
   });
 });
+
+// Category deletion and the marks of v1.8 (FR-147, data-model.md, State transitions): a row never
+// keeps "suggested" or "usual" for a category that is gone, and a suggested transfer loses a usual
+// category that is gone but stays a suggested transfer. The marks' types come with the code, so
+// the rows are written through a cast.
+describe("deleteCategory and the marks of v1.8 (FR-147)", () => {
+  function batchWith(state: State, rows: unknown[]): State {
+    return applyValid(state, {
+      pendingBatch: {
+        put: [
+          {
+            id: "batch",
+            accountId: state.accounts.find((a) => a.name === "Cash")!.id,
+            fileName: "mybank-2026-10.csv",
+            createdAt: "2026-10-10T10:00:00.000Z",
+            rows: rows as PendingRow[],
+          },
+        ],
+      },
+    });
+  }
+
+  const parsed = (rowNumber: number, amountCents: number, assignment: unknown, extra = {}) =>
+    ({
+      rowNumber,
+      status: "parsed",
+      date: "2026-10-10",
+      amountCents,
+      description: `Row ${rowNumber}`,
+      counterparty: "Vendor 001",
+      duplicate: false,
+      included: true,
+      assignment,
+      ...extra,
+    }) as unknown as PendingRow;
+
+  test("a row whose usual or suggested category is deleted moves to Uncategorised without marks", () => {
+    const state = seeded();
+    const travel = categoryNamed(state, "expense", "Travel");
+    const uncategorised = roleOf(state, "expense", "uncategorised").id;
+    const rows = [
+      parsed(2, -500, { type: "category", categoryId: travel.id, usual: true }),
+      parsed(3, -600, { type: "category", categoryId: travel.id, suggested: true }),
+      parsed(
+        4,
+        -700,
+        { type: "category", categoryId: travel.id },
+        { keptInReview: true, seen: true },
+      ),
+    ];
+
+    const before = batchWith(state, rows);
+
+    const next = applyValid(before, changesOf(deleteCategory(before, travel.id)));
+
+    const moved = { type: "category", categoryId: uncategorised };
+    expect(next.pendingBatch?.rows).toEqual([
+      { ...rows[0], assignment: moved },
+      { ...rows[1], assignment: moved },
+      { ...rows[2], assignment: moved },
+    ]);
+  });
+
+  test("a suggested transfer loses a usualCategoryId that names the category and keeps its pair", () => {
+    const state = seeded();
+    const travel = categoryNamed(state, "expense", "Travel");
+    const groceries = categoryNamed(state, "expense", "Groceries");
+    const rows = [
+      parsed(2, -500, {
+        type: "transfer",
+        counterAccountId: giro.id,
+        pairedTransactionId: "other-side",
+        usualCategoryId: travel.id,
+      }),
+      parsed(3, -600, {
+        type: "transfer",
+        counterAccountId: giro.id,
+        pairedTransactionId: "other-side-2",
+        usualCategoryId: groceries.id,
+      }),
+      parsed(4, -700, {
+        type: "transfer",
+        counterAccountId: giro.id,
+        pairedTransactionId: "other-side-3",
+      }),
+    ];
+    const before = batchWith(state, rows);
+
+    const next = applyValid(before, changesOf(deleteCategory(before, travel.id)));
+
+    expect(next.pendingBatch?.rows).toEqual([
+      parsed(2, -500, {
+        type: "transfer",
+        counterAccountId: giro.id,
+        pairedTransactionId: "other-side",
+      }),
+      rows[1],
+      rows[2],
+    ]);
+  });
+
+  test("a usual transfer and the rows of other categories stay as they are", () => {
+    const state = seeded();
+    const travel = categoryNamed(state, "expense", "Travel");
+    const groceries = categoryNamed(state, "expense", "Groceries");
+    const rows = [
+      parsed(2, -500, { type: "transfer", counterAccountId: giro.id, usual: true }),
+      parsed(3, -600, { type: "category", categoryId: groceries.id, usual: true }),
+    ];
+    const before = batchWith(state, rows);
+
+    const next = applyValid(before, changesOf(deleteCategory(before, travel.id)));
+
+    expect(next.pendingBatch?.rows).toEqual(rows);
+  });
+});

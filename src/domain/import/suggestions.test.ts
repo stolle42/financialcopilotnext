@@ -427,3 +427,116 @@ describe("applySuggestions (FR-092, FR-093)", () => {
     expect(applySuggestions(another, sent, answer)).toEqual({ code: "suggestions-outdated" });
   });
 });
+
+// FR-148, FR-093; contracts/ai.md, request: a row that starts with its usual category is not sent
+// to the AI, so the AI never overwrites a usual choice and the row never gets both marks.
+describe("rows with a usual choice and the AI (FR-148)", () => {
+  /** The mixed batch, with the rows numbered `rowNumbers` holding Groceries as a usual category. */
+  function withUsualGroceries(rowNumbers: number[]): State {
+    const state = mixedBatch();
+    const batch = state.pendingBatch!;
+    const usual = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Groceries").id,
+      usual: true,
+    } as unknown as Assignment;
+    const rows = batch.rows.map((r) =>
+      r.status === "parsed" && rowNumbers.includes(r.rowNumber) ? { ...r, assignment: usual } : r,
+    );
+    return applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+  }
+
+  test("rows holding a usual category are not among the rows sent", () => {
+    const state = withUsualGroceries([2]);
+    expect(suggestable(state)).toEqual([3, 9, 6]);
+    expect(sentRows(state).rowNumbers).toEqual([3, 9, 6]);
+  });
+
+  test("a usual transfer is not sent either", () => {
+    const state = mixedBatch();
+    const batch = state.pendingBatch!;
+    const usual = {
+      type: "transfer",
+      counterAccountId: "card",
+      usual: true,
+    } as unknown as Assignment;
+    const rows = batch.rows.map((r) => (r.rowNumber === 9 ? { ...r, assignment: usual } : r));
+    const next = applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+    expect(suggestable(next)).toEqual([2, 3, 6]);
+  });
+
+  test("an answer for a row that holds a usual category changes nothing", () => {
+    const state = mixedBatch();
+    const sent = sentRows(state);
+    // The user, or the next import, gave row 2 its usual category while the AI answered.
+    const batch = state.pendingBatch!;
+    const usual = {
+      type: "category",
+      categoryId: categoryNamed(state, "expense", "Groceries").id,
+      usual: true,
+    } as unknown as Assignment;
+    const rows = batch.rows.map((r) => (r.rowNumber === 2 ? { ...r, assignment: usual } : r));
+    const held = applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+
+    const result = applySuggestions(held, sent, [
+      { rowNumber: 2, category: "Travel" },
+      { rowNumber: 3, category: "Groceries" },
+    ]);
+    if ("code" in result) throw new Error(`Refused: ${result.code}`);
+    const next = applyValid(held, result.changes);
+
+    expect(result.filled).toBe(1);
+    expect(rowOf(next, 2).assignment).toStrictEqual(usual);
+    expect(rowOf(next, 3).assignment).toMatchObject({ suggested: true });
+  });
+});
+
+describe("rows set aside and the AI (FR-152)", () => {
+  /** The mixed batch with the amount under which rows are set aside: 10.00. */
+  function withSetAside(under: number | undefined): State {
+    const state = mixedBatch();
+    const settings = { ...state.settings } as Record<string, unknown>;
+    if (under === undefined) delete settings.setAsideUnderCents;
+    else settings.setAsideUnderCents = under;
+    return applyValid(state, { settings: { put: settings as unknown as State["settings"] } });
+  }
+
+  test("rows set aside are not among the rows sent", () => {
+    // Row 6 (5.00) is under 10.00 and in Uncategorised: set aside. Row 8 has no text to send.
+    const state = withSetAside(1000);
+    expect(sentRows(state).rowNumbers).toEqual([2, 3, 9]);
+  });
+
+  test("suggestableRows leaves out the rows set aside of the view it is given", () => {
+    const state = withSetAside(1000);
+    const view = reviewView(state.pendingBatch!, [], 1000);
+    expect(rowNumbersOf(suggestableRows(view, state.categories))).toEqual([2, 3, 9]);
+  });
+
+  test("with no amount set, they are sent as before", () => {
+    expect(sentRows(withSetAside(undefined)).rowNumbers).toEqual([2, 3, 9, 6]);
+  });
+
+  test("a row brought back under review is sent again", () => {
+    const state = withSetAside(1000);
+    const batch = state.pendingBatch!;
+    const rows = batch.rows.map((r) =>
+      r.rowNumber === 6 ? { ...r, keptInReview: true as const } : r,
+    );
+    const brought = applyValid(state, { pendingBatch: { put: [{ ...batch, rows }] } });
+    expect(sentRows(brought).rowNumbers).toEqual([2, 3, 9, 6]);
+  });
+
+  test("an answer for a row set aside changes nothing", () => {
+    const state = withSetAside(1000);
+    const result = applySuggestions(state, sentRows(withSetAside(undefined)), [
+      { rowNumber: 6, category: "Groceries" },
+      { rowNumber: 3, category: "Groceries" },
+    ]);
+    if ("code" in result) throw new Error(`Refused: ${result.code}`);
+    const next = applyValid(state, result.changes);
+    expect(result.filled).toBe(1);
+    expect(rowOf(next, 6).assignment).toStrictEqual(rowOf(state, 6).assignment);
+    expect(rowOf(next, 3).assignment).toMatchObject({ suggested: true });
+  });
+});

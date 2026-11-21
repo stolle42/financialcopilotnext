@@ -6,12 +6,12 @@ import { useStore, useStoreApi } from "@/store/store";
 import { CategoryChip } from "@/ui/components/CategoryChip";
 import { ColourPicker } from "@/ui/components/ColourPicker";
 import { ConfirmDialog } from "@/ui/components/ConfirmDialog";
+import { NewCategoryDialog } from "@/ui/components/NewCategoryDialog";
 import { Button } from "@/ui/components/ui/button";
 import { FieldError } from "@/ui/components/ui/field";
 import { Input } from "@/ui/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/components/ui/tabs";
 import { messageFor, type MessageCode } from "@/ui/messages";
-import { NewCategoryDialog } from "./NewCategoryDialog";
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 

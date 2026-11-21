@@ -32,6 +32,11 @@ interface TransactionFields {
   /** For a transfer, the account the money leaves. */
   accountId: string;
   description: string;
+  /**
+   * The counterparty as booked on `accountId`, kept from the row it was confirmed from. Non-empty
+   * when present; no screen shows or edits it (FR-145, R-40).
+   */
+  vendor?: string;
 }
 
 export interface CategorisedTransaction extends TransactionFields {
@@ -42,6 +47,8 @@ export interface CategorisedTransaction extends TransactionFields {
 export interface Transfer extends TransactionFields {
   kind: "transfer";
   destinationAccountId: string;
+  /** The counterparty as booked on `destinationAccountId`. Non-empty when present (R-40). */
+  destinationVendor?: string;
 }
 
 export type Transaction = CategorisedTransaction | Transfer;
@@ -113,10 +120,21 @@ export const ROW_FAILURE_CODES = [
 
 export type RowFailureCode = (typeof ROW_FAILURE_CODES)[number];
 
-/** `suggested` marks a category the AI suggested, until the user assigns the row (FR-093). */
+/**
+ * `suggested` marks a category the AI suggested (FR-093), `usual` the row's usual category or
+ * transfer (FR-147); both go when the user assigns the row. A category never holds both. A transfer
+ * holds `pairedTransactionId` while it is the row's suggested transfer (FR-142), then with the
+ * row's usual category in `usualCategoryId` if it has one (FR-143), and never together with `usual`.
+ */
 export type Assignment =
-  | { type: "category"; categoryId: string; suggested?: true }
-  | { type: "transfer"; counterAccountId: string };
+  | { type: "category"; categoryId: string; suggested?: true; usual?: true }
+  | {
+      type: "transfer";
+      counterAccountId: string;
+      usual?: true;
+      pairedTransactionId?: string;
+      usualCategoryId?: string;
+    };
 
 interface RowFields {
   /** The record number in the file, counting a header row as 1, as a spreadsheet shows it. */
@@ -140,6 +158,12 @@ export interface ParsedRow extends RowFields {
   duplicate: boolean;
   included: boolean;
   assignment: Assignment;
+  /** Once the user assigned the row anything or brought it back, so it is never set aside (FR-152). */
+  keptInReview?: true;
+  /** Once the row itself was the current item and the focus moved away (FR-151). */
+  seen?: true;
+  /** Once the vendor group holding the row was the current item and the focus moved away (FR-151). */
+  groupSeen?: true;
 }
 
 export type PendingRow = ParsedRow | UnparsableRow;
@@ -162,6 +186,11 @@ export interface Settings {
    * kept, also one no longer in the list (FR-129, FR-130).
    */
   model?: string;
+  /**
+   * Review sets aside the rows whose amount is under this, for every account (FR-152). A positive
+   * safe integer; absent while the field is empty.
+   */
+  setAsideUnderCents?: number;
 }
 
 /**

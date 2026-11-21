@@ -600,3 +600,132 @@ describe("checkInvariants", () => {
     expect(checkInvariants(makeState())?.code).toBe(code);
   });
 });
+
+// Invariants 4, 7 and 8 as v1.8 restates them (data-model.md, Invariants): vendors, marks and the
+// set-aside amount, all optional, so a state of v1.7 stays valid (R-39).
+describe("checkInvariants, the fields of v1.8", () => {
+  const pairedTransfer = {
+    type: "transfer",
+    counterAccountId: "cash",
+    pairedTransactionId: "t1",
+  };
+
+  function withSettings(settings: Record<string, unknown>): State {
+    return { ...validState(), settings: { manualEntryAccountId: "cash", ...settings } as never };
+  }
+
+  test("passes a state saved by v1.7, with none of the new fields", () => {
+    expect(checkInvariants(validState())).toBeNull();
+  });
+
+  test.each<[string, () => State]>([
+    ["a vendor on an expense", () => withTransaction(0, { vendor: "REWE" })],
+    ["a vendor on a transfer", () => withTransaction(1, { vendor: "Geldautomat" })],
+    [
+      "both vendors on a transfer",
+      () => withTransaction(1, { vendor: "Geldautomat", destinationVendor: "Bank" }),
+    ],
+  ])("passes %s", (_, makeState) => {
+    expect(checkInvariants(makeState())).toBeNull();
+  });
+
+  test.each<[string, () => State]>([
+    ["a vendor of spaces only", () => withTransaction(0, { vendor: "  " })],
+    ["an empty vendor", () => withTransaction(0, { vendor: "" })],
+    ["a destination vendor on an expense", () => withTransaction(0, { destinationVendor: "Shop" })],
+    ["a destination vendor on an income", () => withTransaction(2, { destinationVendor: "Shop" })],
+    [
+      "a destination vendor of spaces only on a transfer",
+      () => withTransaction(1, { destinationVendor: " " }),
+    ],
+  ])("4: refuses %s", (_, makeState) => {
+    expect(checkInvariants(makeState())?.code).toBe("transaction-vendor-invalid");
+  });
+
+  test("7: passes the marks of v1.8 where data-model.md allows them", () => {
+    const allowed = [
+      { type: "category", categoryId: "groceries", suggested: true },
+      { type: "category", categoryId: "groceries", usual: true },
+      { type: "transfer", counterAccountId: "cash", usual: true },
+      pairedTransfer,
+      // A pair that names no transaction is not an error: the transaction may have been deleted.
+      { ...pairedTransfer, pairedTransactionId: "deleted-since" },
+      { ...pairedTransfer, usualCategoryId: "groceries" },
+    ];
+    for (const assignment of allowed) {
+      expect(checkInvariants(withRow({ assignment })), JSON.stringify(assignment)).toBeNull();
+    }
+    expect(
+      checkInvariants(withRow({ keptInReview: true, seen: true, groupSeen: true })),
+    ).toBeNull();
+  });
+
+  test.each<[string, Record<string, unknown>]>([
+    [
+      "a category that is both suggested and usual",
+      { assignment: { type: "category", categoryId: "groceries", suggested: true, usual: true } },
+    ],
+    [
+      "a category with suggested: false",
+      { assignment: { type: "category", categoryId: "groceries", suggested: false } },
+    ],
+    [
+      "a category with usual: false",
+      { assignment: { type: "category", categoryId: "groceries", usual: false } },
+    ],
+    [
+      "a transfer with usual: false",
+      { assignment: { type: "transfer", counterAccountId: "cash", usual: false } },
+    ],
+    [
+      "a transfer that is both usual and paired",
+      { assignment: { ...pairedTransfer, usual: true } },
+    ],
+    [
+      "a usual category without a pair",
+      { assignment: { type: "transfer", counterAccountId: "cash", usualCategoryId: "groceries" } },
+    ],
+    ["keptInReview: false", { keptInReview: false }],
+    ["seen: false", { seen: false }],
+    ["groupSeen: false", { groupSeen: false }],
+  ])("7: refuses %s", (_, row) => {
+    expect(checkInvariants(withRow(row))?.code).toBe("pending-row-mark-invalid");
+  });
+
+  test.each<[string, Record<string, unknown>]>([
+    [
+      "a usual category of the other side on an expense row",
+      { assignment: { ...pairedTransfer, usualCategoryId: "salary" } },
+    ],
+    [
+      "a usual category that does not exist",
+      { assignment: { ...pairedTransfer, usualCategoryId: "gone" } },
+    ],
+    [
+      "a usual category that is Uncategorised",
+      { assignment: { ...pairedTransfer, usualCategoryId: "expense-uncategorised" } },
+    ],
+    [
+      "a usual category that is Unaccounted",
+      { assignment: { ...pairedTransfer, usualCategoryId: "expense-unaccounted" } },
+    ],
+  ])("7: refuses %s", (_, row) => {
+    expect(checkInvariants(withRow(row))?.code).toBe("pending-row-category-invalid");
+  });
+
+  test("7: a usual category of the row's side passes on an income row", () => {
+    const row = { amountCents: 4000, assignment: { ...pairedTransfer, usualCategoryId: "salary" } };
+    expect(checkInvariants(withRow(row))).toBeNull();
+  });
+
+  test.each([1, 100, 2 ** 53 - 1])("8: passes a set-aside amount of %s cents", (cents) => {
+    expect(checkInvariants(withSettings({ setAsideUnderCents: cents }))).toBeNull();
+  });
+
+  test.each([0, -1, 1.5, 2 ** 53, "100"])("8: refuses a set-aside amount of %s", (cents) => {
+    expect(checkInvariants(withSettings({ setAsideUnderCents: cents }))).toEqual({
+      code: "settings-set-aside-invalid",
+      details: { setAsideUnderCents: cents },
+    });
+  });
+});

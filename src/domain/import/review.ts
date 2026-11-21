@@ -1,5 +1,5 @@
-import type { Changes } from "../changes";
-import { protectedCategory } from "../categories";
+import type { Changes, Context } from "../changes";
+import { createCategory, protectedCategory, type CategoryRefusalCode } from "../categories";
 import type { Assignment, Category, ParsedRow, PendingBatch, Refusal, Side, State } from "../types";
 import { proposedSide } from "./direction";
 import { reviewView, type VendorGroup } from "./groups";
@@ -11,8 +11,44 @@ import { reviewView, type VendorGroup } from "./groups";
  */
 export type ReviewRefusalCode = "assignment-not-allowed" | "row-not-duplicate";
 
-/** A category or a transfer, or "uncategorised", which turning the Transfer switch off restores. */
-export type AssignmentChoice = Assignment | "uncategorised";
+/** A category to create on the side of the row or group, with the colour it gets (FR-149). */
+export interface NewCategoryChoice {
+  type: "new-category";
+  name: string;
+  color: string;
+}
+
+/**
+ * A category or a transfer, "uncategorised", which turning the Transfer switch off restores, or a
+ * new category, which is created and given in one change.
+ */
+export type AssignmentChoice = Assignment | "uncategorised" | NewCategoryChoice;
+
+/**
+ * What a choice does to the state before it is resolved: a new category is created on `side` and
+ * becomes a choice of that category, refused as Categories refuses it (FR-032, FR-149).
+ */
+function withNewCategory(
+  state: State,
+  side: Side,
+  choice: AssignmentChoice,
+  context: Context | undefined,
+):
+  | { state: State; choice: Exclude<AssignmentChoice, NewCategoryChoice>; changes: Changes }
+  | Refusal<CategoryRefusalCode> {
+  if (typeof choice === "string" || choice.type !== "new-category") {
+    return { state, choice, changes: {} };
+  }
+  if (!context) throw new Error("A new category needs the context's ids");
+  const created = createCategory(state, { side, name: choice.name, color: choice.color }, context);
+  if ("code" in created) return created;
+  const category = created.categories!.put![0]!;
+  return {
+    state: { ...state, categories: [...state.categories, category] },
+    choice: { type: "category", categoryId: category.id },
+    changes: created,
+  };
+}
 
 /** The side's "Uncategorised": where every imported row starts (FR-029). */
 export function uncategorisedAssignment(categories: readonly Category[], side: Side): Assignment {
@@ -27,17 +63,28 @@ function pendingBatchOf(state: State): PendingBatch {
   return state.pendingBatch;
 }
 
-/** The assignment `choice` gives a row of `side`, or `null` when the rules do not allow it. */
+/**
+ * The assignment `choice` gives `row`, or `null` when the rules do not allow it. Turning Transfer
+ * off ("uncategorised") on a transfer that remembers a usual category gives that category, and
+ * otherwise the side's "Uncategorised" (FR-143). Every choice is a new assignment, so it carries
+ * neither the AI's mark (FR-093) nor a suggested transfer's pair.
+ */
 function resolve(
   state: State,
   batch: PendingBatch,
+  row: ParsedRow,
   side: Side,
-  choice: AssignmentChoice,
+  choice: Exclude<AssignmentChoice, NewCategoryChoice>,
 ): Assignment | null {
-  if (choice === "uncategorised") return uncategorisedAssignment(state.categories, side);
+  if (choice === "uncategorised") {
+    const { assignment } = row;
+    if (assignment.type === "transfer" && assignment.usualCategoryId !== undefined) {
+      return { type: "category", categoryId: assignment.usualCategoryId };
+    }
+    return uncategorisedAssignment(state.categories, side);
+  }
   if (choice.type === "category") {
     const category = state.categories.find((c) => c.id === choice.categoryId);
-    // A new assignment, so a user's choice never carries the AI's mark (FR-093).
     return category?.side === side && category.role !== "unaccounted"
       ? { type: "category", categoryId: category.id }
       : null;
@@ -71,12 +118,23 @@ export function assignRow(
   state: State,
   rowNumber: number,
   choice: AssignmentChoice,
-): Changes | Refusal<"assignment-not-allowed"> {
+  context?: Context,
+): Changes | Refusal<"assignment-not-allowed" | CategoryRefusalCode> {
   const batch = pendingBatchOf(state);
   const row = parsedRow(batch, rowNumber);
-  const assignment = resolve(state, batch, proposedSide(row.amountCents), choice);
+  const side = proposedSide(row.amountCents);
+  const given = withNewCategory(state, side, choice, context);
+  if ("code" in given) return given;
+  const assignment = resolve(given.state, batch, row, side, given.choice);
   if (!assignment) return { code: "assignment-not-allowed" };
-  return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, assignment }));
+  return {
+    ...given.changes,
+    ...updateRows(batch, new Set([rowNumber]), (r) => ({
+      ...r,
+      assignment,
+      keptInReview: true,
+    })),
+  };
 }
 
 /** Gives every row currently in the vendor group the same assignment (FR-026). */
@@ -84,14 +142,39 @@ export function assignGroup(
   state: State,
   group: Pick<VendorGroup, "key" | "side">,
   choice: AssignmentChoice,
-): Changes | Refusal<"assignment-not-allowed"> {
+  context?: Context,
+): Changes | Refusal<"assignment-not-allowed" | CategoryRefusalCode> {
   const batch = pendingBatchOf(state);
-  const found = reviewView(batch).groups.find((g) => g.key === group.key && g.side === group.side);
+  const found = reviewView(batch, [], state.settings.setAsideUnderCents).groups.find(
+    (g) => g.key === group.key && g.side === group.side,
+  );
   if (!found) throw new Error(`No ${group.side} group ${group.key}`);
-  const assignment = resolve(state, batch, found.side, choice);
-  if (!assignment) return { code: "assignment-not-allowed" };
-  const rowNumbers = new Set(found.rows.map((row) => row.rowNumber));
-  return updateRows(batch, rowNumbers, (r) => ({ ...r, assignment }));
+  const given = withNewCategory(state, found.side, choice, context);
+  if ("code" in given) return given;
+  const assignments = new Map<number, Assignment>();
+  for (const row of found.rows) {
+    const assignment = resolve(given.state, batch, row, found.side, given.choice);
+    if (!assignment) return { code: "assignment-not-allowed" };
+    assignments.set(row.rowNumber, assignment);
+  }
+  return {
+    ...given.changes,
+    ...updateRows(batch, new Set(assignments.keys()), (r) => ({
+      ...r,
+      assignment: assignments.get(r.rowNumber)!,
+      keptInReview: true,
+    })),
+  };
+}
+
+/**
+ * Brings a row set aside back under review, holding what it holds (FR-153). Bringing back a row
+ * again, or one that never was set aside, changes nothing more.
+ */
+export function bringBack(state: State, rowNumber: number): Changes {
+  const batch = pendingBatchOf(state);
+  parsedRow(batch, rowNumber);
+  return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, keptInReview: true }));
 }
 
 /** Includes a flagged row among the rows under review, or excludes it again (FR-025). */
@@ -103,4 +186,28 @@ export function includeDuplicate(
   const batch = pendingBatchOf(state);
   if (!parsedRow(batch, rowNumber).duplicate) return { code: "row-not-duplicate" };
   return updateRows(batch, new Set([rowNumber]), (r) => ({ ...r, included }));
+}
+
+/**
+ * Marks each parsed row numbered in `rowNumbers` with `field`. A row that is not in the batch, is
+ * unparsable or already holds the mark is left as it is, so marking again changes nothing.
+ */
+function markRows(batch: PendingBatch, rowNumbers: readonly number[], field: "seen" | "groupSeen") {
+  const wanted = new Set(rowNumbers);
+  const rows = batch.rows.map((row) =>
+    row.status === "parsed" && wanted.has(row.rowNumber) && !row[field]
+      ? { ...row, [field]: true as const }
+      : row,
+  );
+  return { pendingBatch: { put: [{ ...batch, rows }] } } satisfies Changes;
+}
+
+/** Marks the rows seen: each was the current item and the focus moved away (FR-151). */
+export function markSeen(state: State, rowNumbers: readonly number[]): Changes {
+  return markRows(pendingBatchOf(state), rowNumbers, "seen");
+}
+
+/** Marks the rows' vendor group seen, keeping each row's own mark (FR-151). */
+export function markGroupSeen(state: State, rowNumbers: readonly number[]): Changes {
+  return markRows(pendingBatchOf(state), rowNumbers, "groupSeen");
 }

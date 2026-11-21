@@ -1,7 +1,14 @@
 import type { Locator, Page } from "@playwright/test";
 import type { Account, Category, ParsedRow, PendingBatch, Transaction } from "../src/domain/types";
 import { messageFor, notifications } from "../src/ui/messages";
-import { addAccount, choose, fixture, storedRecords } from "./support/app";
+import {
+  addAccount,
+  choose,
+  expectCategory,
+  fixture,
+  pickCategory,
+  storedRecords,
+} from "./support/app";
 import { importWithProfile, mapDebitCredit, mapMyBank, startImport } from "./support/import";
 import { euros, expect, setToday, test } from "./support/test";
 
@@ -90,15 +97,15 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   await expect(plainRows(page).filter({ hasText: "Account fee €" })).toHaveCount(1);
 
   // 4. A category for the group goes to every row in it.
-  await choose(page, assignment(page, "Shop, expenses"), "Category", "Groceries");
-  await choose(page, assignment(page, "Bäckerei Krüger, expenses"), "Category", "Groceries");
+  await pickCategory(page, assignment(page, "Shop, expenses"), "Groceries");
+  await pickCategory(page, assignment(page, "Bäckerei Krüger, expenses"), "Groceries");
 
   // 5. Unfolded, one row of a group takes its own category.
   const bakery = group(page, "Bäckerei Krüger, expenses");
   await bakery.getByRole("button", { name: "Show rows" }).click();
-  await choose(page, assignment(bakery, "row 17"), "Category", "Eating out");
-  await expect(categoryOf(assignment(bakery, "row 4"))).toHaveText("Groceries");
-  await choose(page, assignment(page, "row 2"), "Category", "Salary");
+  await pickCategory(page, assignment(bakery, "row 17"), "Eating out");
+  await expectCategory(assignment(bakery, "row 4"), "Groceries");
+  await pickCategory(page, assignment(page, "row 2"), "Salary");
 
   // 7. The payment to the user's own credit card becomes a transfer.
   const cardPayment = assignment(page, "row 11");
@@ -111,8 +118,8 @@ test("imports bank files, reviews them by vendor and confirms them without dupli
   // 12. Closing and reopening the app keeps the batch with every choice made (FR-022).
   await page.reload();
   await expect(header(page)).toContainText("13 rows to review");
-  await expect(categoryOf(assignment(page, "Shop, expenses"))).toHaveText("Groceries");
-  await expect(categoryOf(assignment(page, "Bäckerei Krüger, expenses"))).toHaveText("Mixed");
+  await expectCategory(assignment(page, "Shop, expenses"), "Groceries");
+  await expectCategory(assignment(page, "Bäckerei Krüger, expenses"), "Mixed");
   await expect(
     assignment(page, "row 11").getByLabel("Transfer account", { exact: true }),
   ).toHaveText("Credit card");

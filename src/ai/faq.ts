@@ -40,8 +40,10 @@ To record a payment by hand, select Add transaction at the top of the window. To
 3. Choose the account the file belongs to, or New account… to create it.
 4. Choose the file.
 5. The first time, choose Create new bank CSV format. The app proposes the settings from the file: check in the preview that dates and amounts read right, give the format a name, such as your bank's, and select Save.
-6. In review, give each vendor group a category at once, and turn on Transfer for payments to your own accounts, such as your credit card or savings account.
+6. In review, give each vendor group a category at once, and turn on Transfer for payments to your own accounts, such as your credit card or savings account. Typing in a category field finds a category, and Tab moves to the next row.
 7. Select Confirm.
+
+Review helps with the rest. It lists Suggested transfers, payments that match a deposit in another account; confirming makes the two one transfer, and turning Transfer off keeps them apart. A category marked From earlier is the one most earlier transactions of that vendor have. Under Skip rows under, you can enter an amount or choose Under 1, Under 5 or Under 10, and smaller rows are not reviewed; they are still imported, as Uncategorised. Skip none shows every row again. If a category is missing, choose New category… at the end of the list.
 
 The next file of the same bank uses the saved bank CSV format, with nothing to set. Rows you imported before are recognised as duplicates and skipped, so the months of two files may overlap.`,
       },
