@@ -441,7 +441,8 @@ of the group in Pets. In the manual-entry form, do the same for "Refunds".
   this batch, with its numbers as they are now:
   - with an amount and skipped rows: "N of M rows are under X. Together they come to Y, and they
     are imported as Uncategorised.", where M counts the rows under review and the skipped rows,
-    and Y adds the amounts of the skipped rows without their sign;
+    and Y adds the amounts of the skipped rows without their sign; for one row, "1 of M rows is
+    under X. It comes to Y, and it is imported as Uncategorised.";
   - with an amount and no row under it: "No rows are under X.";
   - with no amount: "No rows are skipped."
 

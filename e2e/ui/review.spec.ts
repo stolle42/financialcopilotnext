@@ -1012,9 +1012,7 @@ test.describe("skipped rows: the field, the buttons and the drawer (FR-152, FR-1
       ),
     ).toBeVisible();
     await field(page).fill("0.5");
-    await expect(
-      section.getByText("No rows are under €0.50.", { exact: true }),
-    ).toBeVisible();
+    await expect(section.getByText("No rows are under €0.50.", { exact: true })).toBeVisible();
   });
 
   test("the drawer lists date, description, vendor and amount by date, each with Review this row", async ({
@@ -1038,7 +1036,9 @@ test.describe("skipped rows: the field, the buttons and the drawer (FR-152, FR-1
       await expect(item).toContainText(description);
       if (vendor) await expect(item).toContainText(vendor);
       await expect(item).toContainText(amount);
-      await expect(item.getByRole("button", { name: "Review this row", exact: true })).toBeVisible();
+      await expect(
+        item.getByRole("button", { name: "Review this row", exact: true }),
+      ).toBeVisible();
     }
     // The flagged duplicate stays in the duplicates drawer, and the other rows in review.
     await expect(drawer(page)).not.toContainText("Monthly plan");

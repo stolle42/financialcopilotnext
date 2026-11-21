@@ -222,10 +222,12 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           {counts.suggestedTransfers > 0 && (
             <span>{plural(counts.suggestedTransfers, "suggested transfer")}</span>
           )}
-          {counts.setAside > 0 && (
+          {counts.setAside > 0 ? (
             <Button variant="outline" size="sm" onClick={() => setDrawer("set-aside")}>
-              {counts.setAside} set aside
+              {counts.setAside} skipped
             </Button>
+          ) : (
+            <span>None skipped</span>
           )}
           <Button variant="outline" size="sm" onClick={() => setDrawer("duplicates")}>
             {plural(counts.duplicates, "duplicate")}
@@ -235,7 +237,12 @@ function BatchReview({ batch }: { batch: PendingBatch }) {
           </Button>
         </div>
       </section>
-      <SetAside under={under} count={counts.setAside} onOpen={() => setDrawer("set-aside")} />
+      <SetAside
+        under={under}
+        skipped={counts.setAside}
+        totalCents={view.setAsideTotalCents}
+        reviewing={counts.review}
+      />
       <SuggestCategories view={view} onRefusal={setRefusal} onAskingChange={setAskingAi} />
       {refusal && (
         <p role="alert" className="text-sm text-destructive">

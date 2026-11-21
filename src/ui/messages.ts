@@ -252,7 +252,7 @@ export const messages: Record<MessageCode, Wording> = {
     "The import changed while the AI was answering, so no suggestion was used.",
   "budget-limit-invalid": "The limit must be an amount above 0.00, with at most two decimals.",
   "set-aside-amount-invalid":
-    "The amount must be above 0.00, with at most two decimals. No rows are set aside.",
+    "The amount must be above 0.00, with at most two decimals. No rows are skipped.",
   "category-name-empty": "The category needs a name.",
   "category-name-taken": (details) =>
     `There is already ${details.side === "income" ? "an income" : "an expense"} category with this ` +
@@ -276,7 +276,7 @@ export const usualMarkSentence =
 
 /**
  * What the Confirm modal states (FR-157): the rows entering the ledger, how many of them in
- * "Uncategorised" because they were set aside, and the transactions becoming transfers.
+ * "Uncategorised" because they were skipped, and the transactions becoming transfers.
  */
 export function confirmationSummary(counts: {
   entering: number;
@@ -286,7 +286,7 @@ export function confirmationSummary(counts: {
   const rows = `${counts.entering} row${counts.entering === 1 ? "" : "s"}`;
   const aside =
     counts.setAside > 0
-      ? `, ${counts.setAside} of them in “Uncategorised” because they were set aside`
+      ? `, ${counts.setAside} of them in “Uncategorised” because they were skipped`
       : "";
   const transfers =
     counts.becomingTransfers === 0

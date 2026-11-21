@@ -240,7 +240,8 @@ test("Under 1, Under 5 and Under 10 set their amount and show pressed; Skip none
 
   // An amount typed in the field that no button stands for leaves them all unpressed.
   await amountField(page).fill("2.50");
-  for (const name of names) await expect(preset(page, name)).toHaveAttribute("aria-pressed", "false");
+  for (const name of names)
+    await expect(preset(page, name)).toHaveAttribute("aria-pressed", "false");
   await expect(skippedButton(page, SMALL + 1)).toBeVisible();
 
   // Skip none: no amount, every row under review, nothing dropped.
@@ -258,7 +259,9 @@ test("with an amount and no row under it, the line says so, and the header says 
 }, testInfo) => {
   await openReview(page, testInfo);
   await amountField(page).fill("0.10");
-  await expect(skipSection(page).getByText("No rows are under €0.10.", { exact: true })).toBeVisible();
+  await expect(
+    skipSection(page).getByText("No rows are under €0.10.", { exact: true }),
+  ).toBeVisible();
   await expect(noneSkipped(page)).toBeVisible();
   await expect(plainRows(page)).toHaveCount(2 + SMALL);
 });
